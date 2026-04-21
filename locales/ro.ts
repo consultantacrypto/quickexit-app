@@ -44,5 +44,16 @@ export const ro = {
   home: {
     latestDealsTitle: "CELE MAI NOI OPORTUNITĂȚI",
     kycOnly: "DOAR UTILIZATORI VERIFICAȚI (KYC)",
+  },
+  evaluation: {
+    title: "EVALUARE RAPIDĂ AI",
+    subtitle: "Află prețul de lichiditate în 60 de secunde",
+    assetType: "Tip Activ",
+    estimatedValue: "Valoare Estimată Market",
+    urgency: "Grad de Urgență",
+    urgencyLow: "Vânzare Normală (30 zile)",
+    urgencyMedium: "Urgent (7 zile)",
+    urgencyHigh: "Panic Sell (24-72h)",
+    submit: "OBȚINE EVALUAREA",
   }
 };
