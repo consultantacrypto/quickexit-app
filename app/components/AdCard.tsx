@@ -1,7 +1,11 @@
+"use client"; // Adăugăm asta pentru a fi siguri că interacțiunile merg brici
+
 import Image from "next/image";
+import Link from "next/link";
 import { ro } from "../../locales/ro";
 
 interface AdCardProps {
+  id: string;
   title: string;
   image: string;
   marketPrice: string;
@@ -11,7 +15,7 @@ interface AdCardProps {
   type: 'urgent' | 'extreme' | 'standard' | 'auction';
 }
 
-export default function AdCard({ title, image, marketPrice, exitPrice, discount, score, type }: AdCardProps) {
+export default function AdCard({ id, title, image, marketPrice, exitPrice, discount, score, type }: AdCardProps) {
   const { cards } = ro;
 
   return (
@@ -25,19 +29,16 @@ export default function AdCard({ title, image, marketPrice, exitPrice, discount,
           className="object-cover group-hover:scale-105 transition-transform duration-500" 
         />
         
-        {/* Badge Discount */}
         <div className="absolute top-4 left-4 bg-red-600 text-white px-4 py-2 rounded-xl font-black text-sm shadow-lg">
           -{discount}%
         </div>
 
-        {/* Deal Score AI - Stil Premium Auriu */}
         <div className="absolute bottom-4 right-4 bg-black/80 backdrop-blur-md border border-[#FFD100] text-[#FFD100] px-3 py-2 rounded-xl flex items-center gap-2 shadow-xl">
           <span className="text-[10px] font-black uppercase tracking-tighter text-white/70">{cards.dealScore}</span>
           <span className="text-lg font-black">{score}</span>
         </div>
       </div>
 
-      {/* Detalii Text */}
       <div className="p-6 text-left">
         <h4 className="text-xl font-black text-black mb-4 truncate uppercase tracking-tight">{title}</h4>
         
@@ -58,9 +59,14 @@ export default function AdCard({ title, image, marketPrice, exitPrice, discount,
           </div>
         </div>
 
-        <button className="w-full py-4 bg-gray-50 text-black font-black uppercase text-xs tracking-widest rounded-xl border border-gray-200 hover:bg-black hover:text-white transition-all duration-300">
+        {/* LINK-ul ACTIV - Verifică ID-ul aici */}
+        <Link 
+          href={`/anunt/${id}`}
+          key={id}
+          className="block w-full py-4 bg-gray-50 text-black font-black uppercase text-xs tracking-widest rounded-xl border border-gray-200 hover:bg-black hover:text-white transition-all duration-300 text-center cursor-pointer"
+        >
           {cards.viewDetails}
-        </button>
+        </Link>
       </div>
     </div>
   );
