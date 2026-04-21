@@ -9,7 +9,6 @@ export default function Home() {
       {/* HERO SECTION */}
       <section className="relative pt-20 pb-20 overflow-hidden bg-white">
         <div className="mx-auto max-w-7xl px-6 text-center">
-          {/* Titlu Principal - IMPACT */}
           <h1 className="text-6xl md:text-8xl font-black tracking-tighter text-black mb-4 italic uppercase">
             {hero.title}
           </h1>
@@ -21,7 +20,6 @@ export default function Home() {
             {hero.description}
           </p>
 
-          {/* BARA DE CĂUTARE */}
           <div className="mx-auto max-w-3xl bg-white border-[3px] border-black p-2 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.1)] flex flex-col md:flex-row items-center gap-2 mb-20">
             <input 
               type="text" 
@@ -33,7 +31,6 @@ export default function Home() {
             </button>
           </div>
 
-          {/* CATEGORII */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto px-4">
             <div className="group cursor-pointer p-8 bg-white rounded-3xl border border-gray-100 shadow-sm hover:shadow-xl transition-all border-b-4 hover:border-b-gray-400 text-left">
               <span className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 block mb-4">{types.standard.tag}</span>
@@ -66,6 +63,7 @@ export default function Home() {
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
                 <AdCard 
+                    id="penthouse-phuket" 
                     title="Penthouse Panwa Bay - Phuket" 
                     image="https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=800&q=80"
                     marketPrice="€850.000"
@@ -75,6 +73,7 @@ export default function Home() {
                     type="extreme"
                 />
                 <AdCard 
+                    id="mercedes-s-class" 
                     title="Mercedes S-Class 350d 2022" 
                     image="https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?auto=format&fit=crop&w=800&q=80"
                     marketPrice="€95.000"
@@ -84,6 +83,7 @@ export default function Home() {
                     type="urgent"
                 />
                 <AdCard 
+                    id="teren-buftea" 
                     title="Teren Intravilan Buftea Lac" 
                     image="https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=800&q=80"
                     marketPrice="€120.000"
