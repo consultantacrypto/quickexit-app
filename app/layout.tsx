@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import Header from "./components/Header";
+import Footer from "./components/Footer"; // Importăm componenta nouă
 
 export const metadata: Metadata = {
   title: "QuickExit - Lichiditate Instantă",
@@ -15,15 +16,14 @@ export default function RootLayout({
   return (
     <html lang="ro">
       <body className="bg-white text-black antialiased min-h-screen flex flex-col">
-        {/* Header-ul este fixat sus prin clasa 'fixed' din componenta sa */}
         <Header />
         
-        {/* Adăugăm pt-20 (padding top) ca să împingem conținutul sub Header-ul fix */}
-        <main className="flex-grow pt-20">
+        {/* pt-24 pe mobil, pt-44 pe desktop pentru a lăsa header-ul masiv să respire */}
+        <main className="flex-grow pt-24 md:pt-44"> 
           {children}
         </main>
-        
-        {/* Aici va veni Footer-ul când îl creăm */}
+
+        <Footer /> {/* Acum va afișa componenta detaliată cu Quick Exit LLC și steguletul României */}
       </body>
     </html>
   );
