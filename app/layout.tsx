@@ -1,11 +1,18 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import Header from "./components/Header";
-import Footer from "./components/Footer"; // Importăm componenta nouă
+import Footer from "./components/Footer"; 
 
 export const metadata: Metadata = {
-  title: "QuickExit - Lichiditate Instantă",
-  description: "Platformă ultra-premium pentru lichiditate rapidă a activelor prin evaluare AI.",
+  title: "QuickExit | Terminal de Lichiditate Instantă",
+  description: "Singura platformă din România care conectează activele premium cu investitori verificați. Evaluează cu AI, aplică discountul de urgență și încasează cash-ul în 24 de ore. Fără agenți, fără timp pierdut.",
+  keywords: ["lichiditate", "vânzare rapidă auto", "investiții imobiliare", "cash instant", "licitații active", "evaluare AI"],
+  openGraph: {
+    title: "QuickExit | Vinde Acum. Banii Azi.",
+    description: "Conectăm activele tale direct cu investitori care au cash pregătit. Fără negocieri infinite.",
+    type: "website",
+    locale: "ro_RO",
+  }
 };
 
 export default function RootLayout({
@@ -23,7 +30,7 @@ export default function RootLayout({
           {children}
         </main>
 
-        <Footer /> {/* Acum va afișa componenta detaliată cu Quick Exit LLC și steguletul României */}
+        <Footer /> 
       </body>
     </html>
   );
