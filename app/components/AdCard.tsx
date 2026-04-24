@@ -14,9 +14,10 @@ interface AdCardProps {
   discount: string;
   score: number;
   type: 'urgent' | 'extreme' | 'standard' | 'auction';
+  priority?: boolean; // Adăugat pentru optimizarea primei imagini (LCP)
 }
 
-export default function AdCard({ id, title, image, marketPrice, exitPrice, discount, score, type }: AdCardProps) {
+export default function AdCard({ id, title, image, marketPrice, exitPrice, discount, score, type, priority = false }: AdCardProps) {
   const { cards } = ro;
   const [isFavorite, setIsFavorite] = useState(false);
 
@@ -48,12 +49,14 @@ export default function AdCard({ id, title, image, marketPrice, exitPrice, disco
         <span className="text-xl font-black text-white leading-none tracking-tighter">{score}</span>
       </div>
 
-      {/* Imaginea - Curată, fără cifre false */}
+      {/* Imaginea - Acum cu sizes și priority pentru viteză maximă */}
       <div className="relative h-64 w-full overflow-hidden border-b-4 border-black">
         <Image
           src={image}
           alt={title}
           fill
+          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+          priority={priority}
           className="object-cover transition-transform duration-700 group-hover:scale-105"
         />
       </div>
