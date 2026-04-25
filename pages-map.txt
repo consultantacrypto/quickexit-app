@@ -1,0 +1,39 @@
+FILE: D:\MEDIA\quickexit\app\page.tsx
+ROUTE: /page.tsx
+
+FILE: D:\MEDIA\quickexit\app\anunt\[id]\page.tsx
+ROUTE: /anunt/[id]
+
+FILE: D:\MEDIA\quickexit\app\capital-disponibil\page.tsx
+ROUTE: /capital-disponibil
+
+FILE: D:\MEDIA\quickexit\app\cariere\page.tsx
+ROUTE: /cariere
+
+FILE: D:\MEDIA\quickexit\app\confidentialitate\page.tsx
+ROUTE: /confidentialitate
+
+FILE: D:\MEDIA\quickexit\app\contact\page.tsx
+ROUTE: /contact
+
+FILE: D:\MEDIA\quickexit\app\cookies\page.tsx
+ROUTE: /cookies
+
+FILE: D:\MEDIA\quickexit\app\cum-functioneaza\page.tsx
+ROUTE: /cum-functioneaza
+
+FILE: D:\MEDIA\quickexit\app\evaluare\page.tsx
+ROUTE: /evaluare
+
+FILE: D:\MEDIA\quickexit\app\posteaza-cerere\page.tsx
+ROUTE: /posteaza-cerere
+
+FILE: D:\MEDIA\quickexit\app\pune-anunt\page.tsx
+ROUTE: /pune-anunt
+
+FILE: D:\MEDIA\quickexit\app\termeni\page.tsx
+ROUTE: /termeni
+
+FILE: D:\MEDIA\quickexit\app\trimite-oferta\[id]\page.tsx
+ROUTE: /trimite-oferta/[id]
+

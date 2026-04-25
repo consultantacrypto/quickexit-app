@@ -1,13 +1,42 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { ro } from "../../locales/ro";
+import AuthModal from "./AuthModal"; 
+import { supabase } from "@/lib/supabase"; // Importăm motorul de Auth
 
 export default function Header() {
   const header = ro?.header;
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(false); 
+  const [isAuthOpen, setIsAuthOpen] = useState(false); 
+
+  // Starea pentru utilizator (dacă este logat sau nu)
+  const [user, setUser] = useState<any>(null);
+
+  // Verificăm sesiunea imediat ce se încarcă Header-ul
+  useEffect(() => {
+    // Luăm sesiunea curentă
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+    });
+
+    // Ascultăm schimbările de stare (login / logout)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        setIsAuthOpen(false); // Dacă s-a logat, închidem pop-up-ul automat
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // Funcția pentru Logout
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+  };
 
   return (
     <>
@@ -31,12 +60,10 @@ export default function Header() {
           {/* DESKTOP NAV */}
           <div className="hidden lg:flex items-center gap-4 xl:gap-7">
             
-            {/* 1. Cum funcționează - Pagina de Pitch */}
             <Link href="/cum-functioneaza" className="text-[10px] font-black uppercase tracking-widest text-gray-500 hover:text-black transition-colors italic">
               Cum Funcționează
             </Link>
             
-            {/* 2. Oferte Cumpărători - Link cu indicator "Live" */}
             <Link href="/capital-disponibil" className="group flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-black hover:text-gray-600 transition-colors italic">
               <span className="relative flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#FFD100] opacity-75"></span>
@@ -47,14 +74,35 @@ export default function Header() {
               </span>
             </Link>
 
-            {/* 3. CUMPĂR CU CASH (Înlocuiește Adaugă Capital) */}
+            {/* LOGICĂ DINAMICĂ CONT/DASHBOARD (DESKTOP) */}
+            {user ? (
+              <div className="flex items-center gap-4 mx-2 bg-gray-50 px-4 py-2 rounded-xl border-2 border-gray-100 shadow-[2px_2px_0_0_rgba(0,0,0,0.1)]">
+                <Link href="/dashboard" className="text-[10px] font-black uppercase tracking-widest text-black hover:text-[#FFD100] transition-colors italic flex items-center gap-1">
+                  <span className="text-sm">⚡</span> Dashboard
+                </Link>
+                <div className="h-4 w-[2px] bg-gray-200"></div>
+                <button 
+                  onClick={handleLogout}
+                  className="text-[9px] font-black uppercase tracking-widest text-gray-400 hover:text-red-500 transition-colors italic"
+                >
+                  Ieși
+                </button>
+              </div>
+            ) : (
+              <button 
+                onClick={() => setIsAuthOpen(true)}
+                className="text-[10px] font-black uppercase tracking-widest text-black hover:text-[#FFD100] transition-colors italic mx-2"
+              >
+                🔒 Contul Meu
+              </button>
+            )}
+
             <Link href="/posteaza-cerere">
               <button className="bg-[#FFD100] text-black px-5 py-3 xl:px-6 xl:py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] xl:text-[11px] italic border-2 border-black hover:bg-black hover:text-[#FFD100] transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-0.5 active:translate-y-0.5">
                 Cumpăr cu Cash
               </button>
             </Link>
             
-            {/* 4. Evaluare AI */}
             <Link href="/evaluare">
               <button className="relative bg-black text-[#FFD100] px-6 py-3 xl:px-8 xl:py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] xl:text-[11px] italic transition-all hover:scale-105 border-b-4 border-yellow-700 active:border-b-0 active:translate-y-1 shadow-lg overflow-hidden group">
                 <div className="absolute top-0 -left-[100%] w-1/2 h-full bg-white/10 skew-x-[-25deg] group-hover:left-[150%] transition-all duration-700" />
@@ -62,7 +110,6 @@ export default function Header() {
               </button>
             </Link>
 
-            {/* 5. Vinde Urgent */}
             <Link href="/pune-anunt" className="bg-white border-2 border-black text-black px-6 py-3 xl:px-8 xl:py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] xl:text-[11px] italic hover:bg-gray-50 transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-0.5 active:translate-y-0.5">
               {header?.postAd || "Vinde Urgent"}
             </Link>
@@ -91,6 +138,28 @@ export default function Header() {
 
           <div className="flex flex-col items-center justify-center flex-grow gap-6 px-6 overflow-y-auto py-8">
             
+            {/* LOGICĂ DINAMICĂ CONT/DASHBOARD (MOBIL) */}
+            {user ? (
+              <div className="flex flex-col items-center gap-4 bg-gray-50 w-full p-4 rounded-[2rem] border-2 border-gray-100">
+                <Link href="/dashboard" onClick={() => setIsOpen(false)} className="text-2xl font-black uppercase tracking-widest italic text-black flex items-center gap-2">
+                  <span className="text-2xl">⚡</span> Dashboard
+                </Link>
+                <button 
+                  onClick={() => { handleLogout(); setIsOpen(false); }}
+                  className="text-sm font-black uppercase tracking-widest text-red-500 hover:text-red-700 transition-colors italic mt-2"
+                >
+                  Ieși din cont
+                </button>
+              </div>
+            ) : (
+              <button 
+                onClick={() => { setIsOpen(false); setIsAuthOpen(true); }}
+                className="text-2xl font-black uppercase tracking-widest italic text-black underline decoration-[#FFD100] decoration-4 underline-offset-4"
+              >
+                🔒 Contul Meu
+              </button>
+            )}
+
             <Link href="/cum-functioneaza" onClick={() => setIsOpen(false)} className="text-lg font-black uppercase tracking-widest italic text-gray-500">
               Cum Funcționează
             </Link>
@@ -117,6 +186,9 @@ export default function Header() {
           </div>
         </div>
       </div>
+
+      {/* MODALUL DE AUTH */}
+      <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} />
     </>
   );
 }

@@ -1,6 +1,7 @@
 import { ro } from "../locales/ro";
 import AdCard from "./components/AdCard";
 import Link from "next/link";
+import GlobalStats from "./components/GlobalStats";
 
 export default function Home() {
   const { hero, types, home } = ro;
@@ -243,6 +244,9 @@ export default function Home() {
             </div>
         </div>
       </section>
+
+      {/* STATISTICI GLOBALE LIVE AICI */}
+      <GlobalStats />
 
     </div>
   );
