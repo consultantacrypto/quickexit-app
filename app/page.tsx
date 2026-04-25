@@ -2,9 +2,24 @@ import { ro } from "../locales/ro";
 import AdCard from "./components/AdCard";
 import Link from "next/link";
 import GlobalStats from "./components/GlobalStats";
+import { supabase } from "@/lib/supabase"; 
 
-export default function Home() {
+export default async function Home() {
   const { hero, types, home } = ro;
+
+  // 1. FETCH DATE REALE (Fără limite de test, tragem ultimele oportunități)
+  const { data: realListings } = await supabase
+    .from('listings')
+    .select('*')
+    .eq('status', 'active')
+    .order('created_at', { ascending: false })
+    .limit(6);
+
+  const { data: realDemands } = await supabase
+    .from('demands')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(6);
 
   const categories = [
     { 
@@ -51,50 +66,13 @@ export default function Home() {
     },
   ];
 
-  const tickerItems = [
-    { tag: "PANIC SELL", asset: "PENTHOUSE PANWA BAY", info: "LICHIDARE 24H: €590.000" },
-    { tag: "URGENT", asset: "MERCEDES S-CLASS 2022", info: "NECESAR CASH AZI: €72.000" },
-    { tag: "EXTREME", asset: "ROLEX DAYTONA", info: "EXIT SUB PREȚ PIAȚĂ: €22.500" },
-    { tag: "FLASH", asset: "TEREN BUFTEA LAC", info: "ACCEPTĂ OFERTE CASH ACUM" }
-  ];
-
-  const buyers = [
-    { 
-      slug: "gigi-v",
-      name: "Gigi V.", target: "Mercedes S-Class / BMW 7", budget: "€100.000", tag: "CASH PREGĂTIT", category: "Auto",
-      description: "Caut model după 2021, istoric curat, unic proprietar. Ofer cash pe loc după verificare la reprezentanță și semnare acte." 
-    },
-    { 
-      slug: "andrei-p",
-      name: "Andrei P.", target: "Teren Bran / Moieciu", budget: "€450.000", tag: "FONDURI VERIFICATE", category: "Imobiliare",
-      description: "Interesat exclusiv de parcele cu utilități la teren și PUZ aprobat pentru turism. Fără probleme litigioase, plătesc azi." 
-    },
-    { 
-      slug: "investgroup",
-      name: "InvestGroup", target: "Penthouses Phuket", budget: "€1.200.000", tag: "CASH PREGĂTIT", category: "Imobiliare",
-      description: "Cumpărăm urgent pentru portofoliu de randament. Doar proiecte finalizate sau cu predare în următoarele 3 luni." 
-    }
-  ];
-
   return (
     <div className="flex flex-col w-full bg-white selection:bg-[#FFD100] selection:text-black font-sans">
       
-      <style dangerouslySetInnerHTML={{__html: `
-        @keyframes ticker {
-          0% { transform: translateX(0); }
-          100% { transform: translateX(-50%); }
-        }
-        .animate-ticker {
-          animation: ticker 35s linear infinite;
-        }
-        .animate-ticker:hover {
-          animation-play-state: paused;
-        }
-      `}} />
-
       {/* HERO SECTION */}
       <section className="relative pt-20 pb-16 overflow-hidden bg-white text-center">
         <div className="mx-auto max-w-7xl px-4">
+          
           <h1 className="text-7xl md:text-9xl font-black text-black tracking-tightest uppercase italic leading-[0.8] mb-10">
             Vinde <span className="text-[#FFD100]">Acum</span>.<br />
             Banii <span className="text-gray-200">Azi</span>.
@@ -127,7 +105,7 @@ export default function Home() {
           </div>
 
           <div className="flex flex-col items-center mb-24 group">
-            <Link href="/evaluare">
+            <Link href="/pune-anunt">
               <button className="bg-black text-[#FFD100] px-16 py-10 rounded-[2.5rem] font-black uppercase tracking-widest transition-all border-b-8 border-yellow-700 active:border-b-0 active:translate-y-2 hover:scale-[1.02] shadow-[0_15px_40px_rgba(255,209,0,0.2)] hover:shadow-[0_25px_50px_rgba(255,209,0,0.4)] relative overflow-hidden">
                 <div className="absolute top-0 -left-[100%] w-1/2 h-full bg-white/10 skew-x-[-25deg] group-hover:left-[150%] transition-all duration-1000 ease-in-out" />
                 <span className="text-3xl md:text-4xl italic uppercase leading-none block relative z-10">Cât valorează ce vinzi?</span>
@@ -156,24 +134,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* TICKER DE TRADING */}
-      <div className="w-full bg-black border-y-4 border-[#FFD100] overflow-hidden py-5 flex relative z-10 shadow-2xl">
-        <div className="flex whitespace-nowrap animate-ticker items-center">
-          {[...tickerItems, ...tickerItems, ...tickerItems].map((item, index) => (
-            <span key={index} className="inline-flex items-center text-white font-black uppercase tracking-widest text-[11px] md:text-[13px] italic">
-              <span className={`px-2 py-1 ml-10 mr-4 text-black ${item.tag === 'PANIC SELL' || item.tag === 'EXTREME' ? 'bg-[#FFD100]' : 'bg-white'}`}>
-                {item.tag}
-              </span>
-              <span className="text-white opacity-90">{item.asset}</span>
-              <span className="mx-3 text-gray-600">|</span>
-              <span className="text-[#FFD100]">{item.info}</span>
-              <span className="ml-10 text-gray-700 text-lg tracking-[-0.2em]">///</span>
-            </span>
-          ))}
-        </div>
-      </div>
-
-      {/* SECȚIUNEA OPORTUNITĂȚI CASH (VÂNZĂRI) */}
+      {/* SECȚIUNEA OPORTUNITĂȚI CASH (DATE REALE DIN SUPABASE) */}
       <section className="pt-24 pb-16 bg-gray-50">
         <div className="mx-auto max-w-7xl px-4">
             <div className="flex justify-between items-end mb-16 border-b-[3px] border-black pb-8">
@@ -184,14 +145,30 @@ export default function Home() {
             </div>
     
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 lg:gap-12">
-                <AdCard id="penthouse-phuket" title="Penthouse Panwa Bay" image="https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=800&q=80" marketPrice="€850.000" exitPrice="€590.000" discount="30" score={9.8} type="extreme" priority={true} />
-                <AdCard id="mercedes-s-class" title="Mercedes S-Class 2022" image="https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?auto=format&fit=crop&w=800&q=80" marketPrice="€95.000" exitPrice="€72.000" discount="24" score={8.5} type="urgent" />
-                <AdCard id="teren-buftea" title="Teren Buftea Lac" image="https://images.unsplash.com/photo-1472214103451-9374bd1c798e?auto=format&fit=crop&w=800&q=80" marketPrice="€220.000" exitPrice="€165.000" discount="25" score={9.2} type="extreme" />
+                {realListings && realListings.length > 0 ? (
+                  realListings.map((item) => (
+                    <AdCard 
+                      key={item.id}
+                      id={item.id}
+                      title={item.title}
+                      image={item.images?.[0] || "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=800&q=80"}
+                      marketPrice={`€${item.market_price.toLocaleString('ro-RO')}`}
+                      exitPrice={`€${item.exit_price.toLocaleString('ro-RO')}`}
+                      discount={item.discount?.toString() || "0"}
+                      score={item.deal_score ? item.deal_score / 10 : 9.0} 
+                      type={item.sale_strategy?.toLowerCase() || "standard"}
+                    />
+                  ))
+                ) : (
+                  <div className="col-span-full py-20 text-center border-[3px] border-dashed border-gray-300 rounded-[2rem] bg-white">
+                    <p className="font-black uppercase italic text-gray-400">Momentan terminalul scanează noi active...</p>
+                  </div>
+                )}
             </div>
         </div>
       </section>
 
-      {/* SECȚIUNEA CERERE CAPITAL (CUMPĂRĂTORI) - ACUM CU BRANDING GALBEN */}
+      {/* SECȚIUNEA CAPITAL DISPONIBIL (CUMPĂRĂTORI REALI DIN SUPABASE) */}
       <section className="py-16 bg-white border-t border-gray-200">
         <div className="mx-auto max-w-7xl px-4">
             <div className="mb-12 border-b-[3px] border-black pb-8">
@@ -212,40 +189,45 @@ export default function Home() {
             </div>
     
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 lg:gap-12">
-                {buyers.map((buyer, idx) => (
-                  <div key={idx} className="bg-white border-[4px] border-[#FFD100] rounded-[2rem] p-8 shadow-[8px_8px_0_0_rgba(0,0,0,1)] hover:-translate-y-2 hover:shadow-[12px_12px_0_0_rgba(0,0,0,1)] transition-all flex flex-col justify-between group">
-                    <div>
-                      <div className="flex justify-between items-start mb-6">
-                        <span className="bg-[#FFD100] text-black px-4 py-2 rounded-lg text-[9px] md:text-[10px] font-black uppercase tracking-widest italic border-2 border-black">
-                          {buyer.tag}
-                        </span>
-                        <span className="text-2xl grayscale opacity-50 group-hover:grayscale-0 group-hover:opacity-100 transition-all">💰</span>
+                {realDemands && realDemands.length > 0 ? (
+                  realDemands.map((demand, idx) => (
+                    <div key={idx} className="bg-white border-[4px] border-[#FFD100] rounded-[2rem] p-8 shadow-[8px_8px_0_0_rgba(0,0,0,1)] hover:-translate-y-2 hover:shadow-[12px_12px_0_0_rgba(0,0,0,1)] transition-all flex flex-col justify-between group">
+                      <div>
+                        <div className="flex justify-between items-start mb-6">
+                          <span className="bg-[#FFD100] text-black px-4 py-2 rounded-lg text-[9px] md:text-[10px] font-black uppercase tracking-widest italic border-2 border-black">
+                            CASH PREGĂTIT
+                          </span>
+                          <span className="text-2xl grayscale opacity-50 group-hover:grayscale-0 group-hover:opacity-100 transition-all">💰</span>
+                        </div>
+                        <h3 className="text-2xl font-black uppercase italic tracking-tight leading-none mb-3 text-black">{demand.target_asset}</h3>
+                        <div className="flex items-center gap-2 mb-4">
+                          <span className="text-[10px] font-black uppercase tracking-widest bg-gray-100 px-2 py-1 rounded border border-gray-200">
+                            {demand.category || "General"}
+                          </span>
+                        </div>
+                        <p className="text-sm font-bold text-gray-600 italic line-clamp-3 leading-relaxed">
+                          &quot;{demand.description}&quot;
+                        </p>
                       </div>
-                      <h3 className="text-2xl font-black uppercase italic tracking-tight leading-none mb-3 text-black">{buyer.target}</h3>
-                      <div className="flex items-center gap-2 mb-4">
-                        <span className="text-[10px] font-black uppercase tracking-widest bg-gray-100 px-2 py-1 rounded border border-gray-200">
-                          {buyer.category}
-                        </span>
-                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Investitor: <span className="text-black">{buyer.name}</span></span>
+                      <div className="mt-8 pt-6 border-t-[3px] border-gray-100">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1">Buget Alocat</p>
+                        <p className="text-4xl font-black italic tracking-tighter text-black mb-6">€{demand.budget.toLocaleString('ro-RO')}</p>
+                        <Link href="/capital-disponibil" className="w-full bg-[#FFD100] border-[3px] border-black text-black py-4 rounded-xl font-black uppercase tracking-widest text-[11px] italic hover:bg-black hover:text-[#FFD100] transition-colors shadow-[4px_4px_0_0_rgba(0,0,0,1)] active:shadow-none active:translate-y-1 block text-center">
+                          Vinde-i Activul Tău
+                        </Link>
                       </div>
-                      <p className="text-sm font-bold text-gray-600 italic line-clamp-3 leading-relaxed">
-                        &quot;{buyer.description}&quot;
-                      </p>
                     </div>
-                    <div className="mt-8 pt-6 border-t-[3px] border-gray-100">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1">Buget Alocat</p>
-                      <p className="text-4xl font-black italic tracking-tighter text-black mb-6">{buyer.budget}</p>
-                      <Link href={`/trimite-oferta/${buyer.slug}`} className="w-full bg-[#FFD100] border-[3px] border-black text-black py-4 rounded-xl font-black uppercase tracking-widest text-[11px] italic hover:bg-black hover:text-[#FFD100] transition-colors shadow-[4px_4px_0_0_rgba(0,0,0,1)] active:shadow-none active:translate-y-1 block text-center">
-                        Vinde-i Activul Tău
-                      </Link>
-                    </div>
-                  </div>
-                ))}
+                  ))
+                ) : (
+                   <div className="col-span-full py-16 text-center bg-gray-50 border-[3px] border-dashed border-gray-200 rounded-[2rem]">
+                      <p className="font-black uppercase italic text-gray-300">Nicio cerere de capital în așteptare.</p>
+                   </div>
+                )}
             </div>
         </div>
       </section>
 
-      {/* STATISTICI GLOBALE LIVE AICI */}
+      {/* STATISTICI GLOBALE LIVE (Inclusă la final) */}
       <GlobalStats />
 
     </div>

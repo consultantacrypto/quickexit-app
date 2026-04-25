@@ -1,25 +1,45 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-
-// Baza de date adaptată cu categoriile exacte din Homepage
-const buyersDB = [
-  { slug: "gigi-v", name: "Gigi V.", target: "Mercedes S-Class / BMW 7", category: "Auto & Moto", budget: 100000, tag: "CASH PREGĂTIT", description: "Caut model după 2021, istoric curat, unic proprietar. Ofer cash pe loc după verificare la reprezentanță și semnare acte." },
-  { slug: "andrei-p", name: "Andrei P.", target: "Teren Bran / Moieciu", category: "Imobiliare", budget: 450000, tag: "FONDURI VERIFICATE", description: "Interesat exclusiv de parcele cu utilități la teren și PUZ aprobat pentru turism. Fără probleme litigioase, plătesc azi." },
-  { slug: "investgroup", name: "InvestGroup", target: "Penthouses Phuket", category: "Imobiliare", budget: 1200000, tag: "CASH PREGĂTIT", description: "Cumpărăm urgent pentru portofoliu de randament. Doar proiecte finalizate sau cu predare în următoarele 3 luni." },
-  { slug: "alex-lux", name: "Alex T.", target: "Rolex / Patek Philippe", category: "Lux & Ceasuri", budget: 80000, tag: "FONDURI VERIFICATE", description: "Cumpăr ceasuri de lux cu acte și cutie originală. Prefer modelele sport, dar accept și oferte clasice sub prețul pieței." },
-  { slug: "tech-buyer", name: "Radu M.", target: "Echipamente IT / Servere", category: "Afaceri de vânzare", budget: 35000, tag: "CASH PREGĂTIT", description: "Cumpăr loturi de laptopuri sau servere de la firme în lichidare. Tranzacție rapidă cu factură." },
-  { slug: "auto-rulate", name: "Dealer Auto Express", target: "Flote Auto (Min. 3 mașini)", category: "Auto & Moto", budget: 250000, tag: "CASH PREGĂTIT", description: "Achiziționăm flote auto rulate de la companii. Oferim evaluare instantă și plată pe loc prin transfer bancar." }
-];
+import { supabase } from "@/lib/supabase";
 
 export default function CapitalDirectoryPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("Toate");
+  
+  // State-uri pentru datele reale
+  const [demands, setDemands] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Extragem cererile live din Supabase
+  useEffect(() => {
+    async function fetchDemands() {
+      try {
+        const { data, error } = await supabase
+          .from('demands')
+          .select('*')
+          .eq('status', 'active')
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        setDemands(data || []);
+      } catch (error) {
+        console.error("Eroare la extragerea cererilor:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    fetchDemands();
+  }, []);
 
   // Logica de filtrare în timp real
-  const filteredBuyers = buyersDB.filter(buyer => {
-    const matchesSearch = buyer.target.toLowerCase().includes(searchTerm.toLowerCase()) || buyer.description.toLowerCase().includes(searchTerm.toLowerCase());
+  const filteredBuyers = demands.filter(buyer => {
+    const asset = buyer.target_asset || "";
+    const desc = buyer.description || "";
+    
+    const matchesSearch = asset.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                          desc.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = selectedCategory === "Toate" || buyer.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
@@ -88,28 +108,34 @@ export default function CapitalDirectoryPage() {
 
         </div>
 
-        {filteredBuyers.length > 0 ? (
+        {/* LOADING STATE */}
+        {isLoading ? (
+          <div className="py-24 text-center bg-white border-[3px] border-dashed border-gray-300 rounded-[2rem]">
+            <div className="w-16 h-16 border-[6px] border-gray-200 border-t-black rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-xs font-black uppercase tracking-widest text-gray-400">Scuturăm baza de date...</p>
+          </div>
+        ) : filteredBuyers.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 lg:gap-12">
             {filteredBuyers.map((buyer) => (
-              <div key={buyer.slug} className="bg-white border-[4px] border-[#FFD100] rounded-[2rem] p-8 shadow-[8px_8px_0_0_rgba(0,0,0,1)] hover:-translate-y-2 hover:shadow-[12px_12px_0_0_rgba(0,0,0,1)] transition-all flex flex-col justify-between group">
+              <div key={buyer.id} className="bg-white border-[4px] border-[#FFD100] rounded-[2rem] p-8 shadow-[8px_8px_0_0_rgba(0,0,0,1)] hover:-translate-y-2 hover:shadow-[12px_12px_0_0_rgba(0,0,0,1)] transition-all flex flex-col justify-between group">
                 <div>
                   <div className="flex justify-between items-start mb-6">
                     <span className="bg-[#FFD100] text-black px-4 py-2 rounded-lg text-[9px] md:text-[10px] font-black uppercase tracking-widest italic border-2 border-black">
-                      {buyer.tag}
+                      {buyer.budget >= 100000 ? "FONDURI VERIFICATE" : "CASH PREGĂTIT"}
                     </span>
                     <span className="text-2xl grayscale opacity-50 group-hover:grayscale-0 group-hover:opacity-100 transition-all">💰</span>
                   </div>
                   
                   <h3 className="text-2xl md:text-3xl font-black uppercase italic tracking-tight leading-none mb-3 text-black">
-                    {buyer.target}
+                    {buyer.target_asset}
                   </h3>
                   
                   <div className="flex items-center gap-2 mb-6">
                     <span className="text-[10px] font-black uppercase tracking-widest bg-gray-100 px-2 py-1 rounded border border-gray-200">
-                      {buyer.category}
+                      {buyer.category || "General"}
                     </span>
                     <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                      Investitor: <span className="text-black">{buyer.name}</span>
+                      Investitor: <span className="text-black">Investitor Verificat</span>
                     </span>
                   </div>
                   
@@ -124,7 +150,7 @@ export default function CapitalDirectoryPage() {
                     €{buyer.budget.toLocaleString('ro-RO')}
                   </p>
                   
-                  <Link href={`/trimite-oferta/${buyer.slug}`} className="w-full bg-[#FFD100] border-[3px] border-black text-black py-5 rounded-2xl font-black uppercase tracking-widest text-[11px] md:text-xs italic hover:bg-black hover:text-[#FFD100] transition-colors shadow-[4px_4px_0_0_rgba(0,0,0,1)] active:shadow-none active:translate-y-1 block text-center">
+                  <Link href={`/trimite-oferta/${buyer.id}`} className="w-full bg-[#FFD100] border-[3px] border-black text-black py-5 rounded-2xl font-black uppercase tracking-widest text-[11px] md:text-xs italic hover:bg-black hover:text-[#FFD100] transition-colors shadow-[4px_4px_0_0_rgba(0,0,0,1)] active:shadow-none active:translate-y-1 block text-center">
                     Vinde-i Activul Tău
                   </Link>
                 </div>

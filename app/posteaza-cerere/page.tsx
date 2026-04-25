@@ -30,7 +30,7 @@ export default function PostDemandPage() {
     setRequirements(prev => ({ ...prev, [key]: value }));
   };
 
-  // Funcția MAGICĂ: Trimiterea datelor în Supabase
+  // Funcția MAGICĂ: Trimiterea datelor în Supabase + Verificare USER
   const handleSubmitDemand = async () => {
     if (!targetAsset || !budget) {
       setErrorMsg("Titlul activului și bugetul sunt obligatorii, tati!");
@@ -41,10 +41,21 @@ export default function PostDemandPage() {
     setErrorMsg("");
 
     try {
+      // 1. VERIFICĂM DACĂ USERUL ESTE LOGAT
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        setErrorMsg("Trebuie să fii logat pentru a posta o cerere de capital. Folosește butonul 'Contul Meu'.");
+        setIsSubmitting(false);
+        return;
+      }
+
+      // 2. INSERĂM DATELE + USER_ID
       const { error } = await supabase
         .from('demands')
         .insert([
           {
+            user_id: user.id, // ACUM CEREREA E LEGATĂ DE USER
             target_asset: targetAsset,
             category: category,
             budget: Number(budget),
@@ -73,21 +84,11 @@ export default function PostDemandPage() {
           <span className="text-7xl mb-6 block">🎯</span>
           <h1 className="text-4xl font-black uppercase italic tracking-tighter mb-4">Ofertă Lansată!</h1>
           <p className="text-sm font-bold text-gray-600 mb-8">
-            Cererea ta pentru <span className="text-black font-black">{targetAsset}</span> a fost înregistrată în baza de date Sniper. Vom face matching imediat ce apare un vânzător dispus la acest preț.
+            Cererea ta pentru <span className="text-black font-black">{targetAsset}</span> a fost înregistrată în baza de date Sniper.
           </p>
-          <button 
-            onClick={() => {
-              setIsSuccess(false);
-              setStep(1);
-              setTargetAsset("");
-              setBudget("");
-              setDescription("");
-              setRequirements({});
-            }} 
-            className="w-full bg-black text-[#FFD100] py-4 rounded-xl font-black uppercase tracking-widest text-sm italic hover:scale-[1.02] transition-transform shadow-[4px_4px_0_0_rgba(0,0,0,1)] active:translate-y-0.5 active:shadow-none"
-          >
-            Lansează Altă Cerere
-          </button>
+          <Link href="/dashboard" className="block w-full bg-black text-[#FFD100] py-4 rounded-xl font-black uppercase tracking-widest text-sm italic hover:scale-[1.02] transition-transform shadow-[4px_4px_0_0_rgba(0,0,0,1)] active:translate-y-0.5 active:shadow-none text-center">
+            Vezi în Dashboard
+          </Link>
         </div>
       </div>
     );
