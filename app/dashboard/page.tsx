@@ -46,11 +46,11 @@ export default function DashboardPage() {
         }
       }
 
-      // 2. Tragem cererile utilizatorului (demands)
+      // 2. Tragem cererile utilizatorului (demands) - ALINIAT CU buyer_id
       const { data: userDemands } = await supabase
         .from('demands')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('buyer_id', user.id) // MODIFICAT DIN user_id ÎN buyer_id PENTRU ALINIERE DB
         .order('created_at', { ascending: false });
 
       if (userDemands) {
@@ -144,7 +144,7 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* 2. OFERTE PRIMITE (LISTING_OFFERS) */}
+        {/* 2. OFERTE PRIMITE */}
         {activeTab === "oferte_primite" && (
           <div className="space-y-4">
             {listingOffers.length > 0 ? listingOffers.map((offer) => (
@@ -194,7 +194,7 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* 4. OFERTE CĂTRE CERERI (DEMAND_OFFERS) */}
+        {/* 4. OFERTE CĂTRE CERERI */}
         {activeTab === "oferte_catre_cereri" && (
           <div className="space-y-4">
             {demandOffers.length > 0 ? demandOffers.map((offer) => (

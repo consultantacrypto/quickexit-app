@@ -97,7 +97,7 @@ export default async function Home() {
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto mb-16">
             {[
-              { label: 'Economy', desc: 'Preț Maxim', time: '30 Zile', price: '99 RON' },
+              { label: 'Economy', desc: 'Perioada Maxima', time: '30 Zile', price: '99 RON' },
               { label: 'Standard', desc: 'Vânzare Rapidă', time: '14 Zile', price: '79 RON' },
               { label: 'Urgent', desc: 'Lichidare', time: '48 Ore', price: '48 RON' },
               { label: 'Flash', desc: 'Metoda Sniper', time: 'Licitație', price: '111 RON' }
