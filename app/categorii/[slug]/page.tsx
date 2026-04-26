@@ -6,6 +6,16 @@ import { supabase } from "@/lib/supabase";
 import AdCard from "../../components/AdCard";
 import Link from "next/link";
 
+// Helper pentru normalizarea tipurilor de anunț conform AdCardProps
+const normalizeSaleType = (value: string): "standard" | "urgent" | "extreme" | "auction" => {
+  const val = value?.toLowerCase() || "standard";
+  if (val === "flash" || val === "licitatie" || val === "auction") return "auction";
+  if (val === "fast" || val === "urgent") return "urgent";
+  if (val === "extreme" || val === "azi") return "extreme";
+  if (val === "economy" || val === "standard") return "standard";
+  return "standard";
+};
+
 export default function CategoryPage() {
   const params = useParams();
   const slug = params.slug as string;
@@ -45,7 +55,7 @@ export default function CategoryPage() {
         setListings(listData || []);
         setDemands(demandData || []);
       } catch (err) {
-        console.error("Eroare fetch:", err);
+        console.error("Eroare fetch terminal:", err);
       } finally {
         setIsLoading(false);
       }
@@ -57,7 +67,7 @@ export default function CategoryPage() {
     <div className="min-h-screen bg-white pt-20 pb-24 font-sans text-black antialiased">
       <div className="max-w-7xl mx-auto px-4 md:px-8">
         
-        {/* HEADER CATEGORIE */}
+        {/* HEADER CATEGORIE - BRUTALIST STYLE */}
         <div className="mb-16 border-b-[6px] border-black pb-10">
           <Link href="/" className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400 hover:text-black italic mb-4 block transition-colors">
             ← TERMINAL LICHIDITATE
@@ -72,15 +82,15 @@ export default function CategoryPage() {
         ) : (
           <div className="space-y-28">
             
-            {/* 1. SECȚIUNEA LICITAȚII - REPARARE TYPE */}
-            {listings.some(l => l.sale_strategy?.toLowerCase().includes('auction') || l.sale_strategy?.toLowerCase() === 'flash') && (
+            {/* 1. SECȚIUNEA LICITAȚII (Bazată pe normalizarea strategiei) */}
+            {listings.some(l => normalizeSaleType(l.sale_strategy) === 'auction') && (
               <section>
                 <div className="flex items-center gap-4 mb-12">
                   <div className="w-4 h-10 bg-red-600 border-2 border-black animate-pulse"></div>
                   <h2 className="text-3xl font-black uppercase italic tracking-tighter text-red-600">Licitații Flash Live</h2>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
-                  {listings.filter(l => l.sale_strategy?.toLowerCase().includes('auction') || l.sale_strategy?.toLowerCase() === 'flash').map((item) => (
+                  {listings.filter(l => normalizeSaleType(l.sale_strategy) === 'auction').map((item) => (
                     <div key={item.id} className="relative">
                        <div className="absolute -top-4 -right-4 z-20 bg-red-600 text-white px-4 py-2 font-black uppercase italic text-[10px] shadow-[4px_4px_0_0_rgba(0,0,0,1)] border-2 border-black animate-bounce">Live 24H</div>
                        <AdCard 
@@ -91,7 +101,6 @@ export default function CategoryPage() {
                         exitPrice={`€${item.exit_price.toLocaleString('ro-RO')}`}
                         discount={item.discount?.toString() || "0"}
                         score={item.deal_score ? item.deal_score / 10 : 9.5}
-                        // REPARAT: Folosim "auction" în loc de "flash" pentru a fi conform cu AdCardProps
                         type="auction" 
                       />
                     </div>
@@ -100,14 +109,14 @@ export default function CategoryPage() {
               </section>
             )}
 
-            {/* 2. SECȚIUNEA VÂNZĂRI STANDARD & URGENT */}
+            {/* 2. SECȚIUNEA VÂNZĂRI STANDARD & URGENT (Celelalte strategii) */}
             <section>
               <div className="flex items-center gap-4 mb-12">
                 <div className="w-4 h-10 bg-[#FFD100] border-2 border-black"></div>
                 <h2 className="text-3xl font-black uppercase italic tracking-tighter">Oportunități de Vânzare</h2>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
-                {listings.filter(l => !l.sale_strategy?.toLowerCase().includes('auction') && l.sale_strategy?.toLowerCase() !== 'flash').map((item) => (
+                {listings.filter(l => normalizeSaleType(l.sale_strategy) !== 'auction').map((item) => (
                   <AdCard 
                     key={item.id}
                     id={item.id}
@@ -117,28 +126,27 @@ export default function CategoryPage() {
                     exitPrice={`€${item.exit_price.toLocaleString('ro-RO')}`}
                     discount={item.discount?.toString() || "0"}
                     score={item.deal_score ? item.deal_score / 10 : 9.0}
-                    // REPARAT: Asigurăm fallback la "standard"
-                    type={(item.sale_strategy?.toLowerCase() as "standard" | "urgent" | "extreme" | "auction") || "standard"} 
+                    type={normalizeSaleType(item.sale_strategy)} 
                   />
                 ))}
               </div>
             </section>
 
-            {/* 3. SECȚIUNEA INVESTITORI */}
+            {/* 3. SECȚIUNEA INVESTITORI (CERERI) */}
             <section>
               <div className="flex items-center gap-4 mb-12">
                 <div className="w-4 h-10 bg-black"></div>
                 <h2 className="text-3xl font-black uppercase italic tracking-tighter text-black">Capital Disponibil (Investitori)</h2>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
-                {demands.map((demand) => (
+                {demands.length > 0 ? demands.map((demand) => (
                   <div key={demand.id} className="bg-white border-[3px] border-black p-8 rounded-[2.5rem] shadow-[8px_8px_0_0_rgba(0,0,0,1)] flex flex-col justify-between hover:translate-y-[-5px] transition-all">
                     <div>
                       <div className="flex justify-between items-start mb-8">
                          <span className="bg-black text-[#FFD100] px-3 py-1.5 rounded-lg text-[9px] font-black uppercase italic tracking-widest border border-black">
                           CASH PREGĂTIT
                          </span>
-                         <span className="text-[10px] font-black uppercase text-gray-300 italic tracking-widest">#{demand.id.split('-')[0]}</span>
+                         <span className="text-[10px] font-black uppercase text-gray-300 italic tracking-widest">ID: {demand.id.split('-')[0]}</span>
                       </div>
                       <h3 className="text-2xl font-black uppercase italic leading-tight mb-4 tracking-tighter">
                         {demand.target_asset}
@@ -153,6 +161,7 @@ export default function CategoryPage() {
                       <p className="text-4xl font-black italic tracking-tighter text-black mb-8">
                         €{demand.budget.toLocaleString('ro-RO')}
                       </p>
+                      
                       <Link 
                         href={`/trimite-oferta/${demand.id}`} 
                         className="w-full bg-[#FFD100] border-[3px] border-black text-black py-5 rounded-xl font-black uppercase tracking-widest text-[11px] italic hover:bg-black hover:text-[#FFD100] transition-colors shadow-[5px_5px_0_0_rgba(0,0,0,1)] active:shadow-none active:translate-y-1 block text-center"
@@ -161,7 +170,11 @@ export default function CategoryPage() {
                       </Link>
                     </div>
                   </div>
-                ))}
+                )) : (
+                  <div className="col-span-full py-16 text-center bg-gray-50 border-[3px] border-dashed border-gray-200 rounded-[2rem]">
+                    <p className="font-black uppercase italic text-gray-300">Nicio cerere de capital în această categorie.</p>
+                  </div>
+                )}
               </div>
             </section>
 

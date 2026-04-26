@@ -7,6 +7,15 @@ import { useParams } from "next/navigation";
 import { supabase } from "@/lib/supabase"; 
 import AdCard from "../../components/AdCard";
 
+// HELPER NOU: Asigură-te că AdCard primește doar tipurile pe care le recunoaște
+const normalizeSaleType = (value: string): "standard" | "urgent" | "extreme" | "auction" => {
+  const val = value?.toLowerCase() || "standard";
+  if (val === "flash" || val === "licitatie" || val === "auction") return "auction";
+  if (val === "fast" || val === "urgent") return "urgent";
+  if (val === "extreme" || val === "azi") return "extreme";
+  return "standard";
+};
+
 export default function AdDetail() {
   const params = useParams();
   const id = params.id as string;
@@ -284,7 +293,8 @@ export default function AdDetail() {
                   exitPrice={`€${item.exit_price.toLocaleString('ro-RO')}`}
                   discount={item.discount?.toString() || "0"}
                   score={item.deal_score ? item.deal_score / 10 : 9.0} 
-                  type={item.sale_strategy?.toLowerCase() || "standard"}
+                  // REPARAT AICI: Am folosit helper-ul ca să eliminăm eroarea Type
+                  type={normalizeSaleType(item.sale_strategy)}
                 />
               ))}
             </div>

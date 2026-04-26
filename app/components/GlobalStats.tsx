@@ -14,25 +14,21 @@ export default function GlobalStats() {
   useEffect(() => {
     async function fetchStats() {
       try {
-        // Tragem doar anunțurile active
         const { data: listings } = await supabase
           .from('listings')
           .select('exit_price')
           .eq('status', 'active');
           
-        // Tragem doar cererile active
         const { data: demands } = await supabase
           .from('demands')
           .select('budget')
           .eq('status', 'active');
 
-        // Numărăm tranzacțiile finalizate
         const { count: soldCount } = await supabase
           .from('listings')
           .select('*', { count: 'exact', head: true })
           .eq('status', 'sold');
 
-        // Calculăm banii reali (dacă arrays sunt goale, dă 0)
         const valoareVanzari = listings ? listings.reduce((acc, curr) => acc + (Number(curr.exit_price) || 0), 0) : 0;
         const valoareCumparari = demands ? demands.reduce((acc, curr) => acc + (Number(curr.budget) || 0), 0) : 0;
 
@@ -42,9 +38,8 @@ export default function GlobalStats() {
           totalValue: valoareVanzari + valoareCumparari,
           soldItems: soldCount || 0
         });
-
       } catch (error) {
-        console.error("Eroare la extragerea statisticilor live:", error);
+        console.error("Eroare la fetch statistici:", error);
       }
     }
 
@@ -52,52 +47,50 @@ export default function GlobalStats() {
   }, []);
 
   return (
-    <div className="w-full bg-black py-16 px-4 font-sans border-t-[6px] border-[#FFD100]">
-      <div className="max-w-6xl mx-auto">
-        <div className="text-center mb-12">
-          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#FFD100] mb-2 italic">Transparență Totală</p>
-          <h2 className="text-3xl md:text-5xl font-black uppercase italic tracking-tighter text-white">
-            Activitatea <span className="text-[#FFD100]">Platformei</span>
-          </h2>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <section className="bg-black py-10 md:py-12 border-t-[8px] border-black font-sans z-20 relative">
+      <div className="max-w-7xl mx-auto px-4">
+        
+        {/* Structură clară, pe înțelesul tuturor */}
+        <div className="flex flex-col md:flex-row justify-between items-center gap-8 md:gap-0 divide-y-2 md:divide-y-0 md:divide-x-2 divide-gray-800">
           
-          <div className="bg-[#111] border-[3px] border-[#FFD100] rounded-2xl p-6 text-center shadow-[6px_6px_0_0_rgba(255,209,0,1)] hover:-translate-y-2 transition-transform">
-            <span className="text-4xl block mb-2">💰</span>
-            <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">Valoare Oportunități (Live)</p>
-            <p className="text-3xl md:text-4xl font-black italic text-[#FFD100]">
-              €{stats.totalValue >= 1000000 ? (stats.totalValue / 1000000).toFixed(1) + 'M' : stats.totalValue.toLocaleString('ro-RO')}
+          {/* 1. Valoare Totală */}
+          <div className="flex-1 w-full text-center md:px-6 pt-4 md:pt-0">
+            <p className="text-[10px] md:text-xs font-black uppercase tracking-[0.2em] text-gray-500 mb-1 md:mb-2 italic">Valoare Totală Platformă</p>
+            <p className="text-4xl md:text-5xl font-black italic text-[#FFD100] tracking-tighter">
+              €{stats.totalValue > 0 ? stats.totalValue.toLocaleString('ro-RO') : "..."}
             </p>
+            <p className="text-[9px] font-bold text-gray-600 uppercase mt-2 tracking-widest">Bani pregătiți + Bunuri la vânzare</p>
           </div>
 
-          <div className="bg-[#111] border-[3px] border-gray-800 rounded-2xl p-6 text-center hover:border-[#FFD100] hover:-translate-y-2 transition-all">
-            <span className="text-4xl block mb-2">💼</span>
-            <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">Cumpărători cu Cash</p>
-            <p className="text-3xl md:text-4xl font-black italic text-white">
-              {stats.activeDemands} <span className="text-sm text-gray-500">cereri</span>
+          {/* 2. Cumpărători Activi (Demands) */}
+          <div className="flex-1 w-full text-center md:px-6 pt-6 md:pt-0">
+            <p className="text-[10px] md:text-xs font-black uppercase tracking-[0.2em] text-gray-500 mb-1 md:mb-2 italic">Cumpărători Activi</p>
+            <p className="text-3xl md:text-4xl font-black italic text-white tracking-tighter">
+              {stats.activeDemands}
             </p>
+            <p className="text-[9px] font-bold text-gray-600 uppercase mt-2 tracking-widest">Așteaptă să cumpere cu cash</p>
           </div>
 
-          <div className="bg-[#111] border-[3px] border-gray-800 rounded-2xl p-6 text-center hover:border-[#FFD100] hover:-translate-y-2 transition-all">
-            <span className="text-4xl block mb-2">🏷️</span>
-            <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">Oportunități de Vânzare</p>
-            <p className="text-3xl md:text-4xl font-black italic text-white">
-              {stats.activeListings} <span className="text-sm text-gray-500">active</span>
+          {/* 3. Anunțuri (Listings) */}
+          <div className="flex-1 w-full text-center md:px-6 pt-6 md:pt-0">
+            <p className="text-[10px] md:text-xs font-black uppercase tracking-[0.2em] text-gray-500 mb-1 md:mb-2 italic">Anunțuri la Vânzare</p>
+            <p className="text-3xl md:text-4xl font-black italic text-white tracking-tighter">
+              {stats.activeListings}
             </p>
+            <p className="text-[9px] font-bold text-gray-600 uppercase mt-2 tracking-widest">Active disponibile chiar acum</p>
           </div>
 
-          <div className="bg-[#111] border-[3px] border-gray-800 rounded-2xl p-6 text-center hover:border-[#FFD100] hover:-translate-y-2 transition-all relative overflow-hidden group">
-            <div className="absolute inset-0 bg-gradient-to-tr from-transparent to-[#FFD100]/5 group-hover:to-[#FFD100]/20 transition-colors"></div>
-            <span className="text-4xl block mb-2">🏆</span>
-            <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">Tranzacții Finalizate</p>
-            <p className="text-3xl md:text-4xl font-black italic text-green-400">
-              {stats.soldItems} <span className="text-sm text-gray-500">produse vândute</span>
+          {/* 4. Tranzacții Finalizate */}
+          <div className="flex-1 w-full text-center md:px-6 pt-6 md:pt-0 pb-4 md:pb-0">
+            <p className="text-[10px] md:text-xs font-black uppercase tracking-[0.2em] text-gray-500 mb-1 md:mb-2 italic">Vânzări Finalizate</p>
+            <p className="text-3xl md:text-4xl font-black italic text-white tracking-tighter">
+              {stats.soldItems}
             </p>
+            <p className="text-[9px] font-bold text-gray-600 uppercase mt-2 tracking-widest">Tranzacții încheiate cu succes</p>
           </div>
 
         </div>
       </div>
-    </div>
+    </section>
   );
 }
