@@ -91,15 +91,16 @@ export default async function Home() {
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto mb-16">
             {[
-              { label: 'Standard', desc: 'Preț Maxim', time: '7-14 Zile' },
-              { label: 'Urgent', desc: 'Lichidare', time: '48 Ore' },
-              { label: 'Extreme', desc: 'Cash Instant', time: 'Azi' },
-              { label: 'Flash', desc: 'Licitație', time: '24 Ore' }
+              { label: 'Economy', desc: 'Preț Maxim', time: '30 Zile', price: '99 RON' },
+              { label: 'Standard', desc: 'Vânzare Rapidă', time: '14 Zile', price: '79 RON' },
+              { label: 'Urgent', desc: 'Lichidare', time: '48 Ore', price: '48 RON' },
+              { label: 'Flash', desc: 'Metoda Sniper', time: 'Licitație', price: '111 RON' }
             ].map((item) => (
               <div key={item.label} className="p-6 border-[3px] border-black rounded-2xl bg-white shadow-[4px_4px_0_0_rgba(0,0,0,1)] hover:-translate-y-1 transition-all">
                 <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1">{item.label}</p>
                 <p className="text-xl font-black uppercase italic leading-none">{item.time}</p>
-                <p className="text-[9px] font-bold uppercase mt-2 opacity-60 tracking-tighter">{item.desc}</p>
+                <p className="text-[11px] font-black text-[#FFD100] mt-2 uppercase tracking-tighter bg-black px-2 py-0.5 inline-block rounded">{item.price}</p>
+                <p className="text-[9px] font-bold uppercase mt-2 opacity-60 tracking-tighter block">{item.desc}</p>
               </div>
             ))}
           </div>

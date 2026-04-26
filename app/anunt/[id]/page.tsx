@@ -17,17 +17,23 @@ export default function AdDetail() {
 
   // Stări pentru datele reale ale anunțului
   const [adData, setAdData] = useState<any>(null);
+  const [similarAds, setSimilarAds] = useState<any[]>([]); // NOU: Oportunități Similare
   const [isLoading, setIsLoading] = useState(true);
   const [offerPrice, setOfferPrice] = useState(0);
 
-  // Stări NOI pentru trimiterea ofertei către vânzător
+  // Stări pentru Trimitere Ofertă (Negociere)
   const [buyerPhone, setBuyerPhone] = useState("");
   const [buyerEmail, setBuyerEmail] = useState("");
   const [offerMessage, setOfferMessage] = useState("");
   const [isSubmittingOffer, setIsSubmittingOffer] = useState(false);
   const [offerSuccess, setOfferSuccess] = useState(false);
 
-  // Extragem datele din Supabase
+  // NOU: Stări pentru "Acceptă Prețul de Exit"
+  const [acceptPhone, setAcceptPhone] = useState("");
+  const [acceptEmail, setAcceptEmail] = useState("");
+  const [isAccepting, setIsAccepting] = useState(false);
+  const [acceptSuccess, setAcceptSuccess] = useState(false);
+
   useEffect(() => {
     async function fetchAd() {
       if (!id) return;
@@ -41,6 +47,20 @@ export default function AdDetail() {
         if (error) throw error;
         setAdData(data);
         setOfferPrice(data.exit_price); 
+
+        // Extragem Oportunități Similare din aceeași categorie
+        if (data.category) {
+          const { data: similarData } = await supabase
+            .from('listings')
+            .select('*')
+            .eq('category', data.category)
+            .eq('status', 'active')
+            .neq('id', data.id)
+            .limit(3);
+            
+          if (similarData) setSimilarAds(similarData);
+        }
+
       } catch (error) {
         console.error("Eroare la extragerea anunțului:", error);
       } finally {
@@ -50,17 +70,13 @@ export default function AdDetail() {
     fetchAd();
   }, [id]);
 
-  // Funcția NOUĂ: Salvăm oferta pentru vânzător în 'listing_offers'
+  // FUNCȚIA DE NEGOCIERE
   const submitListingOffer = async () => {
     if (!buyerPhone || !offerPrice) return;
     setIsSubmittingOffer(true);
-    
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      
-      const { error } = await supabase
-        .from('listing_offers')
-        .insert({
+      const { error } = await supabase.from('listing_offers').insert({
           listing_id: adData.id,
           buyer_user_id: user ? user.id : null,
           offer_price: Number(offerPrice),
@@ -69,19 +85,39 @@ export default function AdDetail() {
           message: offerMessage,
           status: 'new'
         });
-
       if (error) throw error;
       setOfferSuccess(true);
-      
-      // Resetăm câmpurile
-      setBuyerPhone("");
-      setBuyerEmail("");
-      setOfferMessage("");
+      setBuyerPhone(""); setBuyerEmail(""); setOfferMessage("");
     } catch (err) {
-      console.error("Eroare trimitere ofertă:", err);
-      alert("A apărut o eroare la trimiterea ofertei. Verifică datele și încearcă din nou.");
+      console.error(err);
+      alert("Eroare la trimiterea ofertei. Verifică datele.");
     } finally {
       setIsSubmittingOffer(false);
+    }
+  };
+
+  // FUNCȚIA DE ACCEPTARE EXIT PRICE
+  const submitAcceptExitPrice = async () => {
+    if (!acceptPhone) return;
+    setIsAccepting(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const { error } = await supabase.from('listing_offers').insert({
+          listing_id: adData.id,
+          buyer_user_id: user ? user.id : null,
+          offer_price: adData.exit_price,
+          buyer_phone: acceptPhone,
+          buyer_email: acceptEmail,
+          message: "⚠️ CLIENTUL A ACCEPTAT PREȚUL DE EXIT ȘI DOREȘTE TRANZACȚIA ACUM!",
+          status: 'accepted_exit_price'
+        });
+      if (error) throw error;
+      setAcceptSuccess(true);
+    } catch (err) {
+      console.error(err);
+      alert("Eroare la confirmare.");
+    } finally {
+      setIsAccepting(false);
     }
   };
 
@@ -111,19 +147,14 @@ export default function AdDetail() {
 
   const minOffer = adData.exit_price * 0.7;
   const maxOffer = adData.exit_price;
-
-  const displayImages = (adData.images && adData.images.length > 0) 
-    ? adData.images 
-    : ["https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1200&q=80"];
+  const displayImages = (adData.images && adData.images.length > 0) ? adData.images : ["https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1200&q=80"];
 
   const renderTitle = (title: string) => {
     if (!title) return null;
     const words = title.split(" ");
     const lastWord = words.pop();
     return (
-      <>
-        {words.join(" ")} <span className="text-[#FFD100] underline decoration-black decoration-[3px] underline-offset-4">{lastWord}</span>
-      </>
+      <>{words.join(" ")} <span className="text-[#FFD100] underline decoration-black decoration-[3px] underline-offset-4">{lastWord}</span></>
     );
   };
 
@@ -138,10 +169,7 @@ export default function AdDetail() {
               ← Explorează Active
             </span>
           </Link>
-          <button 
-            onClick={() => setIsFavorite(!isFavorite)}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl border-[3px] border-black font-black uppercase text-[9px] md:text-[10px] tracking-widest italic transition-all shadow-[3px_3px_0_0_rgba(0,0,0,1)] active:shadow-none active:translate-y-1 ${isFavorite ? 'bg-red-600 text-white border-red-600' : 'bg-white text-black hover:bg-gray-50'}`}
-          >
+          <button onClick={() => setIsFavorite(!isFavorite)} className={`flex items-center gap-2 px-5 py-2.5 rounded-xl border-[3px] border-black font-black uppercase text-[9px] md:text-[10px] tracking-widest italic transition-all shadow-[3px_3px_0_0_rgba(0,0,0,1)] active:shadow-none active:translate-y-1 ${isFavorite ? 'bg-red-600 text-white border-red-600' : 'bg-white text-black hover:bg-gray-50'}`}>
             {isFavorite ? '❤ Salvat' : '♡ Adaugă Favorite'}
           </button>
         </div>
@@ -161,11 +189,7 @@ export default function AdDetail() {
               {displayImages.length > 1 && (
                 <div className="grid grid-cols-4 gap-3 md:gap-4">
                   {displayImages.map((img: string, index: number) => (
-                    <button 
-                      key={index}
-                      onClick={() => setCurrentImageIndex(index)}
-                      className={`relative h-16 md:h-20 lg:h-24 w-full rounded-xl overflow-hidden border-[3px] transition-all ${currentImageIndex === index ? 'border-[#FFD100] scale-[1.02] shadow-[4px_4px_0_0_rgba(0,0,0,1)] opacity-100' : 'border-black opacity-60 hover:opacity-100'}`}
-                    >
+                    <button key={index} onClick={() => setCurrentImageIndex(index)} className={`relative h-16 md:h-20 lg:h-24 w-full rounded-xl overflow-hidden border-[3px] transition-all ${currentImageIndex === index ? 'border-[#FFD100] scale-[1.02] shadow-[4px_4px_0_0_rgba(0,0,0,1)] opacity-100' : 'border-black opacity-60 hover:opacity-100'}`}>
                       <Image src={img} alt={`Thumbnail ${index + 1}`} fill className="object-cover" />
                     </button>
                   ))}
@@ -175,30 +199,20 @@ export default function AdDetail() {
 
             <div className="space-y-6">
               <div className="flex items-center gap-2 mb-2">
-                 <span className="text-[10px] font-black uppercase tracking-widest bg-gray-100 px-3 py-1 rounded-md border border-gray-200">
-                    {adData.category}
-                 </span>
+                 <span className="text-[10px] font-black uppercase tracking-widest bg-gray-100 px-3 py-1 rounded-md border border-gray-200">{adData.category}</span>
                  <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">ID: {adData.id.split('-')[0]}</span>
               </div>
               <h1 className="text-3xl md:text-4xl lg:text-5xl font-black uppercase italic tracking-tighter leading-[0.9] text-black">
                 {renderTitle(adData.title)}
               </h1>
               <div className="flex flex-wrap gap-2.5">
-                <button onClick={() => setActiveModal('verified')} className="flex items-center gap-1.5 bg-black text-[#FFD100] px-4 py-2 rounded-lg font-black uppercase text-[9px] tracking-widest italic border-2 border-black hover:scale-105 transition-transform">
-                  <span className="text-sm">★</span> Vânzător Verificat
-                </button>
-                <button onClick={() => setActiveModal('docs')} className="flex items-center gap-1.5 bg-white text-black px-4 py-2 rounded-lg font-black uppercase text-[9px] tracking-widest italic border-2 border-black hover:bg-[#FFD100] transition-all">
-                  <span className="text-sm">📁</span> Documente Gata
-                </button>
-                <button onClick={() => setActiveModal('ai-score')} className="flex items-center gap-1.5 bg-[#FFD100] text-black px-4 py-2 rounded-lg font-black uppercase text-[9px] tracking-widest italic border-2 border-black hover:scale-105 transition-transform shadow-[3px_3px_0_0_rgba(0,0,0,1)]">
-                  <span className="text-sm">⚡</span> Scor AI {adData.deal_score || 90}
-                </button>
+                <button onClick={() => setActiveModal('verified')} className="flex items-center gap-1.5 bg-black text-[#FFD100] px-4 py-2 rounded-lg font-black uppercase text-[9px] tracking-widest italic border-2 border-black hover:scale-105 transition-transform"><span className="text-sm">★</span> Vânzător Verificat</button>
+                <button onClick={() => setActiveModal('docs')} className="flex items-center gap-1.5 bg-white text-black px-4 py-2 rounded-lg font-black uppercase text-[9px] tracking-widest italic border-2 border-black hover:bg-[#FFD100] transition-all"><span className="text-sm">📁</span> Documente Gata</button>
+                <button onClick={() => setActiveModal('ai-score')} className="flex items-center gap-1.5 bg-[#FFD100] text-black px-4 py-2 rounded-lg font-black uppercase text-[9px] tracking-widest italic border-2 border-black hover:scale-105 transition-transform shadow-[3px_3px_0_0_rgba(0,0,0,1)]"><span className="text-sm">⚡</span> Scor AI {adData.deal_score || 90}</button>
               </div>
               <div className="border-t-[3px] border-black pt-6">
                 <h2 className="text-lg md:text-xl font-black uppercase italic mb-3 tracking-tight">Analiză <span className="text-gray-400">Investiție</span></h2>
-                <p className="text-sm md:text-base font-bold text-gray-700 leading-relaxed max-w-3xl italic">
-                  {adData.description}
-                </p>
+                <p className="text-sm md:text-base font-bold text-gray-700 leading-relaxed max-w-3xl italic whitespace-pre-wrap">{adData.description}</p>
               </div>
             </div>
           </div>
@@ -232,7 +246,7 @@ export default function AdDetail() {
                 </div>
 
                 <div className="space-y-3">
-                  <button onClick={() => setActiveModal('accept')} className="w-full bg-black text-[#FFD100] py-4 md:py-5 rounded-2xl font-black uppercase tracking-widest text-xs md:text-sm italic border-b-[6px] border-yellow-700 active:border-b-0 active:translate-y-1 transition-all">
+                  <button onClick={() => { setActiveModal('accept'); setAcceptSuccess(false); }} className="w-full bg-black text-[#FFD100] py-4 md:py-5 rounded-2xl font-black uppercase tracking-widest text-xs md:text-sm italic border-b-[6px] border-yellow-700 active:border-b-0 active:translate-y-1 transition-all">
                     Acceptă Prețul de Exit
                   </button>
                   <button onClick={() => { setActiveModal('offer'); setOfferSuccess(false); }} className="w-full bg-white text-black py-4 md:py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] md:text-xs italic border-[3px] border-black hover:bg-gray-50 transition-all shadow-[4px_4px_0_0_rgba(0,0,0,1)] active:shadow-none">
@@ -240,12 +254,13 @@ export default function AdDetail() {
                   </button>
                 </div>
 
-                <div className="mt-8 pt-6 border-t-[3px] border-gray-100 flex flex-col items-center">
-                   <button onClick={() => setActiveModal('sniper')} className="text-[10px] md:text-[11px] font-black uppercase italic border-b-[3px] border-[#FFD100] pb-1 hover:text-red-600 hover:border-red-600 transition-all">
+                <div className="mt-8 pt-6 border-t-[3px] border-gray-100 flex flex-col items-center opacity-50 relative group cursor-not-allowed">
+                   <button disabled className="text-[10px] md:text-[11px] font-black uppercase italic border-b-[3px] border-gray-400 pb-1">
                      Activează Alerta Sniper
                    </button>
+                   <div className="absolute -top-6 bg-black text-[#FFD100] px-2 py-1 rounded text-[8px] font-black tracking-widest uppercase hidden group-hover:block">În Curând</div>
                    <p className="text-[10px] font-bold text-gray-800 mt-3 max-w-[240px] text-center italic leading-snug">
-                     * <span className="font-black text-black">Ești notificat automat</span> pe email în secunda în care prețul scade.
+                     Filtru indisponibil temporar. Sistem de notificări AI în dezvoltare.
                    </p>
                 </div>
               </div>
@@ -253,17 +268,34 @@ export default function AdDetail() {
           </div>
         </div>
 
-        {/* SECȚIUNE OPORTUNITĂȚI SIMILARE */}
+        {/* SECȚIUNE OPORTUNITĂȚI SIMILARE REALE DIN SUPABASE */}
         <div className="border-t-[3px] border-black pt-12 md:pt-16">
           <h2 className="text-3xl font-black uppercase italic tracking-tighter mb-8 md:mb-10">Oportunități <span className="text-[#FFD100]">Similare</span></h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-            <AdCard id="mercedes-s-class" title="Mercedes S-Class 2022" image="https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?auto=format&fit=crop&w=800&q=80" marketPrice="€95.000" exitPrice="€72.000" discount="24" score={8.5} type="urgent" />
-            <AdCard id="rolex-daytona" title="Rolex Daytona Gold" image="https://images.unsplash.com/photo-1547996160-81dfa63595aa?auto=format&fit=crop&w=800&q=80" marketPrice="€45.000" exitPrice="€31.000" discount="31" score={9.2} type="extreme" />
-            <AdCard id="apartament-herastrau" title="Apartament Herastrau" image="https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=800&q=80" marketPrice="€420.000" exitPrice="€315.000" discount="25" score={8.9} type="urgent" />
-          </div>
+          
+          {similarAds.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+              {similarAds.map((item) => (
+                <AdCard 
+                  key={item.id}
+                  id={item.id}
+                  title={item.title}
+                  image={item.images?.[0] || "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=800&q=80"}
+                  marketPrice={`€${item.market_price.toLocaleString('ro-RO')}`}
+                  exitPrice={`€${item.exit_price.toLocaleString('ro-RO')}`}
+                  discount={item.discount?.toString() || "0"}
+                  score={item.deal_score ? item.deal_score / 10 : 9.0} 
+                  type={item.sale_strategy?.toLowerCase() || "standard"}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="p-10 bg-gray-50 border-[3px] border-dashed border-gray-300 rounded-[2rem] text-center">
+              <p className="font-black uppercase italic text-gray-400">Nu există alte active disponibile momentan în categoria {adData.category}.</p>
+            </div>
+          )}
         </div>
 
-        {/* MODAL SISTEM */}
+        {/* MODALE SISTEM */}
         {activeModal && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setActiveModal(null)} />
@@ -299,42 +331,60 @@ export default function AdDetail() {
                   <h3 className="text-3xl md:text-4xl font-black uppercase italic tracking-tighter">Algoritm <span className="text-[#FFD100]">Scor AI</span></h3>
                   <p className="text-base md:text-lg font-bold italic text-gray-700">Scorul de {adData.deal_score || 90} este calculat pe baza:</p>
                   <div className="grid grid-cols-3 gap-3">
-                    <div className="text-center p-3 border-[3px] border-black rounded-2xl bg-gray-50">
-                       <p className="text-xl md:text-2xl font-black italic leading-none">40%</p>
-                       <p className="text-[7px] md:text-[8px] font-black uppercase mt-2">Preț vs Piață</p>
-                    </div>
-                    <div className="text-center p-3 border-[3px] border-black rounded-2xl bg-gray-50">
-                       <p className="text-xl md:text-2xl font-black italic leading-none">35%</p>
-                       <p className="text-[7px] md:text-[8px] font-black uppercase mt-2">Lichiditate Locație</p>
-                    </div>
-                    <div className="text-center p-3 border-[3px] border-black rounded-2xl bg-gray-50">
-                       <p className="text-xl md:text-2xl font-black italic leading-none">25%</p>
-                       <p className="text-[7px] md:text-[8px] font-black uppercase mt-2">Cerere Activ</p>
-                    </div>
+                    <div className="text-center p-3 border-[3px] border-black rounded-2xl bg-gray-50"><p className="text-xl md:text-2xl font-black italic leading-none">40%</p><p className="text-[7px] md:text-[8px] font-black uppercase mt-2">Preț vs Piață</p></div>
+                    <div className="text-center p-3 border-[3px] border-black rounded-2xl bg-gray-50"><p className="text-xl md:text-2xl font-black italic leading-none">35%</p><p className="text-[7px] md:text-[8px] font-black uppercase mt-2">Lichiditate Locație</p></div>
+                    <div className="text-center p-3 border-[3px] border-black rounded-2xl bg-gray-50"><p className="text-xl md:text-2xl font-black italic leading-none">25%</p><p className="text-[7px] md:text-[8px] font-black uppercase mt-2">Cerere Activ</p></div>
                   </div>
                 </div>
               )}
 
+              {/* MODAL ACCEPTĂ EXIT PRICE REPARAT */}
               {activeModal === 'accept' && (
                 <div className="text-center space-y-8 pt-4">
                   <h3 className="text-3xl md:text-4xl font-black uppercase italic tracking-tighter">Notifică <span className="text-[#FFD100]">Vânzătorul</span></h3>
-                  <p className="text-base font-bold italic text-gray-800">Ai acceptat prețul de €{adData.exit_price.toLocaleString()}. Sistemul îi va trimite automat un email cu datele tale pentru a te contacta imediat.</p>
-                  <div className="space-y-4">
-                    <a href={`https://wa.me/+40722000000?text=Salut! Accept pretul de ${adData.exit_price}€ pentru ${adData.title} listat pe QuickExit.`} className="bg-[#25D366] text-white py-5 rounded-2xl font-black uppercase tracking-widest text-xs italic shadow-[4px_4px_0_0_rgba(0,0,0,1)] hover:translate-y-1 hover:shadow-none transition-all flex items-center justify-center gap-2">
-                      <span>💬</span> Trimite Mesaj WhatsApp Acum
-                    </a>
-                    
-                    <div className="pt-4 border-t-2 border-gray-100 mt-4">
-                      <p className="text-[10px] font-black uppercase text-gray-400 mb-4">Sau lasă-ți datele și te sună el:</p>
-                      <input type="tel" placeholder="NUMĂRUL TĂU DE TELEFON" className="w-full border-[3px] border-black p-4 rounded-xl font-black text-sm italic uppercase text-center focus:outline-none focus:border-[#FFD100] mb-3" />
-                      <button className="w-full bg-black text-[#FFD100] py-4 rounded-xl font-black uppercase tracking-widest text-xs italic hover:bg-gray-900 transition-colors">
-                        Trimite Notificare Email
-                      </button>
+                  
+                  {acceptSuccess ? (
+                    <div className="bg-[#FFD100] p-6 rounded-2xl border-[3px] border-black text-center shadow-[4px_4px_0_0_rgba(0,0,0,1)] animate-in zoom-in duration-300">
+                      <span className="text-5xl block mb-4">🤝</span>
+                      <p className="text-xl font-black uppercase italic text-black mb-2">Felicitări! Ai rezervat activul.</p>
+                      <p className="text-[10px] font-bold text-gray-800 uppercase tracking-widest leading-relaxed">Vânzătorul a fost notificat de acordul tău ferm pentru prețul de €{adData.exit_price.toLocaleString('ro-RO')}. Te va suna imediat.</p>
+                      <button onClick={() => { setActiveModal(null); setAcceptSuccess(false); }} className="mt-6 w-full bg-black text-[#FFD100] px-6 py-4 rounded-xl font-black uppercase text-[10px] tracking-widest italic hover:bg-gray-900 transition-colors">Închide și Revino</button>
                     </div>
-                  </div>
+                  ) : (
+                    <>
+                      <p className="text-base font-bold italic text-gray-800">Ești de acord cu achiziția la prețul exact cerut de <span className="font-black">€{adData.exit_price.toLocaleString('ro-RO')}</span>.</p>
+                      <div className="space-y-4">
+                        <div className="pt-4 border-t-2 border-gray-100">
+                          <p className="text-[10px] font-black uppercase text-gray-400 mb-4 text-left">Lasă-ți datele și te sună proprietarul:</p>
+                          <input 
+                            type="tel" 
+                            value={acceptPhone}
+                            onChange={(e) => setAcceptPhone(e.target.value)}
+                            placeholder="NUMĂRUL TĂU DE TELEFON" 
+                            className="w-full border-[3px] border-black p-4 rounded-xl font-black text-sm italic uppercase focus:outline-none focus:border-[#FFD100] mb-3" 
+                          />
+                          <input 
+                            type="email" 
+                            value={acceptEmail}
+                            onChange={(e) => setAcceptEmail(e.target.value)}
+                            placeholder="EMAIL (OPȚIONAL)" 
+                            className="w-full border-[3px] border-black p-4 rounded-xl font-black text-sm italic uppercase focus:outline-none focus:border-[#FFD100] mb-3" 
+                          />
+                          <button 
+                            onClick={submitAcceptExitPrice}
+                            disabled={isAccepting || !acceptPhone}
+                            className="w-full bg-black text-[#FFD100] py-4 rounded-xl font-black uppercase tracking-widest text-xs italic hover:bg-gray-900 transition-colors shadow-[4px_4px_0_0_rgba(0,0,0,1)] disabled:opacity-50 disabled:shadow-none active:translate-y-1 active:shadow-none"
+                          >
+                            {isAccepting ? "Se trimite..." : "Trimite Acordul Oficial"}
+                          </button>
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
 
+              {/* MODAL OFERTĂ (NEGOCIERE) */}
               {activeModal === 'offer' && (
                 <div className="space-y-6 pt-4">
                   <h3 className="text-3xl md:text-4xl font-black uppercase italic tracking-tighter">Trimite <span className="text-[#FFD100]">Ofertă Cash</span></h3>
@@ -348,17 +398,11 @@ export default function AdDetail() {
                     </div>
                   ) : (
                     <>
-                      {/* Slider & Pret Box */}
                       <div className="bg-gray-50 p-6 rounded-2xl border-[3px] border-black">
                         <p className="text-[10px] font-black uppercase text-gray-400 mb-1">Oferta ta curentă:</p>
                         <p className="text-4xl font-black italic tracking-tighter text-black mb-4">€{offerPrice.toLocaleString('ro-RO')}</p>
-                        
                         <input 
-                          type="range" 
-                          min={minOffer} 
-                          max={maxOffer} 
-                          step="1000" 
-                          value={offerPrice} 
+                          type="range" min={minOffer} max={maxOffer} step="1000" value={offerPrice} 
                           onChange={(e) => setOfferPrice(Number(e.target.value))}
                           className="w-full accent-black cursor-pointer h-2 bg-gray-200 rounded-lg appearance-none"
                         />
@@ -368,28 +412,19 @@ export default function AdDetail() {
                         </div>
                       </div>
 
-                      {/* Formular Contact (Controlat) */}
                       <div className="space-y-3">
                         <input 
-                          type="tel" 
-                          value={buyerPhone}
-                          onChange={(e) => setBuyerPhone(e.target.value)}
-                          placeholder="NUMĂR DE TELEFON" 
-                          className="w-full bg-gray-50 border-[3px] border-black p-4 rounded-xl font-black text-sm italic focus:outline-none focus:bg-white" 
+                          type="tel" value={buyerPhone} onChange={(e) => setBuyerPhone(e.target.value)}
+                          placeholder="NUMĂR DE TELEFON" className="w-full bg-gray-50 border-[3px] border-black p-4 rounded-xl font-black text-sm italic focus:outline-none focus:bg-white" 
                         />
                         <input 
-                          type="email" 
-                          value={buyerEmail}
-                          onChange={(e) => setBuyerEmail(e.target.value)}
-                          placeholder="ADRESA DE EMAIL (Opțional)" 
-                          className="w-full bg-gray-50 border-[3px] border-black p-4 rounded-xl font-black text-sm italic focus:outline-none focus:bg-white" 
+                          type="email" value={buyerEmail} onChange={(e) => setBuyerEmail(e.target.value)}
+                          placeholder="ADRESA DE EMAIL (Opțional)" className="w-full bg-gray-50 border-[3px] border-black p-4 rounded-xl font-black text-sm italic focus:outline-none focus:bg-white" 
                         />
                         <textarea 
-                          value={offerMessage}
-                          onChange={(e) => setOfferMessage(e.target.value)}
+                          value={offerMessage} onChange={(e) => setOfferMessage(e.target.value)}
                           placeholder="DESCRIERE PROPUNERE (EX: PLĂTESC MÂINE CASH ȘI MĂ OCUP DE ACTE)..." 
-                          rows={3} 
-                          className="w-full bg-gray-50 border-[3px] border-black p-4 rounded-xl font-black text-xs italic focus:outline-none focus:bg-white resize-none"
+                          rows={3} className="w-full bg-gray-50 border-[3px] border-black p-4 rounded-xl font-black text-xs italic focus:outline-none focus:bg-white resize-none"
                         ></textarea>
                       </div>
                       
@@ -400,18 +435,8 @@ export default function AdDetail() {
                       >
                         {isSubmittingOffer ? "Se Trimite..." : "Notifică Vânzătorul"}
                       </button>
-                      <p className="text-[9px] font-bold text-center text-gray-400 italic">Oferta va fi salvată în siguranță și trimisă automat vânzătorului.</p>
                     </>
                   )}
-                </div>
-              )}
-
-              {activeModal === 'sniper' && (
-                <div className="text-center space-y-6 pt-4">
-                  <h3 className="text-3xl md:text-4xl font-black uppercase italic tracking-tighter">Alerta <span className="text-red-600">Sniper</span></h3>
-                  <p className="text-base font-bold italic text-gray-700">Te anunțăm instant pe email dacă prețul scade.</p>
-                  <input type="email" placeholder="EMAIL-UL TĂU" className="w-full border-[3px] border-black p-5 rounded-2xl font-black text-lg md:text-xl italic uppercase text-center focus:outline-none focus:border-[#FFD100]" />
-                  <button className="w-full bg-black text-[#FFD100] py-5 rounded-2xl font-black uppercase tracking-widest text-xs md:text-sm italic hover:bg-gray-900 transition-colors">Setează Alerta</button>
                 </div>
               )}
 

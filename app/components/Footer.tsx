@@ -25,31 +25,41 @@ export default function Footer() {
             </div>
           </div>
 
-          {/* Coloana 2: Utile / Navigare */}
+          {/* Coloana 2: Utile / Navigare + BUTONUL SMART */}
           <div>
-            <h4 className="text-[#FFD100] font-black uppercase tracking-[0.2em] text-xs mb-8 italic">Platformă</h4>
-            <ul className="space-y-4">
-              <li><Link href="/evaluare" className="text-gray-400 hover:text-white transition-colors text-sm font-bold uppercase italic">Cât valorează ce vinzi?</Link></li>
-              <li><Link href="/#how-it-works" className="text-gray-400 hover:text-white transition-colors text-sm font-bold uppercase italic">Cum funcționează</Link></li>
-              <li><Link href="/vinde" className="text-gray-400 hover:text-white transition-colors text-sm font-bold uppercase italic">Vinde Urgent</Link></li>
-              <li><Link href="/cariere" className="text-gray-400 hover:text-white transition-colors text-sm font-bold uppercase italic">Cariere</Link></li>
+            <h4 className="text-sm font-black uppercase tracking-widest text-[#FFD100] mb-6">Utile</h4>
+            <ul className="space-y-4 text-xs font-bold uppercase italic text-gray-500 mb-8">
+              <li><Link href="/" className="hover:text-white transition-colors">Acasă</Link></li>
+              <li><Link href="/pune-anunt" className="hover:text-white transition-colors">Pune Anunț</Link></li>
+              <li><Link href="/capital-disponibil" className="hover:text-white transition-colors">Capital Disponibil</Link></li>
+              <li><Link href="/tarife" className="hover:text-white transition-colors">Tarife & Oferte</Link></li>
+              <li><Link href="/dashboard" className="hover:text-white transition-colors">Contul Meu</Link></li>
+            </ul>
+
+            {/* BUTONUL GALBEN SMART */}
+            <Link href="/tarife">
+               <button className="w-full bg-[#FFD100] text-black py-4 rounded-xl font-black uppercase tracking-widest text-[10px] italic shadow-[4px_4px_0_0_rgba(255,255,255,1)] hover:shadow-none hover:translate-y-1 transition-all flex items-center justify-center gap-2 group">
+                 <span>OFERTE SPECIALE & TARIFE</span>
+                 <span className="group-hover:translate-x-1 transition-transform">→</span>
+               </button>
+            </Link>
+          </div>
+
+          {/* Coloana 3: Categorii */}
+          <div>
+            <h4 className="text-sm font-black uppercase tracking-widest text-[#FFD100] mb-6">Categorii</h4>
+            <ul className="space-y-4 text-[10px] font-black uppercase italic text-gray-500">
+              <li><Link href="/categorii/auto" className="hover:text-[#FFD100] transition-colors">Auto & Moto</Link></li>
+              <li><Link href="/categorii/imobiliare" className="hover:text-[#FFD100] transition-colors">Imobiliare</Link></li>
+              <li><Link href="/categorii/lux" className="hover:text-[#FFD100] transition-colors">Lux & Ceasuri</Link></li>
+              <li><Link href="/categorii/business" className="hover:text-[#FFD100] transition-colors">Afaceri de vânzare</Link></li>
+              <li><Link href="/categorii/gadgets" className="hover:text-[#FFD100] transition-colors">Gadgets & Tech</Link></li>
             </ul>
           </div>
 
-          {/* Coloana 3: Legal & Suport */}
+          {/* Coloana 4: Protecție & Legal */}
           <div>
-            <h4 className="text-[#FFD100] font-black uppercase tracking-[0.2em] text-xs mb-8 italic">Suport Legal</h4>
-            <ul className="space-y-4">
-              <li><Link href="/termeni" className="text-gray-400 hover:text-white transition-colors text-sm font-bold uppercase italic">Termeni și Condiții</Link></li>
-              <li><Link href="/confidentialitate" className="text-gray-400 hover:text-white transition-colors text-sm font-bold uppercase italic">Politică de Confidențialitate</Link></li>
-              <li><Link href="/cookies" className="text-gray-400 hover:text-white transition-colors text-sm font-bold uppercase italic">Politică Cookies</Link></li>
-              <li><Link href="/contact" className="text-gray-400 hover:text-white transition-colors text-sm font-bold uppercase italic">Contact</Link></li>
-            </ul>
-          </div>
-
-          {/* Coloana 4: Legături Obligatorii RO (ANPC) */}
-          <div>
-            <h4 className="text-[#FFD100] font-black uppercase tracking-[0.2em] text-xs mb-8 italic">Protecția Consumatorului</h4>
+            <h4 className="text-sm font-black uppercase tracking-widest text-[#FFD100] mb-6">Protecție</h4>
             <div className="space-y-4">
               <a 
                 href="https://anpc.ro/" 
@@ -58,7 +68,7 @@ export default function Footer() {
                 className="block border border-gray-800 p-4 rounded-xl hover:border-[#FFD100] transition-colors group"
               >
                 <span className="text-[10px] font-black uppercase tracking-widest text-gray-500 group-hover:text-[#FFD100]">A.N.P.C.</span>
-                <p className="text-[9px] text-gray-600 mt-1 uppercase">Autoritatea Națională pentru Protecția Consumatorilor</p>
+                <p className="text-[9px] text-gray-600 mt-1 uppercase">Protecția Consumatorilor</p>
               </a>
               <a 
                 href="https://ec.europa.eu/consumers/odr/" 
@@ -82,9 +92,11 @@ export default function Footer() {
           
           {/* Social Social / Trust */}
           <div className="flex gap-8 items-center opacity-30 grayscale hover:grayscale-0 hover:opacity-100 transition-all">
-             <div className="text-[10px] font-black text-white italic tracking-tighter">VISA</div>
-             <div className="text-[10px] font-black text-white italic tracking-tighter">MASTERCARD</div>
-             <div className="text-[10px] font-black text-white italic tracking-tighter">STRIPE</div>
+             <div className="text-[10px] font-black text-white italic tracking-tighter underline decoration-[#FFD100] decoration-2">SECURE PAYMENTS BY STRIPE</div>
+             <div className="flex gap-4">
+                <span className="text-[10px] font-black text-white italic">VISA</span>
+                <span className="text-[10px] font-black text-white italic">MASTERCARD</span>
+             </div>
           </div>
         </div>
 
