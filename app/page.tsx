@@ -3,15 +3,8 @@ import AdCard from "./components/AdCard";
 import Link from "next/link";
 import GlobalStats from "./components/GlobalStats";
 import { supabase } from "@/lib/supabase"; 
-
-// Helper tehnic pentru a mapa corect tag-urile din baza de date
-const normalizeSaleType = (value: string): "standard" | "urgent" | "extreme" | "auction" => {
-  const val = value?.toLowerCase() || "standard";
-  if (val === "flash" || val === "licitatie" || val === "auction") return "auction";
-  if (val === "fast" || val === "urgent") return "urgent";
-  if (val === "extreme" || val === "azi") return "extreme";
-  return "standard";
-};
+// IMPORT GLOBAL NOU
+import { normalizeSaleType } from "@/utils/normalizeSaleType"; 
 
 export default async function Home() {
   const { hero, types, home } = ro;
@@ -30,7 +23,7 @@ export default async function Home() {
     .order('created_at', { ascending: false })
     .limit(6);
 
-  // Separăm licitațiile de anunțurile normale
+  // Separăm licitațiile de anunțurile normale folosind funcția globală
   const auctions = realListings?.filter(item => normalizeSaleType(item.sale_strategy) === 'auction') || [];
   const standardListings = realListings?.filter(item => normalizeSaleType(item.sale_strategy) !== 'auction') || [];
 
@@ -82,7 +75,7 @@ export default async function Home() {
   return (
     <div className="flex flex-col w-full bg-white selection:bg-[#FFD100] selection:text-black font-sans">
       
-      {/* HERO SECTION ORIGINAL */}
+      {/* HERO SECTION */}
       <section className="relative pt-20 pb-16 overflow-hidden bg-white text-center">
         <div className="mx-auto max-w-7xl px-4">
           
@@ -127,7 +120,6 @@ export default async function Home() {
             </Link>
           </div>
 
-          {/* GRILA DE CATEGORII - DESIGN ÎMBUNĂTĂȚIT */}
           <div className="max-w-6xl mx-auto mb-10 pt-16 border-t border-gray-100">
             <h3 className="text-sm md:text-lg font-black uppercase tracking-[0.4em] text-black mb-12 italic border-b-[6px] border-[#FFD100] pb-4 inline-block">
               Alege Categoria
@@ -149,10 +141,9 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* INTEGRARE SPECTACULOASĂ LICITAȚII (Apare doar dacă există) */}
+      {/* INTEGRARE LICITAȚII */}
       {auctions.length > 0 && (
         <section className="py-20 bg-black border-y-[8px] border-black relative overflow-hidden shadow-[0_0_50px_rgba(255,0,0,0.15)]">
-          {/* Efect luminos pe fundal */}
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] bg-red-600/20 blur-[100px] rounded-full pointer-events-none"></div>
           
           <div className="mx-auto max-w-7xl px-4 relative z-10">
@@ -174,7 +165,6 @@ export default async function Home() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 lg:gap-12">
               {auctions.map((item) => (
                 <div key={item.id} className="relative group">
-                  {/* Glow effect behind card on hover */}
                   <div className="absolute -inset-2 bg-gradient-to-r from-red-600 to-[#FFD100] rounded-[2.5rem] blur opacity-30 group-hover:opacity-100 transition duration-500"></div>
                   <div className="relative h-full">
                     <AdCard 
@@ -236,7 +226,7 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* SECȚIUNEA CAPITAL DISPONIBIL ORIGINALĂ */}
+      {/* CAPITAL DISPONIBIL */}
       <section className="py-16 bg-white border-t border-gray-200">
         <div className="mx-auto max-w-7xl px-4">
             <div className="mb-12 border-b-[3px] border-black pb-8">
@@ -244,35 +234,20 @@ export default async function Home() {
                   <h2 className="text-4xl md:text-5xl font-black uppercase italic tracking-tighter leading-none">
                     Capital <span className="text-black underline decoration-[#FFD100] decoration-[6px]">Disponibil</span>
                   </h2>
-                  <div className="flex items-center gap-4">
-                    <Link href="/posteaza-cerere" className="text-[10px] md:text-xs font-black uppercase tracking-widest italic text-gray-500 hover:text-black transition-colors">
-                      Adaugă Cerere +
-                    </Link>
-                    <Link href="/capital-disponibil" className="text-[10px] md:text-xs font-black uppercase tracking-widest italic hover:text-[#FFD100] transition-colors border-b-2 border-transparent hover:border-[#FFD100]">
-                      Vezi tot capitalul →
-                    </Link>
-                  </div>
               </div>
               <p className="text-sm md:text-base font-bold text-gray-500 uppercase italic">Clienți cu fonduri verificate caută să cumpere urgent aceste active.</p>
             </div>
     
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 lg:gap-12">
-                {realDemands && realDemands.length > 0 ? (
-                  realDemands.map((demand, idx) => (
+                {realDemands?.map((demand, idx) => (
                     <div key={idx} className="bg-white border-[4px] border-[#FFD100] rounded-[2rem] p-8 shadow-[8px_8px_0_0_rgba(0,0,0,1)] hover:-translate-y-2 hover:shadow-[12px_12px_0_0_rgba(0,0,0,1)] transition-all flex flex-col justify-between group">
                       <div>
                         <div className="flex justify-between items-start mb-6">
                           <span className="bg-[#FFD100] text-black px-4 py-2 rounded-lg text-[9px] md:text-[10px] font-black uppercase tracking-widest italic border-2 border-black">
                             CASH PREGĂTIT
                           </span>
-                          <span className="text-2xl grayscale opacity-50 group-hover:grayscale-0 group-hover:opacity-100 transition-all">💰</span>
                         </div>
                         <h3 className="text-2xl font-black uppercase italic tracking-tight leading-none mb-3 text-black">{demand.target_asset}</h3>
-                        <div className="flex items-center gap-2 mb-4">
-                          <span className="text-[10px] font-black uppercase tracking-widest bg-gray-100 px-2 py-1 rounded border border-gray-200">
-                            {demand.category || "General"}
-                          </span>
-                        </div>
                         <p className="text-sm font-bold text-gray-600 italic line-clamp-3 leading-relaxed">
                           &quot;{demand.description}&quot;
                         </p>
@@ -285,17 +260,11 @@ export default async function Home() {
                         </Link>
                       </div>
                     </div>
-                  ))
-                ) : (
-                   <div className="col-span-full py-16 text-center bg-gray-50 border-[3px] border-dashed border-gray-200 rounded-[2rem]">
-                      <p className="font-black uppercase italic text-gray-300">Nicio cerere de capital în așteptare.</p>
-                   </div>
-                )}
+                ))}
             </div>
         </div>
       </section>
 
-      {/* STATISTICI GLOBALE LIVE */}
       <GlobalStats />
 
     </div>

@@ -21,6 +21,15 @@ import { useParams } from "next/navigation";
 import { supabase } from "@/lib/supabase"; 
 import AdCard from "../../components/AdCard";
 
+// HELPER NOU: Asigură-te că AdCard primește doar tipurile pe care le recunoaște
+const normalizeSaleType = (value: string): "standard" | "urgent" | "extreme" | "auction" => {
+  const val = value?.toLowerCase() || "standard";
+  if (val === "flash" || val === "licitatie" || val === "auction") return "auction";
+  if (val === "fast" || val === "urgent") return "urgent";
+  if (val === "extreme" || val === "azi") return "extreme";
+  return "standard";
+};
+
 export default function AdDetail() {
   const params = useParams();
   const id = params.id as string;
@@ -298,7 +307,8 @@ export default function AdDetail() {
                   exitPrice={`€${item.exit_price.toLocaleString('ro-RO')}`}
                   discount={item.discount?.toString() || "0"}
                   score={item.deal_score ? item.deal_score / 10 : 9.0} 
-                  type={item.sale_strategy?.toLowerCase() || "standard"}
+                  // REPARAT AICI: Am folosit helper-ul ca să eliminăm eroarea Type
+                  type={normalizeSaleType(item.sale_strategy)}
                 />
               ))}
             </div>
@@ -690,6 +700,16 @@ import { supabase } from "@/lib/supabase";
 import AdCard from "../../components/AdCard";
 import Link from "next/link";
 
+// Helper pentru normalizarea tipurilor de anunț conform AdCardProps
+const normalizeSaleType = (value: string): "standard" | "urgent" | "extreme" | "auction" => {
+  const val = value?.toLowerCase() || "standard";
+  if (val === "flash" || val === "licitatie" || val === "auction") return "auction";
+  if (val === "fast" || val === "urgent") return "urgent";
+  if (val === "extreme" || val === "azi") return "extreme";
+  if (val === "economy" || val === "standard") return "standard";
+  return "standard";
+};
+
 export default function CategoryPage() {
   const params = useParams();
   const slug = params.slug as string;
@@ -729,7 +749,7 @@ export default function CategoryPage() {
         setListings(listData || []);
         setDemands(demandData || []);
       } catch (err) {
-        console.error("Eroare fetch:", err);
+        console.error("Eroare fetch terminal:", err);
       } finally {
         setIsLoading(false);
       }
@@ -741,7 +761,7 @@ export default function CategoryPage() {
     <div className="min-h-screen bg-white pt-20 pb-24 font-sans text-black antialiased">
       <div className="max-w-7xl mx-auto px-4 md:px-8">
         
-        {/* HEADER CATEGORIE */}
+        {/* HEADER CATEGORIE - BRUTALIST STYLE */}
         <div className="mb-16 border-b-[6px] border-black pb-10">
           <Link href="/" className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400 hover:text-black italic mb-4 block transition-colors">
             ← TERMINAL LICHIDITATE
@@ -756,15 +776,15 @@ export default function CategoryPage() {
         ) : (
           <div className="space-y-28">
             
-            {/* 1. SECȚIUNEA LICITAȚII - REPARARE TYPE */}
-            {listings.some(l => l.sale_strategy?.toLowerCase().includes('auction') || l.sale_strategy?.toLowerCase() === 'flash') && (
+            {/* 1. SECȚIUNEA LICITAȚII (Bazată pe normalizarea strategiei) */}
+            {listings.some(l => normalizeSaleType(l.sale_strategy) === 'auction') && (
               <section>
                 <div className="flex items-center gap-4 mb-12">
                   <div className="w-4 h-10 bg-red-600 border-2 border-black animate-pulse"></div>
                   <h2 className="text-3xl font-black uppercase italic tracking-tighter text-red-600">Licitații Flash Live</h2>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
-                  {listings.filter(l => l.sale_strategy?.toLowerCase().includes('auction') || l.sale_strategy?.toLowerCase() === 'flash').map((item) => (
+                  {listings.filter(l => normalizeSaleType(l.sale_strategy) === 'auction').map((item) => (
                     <div key={item.id} className="relative">
                        <div className="absolute -top-4 -right-4 z-20 bg-red-600 text-white px-4 py-2 font-black uppercase italic text-[10px] shadow-[4px_4px_0_0_rgba(0,0,0,1)] border-2 border-black animate-bounce">Live 24H</div>
                        <AdCard 
@@ -775,7 +795,6 @@ export default function CategoryPage() {
                         exitPrice={`€${item.exit_price.toLocaleString('ro-RO')}`}
                         discount={item.discount?.toString() || "0"}
                         score={item.deal_score ? item.deal_score / 10 : 9.5}
-                        // REPARAT: Folosim "auction" în loc de "flash" pentru a fi conform cu AdCardProps
                         type="auction" 
                       />
                     </div>
@@ -784,14 +803,14 @@ export default function CategoryPage() {
               </section>
             )}
 
-            {/* 2. SECȚIUNEA VÂNZĂRI STANDARD & URGENT */}
+            {/* 2. SECȚIUNEA VÂNZĂRI STANDARD & URGENT (Celelalte strategii) */}
             <section>
               <div className="flex items-center gap-4 mb-12">
                 <div className="w-4 h-10 bg-[#FFD100] border-2 border-black"></div>
                 <h2 className="text-3xl font-black uppercase italic tracking-tighter">Oportunități de Vânzare</h2>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
-                {listings.filter(l => !l.sale_strategy?.toLowerCase().includes('auction') && l.sale_strategy?.toLowerCase() !== 'flash').map((item) => (
+                {listings.filter(l => normalizeSaleType(l.sale_strategy) !== 'auction').map((item) => (
                   <AdCard 
                     key={item.id}
                     id={item.id}
@@ -801,28 +820,27 @@ export default function CategoryPage() {
                     exitPrice={`€${item.exit_price.toLocaleString('ro-RO')}`}
                     discount={item.discount?.toString() || "0"}
                     score={item.deal_score ? item.deal_score / 10 : 9.0}
-                    // REPARAT: Asigurăm fallback la "standard"
-                    type={(item.sale_strategy?.toLowerCase() as "standard" | "urgent" | "extreme" | "auction") || "standard"} 
+                    type={normalizeSaleType(item.sale_strategy)} 
                   />
                 ))}
               </div>
             </section>
 
-            {/* 3. SECȚIUNEA INVESTITORI */}
+            {/* 3. SECȚIUNEA INVESTITORI (CERERI) */}
             <section>
               <div className="flex items-center gap-4 mb-12">
                 <div className="w-4 h-10 bg-black"></div>
                 <h2 className="text-3xl font-black uppercase italic tracking-tighter text-black">Capital Disponibil (Investitori)</h2>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
-                {demands.map((demand) => (
+                {demands.length > 0 ? demands.map((demand) => (
                   <div key={demand.id} className="bg-white border-[3px] border-black p-8 rounded-[2.5rem] shadow-[8px_8px_0_0_rgba(0,0,0,1)] flex flex-col justify-between hover:translate-y-[-5px] transition-all">
                     <div>
                       <div className="flex justify-between items-start mb-8">
                          <span className="bg-black text-[#FFD100] px-3 py-1.5 rounded-lg text-[9px] font-black uppercase italic tracking-widest border border-black">
                           CASH PREGĂTIT
                          </span>
-                         <span className="text-[10px] font-black uppercase text-gray-300 italic tracking-widest">#{demand.id.split('-')[0]}</span>
+                         <span className="text-[10px] font-black uppercase text-gray-300 italic tracking-widest">ID: {demand.id.split('-')[0]}</span>
                       </div>
                       <h3 className="text-2xl font-black uppercase italic leading-tight mb-4 tracking-tighter">
                         {demand.target_asset}
@@ -837,6 +855,7 @@ export default function CategoryPage() {
                       <p className="text-4xl font-black italic tracking-tighter text-black mb-8">
                         €{demand.budget.toLocaleString('ro-RO')}
                       </p>
+                      
                       <Link 
                         href={`/trimite-oferta/${demand.id}`} 
                         className="w-full bg-[#FFD100] border-[3px] border-black text-black py-5 rounded-xl font-black uppercase tracking-widest text-[11px] italic hover:bg-black hover:text-[#FFD100] transition-colors shadow-[5px_5px_0_0_rgba(0,0,0,1)] active:shadow-none active:translate-y-1 block text-center"
@@ -845,7 +864,11 @@ export default function CategoryPage() {
                       </Link>
                     </div>
                   </div>
-                ))}
+                )) : (
+                  <div className="col-span-full py-16 text-center bg-gray-50 border-[3px] border-dashed border-gray-200 rounded-[2rem]">
+                    <p className="font-black uppercase italic text-gray-300">Nicio cerere de capital în această categorie.</p>
+                  </div>
+                )}
               </div>
             </section>
 
@@ -1309,25 +1332,21 @@ export default function GlobalStats() {
   useEffect(() => {
     async function fetchStats() {
       try {
-        // Tragem doar anunțurile active
         const { data: listings } = await supabase
           .from('listings')
           .select('exit_price')
           .eq('status', 'active');
           
-        // Tragem doar cererile active
         const { data: demands } = await supabase
           .from('demands')
           .select('budget')
           .eq('status', 'active');
 
-        // Numărăm tranzacțiile finalizate
         const { count: soldCount } = await supabase
           .from('listings')
           .select('*', { count: 'exact', head: true })
           .eq('status', 'sold');
 
-        // Calculăm banii reali (dacă arrays sunt goale, dă 0)
         const valoareVanzari = listings ? listings.reduce((acc, curr) => acc + (Number(curr.exit_price) || 0), 0) : 0;
         const valoareCumparari = demands ? demands.reduce((acc, curr) => acc + (Number(curr.budget) || 0), 0) : 0;
 
@@ -1337,9 +1356,8 @@ export default function GlobalStats() {
           totalValue: valoareVanzari + valoareCumparari,
           soldItems: soldCount || 0
         });
-
       } catch (error) {
-        console.error("Eroare la extragerea statisticilor live:", error);
+        console.error("Eroare la fetch statistici:", error);
       }
     }
 
@@ -1347,53 +1365,51 @@ export default function GlobalStats() {
   }, []);
 
   return (
-    <div className="w-full bg-black py-16 px-4 font-sans border-t-[6px] border-[#FFD100]">
-      <div className="max-w-6xl mx-auto">
-        <div className="text-center mb-12">
-          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#FFD100] mb-2 italic">Transparență Totală</p>
-          <h2 className="text-3xl md:text-5xl font-black uppercase italic tracking-tighter text-white">
-            Activitatea <span className="text-[#FFD100]">Platformei</span>
-          </h2>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <section className="bg-black py-10 md:py-12 border-t-[8px] border-black font-sans z-20 relative">
+      <div className="max-w-7xl mx-auto px-4">
+        
+        {/* Structură clară, pe înțelesul tuturor */}
+        <div className="flex flex-col md:flex-row justify-between items-center gap-8 md:gap-0 divide-y-2 md:divide-y-0 md:divide-x-2 divide-gray-800">
           
-          <div className="bg-[#111] border-[3px] border-[#FFD100] rounded-2xl p-6 text-center shadow-[6px_6px_0_0_rgba(255,209,0,1)] hover:-translate-y-2 transition-transform">
-            <span className="text-4xl block mb-2">💰</span>
-            <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">Valoare Oportunități (Live)</p>
-            <p className="text-3xl md:text-4xl font-black italic text-[#FFD100]">
-              €{stats.totalValue >= 1000000 ? (stats.totalValue / 1000000).toFixed(1) + 'M' : stats.totalValue.toLocaleString('ro-RO')}
+          {/* 1. Valoare Totală */}
+          <div className="flex-1 w-full text-center md:px-6 pt-4 md:pt-0">
+            <p className="text-[10px] md:text-xs font-black uppercase tracking-[0.2em] text-gray-500 mb-1 md:mb-2 italic">Valoare Totală Platformă</p>
+            <p className="text-4xl md:text-5xl font-black italic text-[#FFD100] tracking-tighter">
+              €{stats.totalValue > 0 ? stats.totalValue.toLocaleString('ro-RO') : "..."}
             </p>
+            <p className="text-[9px] font-bold text-gray-600 uppercase mt-2 tracking-widest">Bani pregătiți + Bunuri la vânzare</p>
           </div>
 
-          <div className="bg-[#111] border-[3px] border-gray-800 rounded-2xl p-6 text-center hover:border-[#FFD100] hover:-translate-y-2 transition-all">
-            <span className="text-4xl block mb-2">💼</span>
-            <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">Cumpărători cu Cash</p>
-            <p className="text-3xl md:text-4xl font-black italic text-white">
-              {stats.activeDemands} <span className="text-sm text-gray-500">cereri</span>
+          {/* 2. Cumpărători Activi (Demands) */}
+          <div className="flex-1 w-full text-center md:px-6 pt-6 md:pt-0">
+            <p className="text-[10px] md:text-xs font-black uppercase tracking-[0.2em] text-gray-500 mb-1 md:mb-2 italic">Cumpărători Activi</p>
+            <p className="text-3xl md:text-4xl font-black italic text-white tracking-tighter">
+              {stats.activeDemands}
             </p>
+            <p className="text-[9px] font-bold text-gray-600 uppercase mt-2 tracking-widest">Așteaptă să cumpere cu cash</p>
           </div>
 
-          <div className="bg-[#111] border-[3px] border-gray-800 rounded-2xl p-6 text-center hover:border-[#FFD100] hover:-translate-y-2 transition-all">
-            <span className="text-4xl block mb-2">🏷️</span>
-            <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">Oportunități de Vânzare</p>
-            <p className="text-3xl md:text-4xl font-black italic text-white">
-              {stats.activeListings} <span className="text-sm text-gray-500">active</span>
+          {/* 3. Anunțuri (Listings) */}
+          <div className="flex-1 w-full text-center md:px-6 pt-6 md:pt-0">
+            <p className="text-[10px] md:text-xs font-black uppercase tracking-[0.2em] text-gray-500 mb-1 md:mb-2 italic">Anunțuri la Vânzare</p>
+            <p className="text-3xl md:text-4xl font-black italic text-white tracking-tighter">
+              {stats.activeListings}
             </p>
+            <p className="text-[9px] font-bold text-gray-600 uppercase mt-2 tracking-widest">Active disponibile chiar acum</p>
           </div>
 
-          <div className="bg-[#111] border-[3px] border-gray-800 rounded-2xl p-6 text-center hover:border-[#FFD100] hover:-translate-y-2 transition-all relative overflow-hidden group">
-            <div className="absolute inset-0 bg-gradient-to-tr from-transparent to-[#FFD100]/5 group-hover:to-[#FFD100]/20 transition-colors"></div>
-            <span className="text-4xl block mb-2">🏆</span>
-            <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">Tranzacții Finalizate</p>
-            <p className="text-3xl md:text-4xl font-black italic text-green-400">
-              {stats.soldItems} <span className="text-sm text-gray-500">produse vândute</span>
+          {/* 4. Tranzacții Finalizate */}
+          <div className="flex-1 w-full text-center md:px-6 pt-6 md:pt-0 pb-4 md:pb-0">
+            <p className="text-[10px] md:text-xs font-black uppercase tracking-[0.2em] text-gray-500 mb-1 md:mb-2 italic">Vânzări Finalizate</p>
+            <p className="text-3xl md:text-4xl font-black italic text-white tracking-tighter">
+              {stats.soldItems}
             </p>
+            <p className="text-[9px] font-bold text-gray-600 uppercase mt-2 tracking-widest">Tranzacții încheiate cu succes</p>
           </div>
 
         </div>
       </div>
-    </div>
+    </section>
   );
 }
 
@@ -2552,10 +2568,19 @@ import Link from "next/link";
 import GlobalStats from "./components/GlobalStats";
 import { supabase } from "@/lib/supabase"; 
 
+// Helper tehnic pentru a mapa corect tag-urile din baza de date
+const normalizeSaleType = (value: string): "standard" | "urgent" | "extreme" | "auction" => {
+  const val = value?.toLowerCase() || "standard";
+  if (val === "flash" || val === "licitatie" || val === "auction") return "auction";
+  if (val === "fast" || val === "urgent") return "urgent";
+  if (val === "extreme" || val === "azi") return "extreme";
+  return "standard";
+};
+
 export default async function Home() {
   const { hero, types, home } = ro;
 
-  // 1. FETCH DATE REALE (Fără limite de test, tragem ultimele oportunități)
+  // FETCH DATE REALE
   const { data: realListings } = await supabase
     .from('listings')
     .select('*')
@@ -2568,6 +2593,10 @@ export default async function Home() {
     .select('*')
     .order('created_at', { ascending: false })
     .limit(6);
+
+  // Separăm licitațiile de anunțurile normale
+  const auctions = realListings?.filter(item => normalizeSaleType(item.sale_strategy) === 'auction') || [];
+  const standardListings = realListings?.filter(item => normalizeSaleType(item.sale_strategy) !== 'auction') || [];
 
   const categories = [
     { 
@@ -2617,7 +2646,7 @@ export default async function Home() {
   return (
     <div className="flex flex-col w-full bg-white selection:bg-[#FFD100] selection:text-black font-sans">
       
-      {/* HERO SECTION */}
+      {/* HERO SECTION ORIGINAL */}
       <section className="relative pt-20 pb-16 overflow-hidden bg-white text-center">
         <div className="mx-auto max-w-7xl px-4">
           
@@ -2662,6 +2691,7 @@ export default async function Home() {
             </Link>
           </div>
 
+          {/* GRILA DE CATEGORII - DESIGN ÎMBUNĂTĂȚIT */}
           <div className="max-w-6xl mx-auto mb-10 pt-16 border-t border-gray-100">
             <h3 className="text-sm md:text-lg font-black uppercase tracking-[0.4em] text-black mb-12 italic border-b-[6px] border-[#FFD100] pb-4 inline-block">
               Alege Categoria
@@ -2669,11 +2699,11 @@ export default async function Home() {
             
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
               {categories.map((cat) => (
-                <Link key={cat.slug} href={`/categorii/${cat.slug}`} className="group flex flex-col items-center gap-5">
-                  <div className="w-20 h-20 md:w-24 md:h-24 bg-gray-50 rounded-[2rem] flex items-center justify-center border-[3px] border-gray-100 group-hover:border-black group-hover:bg-[#FFD100] group-hover:shadow-[6px_6px_0_0_rgba(0,0,0,1)] transition-all duration-300">
-                    <div className="text-black group-hover:scale-110 transition-transform">{cat.icon}</div>
+                <Link key={cat.slug} href={`/categorii/${cat.slug}`} className="group bg-white border-[3px] border-black p-6 md:p-8 rounded-[2rem] flex flex-col items-center justify-center hover:bg-[#FFD100] transition-all hover:-translate-y-2 shadow-[6px_6px_0_0_rgba(0,0,0,1)]">
+                  <div className="mb-4 text-black group-hover:scale-110 transition-transform">
+                    {cat.icon}
                   </div>
-                  <span className="text-[11px] md:text-[13px] font-black uppercase tracking-tight text-gray-800 group-hover:text-black transition-colors text-center w-full px-2">
+                  <span className="text-[10px] md:text-[11px] font-black uppercase tracking-tight text-black text-center w-full">
                     {cat.name}
                   </span>
                 </Link>
@@ -2683,19 +2713,72 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* SECȚIUNEA OPORTUNITĂȚI CASH (DATE REALE DIN SUPABASE) */}
+      {/* INTEGRARE SPECTACULOASĂ LICITAȚII (Apare doar dacă există) */}
+      {auctions.length > 0 && (
+        <section className="py-20 bg-black border-y-[8px] border-black relative overflow-hidden shadow-[0_0_50px_rgba(255,0,0,0.15)]">
+          {/* Efect luminos pe fundal */}
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] bg-red-600/20 blur-[100px] rounded-full pointer-events-none"></div>
+          
+          <div className="mx-auto max-w-7xl px-4 relative z-10">
+            <div className="flex flex-col md:flex-row justify-between items-end mb-12 border-b border-gray-800 pb-8">
+              <div>
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-3 h-3 bg-red-600 rounded-full animate-ping"></div>
+                  <span className="text-red-500 font-black uppercase tracking-widest text-[10px]">Competiție Live</span>
+                </div>
+                <h2 className="text-4xl md:text-5xl font-black uppercase italic tracking-tighter leading-none text-white">
+                  Licitații <span className="text-[#FFD100]">Sniper</span>
+                </h2>
+              </div>
+              <p className="text-gray-400 font-bold uppercase tracking-widest text-[10px] md:max-w-xs mt-4 md:mt-0 text-left md:text-right">
+                Active lichidate urgent. Prima ofertă la prețul de exit închide licitația.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 lg:gap-12">
+              {auctions.map((item) => (
+                <div key={item.id} className="relative group">
+                  {/* Glow effect behind card on hover */}
+                  <div className="absolute -inset-2 bg-gradient-to-r from-red-600 to-[#FFD100] rounded-[2.5rem] blur opacity-30 group-hover:opacity-100 transition duration-500"></div>
+                  <div className="relative h-full">
+                    <AdCard 
+                      id={item.id}
+                      title={item.title}
+                      image={item.images?.[0] || "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=800&q=80"}
+                      marketPrice={`€${item.market_price.toLocaleString('ro-RO')}`}
+                      exitPrice={`€${item.exit_price.toLocaleString('ro-RO')}`}
+                      discount={item.discount?.toString() || "0"}
+                      score={item.deal_score ? item.deal_score / 10 : 9.5} 
+                      type="auction"
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ANUNȚURI VÂNZĂRI ACTIVE */}
       <section className="pt-24 pb-16 bg-gray-50">
         <div className="mx-auto max-w-7xl px-4">
-            <div className="flex justify-between items-end mb-16 border-b-[3px] border-black pb-8">
-                <h2 className="text-4xl md:text-5xl font-black uppercase italic tracking-tighter leading-none">Oportunități <span className="text-[#FFD100]">Cash</span></h2>
-                <button className="text-[10px] md:text-xs font-black uppercase tracking-widest italic hover:text-[#FFD100] transition-colors border-b-2 border-transparent hover:border-[#FFD100]">
-                  Vezi toate activele →
-                </button>
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-16 border-b-[3px] border-black pb-8 gap-4">
+                <h2 className="text-4xl md:text-5xl font-black uppercase italic tracking-tighter leading-none">
+                  Anunțuri <span className="text-[#FFD100]">Vânzări Active</span>
+                </h2>
+                <div className="flex flex-wrap items-center gap-4">
+                  <Link href="/pune-anunt" className="bg-black text-[#FFD100] px-5 py-2.5 rounded-lg text-[10px] md:text-xs font-black uppercase tracking-widest italic hover:bg-[#FFD100] hover:text-black transition-colors border-2 border-black shadow-[3px_3px_0_0_rgba(0,0,0,1)]">
+                    + Pune Anunț
+                  </Link>
+                  <Link href="/categorii/auto" className="text-[10px] md:text-xs font-black uppercase tracking-widest italic hover:text-[#FFD100] transition-colors border-b-2 border-transparent hover:border-[#FFD100] py-2">
+                    Vezi toate anunțurile →
+                  </Link>
+                </div>
             </div>
     
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 lg:gap-12">
-                {realListings && realListings.length > 0 ? (
-                  realListings.map((item) => (
+                {standardListings && standardListings.length > 0 ? (
+                  standardListings.slice(0, 6).map((item) => (
                     <AdCard 
                       key={item.id}
                       id={item.id}
@@ -2705,7 +2788,7 @@ export default async function Home() {
                       exitPrice={`€${item.exit_price.toLocaleString('ro-RO')}`}
                       discount={item.discount?.toString() || "0"}
                       score={item.deal_score ? item.deal_score / 10 : 9.0} 
-                      type={item.sale_strategy?.toLowerCase() || "standard"}
+                      type={normalizeSaleType(item.sale_strategy)}
                     />
                   ))
                 ) : (
@@ -2717,7 +2800,7 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* SECȚIUNEA CAPITAL DISPONIBIL (CUMPĂRĂTORI REALI DIN SUPABASE) */}
+      {/* SECȚIUNEA CAPITAL DISPONIBIL ORIGINALĂ */}
       <section className="py-16 bg-white border-t border-gray-200">
         <div className="mx-auto max-w-7xl px-4">
             <div className="mb-12 border-b-[3px] border-black pb-8">
@@ -2776,7 +2859,7 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* STATISTICI GLOBALE LIVE (Inclusă la final) */}
+      {/* STATISTICI GLOBALE LIVE */}
       <GlobalStats />
 
     </div>

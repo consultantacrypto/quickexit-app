@@ -5,16 +5,8 @@ import { useParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import AdCard from "../../components/AdCard";
 import Link from "next/link";
-
-// Helper pentru normalizarea tipurilor de anunț conform AdCardProps
-const normalizeSaleType = (value: string): "standard" | "urgent" | "extreme" | "auction" => {
-  const val = value?.toLowerCase() || "standard";
-  if (val === "flash" || val === "licitatie" || val === "auction") return "auction";
-  if (val === "fast" || val === "urgent") return "urgent";
-  if (val === "extreme" || val === "azi") return "extreme";
-  if (val === "economy" || val === "standard") return "standard";
-  return "standard";
-};
+// IMPORT GLOBAL NOU
+import { normalizeSaleType } from "@/utils/normalizeSaleType";
 
 export default function CategoryPage() {
   const params = useParams();

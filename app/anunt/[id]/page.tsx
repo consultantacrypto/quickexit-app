@@ -6,15 +6,8 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { supabase } from "@/lib/supabase"; 
 import AdCard from "../../components/AdCard";
-
-// HELPER NOU: Asigură-te că AdCard primește doar tipurile pe care le recunoaște
-const normalizeSaleType = (value: string): "standard" | "urgent" | "extreme" | "auction" => {
-  const val = value?.toLowerCase() || "standard";
-  if (val === "flash" || val === "licitatie" || val === "auction") return "auction";
-  if (val === "fast" || val === "urgent") return "urgent";
-  if (val === "extreme" || val === "azi") return "extreme";
-  return "standard";
-};
+// IMPORTUL GLOBAL
+import { normalizeSaleType } from "@/utils/normalizeSaleType"; 
 
 export default function AdDetail() {
   const params = useParams();
@@ -26,7 +19,7 @@ export default function AdDetail() {
 
   // Stări pentru datele reale ale anunțului
   const [adData, setAdData] = useState<any>(null);
-  const [similarAds, setSimilarAds] = useState<any[]>([]); // NOU: Oportunități Similare
+  const [similarAds, setSimilarAds] = useState<any[]>([]); 
   const [isLoading, setIsLoading] = useState(true);
   const [offerPrice, setOfferPrice] = useState(0);
 
@@ -37,7 +30,7 @@ export default function AdDetail() {
   const [isSubmittingOffer, setIsSubmittingOffer] = useState(false);
   const [offerSuccess, setOfferSuccess] = useState(false);
 
-  // NOU: Stări pentru "Acceptă Prețul de Exit"
+  // Stări pentru "Acceptă Prețul de Exit"
   const [acceptPhone, setAcceptPhone] = useState("");
   const [acceptEmail, setAcceptEmail] = useState("");
   const [isAccepting, setIsAccepting] = useState(false);
@@ -99,7 +92,7 @@ export default function AdDetail() {
       setBuyerPhone(""); setBuyerEmail(""); setOfferMessage("");
     } catch (err) {
       console.error(err);
-      alert("Eroare la trimiterea ofertei. Verifică datele.");
+      alert("Eroare la trimiterea ofertei.");
     } finally {
       setIsSubmittingOffer(false);
     }
@@ -277,7 +270,7 @@ export default function AdDetail() {
           </div>
         </div>
 
-        {/* SECȚIUNE OPORTUNITĂȚI SIMILARE REALE DIN SUPABASE */}
+        {/* OPORTUNITĂȚI SIMILARE */}
         <div className="border-t-[3px] border-black pt-12 md:pt-16">
           <h2 className="text-3xl font-black uppercase italic tracking-tighter mb-8 md:mb-10">Oportunități <span className="text-[#FFD100]">Similare</span></h2>
           
@@ -293,7 +286,7 @@ export default function AdDetail() {
                   exitPrice={`€${item.exit_price.toLocaleString('ro-RO')}`}
                   discount={item.discount?.toString() || "0"}
                   score={item.deal_score ? item.deal_score / 10 : 9.0} 
-                  // REPARAT AICI: Am folosit helper-ul ca să eliminăm eroarea Type
+                  // FOLOSIM HELPER-UL GLOBAL AICI
                   type={normalizeSaleType(item.sale_strategy)}
                 />
               ))}
@@ -348,7 +341,6 @@ export default function AdDetail() {
                 </div>
               )}
 
-              {/* MODAL ACCEPTĂ EXIT PRICE REPARAT */}
               {activeModal === 'accept' && (
                 <div className="text-center space-y-8 pt-4">
                   <h3 className="text-3xl md:text-4xl font-black uppercase italic tracking-tighter">Notifică <span className="text-[#FFD100]">Vânzătorul</span></h3>
@@ -394,7 +386,6 @@ export default function AdDetail() {
                 </div>
               )}
 
-              {/* MODAL OFERTĂ (NEGOCIERE) */}
               {activeModal === 'offer' && (
                 <div className="space-y-6 pt-4">
                   <h3 className="text-3xl md:text-4xl font-black uppercase italic tracking-tighter">Trimite <span className="text-[#FFD100]">Ofertă Cash</span></h3>
@@ -449,11 +440,9 @@ export default function AdDetail() {
                   )}
                 </div>
               )}
-
             </div>
           </div>
         )}
-
       </div>
     </div>
   );
