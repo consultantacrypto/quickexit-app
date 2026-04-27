@@ -1,10 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 
 export default function EvaluationPage() {
   const [step, setStep] = useState(1);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [evaluationResult, setEvaluationResult] = useState<any>(null);
+  
   const [formData, setFormData] = useState({
     category: "",
     subCategory: "",
@@ -22,22 +25,46 @@ export default function EvaluationPage() {
     "Afaceri & Investiții": ["Afaceri la cheie", "Echipamente Business", "Ceasuri Lux", "Crypto / Web3"]
   };
 
-  const triggerAI = () => {
+  // FUNCȚIA MAGICĂ: Apelul către API-ul real
+  const triggerAI = async () => {
     setIsAnalyzing(true);
-    setTimeout(() => {
+    try {
+      // Simulăm o mică întârziere pentru "vibe" de procesare AI
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      const response = await fetch("/api/evaluate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          make: formData.technicalDetails.split(' ')[0] || "BMW", // Parsare rudimentară pentru MVP
+          model: formData.technicalDetails.split(' ')[1] || "X5",
+          year: 2021, // Aici vom adăuga ulterior un câmp de an în formular
+          category: "auto"
+        }),
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        setEvaluationResult(data);
+        setStep(3);
+      } else {
+        alert(data.message || "Nu avem suficiente date pentru acest model încă.");
+      }
+    } catch (error) {
+      console.error("Eroare API:", error);
+      alert("Eroare la conectarea cu motorul de preț.");
+    } finally {
       setIsAnalyzing(false);
-      setStep(3);
-    }, 4000);
+    }
   };
 
   return (
     <div className="min-h-screen bg-white pt-24 pb-20 px-6 font-sans antialiased text-black">
       <div className="max-w-6xl mx-auto">
-        
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-16">
           
           <div className="lg:col-span-8">
-            {/* PASUL 1: EDUCARE ȘI CATEGORIE */}
+            {/* PASUL 1: SELECTIE CATEGORIE */}
             {step === 1 && (
               <div className="animate-in fade-in slide-in-from-bottom-8 duration-700">
                 <div className="mb-12">
@@ -45,13 +72,11 @@ export default function EvaluationPage() {
                     Vinde la prețul <span className="text-[#FFD100]">Corect</span>.
                   </h2>
                   <p className="text-lg font-bold text-gray-500 uppercase tracking-tight max-w-2xl leading-tight border-l-4 border-black pl-6">
-                    Majoritatea anunțurilor eșuează din cauza prețului greșit. 
-                    <span className="text-black"> Analiza noastră verifică piața în timp real</span> ca să știi exact cât poți încasa astăzi.
+                    Analiza noastră verifică piața în timp real ca să știi exact cât poți încasa astăzi. [cite: 1164, 1165]
                   </p>
                 </div>
 
                 <div className="mb-10">
-                    <p className="text-[10px] font-black uppercase tracking-[0.3em] mb-6 text-black italic">Ce vrei să analizăm astăzi?</p>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {Object.keys(categories).map((cat) => (
                         <button 
@@ -75,9 +100,7 @@ export default function EvaluationPage() {
                           key={sub}
                           onClick={() => setFormData({...formData, subCategory: sub})}
                           className={`px-4 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest border-2 transition-all duration-300 ${
-                            formData.subCategory === sub 
-                              ? 'bg-[#FFD100] border-black text-black shadow-[5px_5px_0px_0px_rgba(0,0,0,1)]' 
-                              : 'bg-white border-gray-200 text-black hover:border-black'
+                            formData.subCategory === sub ? 'bg-[#FFD100] border-black text-black shadow-[5px_5px_0px_0px_rgba(0,0,0,1)]' : 'bg-white border-gray-200 text-black hover:border-black'
                           }`}
                         >
                           {sub}
@@ -90,18 +113,11 @@ export default function EvaluationPage() {
                 {formData.subCategory && (
                   <div className="mb-12 animate-in zoom-in-95 duration-500">
                     <div className="bg-gray-50 p-8 rounded-[2.5rem] border-2 border-black">
-                      <h3 className="text-sm font-black uppercase tracking-widest mb-2 italic text-black">
-                        🔍 Pasul Logic: Detalii Activ
-                      </h3>
-                      <p className="text-[11px] text-gray-500 font-bold uppercase mb-6 leading-relaxed">
-                        Fără date precise, evaluarea e doar o presupunere. 
-                        Introdu modelul sau seria pentru a scana prețurile reale pe site-urile de profil.
-                      </p>
-                      
+                      <h3 className="text-sm font-black uppercase tracking-widest mb-2 italic text-black">🔍 Detalii Activ</h3>
                       <textarea 
                         value={formData.technicalDetails}
                         onChange={(e) => setFormData({...formData, technicalDetails: e.target.value})}
-                        placeholder="Ex: BMW 520d 2021, Dotări, Stare..."
+                        placeholder="Ex: BMW X5 2021, 85000 km, automat..."
                         className="w-full bg-white border-2 border-gray-200 p-6 rounded-2xl font-bold focus:border-[#FFD100] outline-none min-h-[120px] text-black shadow-inner"
                       />
                     </div>
@@ -113,71 +129,93 @@ export default function EvaluationPage() {
                   onClick={() => setStep(2)}
                   className="w-full bg-black text-[#FFD100] py-8 rounded-[2rem] font-black uppercase tracking-widest hover:scale-[1.01] transition-all disabled:opacity-20 shadow-2xl text-xl italic"
                 >
-                  Continuă la strategia de preț →
+                  Continuă la strategia de preț → [cite: 1180]
                 </button>
               </div>
             )}
 
-            {/* PASUL 2: LOGICA DE URGENȚĂ */}
+            {/* PASUL 2: URGENȚĂ */}
             {step === 2 && (
               <div className="animate-in fade-in slide-in-from-bottom-8 duration-700">
                 <h2 className="text-5xl md:text-7xl font-black text-black tracking-tighter uppercase italic leading-[0.9] mb-8">
-                  Cât de <span className="text-red-600">Tare</span> ai nevoie de <span className="text-[#FFD100]">Bani</span>?
+                  Viteza de <span className="text-red-600">Lichidare</span>
                 </h2>
-                <p className="text-gray-500 font-bold uppercase text-[12px] tracking-widest mb-10 italic border-l-4 border-[#FFD100] pl-6">
-                  Prețul nu este fix. El depinde de <span className="text-black underline">viteza de lichidare</span>. 
-                  Alege cum vrei să vindem:
-                </p>
                 
                 <div className="grid grid-cols-1 gap-4 mb-12">
                   {[
-                    { id: 'standard', label: 'Răbdare Maximă', info: 'Obține prețul cel mai mare', desc: 'Ideal dacă poți aștepta un cumpărător retail (7-14 zile).' },
-                    { id: 'urgent', label: 'Lichidare Rapidă', info: 'Banii în 48 de ore', desc: 'Calibrăm prețul pentru investitorii care cumpără rapid.' },
-                    { id: 'extreme', label: 'EXTREME CASH', info: 'Vrei banii astăzi', desc: 'Cea mai agresivă evaluare pentru lichiditate instant.' }
+                    { id: 'standard', label: 'Răbdare Maximă', desc: 'Prețul cel mai mare, 7-14 zile.' },
+                    { id: 'urgent', label: 'Lichidare Rapidă', desc: 'Calibrăm pentru investitori rapizi.' },
+                    { id: 'extreme', label: 'EXTREME CASH', desc: 'Vrei banii astăzi (Liquidation Mode).' }
                   ].map((u) => (
                     <button 
                       key={u.id}
                       onClick={() => setFormData({...formData, urgency: u.id})}
                       className={`p-8 rounded-[2rem] border-[3px] text-left transition-all ${
-                        formData.urgency === u.id 
-                          ? (u.id === 'extreme' ? 'bg-black border-black text-[#FFD100] scale-[1.02] shadow-2xl' : 'border-black bg-[#FFD100]/10 scale-[1.02] shadow-xl') 
-                          : 'bg-gray-50 border-gray-100 opacity-60'
+                        formData.urgency === u.id ? 'border-black bg-[#FFD100]/10 scale-[1.02] shadow-xl' : 'bg-gray-50 border-gray-100 opacity-60'
                       }`}
                     >
                       <span className="block text-2xl font-black uppercase italic mb-1">{u.label}</span>
-                      <span className="block text-[10px] font-black uppercase tracking-[0.2em] mb-3">{u.info}</span>
-                      <p className="text-[10px] font-bold uppercase tracking-tight opacity-60 leading-tight">{u.desc}</p>
+                      <p className="text-[10px] font-bold uppercase tracking-tight opacity-60">{u.desc}</p>
                     </button>
                   ))}
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-12">
-                  <button onClick={() => setFormData({...formData, saleType: 'direct'})} className={`p-8 rounded-2xl border-2 font-black italic transition-all ${formData.saleType === 'direct' ? 'bg-black text-white border-black shadow-lg' : 'bg-white border-gray-100 text-gray-400'}`}>VÂNZARE DIRECTĂ</button>
-                  <button onClick={() => setFormData({...formData, saleType: 'auction'})} className={`p-8 rounded-2xl border-2 font-black italic transition-all ${formData.saleType === 'auction' ? 'bg-[#FFD100] text-black border-black shadow-lg' : 'bg-white border-gray-100 text-gray-400'}`}>LICITAȚIE FLASH</button>
-                </div>
-
                 <button 
                   onClick={triggerAI}
+                  disabled={isAnalyzing}
                   className="w-full bg-black text-[#FFD100] py-8 rounded-[2rem] font-black uppercase tracking-[0.2em] hover:bg-[#FFD100] hover:text-black transition-all text-xl shadow-2xl italic"
                 >
-                  {isAnalyzing ? "Analizăm baza de date..." : "Află prețul de vânzare acum"}
+                  {isAnalyzing ? "Analizăm piața reală..." : "Generează Raportul de Lichiditate"} [cite: 1194, 1195]
                 </button>
               </div>
             )}
 
-            {/* PASUL 3: FINAL */}
-            {step === 3 && (
-              <div className="text-center py-20 animate-in zoom-in-95 duration-500 bg-black rounded-[3rem] text-white shadow-[30px_30px_0px_0px_rgba(255,209,0,1)]">
-                <h3 className="text-5xl font-black italic uppercase mb-6 text-[#FFD100]">Analiză Completă</h3>
-                <p className="text-gray-400 font-bold uppercase tracking-[0.2em] mb-12 px-10 leading-relaxed text-sm">
-                   Acum ai o cifră bazată pe realitate, nu pe presupuneri. 
-                </p>
-                <button 
-                  onClick={() => window.location.href = '/'}
-                  className="bg-[#FFD100] text-black px-12 py-6 rounded-2xl font-black uppercase tracking-widest hover:scale-105 transition-all italic text-xl"
-                >
-                  Vezi prețul recomandat
-                </button>
+            {/* PASUL 3: RAPORTUL DE LICHIDITATE (FINAL) */}
+            {step === 3 && evaluationResult && (
+              <div className="animate-in zoom-in-95 duration-500 space-y-8">
+                <div className="bg-black p-10 rounded-[3rem] text-white shadow-[20px_20px_0px_0px_rgba(255,209,0,1)] border-4 border-black">
+                  <div className="flex justify-between items-start mb-10">
+                    <div>
+                      <p className="text-[#FFD100] font-black uppercase tracking-widest text-xs italic mb-2">Raport Generat</p>
+                      <h3 className="text-4xl font-black italic uppercase tracking-tighter leading-none">Scara de <span className="text-[#FFD100]">Lichiditate</span></h3>
+                    </div>
+                    <div className="bg-white/10 p-4 rounded-2xl border border-white/20 text-center">
+                       <p className="text-[8px] font-black uppercase text-gray-400">Confidence Score</p>
+                       <p className="text-3xl font-black text-[#FFD100]">{evaluationResult.confidence_score}%</p>
+                    </div>
+                  </div>
+
+                  {/* Market Anchor (Ancora) */}
+                  <div className="mb-12 p-6 bg-white/5 rounded-2xl border border-white/10">
+                    <p className="text-[10px] font-black uppercase text-gray-500 mb-2">Preț Mediu Listat (Piață)</p>
+                    <p className="text-5xl font-black italic text-gray-400 line-through opacity-50">€{evaluationResult.estimated_market_price.toLocaleString()}</p>
+                    <p className="text-[9px] font-bold text-gray-500 mt-2 uppercase italic">Timp estimat de vânzare la acest preț: 45-90 zile.</p>
+                  </div>
+
+                  {/* Cele 3 Opțiuni de EXIT */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="p-6 bg-[#FFD100] rounded-2xl border-2 border-black text-black">
+                       <p className="text-[9px] font-black uppercase mb-1">Quick Exit</p>
+                       <p className="text-3xl font-black italic mb-4">€{evaluationResult.quick_exit_price.toLocaleString()}</p>
+                       <Link href={`/pune-anunt?price=${evaluationResult.quick_exit_price}`} className="block w-full bg-black text-white py-3 rounded-xl font-black uppercase text-[9px] text-center italic">Alege Strategia</Link>
+                    </div>
+                    <div className="p-6 bg-white rounded-2xl border-2 border-black text-black scale-105 shadow-2xl relative">
+                       <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-red-600 text-white px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest">Sweet Spot</div>
+                       <p className="text-[9px] font-black uppercase mb-1">Strong Exit</p>
+                       <p className="text-3xl font-black italic mb-4">€{evaluationResult.strong_exit_price.toLocaleString()}</p>
+                       <Link href={`/pune-anunt?price=${evaluationResult.strong_exit_price}`} className="block w-full bg-red-600 text-white py-3 rounded-xl font-black uppercase text-[9px] text-center italic">Lichidează Acum</Link>
+                    </div>
+                    <div className="p-6 bg-gray-800 rounded-2xl border-2 border-white/20 text-white">
+                       <p className="text-[9px] font-black uppercase mb-1 text-[#FFD100]">Liquidation</p>
+                       <p className="text-3xl font-black italic mb-4">€{evaluationResult.liquidation_price.toLocaleString()}</p>
+                       <Link href={`/pune-anunt?price=${evaluationResult.liquidation_price}`} className="block w-full bg-[#FFD100] text-black py-3 rounded-xl font-black uppercase text-[9px] text-center italic">Cash Imediat</Link>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="text-center">
+                  <button onClick={() => setStep(1)} className="text-[10px] font-black uppercase text-gray-400 hover:text-black transition-colors italic border-b-2 border-transparent hover:border-black pb-1">← Reia Evaluarea</button>
+                </div>
               </div>
             )}
           </div>
@@ -189,11 +227,8 @@ export default function EvaluationPage() {
                 <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse" />
                 <span className="text-[10px] font-black uppercase tracking-widest text-black italic">Consultant AI Online</span>
               </div>
-              
-              <div className="space-y-6">
-                <p className="text-[11px] font-black text-black uppercase tracking-tight leading-tight italic">
-                  "Evaluarea te ajută să nu pierzi bani și să vinzi de 3x mai repede."
-                </p>
+              <div className="space-y-6 text-[11px] font-black text-black uppercase tracking-tight leading-tight italic">
+                <p>"Evaluarea te ajută să nu pierzi bani și să vinzi de 3x mai repede." [cite: 1200, 1201]</p>
                 <div className="w-full h-px bg-gray-200" />
                 <div className="space-y-3">
                   {['Autovit', 'OLX', 'eMAG', 'Imobiliare'].map((s) => (
@@ -204,22 +239,8 @@ export default function EvaluationPage() {
                   ))}
                 </div>
               </div>
-
-              <div className="mt-12 p-6 bg-black rounded-2xl">
-                <p className="text-[10px] text-[#FFD100] font-black uppercase tracking-[0.2em] mb-2 italic text-center underline">Status Analiză</p>
-                <div className="text-sm font-black text-white italic text-center uppercase leading-tight">
-                  {isAnalyzing ? (
-                    'Căutăm oferte similare...'
-                  ) : formData.subCategory ? (
-                    'Datele sunt gata de scanare'
-                  ) : (
-                    'Așteptare selectie produs'
-                  )}
-                </div>
-              </div>
             </div>
           </div>
-
         </div>
       </div>
     </div>

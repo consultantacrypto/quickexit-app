@@ -1,15 +1,5 @@
 
 ==============================
-FILE: D:\MEDIA\quickexit\AGENTS.md
-==============================
-<!-- BEGIN:nextjs-agent-rules -->
-# This is NOT the Next.js you know
-
-This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
-<!-- END:nextjs-agent-rules -->
-
-
-==============================
 FILE: D:\MEDIA\quickexit\app\anunt\[id]\page.tsx
 ==============================
 "use client";
@@ -460,6 +450,145 @@ export default function AdDetail() {
       </div>
     </div>
   );
+}
+
+==============================
+FILE: D:\MEDIA\quickexit\app\api\evaluate\route.ts
+==============================
+import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
+
+// --- TOOLKIT MATEMATIC ---
+const clamp = (value: number, min?: number | null, max?: number | null) => {
+  let result = value;
+  if (typeof min === "number") result = Math.max(result, min);
+  if (typeof max === "number") result = Math.min(result, max);
+  return result;
+};
+
+const safeNumber = (val: any) => {
+  const n = Number(val);
+  return isNaN(n) ? 0 : n;
+};
+
+const median = (values: number[]) => {
+  if (!values.length) return 0;
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 === 0 ? Math.round((sorted[mid - 1] + sorted[mid]) / 2) : Math.round(sorted[mid]);
+};
+
+// --- CONFIGURAȚIA CATEGORIILOR (Logică v1.5) ---
+const categoryConfig: Record<string, any> = {
+  auto: {
+    accepted: ["Auto & Moto", "auto"],
+    matchingKeys: ["vehicle_make", "vehicle_model"],
+    requiredFields: ["make", "model", "year"],
+    baseDiscount: 0.85,
+    strongDiscount: 0.79, // Standard (79 RON)
+  },
+  imobiliare: {
+    accepted: ["Imobiliare", "real_estate"],
+    matchingKeys: ["category"],
+    requiredFields: ["surface", "location"],
+    baseDiscount: 0.80,
+    strongDiscount: 0.75,
+  },
+  lux: {
+    accepted: ["Lux & Ceasuri", "lux", "ceasuri"],
+    matchingKeys: ["category"],
+    requiredFields: ["brand", "model"],
+    baseDiscount: 0.75,
+    strongDiscount: 0.70,
+  }
+};
+
+export async function POST(req: NextRequest) {
+  try {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!supabaseUrl || !serviceRoleKey) {
+      return NextResponse.json({ success: false, message: "Eroare Server: Chei Supabase lipsă." }, { status: 500 });
+    }
+
+    const supabase = createClient(supabaseUrl, serviceRoleKey);
+    const body = await req.json();
+    const catKey = body.category?.toLowerCase() || "auto";
+    const config = categoryConfig[catKey] || categoryConfig.auto;
+
+    const warnings: string[] = [];
+    config.requiredFields.forEach((f: string) => {
+      if (!body[f] && !body.details?.[f]) warnings.push(`Lipsește câmpul critic: ${f}`);
+    });
+
+    let query = supabase.from("listings")
+      .select("*")
+      .in("category", config.accepted)
+      .or(`status.eq.active,is_seed.eq.true`);
+
+    if (catKey === "auto") {
+      query = query
+        .eq("vehicle_make", body.make)
+        .eq("vehicle_model", body.model)
+        .gte("vehicle_year", safeNumber(body.year) - 2)
+        .lte("vehicle_year", safeNumber(body.year) + 2);
+    }
+
+    const { data: comps, error: fetchError } = await query.limit(50);
+
+    if (fetchError || !comps || comps.length < 3) {
+      return NextResponse.json({ 
+        success: true, 
+        confidence_score: 20, 
+        message: "Date insuficiente în sistem pentru o evaluare de precizie înaltă.",
+        warning: "Rezultatul este o estimare bazată pe media categoriei."
+      });
+    }
+
+    const adjustedPrices = comps.map(item => {
+      let price = safeNumber(item.exit_price || item.market_price);
+      if (price === 0) return null;
+
+      // Logica de suprafață pentru imobiliare (folosește JSONB details)
+      if (catKey === "imobiliare" && body.surface && item.details?.surface) {
+        price = (price / item.details.surface) * body.surface;
+      }
+      return price;
+    }).filter(Boolean) as number[];
+
+    const marketMedian = median(adjustedPrices);
+    const confidence = warnings.length > 0 ? 30 : Math.min(adjustedPrices.length * 5 + 40, 95);
+
+    let reportId = null;
+    if (body.vehicle_profile_id || body.save_report) {
+      const { data: r } = await supabase.from("valuation_reports").insert({
+        vehicle_profile_id: body.vehicle_profile_id || null,
+        market_anchor_price: marketMedian,
+        quick_exit_price: Math.round(marketMedian * config.baseDiscount),
+        strong_exit_price: Math.round(marketMedian * config.strongDiscount),
+        liquidation_price: Math.round(marketMedian * 0.65),
+        confidence_score: confidence,
+        ai_strategy_explanation: `Analiză Quick Exit v1.5 pe baza a ${adjustedPrices.length} comparabile.`
+      }).select("id").single();
+      reportId = r?.id;
+    }
+
+    return NextResponse.json({
+      success: true,
+      estimated_market_price: marketMedian,
+      quick_exit_price: Math.round(marketMedian * config.baseDiscount),
+      strong_exit_price: Math.round(marketMedian * config.strongDiscount),
+      liquidation_price: Math.round(marketMedian * 0.65),
+      confidence_score: confidence,
+      warnings,
+      comparable_count: adjustedPrices.length,
+      valuation_report_id: reportId
+    });
+
+  } catch (e: any) {
+    return NextResponse.json({ success: false, error: e.message }, { status: 500 });
+  }
 }
 
 ==============================
@@ -2025,10 +2154,13 @@ FILE: D:\MEDIA\quickexit\app\evaluare\page.tsx
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 
 export default function EvaluationPage() {
   const [step, setStep] = useState(1);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [evaluationResult, setEvaluationResult] = useState<any>(null);
+  
   const [formData, setFormData] = useState({
     category: "",
     subCategory: "",
@@ -2046,22 +2178,46 @@ export default function EvaluationPage() {
     "Afaceri & Investiții": ["Afaceri la cheie", "Echipamente Business", "Ceasuri Lux", "Crypto / Web3"]
   };
 
-  const triggerAI = () => {
+  // FUNCȚIA MAGICĂ: Apelul către API-ul real
+  const triggerAI = async () => {
     setIsAnalyzing(true);
-    setTimeout(() => {
+    try {
+      // Simulăm o mică întârziere pentru "vibe" de procesare AI
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      const response = await fetch("/api/evaluate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          make: formData.technicalDetails.split(' ')[0] || "BMW", // Parsare rudimentară pentru MVP
+          model: formData.technicalDetails.split(' ')[1] || "X5",
+          year: 2021, // Aici vom adăuga ulterior un câmp de an în formular
+          category: "auto"
+        }),
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        setEvaluationResult(data);
+        setStep(3);
+      } else {
+        alert(data.message || "Nu avem suficiente date pentru acest model încă.");
+      }
+    } catch (error) {
+      console.error("Eroare API:", error);
+      alert("Eroare la conectarea cu motorul de preț.");
+    } finally {
       setIsAnalyzing(false);
-      setStep(3);
-    }, 4000);
+    }
   };
 
   return (
     <div className="min-h-screen bg-white pt-24 pb-20 px-6 font-sans antialiased text-black">
       <div className="max-w-6xl mx-auto">
-        
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-16">
           
           <div className="lg:col-span-8">
-            {/* PASUL 1: EDUCARE ȘI CATEGORIE */}
+            {/* PASUL 1: SELECTIE CATEGORIE */}
             {step === 1 && (
               <div className="animate-in fade-in slide-in-from-bottom-8 duration-700">
                 <div className="mb-12">
@@ -2069,13 +2225,11 @@ export default function EvaluationPage() {
                     Vinde la prețul <span className="text-[#FFD100]">Corect</span>.
                   </h2>
                   <p className="text-lg font-bold text-gray-500 uppercase tracking-tight max-w-2xl leading-tight border-l-4 border-black pl-6">
-                    Majoritatea anunțurilor eșuează din cauza prețului greșit. 
-                    <span className="text-black"> Analiza noastră verifică piața în timp real</span> ca să știi exact cât poți încasa astăzi.
+                    Analiza noastră verifică piața în timp real ca să știi exact cât poți încasa astăzi. [cite: 1164, 1165]
                   </p>
                 </div>
 
                 <div className="mb-10">
-                    <p className="text-[10px] font-black uppercase tracking-[0.3em] mb-6 text-black italic">Ce vrei să analizăm astăzi?</p>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {Object.keys(categories).map((cat) => (
                         <button 
@@ -2099,9 +2253,7 @@ export default function EvaluationPage() {
                           key={sub}
                           onClick={() => setFormData({...formData, subCategory: sub})}
                           className={`px-4 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest border-2 transition-all duration-300 ${
-                            formData.subCategory === sub 
-                              ? 'bg-[#FFD100] border-black text-black shadow-[5px_5px_0px_0px_rgba(0,0,0,1)]' 
-                              : 'bg-white border-gray-200 text-black hover:border-black'
+                            formData.subCategory === sub ? 'bg-[#FFD100] border-black text-black shadow-[5px_5px_0px_0px_rgba(0,0,0,1)]' : 'bg-white border-gray-200 text-black hover:border-black'
                           }`}
                         >
                           {sub}
@@ -2114,18 +2266,11 @@ export default function EvaluationPage() {
                 {formData.subCategory && (
                   <div className="mb-12 animate-in zoom-in-95 duration-500">
                     <div className="bg-gray-50 p-8 rounded-[2.5rem] border-2 border-black">
-                      <h3 className="text-sm font-black uppercase tracking-widest mb-2 italic text-black">
-                        🔍 Pasul Logic: Detalii Activ
-                      </h3>
-                      <p className="text-[11px] text-gray-500 font-bold uppercase mb-6 leading-relaxed">
-                        Fără date precise, evaluarea e doar o presupunere. 
-                        Introdu modelul sau seria pentru a scana prețurile reale pe site-urile de profil.
-                      </p>
-                      
+                      <h3 className="text-sm font-black uppercase tracking-widest mb-2 italic text-black">🔍 Detalii Activ</h3>
                       <textarea 
                         value={formData.technicalDetails}
                         onChange={(e) => setFormData({...formData, technicalDetails: e.target.value})}
-                        placeholder="Ex: BMW 520d 2021, Dotări, Stare..."
+                        placeholder="Ex: BMW X5 2021, 85000 km, automat..."
                         className="w-full bg-white border-2 border-gray-200 p-6 rounded-2xl font-bold focus:border-[#FFD100] outline-none min-h-[120px] text-black shadow-inner"
                       />
                     </div>
@@ -2137,71 +2282,93 @@ export default function EvaluationPage() {
                   onClick={() => setStep(2)}
                   className="w-full bg-black text-[#FFD100] py-8 rounded-[2rem] font-black uppercase tracking-widest hover:scale-[1.01] transition-all disabled:opacity-20 shadow-2xl text-xl italic"
                 >
-                  Continuă la strategia de preț →
+                  Continuă la strategia de preț → [cite: 1180]
                 </button>
               </div>
             )}
 
-            {/* PASUL 2: LOGICA DE URGENȚĂ */}
+            {/* PASUL 2: URGENȚĂ */}
             {step === 2 && (
               <div className="animate-in fade-in slide-in-from-bottom-8 duration-700">
                 <h2 className="text-5xl md:text-7xl font-black text-black tracking-tighter uppercase italic leading-[0.9] mb-8">
-                  Cât de <span className="text-red-600">Tare</span> ai nevoie de <span className="text-[#FFD100]">Bani</span>?
+                  Viteza de <span className="text-red-600">Lichidare</span>
                 </h2>
-                <p className="text-gray-500 font-bold uppercase text-[12px] tracking-widest mb-10 italic border-l-4 border-[#FFD100] pl-6">
-                  Prețul nu este fix. El depinde de <span className="text-black underline">viteza de lichidare</span>. 
-                  Alege cum vrei să vindem:
-                </p>
                 
                 <div className="grid grid-cols-1 gap-4 mb-12">
                   {[
-                    { id: 'standard', label: 'Răbdare Maximă', info: 'Obține prețul cel mai mare', desc: 'Ideal dacă poți aștepta un cumpărător retail (7-14 zile).' },
-                    { id: 'urgent', label: 'Lichidare Rapidă', info: 'Banii în 48 de ore', desc: 'Calibrăm prețul pentru investitorii care cumpără rapid.' },
-                    { id: 'extreme', label: 'EXTREME CASH', info: 'Vrei banii astăzi', desc: 'Cea mai agresivă evaluare pentru lichiditate instant.' }
+                    { id: 'standard', label: 'Răbdare Maximă', desc: 'Prețul cel mai mare, 7-14 zile.' },
+                    { id: 'urgent', label: 'Lichidare Rapidă', desc: 'Calibrăm pentru investitori rapizi.' },
+                    { id: 'extreme', label: 'EXTREME CASH', desc: 'Vrei banii astăzi (Liquidation Mode).' }
                   ].map((u) => (
                     <button 
                       key={u.id}
                       onClick={() => setFormData({...formData, urgency: u.id})}
                       className={`p-8 rounded-[2rem] border-[3px] text-left transition-all ${
-                        formData.urgency === u.id 
-                          ? (u.id === 'extreme' ? 'bg-black border-black text-[#FFD100] scale-[1.02] shadow-2xl' : 'border-black bg-[#FFD100]/10 scale-[1.02] shadow-xl') 
-                          : 'bg-gray-50 border-gray-100 opacity-60'
+                        formData.urgency === u.id ? 'border-black bg-[#FFD100]/10 scale-[1.02] shadow-xl' : 'bg-gray-50 border-gray-100 opacity-60'
                       }`}
                     >
                       <span className="block text-2xl font-black uppercase italic mb-1">{u.label}</span>
-                      <span className="block text-[10px] font-black uppercase tracking-[0.2em] mb-3">{u.info}</span>
-                      <p className="text-[10px] font-bold uppercase tracking-tight opacity-60 leading-tight">{u.desc}</p>
+                      <p className="text-[10px] font-bold uppercase tracking-tight opacity-60">{u.desc}</p>
                     </button>
                   ))}
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-12">
-                  <button onClick={() => setFormData({...formData, saleType: 'direct'})} className={`p-8 rounded-2xl border-2 font-black italic transition-all ${formData.saleType === 'direct' ? 'bg-black text-white border-black shadow-lg' : 'bg-white border-gray-100 text-gray-400'}`}>VÂNZARE DIRECTĂ</button>
-                  <button onClick={() => setFormData({...formData, saleType: 'auction'})} className={`p-8 rounded-2xl border-2 font-black italic transition-all ${formData.saleType === 'auction' ? 'bg-[#FFD100] text-black border-black shadow-lg' : 'bg-white border-gray-100 text-gray-400'}`}>LICITAȚIE FLASH</button>
-                </div>
-
                 <button 
                   onClick={triggerAI}
+                  disabled={isAnalyzing}
                   className="w-full bg-black text-[#FFD100] py-8 rounded-[2rem] font-black uppercase tracking-[0.2em] hover:bg-[#FFD100] hover:text-black transition-all text-xl shadow-2xl italic"
                 >
-                  {isAnalyzing ? "Analizăm baza de date..." : "Află prețul de vânzare acum"}
+                  {isAnalyzing ? "Analizăm piața reală..." : "Generează Raportul de Lichiditate"} [cite: 1194, 1195]
                 </button>
               </div>
             )}
 
-            {/* PASUL 3: FINAL */}
-            {step === 3 && (
-              <div className="text-center py-20 animate-in zoom-in-95 duration-500 bg-black rounded-[3rem] text-white shadow-[30px_30px_0px_0px_rgba(255,209,0,1)]">
-                <h3 className="text-5xl font-black italic uppercase mb-6 text-[#FFD100]">Analiză Completă</h3>
-                <p className="text-gray-400 font-bold uppercase tracking-[0.2em] mb-12 px-10 leading-relaxed text-sm">
-                   Acum ai o cifră bazată pe realitate, nu pe presupuneri. 
-                </p>
-                <button 
-                  onClick={() => window.location.href = '/'}
-                  className="bg-[#FFD100] text-black px-12 py-6 rounded-2xl font-black uppercase tracking-widest hover:scale-105 transition-all italic text-xl"
-                >
-                  Vezi prețul recomandat
-                </button>
+            {/* PASUL 3: RAPORTUL DE LICHIDITATE (FINAL) */}
+            {step === 3 && evaluationResult && (
+              <div className="animate-in zoom-in-95 duration-500 space-y-8">
+                <div className="bg-black p-10 rounded-[3rem] text-white shadow-[20px_20px_0px_0px_rgba(255,209,0,1)] border-4 border-black">
+                  <div className="flex justify-between items-start mb-10">
+                    <div>
+                      <p className="text-[#FFD100] font-black uppercase tracking-widest text-xs italic mb-2">Raport Generat</p>
+                      <h3 className="text-4xl font-black italic uppercase tracking-tighter leading-none">Scara de <span className="text-[#FFD100]">Lichiditate</span></h3>
+                    </div>
+                    <div className="bg-white/10 p-4 rounded-2xl border border-white/20 text-center">
+                       <p className="text-[8px] font-black uppercase text-gray-400">Confidence Score</p>
+                       <p className="text-3xl font-black text-[#FFD100]">{evaluationResult.confidence_score}%</p>
+                    </div>
+                  </div>
+
+                  {/* Market Anchor (Ancora) */}
+                  <div className="mb-12 p-6 bg-white/5 rounded-2xl border border-white/10">
+                    <p className="text-[10px] font-black uppercase text-gray-500 mb-2">Preț Mediu Listat (Piață)</p>
+                    <p className="text-5xl font-black italic text-gray-400 line-through opacity-50">€{evaluationResult.estimated_market_price.toLocaleString()}</p>
+                    <p className="text-[9px] font-bold text-gray-500 mt-2 uppercase italic">Timp estimat de vânzare la acest preț: 45-90 zile.</p>
+                  </div>
+
+                  {/* Cele 3 Opțiuni de EXIT */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="p-6 bg-[#FFD100] rounded-2xl border-2 border-black text-black">
+                       <p className="text-[9px] font-black uppercase mb-1">Quick Exit</p>
+                       <p className="text-3xl font-black italic mb-4">€{evaluationResult.quick_exit_price.toLocaleString()}</p>
+                       <Link href={`/pune-anunt?price=${evaluationResult.quick_exit_price}`} className="block w-full bg-black text-white py-3 rounded-xl font-black uppercase text-[9px] text-center italic">Alege Strategia</Link>
+                    </div>
+                    <div className="p-6 bg-white rounded-2xl border-2 border-black text-black scale-105 shadow-2xl relative">
+                       <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-red-600 text-white px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest">Sweet Spot</div>
+                       <p className="text-[9px] font-black uppercase mb-1">Strong Exit</p>
+                       <p className="text-3xl font-black italic mb-4">€{evaluationResult.strong_exit_price.toLocaleString()}</p>
+                       <Link href={`/pune-anunt?price=${evaluationResult.strong_exit_price}`} className="block w-full bg-red-600 text-white py-3 rounded-xl font-black uppercase text-[9px] text-center italic">Lichidează Acum</Link>
+                    </div>
+                    <div className="p-6 bg-gray-800 rounded-2xl border-2 border-white/20 text-white">
+                       <p className="text-[9px] font-black uppercase mb-1 text-[#FFD100]">Liquidation</p>
+                       <p className="text-3xl font-black italic mb-4">€{evaluationResult.liquidation_price.toLocaleString()}</p>
+                       <Link href={`/pune-anunt?price=${evaluationResult.liquidation_price}`} className="block w-full bg-[#FFD100] text-black py-3 rounded-xl font-black uppercase text-[9px] text-center italic">Cash Imediat</Link>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="text-center">
+                  <button onClick={() => setStep(1)} className="text-[10px] font-black uppercase text-gray-400 hover:text-black transition-colors italic border-b-2 border-transparent hover:border-black pb-1">← Reia Evaluarea</button>
+                </div>
               </div>
             )}
           </div>
@@ -2213,11 +2380,8 @@ export default function EvaluationPage() {
                 <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse" />
                 <span className="text-[10px] font-black uppercase tracking-widest text-black italic">Consultant AI Online</span>
               </div>
-              
-              <div className="space-y-6">
-                <p className="text-[11px] font-black text-black uppercase tracking-tight leading-tight italic">
-                  "Evaluarea te ajută să nu pierzi bani și să vinzi de 3x mai repede."
-                </p>
+              <div className="space-y-6 text-[11px] font-black text-black uppercase tracking-tight leading-tight italic">
+                <p>"Evaluarea te ajută să nu pierzi bani și să vinzi de 3x mai repede." [cite: 1200, 1201]</p>
                 <div className="w-full h-px bg-gray-200" />
                 <div className="space-y-3">
                   {['Autovit', 'OLX', 'eMAG', 'Imobiliare'].map((s) => (
@@ -2228,22 +2392,8 @@ export default function EvaluationPage() {
                   ))}
                 </div>
               </div>
-
-              <div className="mt-12 p-6 bg-black rounded-2xl">
-                <p className="text-[10px] text-[#FFD100] font-black uppercase tracking-[0.2em] mb-2 italic text-center underline">Status Analiză</p>
-                <div className="text-sm font-black text-white italic text-center uppercase leading-tight">
-                  {isAnalyzing ? (
-                    'Căutăm oferte similare...'
-                  ) : formData.subCategory ? (
-                    'Datele sunt gata de scanare'
-                  ) : (
-                    'Așteptare selectie produs'
-                  )}
-                </div>
-              </div>
             </div>
           </div>
-
         </div>
       </div>
     </div>
@@ -4223,236 +4373,4 @@ export default function PitchOfferPage() {
       </div>
     </div>
   );
-}
-
-==============================
-FILE: D:\MEDIA\quickexit\CLAUDE.md
-==============================
-@AGENTS.md
-
-
-==============================
-FILE: D:\MEDIA\quickexit\lib\supabase.ts
-==============================
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
-==============================
-FILE: D:\MEDIA\quickexit\locales\ro.ts
-==============================
-export const ro = {
-  header: {
-    howItWorks: "Cum Funcționează",
-    categories: "Categorii",
-    aiAdvisor: "Cât valorează ce vinzi?", // Am redenumit aici din "Evaluare AI"
-    login: "Autentificare",
-    postAd: "Vinde Urgent",
-  },
-  hero: {
-    title: "Lichiditate Instantă.",
-    subtitle: "Oportunități de Panic Sell.",
-    description: "Prima platformă ultra-premium din România unde activele de valoare își găsesc capitalul în 24-72h prin evaluare asistată de AI.",
-    searchPlaceholder: "Caută active (imobiliare, auto, afaceri)...",
-    ctaPrimary: "Explorează Oportunități",
-    ctaSecondary: "Evaluează-ți Activul",
-  },
-  types: {
-    standard: {
-      label: "Vânzare Rapidă",
-      tag: "Lichiditate"
-    },
-    urgent: {
-      label: "Urgență Extremă",
-      tag: "Flash Exit"
-    },
-    extreme: {
-      label: "Oportunitate Maximă",
-      tag: "Panic Sell"
-    },
-    auction: {
-      label: "Licitație Deschisă",
-      tag: "Preț de Pornire"
-    }
-  },
-  cards: {
-    marketPrice: "Preț Piață",
-    exitPrice: "Preț Quick Exit",
-    dealScore: "Deal Score AI",
-    viewDetails: "Vezi Detalii",
-    discount: "Discount",
-    timeLeft: "Timp Rămas",
-    verified: "UTILIZATOR VERIFICAT",
-  },
-  home: {
-    latestDealsTitle: "CELE MAI NOI OPORTUNITĂȚI",
-    kycOnly: "Investitori Verificați",
-    categoryLabels: {
-      auto: "Auto & Moto",
-      imobiliare: "Imobiliare",
-      lux: "Lux & Ceasuri",
-      business: "Afaceri de vânzare",
-      gadgets: "Gadgets",
-      foto: "Foto & Audio",
-    }
-  }
-};
-
-==============================
-FILE: D:\MEDIA\quickexit\next-env.d.ts
-==============================
-/// <reference types="next" />
-/// <reference types="next/image-types/global" />
-import "./.next/dev/types/routes.d.ts";
-
-// NOTE: This file should not be edited
-// see https://nextjs.org/docs/app/api-reference/config/typescript for more information.
-
-
-==============================
-FILE: D:\MEDIA\quickexit\next.config.ts
-==============================
-/** @type {import('next').NextConfig} */
-const nextConfig = {
-  images: {
-    remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: 'images.unsplash.com',
-        pathname: '**',
-      },
-    ],
-  },
-};
-
-export default nextConfig;
-
-==============================
-FILE: D:\MEDIA\quickexit\package.json
-==============================
-{
-  "name": "quickexit",
-  "version": "0.1.0",
-  "private": true,
-  "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "eslint"
-  },
-  "dependencies": {
-    "@supabase/supabase-js": "^2.104.0",
-    "next": "16.2.4",
-    "react": "19.2.4",
-    "react-dom": "19.2.4"
-  },
-  "devDependencies": {
-    "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "eslint": "^9",
-    "eslint-config-next": "16.2.4",
-    "tailwindcss": "^4",
-    "typescript": "^5"
-  }
-}
-
-
-==============================
-FILE: D:\MEDIA\quickexit\README.md
-==============================
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
-
-## Getting Started
-
-First, run the development server:
-
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
-# quickexit-app
-
-
-==============================
-FILE: D:\MEDIA\quickexit\tsconfig.json
-==============================
-{
-  "compilerOptions": {
-    "target": "ES2017",
-    "lib": ["dom", "dom.iterable", "esnext"],
-    "allowJs": true,
-    "skipLibCheck": true,
-    "strict": true,
-    "noEmit": true,
-    "esModuleInterop": true,
-    "module": "esnext",
-    "moduleResolution": "bundler",
-    "resolveJsonModule": true,
-    "isolatedModules": true,
-    "jsx": "react-jsx",
-    "incremental": true,
-    "plugins": [
-      {
-        "name": "next"
-      }
-    ],
-    "paths": {
-      "@/*": ["./*"]
-    }
-  },
-  "include": [
-    "next-env.d.ts",
-    "**/*.ts",
-    "**/*.tsx",
-    ".next/types/**/*.ts",
-    ".next/dev/types/**/*.ts",
-    "**/*.mts"
-  ],
-  "exclude": ["node_modules"]
-}
-
-
-==============================
-FILE: D:\MEDIA\quickexit\utils\normalizeSaleType.ts
-==============================
-export type SaleType = "standard" | "urgent" | "extreme" | "auction";
-
-export function normalizeSaleType(value?: string | null): SaleType {
-  const val = value?.toLowerCase() || "standard";
-  if (val === "flash" || val === "licitatie" || val === "auction") return "auction";
-  if (val === "fast" || val === "urgent") return "urgent";
-  if (val === "extreme" || val === "azi") return "extreme";
-  if (val === "economy" || val === "standard") return "standard";
-  return "standard";
 }
