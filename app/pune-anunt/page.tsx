@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase"; 
+import { Search } from "lucide-react";
 
 export default function PostAdPage() {
   const [step, setStep] = useState(1);
@@ -12,14 +13,26 @@ export default function PostAdPage() {
   const [adTitle, setAdTitle] = useState("");
   const [description, setDescription] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  
+  const [evaluationResult, setEvaluationResult] = useState<any>(null);
   const [marketPrice, setMarketPrice] = useState(0);
   const [analyzedItems, setAnalyzedItems] = useState(0);
+  
   const [exitPrice, setExitPrice] = useState("");
   const [saleStrategy, setSaleStrategy] = useState("standard");
-  const [selectedPackage, setSelectedPackage] = useState("flash"); 
+  const [selectedPackage, setSelectedPackage] = useState("economy"); 
   
   const [isSaving, setIsSaving] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+
+  // STATE NOU: Capturăm datele scrise de utilizator pentru API
+  const [formData, setFormData] = useState({
+    make: "", model: "", year: "", km: "", fuel: "Benzină", engine: "", transmission: "Automată", bodyType: "Sedan", status: "Înmatriculat RO", tva: "Nu (Vânzător PF)",
+    propType: "Apartament", surface: "", rooms: "", buildYear: "", floor: "", parking: "Inclus în preț", landSurface: "", location: "",
+    brand: "", refModel: "", purchaseYear: "", mechanism: "Automatic", material: "", boxPapers: "Full Set (Cutie + Acte)",
+    businessDomain: "", businessAge: "", revenue: "", profit: "", employees: "", includes: "",
+    specs: "", warranty: "",
+  });
 
   const categoriesList = [
     'Auto & Moto', 'Imobiliare', 'Lux & Ceasuri', 
@@ -32,30 +45,82 @@ export default function PostAdPage() {
     }
   };
 
-  // NOTĂ PENTRU LIVE: Aici va veni apelul către API-ul real de AI în faza următoare
-  const generateAiPricing = () => {
-    setStep(2);
+  const generateAiPricing = async () => {
     setIsAnalyzing(true);
-    
-    setTimeout(() => {
-      const mockPrices: Record<string, number> = {
-        'Auto & Moto': 85000,
-        'Imobiliare': 320000,
-        'Lux & Ceasuri': 45000,
-        'Afaceri de vânzare': 150000,
-        'Gadgets': 2500,
-        'Foto & Audio': 4000
+    setStep(2);
+
+    try {
+      const apiCategory = category === 'Auto & Moto' ? 'auto' :
+                          category === 'Imobiliare' ? 'imobiliare' :
+                          category === 'Lux & Ceasuri' ? 'lux' :
+                          category === 'Afaceri de vânzare' ? 'business' :
+                          category === 'Gadgets' ? 'gadgets' : 'foto';
+
+      const payload = {
+        category: apiCategory,
+        make: formData.make,
+        model: formData.model,
+        year: formData.year ? parseInt(formData.year) : undefined,
+        km: formData.km ? parseInt(formData.km) : undefined,
+        surface: formData.surface ? parseInt(formData.surface) : undefined,
+        location: formData.location,
+        brand: formData.brand,
+        revenue: formData.revenue ? parseInt(formData.revenue) : undefined,
+        extraDetails: formData,
+        save_report: false
       };
-      setMarketPrice(mockPrices[category] || 50000);
-      setAnalyzedItems(Math.floor(Math.random() * 30) + 15);
-      setExitPrice(""); 
+
+      const response = await fetch("/api/evaluate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        setEvaluationResult(data);
+        setMarketPrice(data.estimated_market_price || 0); 
+        setAnalyzedItems(data.comparable_count || 0);
+        
+        if (data.strong_exit_price) {
+          setExitPrice(data.strong_exit_price.toString());
+        } else {
+          setExitPrice(""); 
+        }
+      } else {
+        alert(data.message || "Date insuficiente pentru o evaluare automată.");
+        setStep(1);
+      }
+    } catch (error) {
+      alert("Terminalul de preț este momentan indisponibil.");
+      setStep(1);
+    } finally {
       setIsAnalyzing(false);
-    }, 3000);
+    }
   };
 
-  const calculatedDiscount = exitPrice && marketPrice ? Math.round((1 - Number(exitPrice) / marketPrice) * 100) : 0;
+  // LOGICA NOUĂ: Calcul matematic pentru discount în funcție de strategie
+  const baseRequestedPrice = Number(exitPrice) || 0;
+  let finalCalculatedExitPrice = baseRequestedPrice;
+  let currentDiscountPercent = 0;
 
-  // FUNCȚIA DE SALVARE 100% REALĂ (CU POZE)
+  if (marketPrice === 0 && baseRequestedPrice > 0) {
+    if (saleStrategy === 'lichidare') {
+      finalCalculatedExitPrice = Math.round(baseRequestedPrice * 0.9);
+      currentDiscountPercent = 10;
+    } else if (saleStrategy === 'panic') {
+      finalCalculatedExitPrice = Math.round(baseRequestedPrice * 0.8);
+      currentDiscountPercent = 20;
+    } else if (saleStrategy === 'licitatie') {
+      finalCalculatedExitPrice = Math.round(baseRequestedPrice * 0.7);
+      currentDiscountPercent = 30;
+    }
+  } else if (marketPrice > 0 && baseRequestedPrice > 0) {
+    currentDiscountPercent = Math.round((1 - baseRequestedPrice / marketPrice) * 100);
+    finalCalculatedExitPrice = baseRequestedPrice;
+  }
+
   const handleFinalSubmit = async () => {
     setIsSaving(true);
     try {
@@ -66,37 +131,27 @@ export default function PostAdPage() {
         return;
       }
 
-      // 1. UPLOAD IMAGINI ÎN SUPABASE STORAGE
       const uploadedImageUrls: string[] = [];
-      
       if (images.length > 0) {
         for (const file of images) {
           const fileExt = file.name.split('.').pop();
           const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
           const filePath = `${user.id}/${fileName}`;
           
-          const { error: uploadError } = await supabase.storage
-            .from('listings')
-            .upload(filePath, file);
-            
-          if (uploadError) {
-            console.error("Eroare upload imagine:", uploadError);
-            throw new Error("Nu am putut încărca imaginile.");
-          }
+          const { error: uploadError } = await supabase.storage.from('listings').upload(filePath, file);
+         if (uploadError) {
+  console.error("Supabase Upload Error:", uploadError);
+  throw new Error(`Eroare Supabase la urcarea pozei: ${uploadError.message}`);
+}
           
-          const { data: publicUrlData } = supabase.storage
-            .from('listings')
-            .getPublicUrl(filePath);
-            
+          const { data: publicUrlData } = supabase.storage.from('listings').getPublicUrl(filePath);
           uploadedImageUrls.push(publicUrlData.publicUrl);
         }
       }
 
-      // 2. CALCUL DEAL SCORE
-      const discountVal = ((marketPrice - Number(exitPrice)) / marketPrice) * 100;
-      const dealScore = Math.min(Math.round(discountVal * 1.5), 99); 
+      const finalMarketPrice = marketPrice > 0 ? marketPrice : baseRequestedPrice;
+      const dealScore = Math.min(Math.round(currentDiscountPercent * 1.5), 99); 
 
-      // 3. SALVARE BAZĂ DE DATE
       const { error } = await supabase
         .from('listings')
         .insert({
@@ -104,13 +159,15 @@ export default function PostAdPage() {
           title: adTitle,
           category: category,
           description: description || "Anunț detaliat.",
-          market_price: marketPrice,
-          exit_price: Number(exitPrice),
+          market_price: finalMarketPrice,
+          exit_price: finalCalculatedExitPrice, 
           sale_strategy: selectedPackage, 
           status: 'active',
-          deal_score: dealScore,
-          discount: calculatedDiscount,
-          images: uploadedImageUrls // <--- ACUM SALVĂM URL-URILE REALE
+          is_seed: false, 
+          deal_score: dealScore, 
+          discount: currentDiscountPercent, 
+          images: uploadedImageUrls,
+          details: { ...formData, package: selectedPackage, strategy: saleStrategy } 
         });
 
       if (error) {
@@ -164,10 +221,13 @@ export default function PostAdPage() {
           <div className={`text-[10px] font-black uppercase tracking-widest italic ${step >= 3 ? 'text-black' : 'text-gray-300'}`}>3. Activare</div>
         </div>
 
-        <div className="bg-white p-6 md:p-10 rounded-2xl border-[3px] border-black shadow-[10px_10px_0_0_rgba(0,0,0,1)]">
-          
+        <div className="bg-white p-6 md:p-10 rounded-2xl border-[3px] border-black shadow-[10px_10px_0_0_rgba(0,0,0,1)] relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-8 opacity-5 pointer-events-none">
+            <Search size={150} strokeWidth={3} />
+          </div>
+
           {step === 1 && (
-            <div className="space-y-8">
+            <div className="space-y-8 relative z-10">
               
               {/* Selectie Categorie */}
               <div>
@@ -197,190 +257,193 @@ export default function PostAdPage() {
                 />
               </div>
 
-              {/* ===== DATE CHIRURGICALE PE CATEGORII ===== */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-5 pt-4">
                 
-                {/* 1. AUTO & MOTO */}
+                {/* AUTO & MOTO */}
                 {category === 'Auto & Moto' && (
                   <>
                     <div>
-                      <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">Marcă & Model</label>
-                      <input type="text" placeholder="Ex: Mercedes-Benz S-Class" className="w-full mt-2 p-3 border-[3px] border-black rounded-xl font-bold uppercase focus:outline-none focus:bg-gray-50" />
+                      <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">Marcă</label>
+                      <input type="text" value={formData.make} onChange={(e) => setFormData({...formData, make: e.target.value})} placeholder="Ex: Mercedes-Benz" className="w-full mt-2 p-3 border-[3px] border-black rounded-xl font-bold uppercase focus:outline-none focus:bg-gray-50" />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">Model</label>
+                      <input type="text" value={formData.model} onChange={(e) => setFormData({...formData, model: e.target.value})} placeholder="Ex: S-Class" className="w-full mt-2 p-3 border-[3px] border-black rounded-xl font-bold uppercase focus:outline-none focus:bg-gray-50" />
                     </div>
                     <div>
                       <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">An Fabricație</label>
-                      <input type="number" placeholder="2022" className="w-full mt-2 p-3 border-[3px] border-black rounded-xl font-bold focus:outline-none focus:bg-gray-50" />
+                      <input type="number" value={formData.year} onChange={(e) => setFormData({...formData, year: e.target.value})} placeholder="2022" className="w-full mt-2 p-3 border-[3px] border-black rounded-xl font-bold focus:outline-none focus:bg-gray-50" />
                     </div>
                     <div>
                       <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">Rulaj (KM Curenți)</label>
-                      <input type="number" placeholder="14000" className="w-full mt-2 p-3 border-[3px] border-black rounded-xl font-bold focus:outline-none focus:bg-gray-50" />
+                      <input type="number" value={formData.km} onChange={(e) => setFormData({...formData, km: e.target.value})} placeholder="14000" className="w-full mt-2 p-3 border-[3px] border-black rounded-xl font-bold focus:outline-none focus:bg-gray-50" />
                     </div>
                     <div>
                       <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">Combustibil</label>
-                      <select className="w-full mt-2 p-3 border-[3px] border-black rounded-xl font-bold uppercase focus:outline-none focus:bg-gray-50 appearance-none">
+                      <select value={formData.fuel} onChange={(e) => setFormData({...formData, fuel: e.target.value})} className="w-full mt-2 p-3 border-[3px] border-black rounded-xl font-bold uppercase focus:outline-none focus:bg-gray-50 appearance-none">
                         <option>Benzină</option><option>Diesel</option><option>Hibrid</option><option>Electric</option>
                       </select>
                     </div>
                     <div>
                       <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">Motorizare / CP</label>
-                      <input type="text" placeholder="Ex: 3.0 / 292 CP" className="w-full mt-2 p-3 border-[3px] border-black rounded-xl font-bold uppercase focus:outline-none focus:bg-gray-50" />
+                      <input type="text" value={formData.engine} onChange={(e) => setFormData({...formData, engine: e.target.value})} placeholder="Ex: 3.0 / 292 CP" className="w-full mt-2 p-3 border-[3px] border-black rounded-xl font-bold uppercase focus:outline-none focus:bg-gray-50" />
                     </div>
                     <div>
                       <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">Cutie de viteze</label>
-                      <select className="w-full mt-2 p-3 border-[3px] border-black rounded-xl font-bold uppercase focus:outline-none focus:bg-gray-50 appearance-none">
+                      <select value={formData.transmission} onChange={(e) => setFormData({...formData, transmission: e.target.value})} className="w-full mt-2 p-3 border-[3px] border-black rounded-xl font-bold uppercase focus:outline-none focus:bg-gray-50 appearance-none">
                         <option>Automată</option><option>Manuală</option>
                       </select>
                     </div>
                     <div>
                       <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">Caroserie</label>
-                      <select className="w-full mt-2 p-3 border-[3px] border-black rounded-xl font-bold uppercase focus:outline-none focus:bg-gray-50 appearance-none">
+                      <select value={formData.bodyType} onChange={(e) => setFormData({...formData, bodyType: e.target.value})} className="w-full mt-2 p-3 border-[3px] border-black rounded-xl font-bold uppercase focus:outline-none focus:bg-gray-50 appearance-none">
                         <option>Sedan</option><option>SUV</option><option>Coupe</option><option>Cabrio</option><option>Off-Road</option>
                       </select>
                     </div>
                     <div>
                       <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">Status Înmatriculare</label>
-                      <select className="w-full mt-2 p-3 border-[3px] border-black rounded-xl font-bold uppercase focus:outline-none focus:bg-gray-50 appearance-none">
+                      <select value={formData.status} onChange={(e) => setFormData({...formData, status: e.target.value})} className="w-full mt-2 p-3 border-[3px] border-black rounded-xl font-bold uppercase focus:outline-none focus:bg-gray-50 appearance-none">
                         <option>Înmatriculat RO</option><option>Neînmatriculat</option><option>Înmatriculat Extern</option>
                       </select>
                     </div>
                     <div>
                       <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">TVA DEDUCTIBIL?</label>
-                      <select className="w-full mt-2 p-3 border-[3px] border-black rounded-xl font-bold uppercase focus:outline-none focus:bg-gray-50 appearance-none">
+                      <select value={formData.tva} onChange={(e) => setFormData({...formData, tva: e.target.value})} className="w-full mt-2 p-3 border-[3px] border-black rounded-xl font-bold uppercase focus:outline-none focus:bg-gray-50 appearance-none">
                         <option>Nu (Vânzător PF)</option><option>Da (Vânzător PJ)</option>
                       </select>
                     </div>
                   </>
                 )}
 
-                {/* 2. IMOBILIARE */}
+                {/* IMOBILIARE */}
                 {category === 'Imobiliare' && (
                   <>
                     <div>
                       <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">Tip Proprietate</label>
-                      <select className="w-full mt-2 p-3 border-[3px] border-black rounded-xl font-bold uppercase focus:outline-none focus:bg-gray-50 appearance-none">
+                      <select value={formData.propType} onChange={(e) => setFormData({...formData, propType: e.target.value})} className="w-full mt-2 p-3 border-[3px] border-black rounded-xl font-bold uppercase focus:outline-none focus:bg-gray-50 appearance-none">
                         <option>Apartament</option><option>Casă / Vilă</option><option>Teren</option><option>Spațiu Comercial</option>
                       </select>
                     </div>
                     <div>
                       <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">Suprafață Utilă (mp)</label>
-                      <input type="number" placeholder="Ex: 85" className="w-full mt-2 p-3 border-[3px] border-black rounded-xl font-bold focus:outline-none focus:bg-gray-50" />
+                      <input type="number" value={formData.surface} onChange={(e) => setFormData({...formData, surface: e.target.value})} placeholder="Ex: 85" className="w-full mt-2 p-3 border-[3px] border-black rounded-xl font-bold focus:outline-none focus:bg-gray-50" />
                     </div>
                     <div>
                       <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">Număr Camere</label>
-                      <input type="number" placeholder="Ex: 3" className="w-full mt-2 p-3 border-[3px] border-black rounded-xl font-bold focus:outline-none focus:bg-gray-50" />
+                      <input type="number" value={formData.rooms} onChange={(e) => setFormData({...formData, rooms: e.target.value})} placeholder="Ex: 3" className="w-full mt-2 p-3 border-[3px] border-black rounded-xl font-bold focus:outline-none focus:bg-gray-50" />
                     </div>
                     <div>
                       <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">An Construcție</label>
-                      <input type="number" placeholder="Ex: 2023" className="w-full mt-2 p-3 border-[3px] border-black rounded-xl font-bold focus:outline-none focus:bg-gray-50" />
+                      <input type="number" value={formData.buildYear} onChange={(e) => setFormData({...formData, buildYear: e.target.value})} placeholder="Ex: 2023" className="w-full mt-2 p-3 border-[3px] border-black rounded-xl font-bold focus:outline-none focus:bg-gray-50" />
                     </div>
                     <div>
                       <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">Etaj / Regim</label>
-                      <input type="text" placeholder="Ex: 4 din 10" className="w-full mt-2 p-3 border-[3px] border-black rounded-xl font-bold uppercase focus:outline-none focus:bg-gray-50" />
+                      <input type="text" value={formData.floor} onChange={(e) => setFormData({...formData, floor: e.target.value})} placeholder="Ex: 4 din 10" className="w-full mt-2 p-3 border-[3px] border-black rounded-xl font-bold uppercase focus:outline-none focus:bg-gray-50" />
                     </div>
                     <div>
                       <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">Loc de Parcare</label>
-                      <select className="w-full mt-2 p-3 border-[3px] border-black rounded-xl font-bold uppercase focus:outline-none focus:bg-gray-50 appearance-none">
+                      <select value={formData.parking} onChange={(e) => setFormData({...formData, parking: e.target.value})} className="w-full mt-2 p-3 border-[3px] border-black rounded-xl font-bold uppercase focus:outline-none focus:bg-gray-50 appearance-none">
                         <option>Inclus în preț</option><option>Disponibil contra cost</option><option>Fără parcare</option>
                       </select>
                     </div>
                     <div>
                       <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">Suprafață Teren (pt Case)</label>
-                      <input type="text" placeholder="Ex: 500 mp" className="w-full mt-2 p-3 border-[3px] border-black rounded-xl font-bold uppercase focus:outline-none focus:bg-gray-50" />
+                      <input type="text" value={formData.landSurface} onChange={(e) => setFormData({...formData, landSurface: e.target.value})} placeholder="Ex: 500 mp" className="w-full mt-2 p-3 border-[3px] border-black rounded-xl font-bold uppercase focus:outline-none focus:bg-gray-50" />
                     </div>
                     <div className="md:col-span-2">
                       <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">Localizare Exactă</label>
-                      <input type="text" placeholder="Ex: București, Sector 1, Șos. Nordului" className="w-full mt-2 p-3 border-[3px] border-black rounded-xl font-bold uppercase focus:outline-none focus:bg-gray-50" />
+                      <input type="text" value={formData.location} onChange={(e) => setFormData({...formData, location: e.target.value})} placeholder="Ex: București, Sector 1, Șos. Nordului" className="w-full mt-2 p-3 border-[3px] border-black rounded-xl font-bold uppercase focus:outline-none focus:bg-gray-50" />
                     </div>
                   </>
                 )}
 
-                {/* 3. LUX & CEASURI */}
+                {/* LUX & CEASURI */}
                 {category === 'Lux & Ceasuri' && (
                   <>
                     <div>
                       <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">Brand</label>
-                      <input type="text" placeholder="Ex: Patek Philippe, Rolex" className="w-full mt-2 p-3 border-[3px] border-black rounded-xl font-bold uppercase focus:outline-none focus:bg-gray-50" />
+                      <input type="text" value={formData.brand} onChange={(e) => setFormData({...formData, brand: e.target.value})} placeholder="Ex: Patek Philippe, Rolex" className="w-full mt-2 p-3 border-[3px] border-black rounded-xl font-bold uppercase focus:outline-none focus:bg-gray-50" />
                     </div>
                     <div>
                       <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">Model & Referință</label>
-                      <input type="text" placeholder="Ex: Nautilus 5711" className="w-full mt-2 p-3 border-[3px] border-black rounded-xl font-bold uppercase focus:outline-none focus:bg-gray-50" />
+                      <input type="text" value={formData.refModel} onChange={(e) => setFormData({...formData, refModel: e.target.value})} placeholder="Ex: Nautilus 5711" className="w-full mt-2 p-3 border-[3px] border-black rounded-xl font-bold uppercase focus:outline-none focus:bg-gray-50" />
                     </div>
                     <div>
                       <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">An Achiziție</label>
-                      <input type="number" placeholder="Ex: 2021" className="w-full mt-2 p-3 border-[3px] border-black rounded-xl font-bold focus:outline-none focus:bg-gray-50" />
+                      <input type="number" value={formData.purchaseYear} onChange={(e) => setFormData({...formData, purchaseYear: e.target.value})} placeholder="Ex: 2021" className="w-full mt-2 p-3 border-[3px] border-black rounded-xl font-bold focus:outline-none focus:bg-gray-50" />
                     </div>
                     <div>
                       <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">Mecanism</label>
-                      <select className="w-full mt-2 p-3 border-[3px] border-black rounded-xl font-bold uppercase focus:outline-none focus:bg-gray-50 appearance-none">
+                      <select value={formData.mechanism} onChange={(e) => setFormData({...formData, mechanism: e.target.value})} className="w-full mt-2 p-3 border-[3px] border-black rounded-xl font-bold uppercase focus:outline-none focus:bg-gray-50 appearance-none">
                         <option>Automatic</option><option>Manual</option><option>Quartz</option>
                       </select>
                     </div>
                     <div>
                       <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">Material Carcasă</label>
-                      <input type="text" placeholder="Ex: Aur roz, Oțel" className="w-full mt-2 p-3 border-[3px] border-black rounded-xl font-bold uppercase focus:outline-none focus:bg-gray-50" />
+                      <input type="text" value={formData.material} onChange={(e) => setFormData({...formData, material: e.target.value})} placeholder="Ex: Aur roz, Oțel" className="w-full mt-2 p-3 border-[3px] border-black rounded-xl font-bold uppercase focus:outline-none focus:bg-gray-50" />
                     </div>
                     <div>
                       <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">Pachet & Proveniență</label>
-                      <select className="w-full mt-2 p-3 border-[3px] border-black rounded-xl font-bold uppercase focus:outline-none focus:bg-gray-50 appearance-none">
+                      <select value={formData.boxPapers} onChange={(e) => setFormData({...formData, boxPapers: e.target.value})} className="w-full mt-2 p-3 border-[3px] border-black rounded-xl font-bold uppercase focus:outline-none focus:bg-gray-50 appearance-none">
                         <option>Full Set (Cutie + Acte)</option><option>Doar Ceasul</option><option>Ceas + Cutie</option>
                       </select>
                     </div>
                   </>
                 )}
 
-                {/* 4. AFACERI DE VÂNZARE */}
+                {/* AFACERI DE VÂNZARE */}
                 {category === 'Afaceri de vânzare' && (
                   <>
                     <div className="md:col-span-2">
                       <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">Domeniu de Activitate</label>
-                      <input type="text" placeholder="Ex: E-commerce, Restaurant, Producție" className="w-full mt-2 p-3 border-[3px] border-black rounded-xl font-bold uppercase focus:outline-none focus:bg-gray-50" />
+                      <input type="text" value={formData.businessDomain} onChange={(e) => setFormData({...formData, businessDomain: e.target.value})} placeholder="Ex: E-commerce, Restaurant, Producție" className="w-full mt-2 p-3 border-[3px] border-black rounded-xl font-bold uppercase focus:outline-none focus:bg-gray-50" />
                     </div>
                     <div>
                       <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">Vechime Business</label>
-                      <input type="text" placeholder="Ex: 5 ani" className="w-full mt-2 p-3 border-[3px] border-black rounded-xl font-bold uppercase focus:outline-none focus:bg-gray-50" />
+                      <input type="text" value={formData.businessAge} onChange={(e) => setFormData({...formData, businessAge: e.target.value})} placeholder="Ex: 5 ani" className="w-full mt-2 p-3 border-[3px] border-black rounded-xl font-bold uppercase focus:outline-none focus:bg-gray-50" />
                     </div>
                     <div>
                       <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">Cifră Afaceri Anuală (€)</label>
-                      <input type="number" placeholder="Ex: 250000" className="w-full mt-2 p-3 border-[3px] border-black rounded-xl font-bold focus:outline-none focus:bg-gray-50" />
+                      <input type="number" value={formData.revenue} onChange={(e) => setFormData({...formData, revenue: e.target.value})} placeholder="Ex: 250000" className="w-full mt-2 p-3 border-[3px] border-black rounded-xl font-bold focus:outline-none focus:bg-gray-50" />
                     </div>
                     <div>
                       <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">Profit Net Anual (€)</label>
-                      <input type="number" placeholder="Ex: 45000" className="w-full mt-2 p-3 border-[3px] border-black rounded-xl font-bold focus:outline-none focus:bg-gray-50" />
+                      <input type="number" value={formData.profit} onChange={(e) => setFormData({...formData, profit: e.target.value})} placeholder="Ex: 45000" className="w-full mt-2 p-3 border-[3px] border-black rounded-xl font-bold focus:outline-none focus:bg-gray-50" />
                     </div>
                     <div>
                       <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">Număr Angajați</label>
-                      <input type="number" placeholder="Ex: 12" className="w-full mt-2 p-3 border-[3px] border-black rounded-xl font-bold focus:outline-none focus:bg-gray-50" />
+                      <input type="number" value={formData.employees} onChange={(e) => setFormData({...formData, employees: e.target.value})} placeholder="Ex: 12" className="w-full mt-2 p-3 border-[3px] border-black rounded-xl font-bold focus:outline-none focus:bg-gray-50" />
                     </div>
                     <div className="md:col-span-3">
                       <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">Ce include prețul?</label>
-                      <input type="text" placeholder="Ex: Stocuri de 20k EUR, firmă curată, bază 10k clienți" className="w-full mt-2 p-3 border-[3px] border-black rounded-xl font-bold uppercase focus:outline-none focus:bg-gray-50" />
+                      <input type="text" value={formData.includes} onChange={(e) => setFormData({...formData, includes: e.target.value})} placeholder="Ex: Stocuri de 20k EUR, firmă curată, bază 10k clienți" className="w-full mt-2 p-3 border-[3px] border-black rounded-xl font-bold uppercase focus:outline-none focus:bg-gray-50" />
                     </div>
                   </>
                 )}
 
-                {/* 5 & 6. GADGETS / FOTO & AUDIO */}
+                {/* GADGETS / FOTO & AUDIO */}
                 {(category === 'Gadgets' || category === 'Foto & Audio') && (
                   <>
                     <div className="md:col-span-2">
                       <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">Brand & Model Exact</label>
-                      <input type="text" placeholder="Ex: Apple MacBook Pro M3 Max" className="w-full mt-2 p-3 border-[3px] border-black rounded-xl font-bold uppercase focus:outline-none focus:bg-gray-50" />
+                      <input type="text" value={formData.brand} onChange={(e) => setFormData({...formData, brand: e.target.value})} placeholder="Ex: Apple MacBook Pro M3 Max" className="w-full mt-2 p-3 border-[3px] border-black rounded-xl font-bold uppercase focus:outline-none focus:bg-gray-50" />
                     </div>
                     <div>
                       <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">An Achiziție</label>
-                      <input type="number" placeholder="Ex: 2024" className="w-full mt-2 p-3 border-[3px] border-black rounded-xl font-bold focus:outline-none focus:bg-gray-50" />
+                      <input type="number" value={formData.purchaseYear} onChange={(e) => setFormData({...formData, purchaseYear: e.target.value})} placeholder="Ex: 2024" className="w-full mt-2 p-3 border-[3px] border-black rounded-xl font-bold focus:outline-none focus:bg-gray-50" />
                     </div>
                     <div className="md:col-span-2">
-                      <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">Specificații Principale (RAM, Senzor, Stocare)</label>
-                      <input type="text" placeholder="Ex: 36GB RAM, 1TB SSD, Baterie 100%" className="w-full mt-2 p-3 border-[3px] border-black rounded-xl font-bold uppercase focus:outline-none focus:bg-gray-50" />
+                      <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">Specificații Principale</label>
+                      <input type="text" value={formData.specs} onChange={(e) => setFormData({...formData, specs: e.target.value})} placeholder="Ex: 36GB RAM, 1TB SSD, Baterie 100%" className="w-full mt-2 p-3 border-[3px] border-black rounded-xl font-bold uppercase focus:outline-none focus:bg-gray-50" />
                     </div>
                     <div>
                       <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">Garanție Rămasă</label>
-                      <input type="text" placeholder="Ex: 12 Luni Apple" className="w-full mt-2 p-3 border-[3px] border-black rounded-xl font-bold uppercase focus:outline-none focus:bg-gray-50" />
+                      <input type="text" value={formData.warranty} onChange={(e) => setFormData({...formData, warranty: e.target.value})} placeholder="Ex: 12 Luni Apple" className="w-full mt-2 p-3 border-[3px] border-black rounded-xl font-bold uppercase focus:outline-none focus:bg-gray-50" />
                     </div>
                   </>
                 )}
 
-                {/* Descriere Generala (Global) */}
+                {/* Descriere Generala */}
                 <div className="md:col-span-3 pt-4 border-t-2 border-gray-100">
                   <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">Motivul vânzării & Detalii de finețe (Crucial pt AI)</label>
                   <textarea 
@@ -438,47 +501,72 @@ export default function PostAdPage() {
               ) : (
                 <div className="animate-in fade-in slide-in-from-bottom-8 duration-500 space-y-8">
                   
-                  {/* Raportul de Piata (Ancora Mentala) */}
+                  {/* MODIFICAREA DE DESIGN PENTRU ACTIV EXCLUSIVIST */}
                   <div className="bg-white border-[4px] border-black p-6 md:p-8 rounded-[2rem] shadow-[8px_8px_0_0_rgba(0,0,0,1)] relative overflow-hidden text-left">
-                    <div className="absolute top-0 right-0 bg-black text-[#FFD100] text-[9px] font-black px-4 py-2 uppercase tracking-widest rounded-bl-xl">Date Reale</div>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">Preț Mediu Piață Estimat</p>
-                    <p className="text-4xl md:text-5xl font-black italic tracking-tighter text-black">
-                      €{marketPrice.toLocaleString('ro-RO')}
-                    </p>
-                    <div className="mt-4 pt-4 border-t-2 border-gray-100 flex flex-col gap-2">
-                       <p className="text-xs font-bold text-gray-600">✓ Analiză generată comparând <span className="font-black text-black">{analyzedItems} anunțuri similare</span> active astăzi.</p>
-                       <p className="text-xs font-bold text-gray-600">⚠ Timp mediu de vânzare la acest preț pe site-uri clasice: <span className="font-black text-red-600">94 de zile</span>.</p>
+                    <div className={`absolute top-0 right-0 ${marketPrice > 0 ? 'bg-black text-[#FFD100]' : 'bg-orange-500 text-white'} text-[9px] font-black px-4 py-2 uppercase tracking-widest rounded-bl-xl`}>
+                      {marketPrice > 0 ? 'Date Reale' : 'Activ Exclusivist'}
                     </div>
+                    
+                    {marketPrice > 0 ? (
+                      <>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">Preț Mediu Piață Estimat</p>
+                        <p className="text-4xl md:text-5xl font-black italic tracking-tighter text-black">
+                          €{marketPrice.toLocaleString('ro-RO')}
+                        </p>
+                        <div className="mt-4 pt-4 border-t-2 border-gray-100 flex flex-col gap-2">
+                           <p className="text-xs font-bold text-gray-600">✓ Analiză generată comparând <span className="font-black text-black">{analyzedItems} anunțuri similare</span>.</p>
+                           <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-2">Încredere Algoritm: {evaluationResult?.confidence_score || 0}%</p>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-orange-500 mb-2">Atenție: Istoric Insuficient</p>
+                        <p className="text-2xl md:text-3xl font-black italic tracking-tighter text-black">
+                          Activ Rar Identificat.
+                        </p>
+                        <div className="mt-4 pt-4 border-t-2 border-gray-100 flex flex-col gap-2">
+                           <p className="text-xs font-bold text-gray-600">Algoritmul AI nu a găsit suficiente produse identice în piață pentru a genera o medie de preț. <span className="font-black">Setează prețul tău de bază mai jos.</span></p>
+                        </div>
+                      </>
+                    )}
                   </div>
 
                   <div className="text-left space-y-6">
                     <div>
                       <h3 className="text-xl font-black uppercase italic mb-2">Setează Prețul Tău (Cash)</h3>
-                      <p className="text-xs font-bold text-gray-500 uppercase italic">Alege cât ești dispus să lași din preț pentru a obține banii imediat.</p>
+                      <p className="text-xs font-bold text-gray-500 uppercase italic">
+                        {marketPrice > 0 
+                          ? "Alege cât ești dispus să lași din preț pentru a obține banii imediat." 
+                          : "Setează prețul dorit pe care îl vei folosi ca bază de pornire."}
+                      </p>
                     </div>
 
                     <div className="flex flex-col md:flex-row gap-4">
                       <div className="flex-1 bg-gray-50 p-6 rounded-2xl border-[3px] border-black shadow-[inner_0_0_10px_rgba(0,0,0,0.05)]">
-                        <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">Vreau să încasez (EUR)</label>
+                        <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">
+                          {marketPrice > 0 ? "Vreau să încasez (EUR)" : "Prețul Tău Dorit (Bază / EUR)"}
+                        </label>
                         <div className="relative mt-2">
                           <span className="absolute left-4 top-1/2 -translate-y-1/2 font-black text-xl">€</span>
                           <input 
                             type="number" 
                             value={exitPrice}
                             onChange={(e) => setExitPrice(e.target.value)}
-                            placeholder={marketPrice.toString()} 
+                            placeholder={marketPrice > 0 ? marketPrice.toString() : "Ex: 500000"} 
                             className="w-full p-4 pl-10 border-[3px] border-black rounded-xl font-black text-3xl italic focus:outline-none focus:bg-white shadow-[4px_4px_0_0_rgba(0,0,0,1)]" 
                           />
                         </div>
                       </div>
 
-                      <div className={`w-full md:w-32 flex flex-col items-center justify-center p-4 rounded-2xl border-[3px] border-black shadow-[4px_4px_0_0_rgba(0,0,0,1)] transition-colors ${calculatedDiscount >= 15 ? 'bg-[#FFD100] text-black' : calculatedDiscount > 0 ? 'bg-black text-[#FFD100]' : 'bg-gray-100 text-gray-400'}`}>
-                         <span className="text-[10px] font-black uppercase tracking-widest mb-1">Discount</span>
-                         <span className="text-3xl font-black italic leading-none">-{calculatedDiscount}%</span>
-                      </div>
+                      {(marketPrice > 0 || (marketPrice === 0 && exitPrice)) && (
+                        <div className={`w-full md:w-32 flex flex-col items-center justify-center p-4 rounded-2xl border-[3px] border-black shadow-[4px_4px_0_0_rgba(0,0,0,1)] transition-colors ${currentDiscountPercent >= 15 ? 'bg-[#FFD100] text-black' : currentDiscountPercent > 0 ? 'bg-black text-[#FFD100]' : 'bg-gray-100 text-gray-400'}`}>
+                           <span className="text-[10px] font-black uppercase tracking-widest mb-1">Discount</span>
+                           <span className="text-3xl font-black italic leading-none">-{currentDiscountPercent}%</span>
+                        </div>
+                      )}
                     </div>
 
-                    {/* SELECTIA STRATEGIEI (Cele 4 Carduri) */}
+                    {/* SELECTIA STRATEGIEI CU SUGESITII MATEMATICE PENTRU CULLINAN */}
                     <div className="pt-6 border-t-2 border-gray-100">
                       <p className="text-[10px] font-black uppercase tracking-widest text-black mb-4">Alege Strategia de Vânzare</p>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -486,21 +574,25 @@ export default function PostAdPage() {
                         <button onClick={() => setSaleStrategy('standard')} className={`p-4 rounded-2xl border-[3px] text-left transition-all ${saleStrategy === 'standard' ? 'border-black bg-[#FFD100] shadow-[4px_4px_0_0_rgba(0,0,0,1)]' : 'border-gray-200 bg-white hover:border-black'}`}>
                           <p className="font-black uppercase italic text-sm text-black">Standard</p>
                           <p className="text-[10px] font-bold text-gray-600 mt-1 uppercase">Fără discount. Așteptare 14-30 zile.</p>
+                          {marketPrice === 0 && exitPrice && <p className="text-xs font-black mt-2">Preț final: €{Number(exitPrice).toLocaleString('ro-RO')}</p>}
                         </button>
 
                         <button onClick={() => setSaleStrategy('lichidare')} className={`p-4 rounded-2xl border-[3px] text-left transition-all ${saleStrategy === 'lichidare' ? 'border-black bg-[#FFD100] shadow-[4px_4px_0_0_rgba(0,0,0,1)]' : 'border-gray-200 bg-white hover:border-black'}`}>
-                          <p className="font-black uppercase italic text-sm text-black">Lichidare</p>
-                          <p className="text-[10px] font-bold text-gray-600 mt-1 uppercase">Preț redus. Targetăm oferte în 48h.</p>
+                          <p className="font-black uppercase italic text-sm text-black">Lichidare {marketPrice === 0 && '(-10%)'}</p>
+                          <p className="text-[10px] font-bold text-gray-600 mt-1 uppercase">Preț redus. Targetăm oferte în 7-14 zile.</p>
+                          {marketPrice === 0 && exitPrice && <p className="text-xs font-black mt-2">Preț final: €{Math.round(Number(exitPrice) * 0.9).toLocaleString('ro-RO')}</p>}
                         </button>
 
                         <button onClick={() => setSaleStrategy('panic')} className={`p-4 rounded-2xl border-[3px] text-left transition-all ${saleStrategy === 'panic' ? 'border-black bg-black text-[#FFD100] shadow-[4px_4px_0_0_rgba(0,0,0,1)]' : 'border-gray-200 bg-white hover:border-black'}`}>
-                          <p className="font-black uppercase italic text-sm flex items-center gap-2">Panic Sell <span className="text-xs">⚡</span></p>
+                          <p className="font-black uppercase italic text-sm flex items-center gap-2">Panic Sell {marketPrice === 0 && '(-20%)'} <span className="text-xs">⚡</span></p>
                           <p className="text-[10px] font-bold mt-1 uppercase text-gray-400">Preț tăiat extrem. Alerte instant. Cash azi.</p>
+                          {marketPrice === 0 && exitPrice && <p className="text-xs font-black mt-2">Preț final: €{Math.round(Number(exitPrice) * 0.8).toLocaleString('ro-RO')}</p>}
                         </button>
 
                         <button onClick={() => setSaleStrategy('licitatie')} className={`p-4 rounded-2xl border-[3px] text-left transition-all ${saleStrategy === 'licitatie' ? 'border-black bg-black text-white shadow-[4px_4px_0_0_rgba(0,0,0,1)]' : 'border-gray-200 bg-white hover:border-black'}`}>
-                          <p className="font-black uppercase italic text-sm text-black flex items-center gap-2 group-hover:text-white">Licitație Flash <span className="text-xs">🔨</span></p>
+                          <p className="font-black uppercase italic text-sm text-black flex items-center gap-2 group-hover:text-white">Licitație Flash {marketPrice === 0 && '(-30%)'} <span className="text-xs">🔨</span></p>
                           <p className="text-[10px] font-bold mt-1 uppercase text-gray-400">Vânzare la cea mai bună ofertă în 24h.</p>
+                          {marketPrice === 0 && exitPrice && <p className="text-xs font-black mt-2">Start licitație: €{Math.round(Number(exitPrice) * 0.7).toLocaleString('ro-RO')}</p>}
                         </button>
 
                       </div>
@@ -514,7 +606,7 @@ export default function PostAdPage() {
                     <button 
                       onClick={() => setStep(3)} 
                       disabled={!exitPrice}
-                      className="w-2/3 bg-black text-[#FFD100] py-5 rounded-2xl font-black uppercase tracking-widest text-sm italic hover:scale-[1.01] transition-transform shadow-[6px_6px_0_0_rgba(0,0,0,1)] active:translate-y-0.5 active:shadow-none disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed"
+                      className="w-2/3 bg-black text-[#FFD100] py-5 rounded-2xl font-black uppercase tracking-widest text-sm italic shadow-[6px_6px_0_0_rgba(0,0,0,1)] active:translate-y-0.5 active:shadow-none disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed"
                     >
                       Spre Pachete →
                     </button>
@@ -524,39 +616,40 @@ export default function PostAdPage() {
             </div>
           )}
 
+          {/* ===== MODIFICAREA LOGICĂ 4: Alinierea Pachetelor cu Pagina de Tarife ===== */}
           {step === 3 && (
             <div className="space-y-6 animate-in slide-in-from-right-4 duration-500">
               <h2 className="text-2xl font-black uppercase italic mb-6">Pachete de Lichiditate</h2>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 
-                {/* STANDARD */}
-                <div onClick={() => setSelectedPackage('standard')} className={`p-5 border-[3px] rounded-2xl cursor-pointer transition-all ${selectedPackage === 'standard' ? 'border-black bg-[#FFD100] shadow-[6px_6px_0_0_rgba(0,0,0,1)]' : 'border-gray-200 hover:border-black'}`}>
-                  <p className="font-black uppercase italic text-lg text-black">Standard <span className="text-[10px] bg-white px-2 py-1 border-2 border-black rounded ml-2">30 Zile</span></p>
-                  <p className="text-[10px] font-bold text-gray-700 mt-2">Afișare normală în platformă.</p>
+                {/* ECONOMY */}
+                <div onClick={() => setSelectedPackage('economy')} className={`p-5 border-[3px] rounded-2xl cursor-pointer transition-all ${selectedPackage === 'economy' ? 'border-black bg-[#FFD100] shadow-[6px_6px_0_0_rgba(0,0,0,1)]' : 'border-gray-200 hover:border-black bg-white'}`}>
+                  <p className="font-black uppercase italic text-lg text-black">Economy <span className="text-[10px] bg-black text-white px-2 py-1 rounded ml-2">30 ZILE</span></p>
+                  <p className="text-[10px] font-bold text-gray-700 mt-2">Afișare standard în listă. Alerte AI.</p>
                   <p className="font-black text-2xl mt-4">99 RON</p>
                 </div>
 
+                {/* STANDARD */}
+                <div onClick={() => setSelectedPackage('standard')} className={`p-5 border-[3px] rounded-2xl cursor-pointer transition-all ${selectedPackage === 'standard' ? 'border-black bg-black text-white shadow-[6px_6px_0_0_rgba(255,209,0,1)]' : 'border-black bg-black text-white opacity-90'}`}>
+                  <p className="font-black uppercase italic text-lg">Standard <span className="text-[10px] bg-[#FFD100] text-black px-2 py-1 rounded ml-2">14 ZILE</span></p>
+                  <p className="text-[10px] font-bold text-gray-300 mt-2">Poziționare Priority. Badge FAST.</p>
+                  <p className="font-black text-2xl mt-4 text-[#FFD100]">79 RON</p>
+                </div>
+
                 {/* URGENT */}
-                <div onClick={() => setSelectedPackage('urgent')} className={`p-5 border-[3px] rounded-2xl cursor-pointer transition-all ${selectedPackage === 'urgent' ? 'border-black bg-[#FFD100] shadow-[6px_6px_0_0_rgba(0,0,0,1)]' : 'border-gray-200 hover:border-black'}`}>
-                  <p className="font-black uppercase italic text-lg text-black">Urgent <span className="text-[10px] bg-black text-white px-2 py-1 rounded ml-2">7 Zile</span></p>
-                  <p className="text-[10px] font-bold text-gray-700 mt-2">Boost zilnic în topul căutărilor.</p>
-                  <p className="font-black text-2xl mt-4">149 RON</p>
+                <div onClick={() => setSelectedPackage('urgent')} className={`p-5 border-[3px] rounded-2xl cursor-pointer transition-all ${selectedPackage === 'urgent' ? 'border-black bg-gray-100 text-black shadow-[6px_6px_0_0_rgba(0,0,0,1)]' : 'border-gray-200 bg-gray-50 hover:border-black'}`}>
+                  <div className="absolute -top-3 -right-3 bg-black text-white text-[9px] font-black px-3 py-1 uppercase rounded-full border-2 border-white animate-pulse">Lichidare</div>
+                  <p className="font-black uppercase italic text-lg text-black">Urgent <span className="text-[10px] bg-black text-white px-2 py-1 rounded ml-2">48 ORE</span></p>
+                  <p className="text-[10px] font-bold text-gray-700 mt-2">Primul loc în terminal 48h. Push Global.</p>
+                  <p className="font-black text-2xl mt-4">48 RON</p>
                 </div>
 
-                {/* FLASH LIQUIDITY */}
-                <div onClick={() => setSelectedPackage('flash')} className={`p-5 border-[3px] rounded-2xl cursor-pointer transition-all ${selectedPackage === 'flash' ? 'border-black bg-black text-[#FFD100] shadow-[6px_6px_0_0_rgba(255,209,0,1)]' : 'border-black bg-black text-white'}`}>
-                  <div className="absolute -top-3 -right-3 bg-red-500 text-white text-[9px] font-black px-3 py-1 uppercase rounded-full border-2 border-black animate-pulse">Hot</div>
-                  <p className="font-black uppercase italic text-lg">Flash <span className="text-[10px] bg-white text-black px-2 py-1 rounded ml-2">48 ORE</span></p>
-                  <p className="text-[10px] font-bold text-gray-300 mt-2">Alerta SMS directă către investitori.</p>
-                  <p className="font-black text-2xl mt-4 text-[#FFD100]">249 RON</p>
-                </div>
-
-                {/* LICITAȚIE */}
-                <div onClick={() => setSelectedPackage('licitatie')} className={`p-5 border-[3px] rounded-2xl cursor-pointer transition-all ${selectedPackage === 'licitatie' ? 'border-black bg-purple-600 text-[#FFD100] shadow-[6px_6px_0_0_rgba(0,0,0,1)]' : 'border-gray-200 hover:border-black'}`}>
-                  <p className="font-black uppercase italic text-lg">Licitație <span className="text-[10px] bg-black text-white px-2 py-1 rounded ml-2">24 ORE</span></p>
-                  <p className="text-[10px] font-bold text-gray-800 mt-2 opacity-80">Mod licitație la cel mai bun preț.</p>
-                  <p className="font-black text-2xl mt-4">299 RON</p>
+                {/* LICITAȚIE SNIPER */}
+                <div onClick={() => setSelectedPackage('licitatie')} className={`p-5 border-[3px] rounded-2xl cursor-pointer transition-all ${selectedPackage === 'licitatie' ? 'border-black bg-purple-600 text-[#FFD100] shadow-[6px_6px_0_0_rgba(0,0,0,1)]' : 'border-gray-200 hover:border-black bg-white'}`}>
+                  <p className="font-black uppercase italic text-lg text-black">Licitație <span className="text-[10px] bg-black text-white px-2 py-1 rounded ml-2">SNIPER</span></p>
+                  <p className="text-[10px] font-bold text-gray-800 mt-2 opacity-80">Război al ofertelor. Tu alegi durata.</p>
+                  <p className="font-black text-2xl mt-4">111 RON</p>
                 </div>
 
               </div>

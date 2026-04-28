@@ -160,6 +160,30 @@ export default function AdDetail() {
     );
   };
 
+  // Helper funcție pentru a extrage datele tehnice relevante
+  const renderTechnicalDetails = () => {
+    if (!adData.details) return null;
+    
+    // Extragem doar field-urile care au o valoare reală și nu sunt goale
+    const validDetails = Object.entries(adData.details).filter(([key, value]) => {
+      // Ignoram campurile de sistem sau cele goale
+      return value && value !== "" && !['package', 'strategy', 'source', 'observed_at'].includes(key);
+    });
+
+    if (validDetails.length === 0) return null;
+
+    return (
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+        {validDetails.map(([key, value]) => (
+          <div key={key} className="bg-gray-50 p-4 rounded-xl border-[2px] border-black">
+            <p className="text-[9px] font-black uppercase tracking-widest text-gray-400 mb-1">{key}</p>
+            <p className="font-bold italic uppercase text-black">{String(value)}</p>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-white font-sans text-black selection:bg-[#FFD100] selection:text-black">
       <div className="max-w-[1400px] mx-auto px-4 md:px-8 py-6 md:py-8">
@@ -207,7 +231,11 @@ export default function AdDetail() {
               <h1 className="text-3xl md:text-4xl lg:text-5xl font-black uppercase italic tracking-tighter leading-[0.9] text-black">
                 {renderTitle(adData.title)}
               </h1>
-              <div className="flex flex-wrap gap-2.5">
+              
+              {/* MODIFICAREA LOGICĂ: Afișarea Datelor Tehnice */}
+              {renderTechnicalDetails()}
+
+              <div className="flex flex-wrap gap-2.5 mt-6">
                 <button onClick={() => setActiveModal('verified')} className="flex items-center gap-1.5 bg-black text-[#FFD100] px-4 py-2 rounded-lg font-black uppercase text-[9px] tracking-widest italic border-2 border-black hover:scale-105 transition-transform"><span className="text-sm">★</span> Vânzător Verificat</button>
                 <button onClick={() => setActiveModal('docs')} className="flex items-center gap-1.5 bg-white text-black px-4 py-2 rounded-lg font-black uppercase text-[9px] tracking-widest italic border-2 border-black hover:bg-[#FFD100] transition-all"><span className="text-sm">📁</span> Documente Gata</button>
                 <button onClick={() => setActiveModal('ai-score')} className="flex items-center gap-1.5 bg-[#FFD100] text-black px-4 py-2 rounded-lg font-black uppercase text-[9px] tracking-widest italic border-2 border-black hover:scale-105 transition-transform shadow-[3px_3px_0_0_rgba(0,0,0,1)]"><span className="text-sm">⚡</span> Scor AI {adData.deal_score || 90}</button>
@@ -286,7 +314,6 @@ export default function AdDetail() {
                   exitPrice={`€${item.exit_price.toLocaleString('ro-RO')}`}
                   discount={item.discount?.toString() || "0"}
                   score={item.deal_score ? item.deal_score / 10 : 9.0} 
-                  // FOLOSIM HELPER-UL GLOBAL AICI
                   type={normalizeSaleType(item.sale_strategy)}
                 />
               ))}

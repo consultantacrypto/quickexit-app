@@ -94,11 +94,12 @@ export async function POST(req: NextRequest) {
     let query = supabase.from("listings")
       .select("*")
       .in("category", config.accepted)
-      .or(`status.eq.active,is_seed.eq.true`);
+      .or(`status.eq.active,status.eq.seed,is_seed.eq.true`); 
 
-    // Matching specific pe categorii
+    // Matching specific pe categorii (MODIFICAT AICI PENTRU A FI INSENSIBIL LA CASE ȘI SPAȚII)
     if (catKey === "auto") {
-      query = query.eq("vehicle_make", body.make).eq("vehicle_model", body.model);
+      if (body.make) query = query.ilike("vehicle_make", body.make.trim());
+      if (body.model) query = query.ilike("vehicle_model", body.model.trim());
     } else if (body.brand) {
       // Pentru Lux, Gadgets, Foto folosim brand din details JSONB
       query = query.contains('details', { brand: body.brand });
@@ -106,12 +107,37 @@ export async function POST(req: NextRequest) {
 
     const { data: comps, error: fetchError } = await query.limit(50);
 
+    // --- LOGICA NOUĂ: QUALITY LABELS ---
+    const live_comparable_count = comps ? comps.filter((c: any) => !c.is_seed && c.status === 'active').length : 0;
+    const seed_comparable_count = comps ? comps.filter((c: any) => c.is_seed || c.status === 'seed').length : 0;
+
+    let data_quality_label = 'low_data';
+    if (comps && comps.length >= 3) {
+      if (live_comparable_count > seed_comparable_count) {
+        data_quality_label = 'platform_market';
+      } else {
+        data_quality_label = 'market_index';
+      }
+    }
+
+    let dynamic_explanation = "Date insuficiente pentru o evaluare de precizie ridicată.";
+    if (data_quality_label === 'market_index') {
+      dynamic_explanation = "Evaluare bazată pe Quick Exit Market Index.";
+    } else if (data_quality_label === 'platform_market') {
+      dynamic_explanation = "Evaluare bazată predominant pe listări reale din platformă.";
+    }
+    // -----------------------------------
+
     if (fetchError || !comps || comps.length < 2) {
       return NextResponse.json({ 
         success: true, 
         confidence_score: 15, 
         message: "Date insuficiente pentru o evaluare granulară.",
-        warning: "Scor de încredere scăzut. Se recomandă consultarea unui expert."
+        warning: "Scor de încredere scăzut. Se recomandă consultarea unui expert.",
+        data_quality_label,
+        live_comparable_count,
+        seed_comparable_count,
+        explanation: dynamic_explanation
       });
     }
 
@@ -152,6 +178,7 @@ export async function POST(req: NextRequest) {
       reportId = r?.id;
     }
 
+    // Returnăm Răspunsul Final incluzând toate etichetele de calitate (FĂRĂ a șterge vechile date)
     return NextResponse.json({
       success: true,
       category: catKey,
@@ -161,6 +188,10 @@ export async function POST(req: NextRequest) {
       liquidation_price: Math.round(marketMedian * 0.60),
       confidence_score: confidence,
       comparable_count: adjustedPrices.length,
+      data_quality_label, 
+      live_comparable_count, 
+      seed_comparable_count, 
+      explanation: dynamic_explanation, 
       warnings,
       valuation_report_id: reportId
     });

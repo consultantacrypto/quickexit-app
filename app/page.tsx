@@ -9,11 +9,12 @@ import { normalizeSaleType } from "@/utils/normalizeSaleType";
 export default async function Home() {
   const { hero, types, home } = ro;
 
-  // FETCH DATE REALE
+  // FETCH DATE REALE - FILTRARE SEED ACTIVATĂ
   const { data: realListings } = await supabase
     .from('listings')
     .select('*')
     .eq('status', 'active')
+    .eq('is_seed', false) // Asigurăm izolarea datelor de index de interfața publică
     .order('created_at', { ascending: false })
     .limit(6);
 

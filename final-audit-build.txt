@@ -6,15 +6,15 @@
 - Environments: .env.local
 
   Creating an optimized production build ...
-Γ£ô Compiled successfully in 4.8s
+Γ£ô Compiled successfully in 1967ms
   Running TypeScript ...
-  Finished TypeScript in 7.4s ...
+  Finished TypeScript in 2.9s ...
   Collecting page data using 22 workers ...
   Generating static pages using 22 workers (0/18) ...
   Generating static pages using 22 workers (4/18) 
   Generating static pages using 22 workers (8/18) 
   Generating static pages using 22 workers (13/18) 
-Γ£ô Generating static pages using 22 workers (18/18) in 1524ms
+Γ£ô Generating static pages using 22 workers (18/18) in 746ms
   Finalizing page optimization ...
 
 Route (app)
@@ -43,8 +43,3 @@ Route (app)
 Γùï  (Static)   prerendered as static content
 ╞Æ  (Dynamic)  server-rendered on demand
 
-npm notice
-npm notice New minor version of npm available! 11.7.0 -> 11.13.0
-npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.13.0
-npm notice To update run: npm install -g npm@11.13.0
-npm notice
