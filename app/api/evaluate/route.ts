@@ -84,6 +84,36 @@ export async function POST(req: NextRequest) {
 
     const config = categoryConfig[catKey];
 
+    // ==========================================
+    // 🛡️ NOU: FILTRU ANTI-BĂLĂRIE PENTRU VIP/COMPLEXE
+    // ==========================================
+    const payloadString = JSON.stringify(body).toLowerCase();
+    
+    // Dacă e peste 500mp, peste 500k EUR cifră afaceri, sau conține cuvinte cheie grele
+    const isVipAsset = 
+      (catKey === "imobiliare" && Number(body.surface) > 500) ||
+      (catKey === "business" && Number(body.revenue) > 500000) ||
+      payloadString.match(/resort|hotel|pensiune|aquapark|fabrica|hala|complex turistic|penthouse/);
+
+    if (isVipAsset) {
+      return NextResponse.json({
+        success: true,
+        category: catKey,
+        estimated_market_price: 0, // Asta declanșează instant ECRANUL VIP în frontend!
+        quick_exit_price: 0,
+        strong_exit_price: 0,
+        liquidation_price: 0,
+        confidence_score: 0,
+        comparable_count: 0,
+        data_quality_label: 'vip_asset',
+        live_comparable_count: 0,
+        seed_comparable_count: 0,
+        explanation: "Algoritmul a detectat un activ comercial sau exclusivist. Evaluările standard nu se pot aplica.",
+        warnings: ["Activ VIP detectat. Necesită setare manuală a prețului."]
+      });
+    }
+    // ==========================================
+
     // 1. Validare Câmpuri
     const warnings: string[] = [];
     config.requiredFields.forEach((f: string) => {
@@ -131,6 +161,7 @@ export async function POST(req: NextRequest) {
     if (fetchError || !comps || comps.length < 2) {
       return NextResponse.json({ 
         success: true, 
+        estimated_market_price: 0, // <-- NOU: Adăugat explicit ca să declanșeze corect VIP screen în lipsă de date
         confidence_score: 15, 
         message: "Date insuficiente pentru o evaluare granulară.",
         warning: "Scor de încredere scăzut. Se recomandă consultarea unui expert.",
