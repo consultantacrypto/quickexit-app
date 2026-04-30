@@ -1,13 +1,16 @@
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 
-// Inițializăm Stripe cu cheia ta secretă
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
-  apiVersion: '2023-10-16' as any, // versiune stabilă
-});
-
 export async function POST(req: Request) {
   try {
+    // AM MUTAT AICI INIȚIALIZAREA ȘI AM PUS FALLBACK
+    // Dacă Vercel nu găsește cheia la build, folosește textul de avarie și trece mai departe.
+    const stripeApiKey = process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder_vercel';
+    
+    const stripe = new Stripe(stripeApiKey, {
+      apiVersion: '2023-10-16' as any, // versiune stabilă
+    });
+
     const body = await req.json();
     const { listingId, packageId, price, title } = body;
 
