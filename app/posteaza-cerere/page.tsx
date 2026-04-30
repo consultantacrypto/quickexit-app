@@ -30,7 +30,7 @@ export default function PostDemandPage() {
     setRequirements(prev => ({ ...prev, [key]: value }));
   };
 
-  // Funcția MAGICĂ: Trimiterea datelor în Supabase + Verificare USER
+  // Funcția MAGICĂ: Modificată pentru a încasa cei 99 RON prin Stripe
   const handleSubmitDemand = async () => {
     if (!targetAsset || !budget) {
       setErrorMsg("Titlul activului și bugetul sunt obligatorii, tati!");
@@ -50,33 +50,53 @@ export default function PostDemandPage() {
         return;
       }
 
-      // 2. INSERĂM DATELE + USER_ID
-      const { error } = await supabase
+      // 2. INSERĂM DATELE + USER_ID (Așteaptă plata)
+      const { data: insertedData, error } = await supabase
         .from('demands')
         .insert([
           {
-            user_id: user.id, // ACUM CEREREA E LEGATĂ DE USER
+            user_id: user.id,
             target_asset: targetAsset,
             category: category,
             budget: Number(budget),
             description: description,
             requirements: requirements, 
-            status: 'active'
+            status: 'pending_payment' // Modificat: Nu e activ până nu plătește
           }
-        ]);
+        ])
+        .select()
+        .single();
 
       if (error) throw error;
-      setIsSuccess(true);
+
+      // 3. APELĂM STRIPE PENTRU PLATA DE 99 RON
+      const stripeRes = await fetch("/api/checkout-demand", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          demandId: insertedData.id,
+          title: targetAsset,
+          price: 99 // Prețul fix setat de tine
+        }),
+      });
+
+      const stripeData = await stripeRes.json();
+      
+      if (stripeData.url) {
+        // Redirecționăm către Stripe
+        window.location.href = stripeData.url;
+      } else {
+        throw new Error(stripeData.error || "Eroare la generarea plății.");
+      }
       
     } catch (error: any) {
-      console.error("Eroare la inserare:", error.message);
-      setErrorMsg("A apărut o eroare la salvare. Verifică conexiunea.");
-    } finally {
+      console.error("Eroare la inserare/plată:", error.message);
+      setErrorMsg("A apărut o eroare la salvare sau plată. Verifică conexiunea.");
       setIsSubmitting(false);
     }
   };
 
-  // ECRANUL DE SUCCES
+  // ECRANUL DE SUCCES (Va fi accesat doar dacă forțăm manual, altfel merge spre Stripe)
   if (isSuccess) {
     return (
       <div className="min-h-screen bg-[#FFD100] flex flex-col items-center justify-center p-4 font-sans antialiased">
@@ -347,7 +367,7 @@ export default function PostDemandPage() {
                   disabled={isSubmitting || !budget}
                   className="w-2/3 bg-[#FFD100] border-[3px] border-black text-black py-5 rounded-2xl font-black uppercase tracking-widest text-sm italic hover:scale-[1.01] transition-transform shadow-[6px_6px_0_0_rgba(0,0,0,1)] active:translate-y-0.5 active:shadow-none disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed"
                 >
-                  {isSubmitting ? "Se Procesează..." : "Plătește & Postează →"}
+                  {isSubmitting ? "Se Conectează la Bancă..." : "Plătește & Postează →"}
                 </button>
               </div>
             </div>
