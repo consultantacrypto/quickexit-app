@@ -8,6 +8,18 @@ interface AuthModalProps {
   onClose: () => void;
 }
 
+// Funcția antiglonț pentru a afla URL-ul corect (Local vs Vercel)
+const getURL = () => {
+  let url =
+    process?.env?.NEXT_PUBLIC_SITE_URL ?? // Variabila pe care o pui tu manual în Vercel
+    process?.env?.NEXT_PUBLIC_VERCEL_URL ?? // Variabila automată de la Vercel
+    'http://localhost:3002'; // Fallback pentru local (am pus 3002 cum ai tu)
+
+  // Ne asigurăm că URL-ul are http/https
+  url = url.startsWith('http') ? url : `https://${url}`;
+  return url;
+};
+
 export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -36,7 +48,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
-        emailRedirectTo: `${window.location.origin}`, 
+        emailRedirectTo: getURL(), // Folosim funcția dinamică
       },
     });
 
@@ -52,7 +64,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
     await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}`,
+        redirectTo: getURL(), // Folosim funcția dinamică
       },
     });
   };
