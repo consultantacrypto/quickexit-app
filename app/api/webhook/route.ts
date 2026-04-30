@@ -2,21 +2,21 @@ import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
 
-// Folosim cheile backend (SERVICE_ROLE_KEY) pentru a putea modifica baza de date
-// fără ca request-ul să vină de la un utilizator logat în browser.
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
-const supabase = createClient(supabaseUrl, serviceRoleKey);
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
-  apiVersion: '2023-10-16' as any,
-});
-
-const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || '';
-
 export async function POST(req: Request) {
   try {
-    // Stripe trimite un request raw text, pe care îl folosim ca să validăm semnătura
+    // 1. MUTAT ÎN INTERIOR + FALLBACK-URI (Ca să treacă Vercel de faza de Build)
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder_key';
+    const supabase = createClient(supabaseUrl, serviceRoleKey);
+
+    const stripeApiKey = process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder_vercel';
+    const stripe = new Stripe(stripeApiKey, {
+      apiVersion: '2023-10-16' as any,
+    });
+
+    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || '';
+
+    // 2. LOGICA DE WEBHOOK
     const body = await req.text();
     const signature = req.headers.get('stripe-signature');
 
@@ -35,17 +35,16 @@ export async function POST(req: Request) {
       return new NextResponse(`Eroare Semnătură: ${err.message}`, { status: 400 });
     }
 
-    // Aici prindem evenimentul "Plată Finalizată cu Succes"
+    // 3. PRINDEREA EVENIMENTULUI DE PLATĂ
     if (event.type === 'checkout.session.completed') {
       const session = event.data.object as Stripe.Checkout.Session;
       
-      // Extragem ID-urile din chitanță (le-am pus în metadata când am creat linkul de plată)
+      // Extragem ID-urile din chitanță
       const listingId = session.metadata?.listingId;
       const demandId = session.metadata?.demandId;
 
-      // 1. PLATA PENTRU UN ANUNȚ (VÂNZĂTOR)
+      // --- PLATĂ PENTRU ANUNȚ (VÂNZĂTOR) ---
       if (listingId) {
-        // Tragem strategia de vânzare ca să știm pentru cât timp îl activăm
         const { data: listing } = await supabase
           .from('listings')
           .select('sale_strategy')
@@ -73,7 +72,7 @@ export async function POST(req: Request) {
         else console.log(`✅ Anunț ${listingId} activat cu succes via Stripe!`);
       }
 
-      // 2. PLATA PENTRU O CERERE DE CAPITAL (INVESTITOR)
+      // --- PLATĂ PENTRU CERERE CAPITAL (INVESTITOR) ---
       if (demandId) {
         const { error } = await supabase
           .from('demands')
