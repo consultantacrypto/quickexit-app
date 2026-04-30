@@ -8,18 +8,6 @@ interface AuthModalProps {
   onClose: () => void;
 }
 
-// Funcția antiglonț pentru a afla URL-ul corect (Local vs Vercel)
-const getURL = () => {
-  let url =
-    process?.env?.NEXT_PUBLIC_SITE_URL ?? // Variabila pe care o pui tu manual în Vercel
-    process?.env?.NEXT_PUBLIC_VERCEL_URL ?? // Variabila automată de la Vercel
-    'http://localhost:3002'; // Fallback pentru local (am pus 3002 cum ai tu)
-
-  // Ne asigurăm că URL-ul are http/https
-  url = url.startsWith('http') ? url : `https://${url}`;
-  return url;
-};
-
 export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -48,7 +36,8 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
-        emailRedirectTo: getURL(), // Folosim funcția dinamică
+        // Îl trimitem direct în Dashboard după click pe linkul din mail
+        emailRedirectTo: `${window.location.origin}/dashboard`, 
       },
     });
 
@@ -64,7 +53,8 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
     await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: getURL(), // Folosim funcția dinamică
+        // Îl trimitem direct în Dashboard după login-ul cu Google
+        redirectTo: `${window.location.origin}/dashboard`,
       },
     });
   };
@@ -159,7 +149,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
               Google
             </button>
 
-            {/* Web3 Wallet - Design de Excepție */}
+            {/* Web3 Wallet */}
             <button 
               onClick={handleWeb3Login}
               className="relative w-full bg-[#111] text-[#FFD100] border-[3px] border-black py-4 rounded-xl font-black uppercase tracking-widest text-[10px] italic transition-all hover:shadow-[0_0_20px_rgba(255,209,0,0.3)] active:scale-95 flex items-center justify-center gap-2 group overflow-hidden"
