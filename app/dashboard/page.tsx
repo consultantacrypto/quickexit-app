@@ -5,7 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import AdCard from "../components/AdCard";
 import { normalizeSaleType } from "@/utils/normalizeSaleType";
-import { Wallet, Inbox, ShieldCheck, Activity, PlusCircle, Search, Settings, Power, Play } from "lucide-react";
+import { Wallet, Inbox, ShieldCheck, PlusCircle, Search, Settings, Power, Play, PiggyBank } from "lucide-react";
 
 function DashboardContent() {
   const searchParams = useSearchParams();
@@ -13,31 +13,43 @@ function DashboardContent() {
   
   const paymentStatus = searchParams.get("payment");
   const listingId = searchParams.get("listing");
+  const demandId = searchParams.get("demand"); // Am adăugat citirea ID-ului cererii
 
   const [activeTab, setActiveTab] = useState('portofoliu');
-  const [myListings, setMyListings] = useState<any[]>([]);
   
-  // STATE NOU PENTRU OFERTELE DIN NEGOCIERE
+  // Date Vânzător
+  const [myListings, setMyListings] = useState<any[]>([]);
   const [myOffers, setMyOffers] = useState<any[]>([]);
   
+  // Date Investitor (NOU)
+  const [myDemands, setMyDemands] = useState<any[]>([]);
+  const [myDemandOffers, setMyDemandOffers] = useState<any[]>([]);
+  
   const [isLoading, setIsLoading] = useState(true);
-  const [isActivating, setIsActivating] = useState(false);
 
+  // Buffer pentru Stripe Webhook
   useEffect(() => {
-    fetchMyListingsAndOffers();
-    if (paymentStatus === "success" && listingId) {
-      activateWithExpiry(listingId);
+    fetchDashboardData();
+    
+    if (paymentStatus === "success" || paymentStatus === "success_demand") {
+      setIsLoading(true);
+      // Așteptăm 3 secunde pentru ca webhook-ul Stripe să apuce să modifice DB-ul pe server
+      const timer = setTimeout(() => {
+        fetchDashboardData();
+        router.replace('/dashboard', { scroll: false });
+      }, 3000);
+      return () => clearTimeout(timer);
     }
-  }, [paymentStatus, listingId]);
+  }, [paymentStatus, listingId, demandId, router]);
 
-  // FUNCȚIE MODIFICATĂ: Extrage anunțurile și ofertele pentru ele
-  const fetchMyListingsAndOffers = async () => {
+  // Funcție centralizată pentru a trage TOATE datele user-ului
+  const fetchDashboardData = async () => {
     setIsLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
       
-      // 1. Tragem Anunțurile
+      // 1. Tragem Anunțurile de Vânzare
       const { data: listings } = await supabase
         .from('listings')
         .select('*')
@@ -46,7 +58,6 @@ function DashboardContent() {
         
       setMyListings(listings || []);
 
-      // 2. Tragem Ofertele (dacă există anunțuri)
       if (listings && listings.length > 0) {
         const listingIds = listings.map(l => l.id);
         const { data: offers } = await supabase
@@ -54,54 +65,32 @@ function DashboardContent() {
           .select('*')
           .in('listing_id', listingIds)
           .order('created_at', { ascending: false });
-          
         setMyOffers(offers || []);
       }
-    } catch (error) {
-      console.error("Eroare preluare date:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
-  const activateWithExpiry = async (id: string) => {
-    setIsActivating(true);
-    try {
-      const { data: listing } = await supabase
-        .from('listings')
-        .select('sale_strategy')
-        .eq('id', id)
-        .single();
-        
-      const pachet = listing?.sale_strategy || 'economy';
+      // 2. Tragem Cererile de Cumpărare (Demands)
+      const { data: demands } = await supabase
+        .from('demands')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+      
+      setMyDemands(demands || []);
 
-      const expiryDate = new Date();
-      if (pachet === 'urgent') {
-        expiryDate.setHours(expiryDate.getHours() + 48);
-      } else if (pachet === 'licitatie') {
-        expiryDate.setHours(expiryDate.getHours() + 24);
-      } else if (pachet === 'standard') {
-        expiryDate.setDate(expiryDate.getDate() + 14);
-      } else {
-        expiryDate.setDate(expiryDate.getDate() + 30);
+      if (demands && demands.length > 0) {
+        const demandIds = demands.map(d => d.id);
+        const { data: demandOffers } = await supabase
+          .from('demand_offers')
+          .select('*')
+          .in('demand_id', demandIds)
+          .order('created_at', { ascending: false });
+        setMyDemandOffers(demandOffers || []);
       }
 
-      const { error } = await supabase
-        .from('listings')
-        .update({ 
-          status: 'active',
-          expires_at: expiryDate.toISOString() 
-        })
-        .eq('id', id);
-
-      if (error) throw error;
-      
-      router.replace('/dashboard', { scroll: false });
-      fetchMyListingsAndOffers(); // Modificat aici
     } catch (error) {
-      console.error("Eroare la activare:", error);
+      console.error("Eroare preluare date dashboard:", error);
     } finally {
-      setIsActivating(false);
+      setIsLoading(false);
     }
   };
 
@@ -120,29 +109,47 @@ function DashboardContent() {
       .update({ status: newStatus })
       .eq('id', item.id);
 
-    if (!error) fetchMyListingsAndOffers(); // Modificat aici
-    else alert("Eroare status. Ai rulat codul SQL în Supabase? Mesaj eroare: " + error.message);
+    if (!error) fetchDashboardData(); 
+    else alert("Eroare status: " + error.message);
   };
 
-  // FUNCȚIE NOUĂ: Acceptă / Refuză oferta
-  const handleOfferAction = async (offerId: string, action: 'accepted' | 'rejected') => {
+  // Oprim/Pornim Cereri de capital
+  const toggleDemandStatus = async (item: any) => {
+    const newStatus = item.status === 'active' ? 'suspended' : 'active';
     const { error } = await supabase
-      .from('listing_offers')
+      .from('demands')
+      .update({ status: newStatus })
+      .eq('id', item.id);
+
+    if (!error) fetchDashboardData(); 
+    else alert("Eroare status: " + error.message);
+  }
+
+  const handleOfferAction = async (offerId: string, action: 'accepted' | 'rejected', type: 'listing' | 'demand' = 'listing') => {
+    const table = type === 'listing' ? 'listing_offers' : 'demand_offers';
+    
+    const { error } = await supabase
+      .from(table)
       .update({ status: action })
       .eq('id', offerId);
 
     if (!error) {
-      // Actualizăm starea vizuală a ofertei direct în interfață
-      setMyOffers(prev => prev.map(o => o.id === offerId ? { ...o, status: action } : o));
+      if (type === 'listing') {
+        setMyOffers(prev => prev.map(o => o.id === offerId ? { ...o, status: action } : o));
+      } else {
+        setMyDemandOffers(prev => prev.map(o => o.id === offerId ? { ...o, status: action } : o));
+      }
     } else {
       alert("Eroare la actualizarea ofertei: " + error.message);
     }
   };
 
   const valoareTotala = myListings.reduce((sum, item) => sum + (item.exit_price || 0), 0);
+  const capitalTotal = myDemands.reduce((sum, item) => sum + (item.budget || 0), 0);
   
-  // CALCULĂM CÂTE OFERTE SUNT NECITITE SAU NE-ACȚIONATE
   const newOffersCount = myOffers.filter(o => o.status === 'new' || o.status === 'accepted_exit_price').length;
+  const newDemandOffersCount = myDemandOffers.filter(o => o.status === 'new').length;
+  const totalNotifications = newOffersCount + newDemandOffersCount;
 
   return (
     <div className="max-w-[1200px] mx-auto min-h-screen pb-20">
@@ -160,7 +167,7 @@ function DashboardContent() {
           <button onClick={() => router.push('/pune-anunt')} className="bg-black text-[#FFD100] px-4 py-3 rounded-lg font-black uppercase text-[9px] italic border-2 border-black shadow-[3px_3px_0_0_rgba(255,209,0,1)] hover:-translate-y-px hover:shadow-none transition-all flex items-center justify-center gap-2">
             <PlusCircle size={14} /> Pune Anunț Vânzare
           </button>
-          <button onClick={() => router.push('/pune-cerere')} className="bg-white text-black px-4 py-3 rounded-lg font-black uppercase text-[9px] italic border-2 border-black shadow-[3px_3px_0_0_rgba(0,0,0,1)] hover:-translate-y-px hover:shadow-none transition-all flex items-center justify-center gap-2">
+          <button onClick={() => router.push('/posteaza-cerere')} className="bg-white text-black px-4 py-3 rounded-lg font-black uppercase text-[9px] italic border-2 border-black shadow-[3px_3px_0_0_rgba(0,0,0,1)] hover:-translate-y-px hover:shadow-none transition-all flex items-center justify-center gap-2">
             <Search size={14} /> Pune Cerere Cumpărare
           </button>
         </div>
@@ -169,12 +176,12 @@ function DashboardContent() {
       {/* KPI-URI COMPACTE */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
         <div className="bg-white border-2 border-black p-4 rounded-xl shadow-[3px_3px_0_0_rgba(0,0,0,1)]">
-          <span className="text-[8px] font-black uppercase text-gray-400 block mb-1">Valoare Portofoliu</span>
+          <span className="text-[8px] font-black uppercase text-gray-400 block mb-1">Valoare Active (Vânzare)</span>
           <p className="text-xl font-black italic">€{valoareTotala.toLocaleString('ro-RO')}</p>
         </div>
         <div className="bg-black text-white border-2 border-black p-4 rounded-xl shadow-[3px_3px_0_0_rgba(255,209,0,1)]">
-          <span className="text-[8px] font-black uppercase text-gray-500 block mb-1">Status Active</span>
-          <p className="text-xl font-black italic text-[#FFD100]">{myListings.filter(i => i.status === 'active').length} Live</p>
+          <span className="text-[8px] font-black uppercase text-gray-500 block mb-1">Capital Pregătit</span>
+          <p className="text-xl font-black italic text-[#FFD100]">€{capitalTotal.toLocaleString('ro-RO')}</p>
         </div>
         <div className="hidden md:flex bg-white border-2 border-black p-4 rounded-xl items-center justify-center gap-2 shadow-[3px_3px_0_0_rgba(0,0,0,1)]">
            <ShieldCheck className="w-5 h-5 text-gray-300" />
@@ -186,30 +193,31 @@ function DashboardContent() {
         </div>
       </div>
 
-      {/* TAB-URI NAVIGARE - MODIFICAT PENTRU NOTIFICĂRI */}
-      <div className="flex gap-2 mb-8 border-b border-gray-200 pb-2">
+      {/* TAB-URI NAVIGARE */}
+      <div className="flex flex-wrap gap-2 mb-8 border-b border-gray-200 pb-2">
         <button onClick={() => setActiveTab('portofoliu')} className={`px-4 py-2 rounded-md font-black uppercase text-[10px] tracking-widest italic transition-colors ${activeTab === 'portofoliu' ? 'bg-black text-[#FFD100]' : 'text-gray-400 hover:text-black'}`}>
-          Portofoliu
+          Activele Mele (Vânzare)
+        </button>
+        <button onClick={() => setActiveTab('cumparari')} className={`px-4 py-2 rounded-md font-black uppercase text-[10px] tracking-widest italic transition-colors ${activeTab === 'cumparari' ? 'bg-black text-[#FFD100]' : 'text-gray-400 hover:text-black'}`}>
+          Oferte Cumpărare
         </button>
         <button onClick={() => setActiveTab('oferte')} className={`flex items-center gap-2 px-4 py-2 rounded-md font-black uppercase text-[10px] tracking-widest italic transition-colors ${activeTab === 'oferte' ? 'bg-black text-[#FFD100]' : 'text-gray-400 hover:text-black'}`}>
           Cameră Negociere
-          {newOffersCount > 0 && (
-            <span className="bg-red-600 text-white px-2 py-0.5 rounded text-[8px] animate-pulse">{newOffersCount} Noi</span>
+          {totalNotifications > 0 && (
+            <span className="bg-red-600 text-white px-2 py-0.5 rounded text-[8px] animate-pulse">{totalNotifications} Noi</span>
           )}
         </button>
       </div>
 
-      {/* TAB PORTOFOLIU (Neschimbat, preluat exact din fișierul tău) */}
+      {/* TAB PORTOFOLIU (Vânzări) */}
       {activeTab === 'portofoliu' && (
         <div className="animate-in fade-in duration-500">
-          {isActivating && (
-            <div className="bg-[#FFD100] p-4 rounded-xl border-2 border-black mb-8 animate-pulse flex items-center justify-center gap-3">
+          {isLoading && paymentStatus ? (
+             <div className="bg-[#FFD100] p-4 rounded-xl border-2 border-black mb-8 animate-pulse flex items-center justify-center gap-3">
                <span className="text-xl">⚡</span>
-               <p className="font-black uppercase italic text-black text-[10px]">Sincronizare terminal... Activul devine public.</p>
+               <p className="font-black uppercase italic text-black text-[10px]">Așteptăm confirmarea plății de la Stripe. Te rugăm să aștepți...</p>
             </div>
-          )}
-
-          {isLoading ? (
+          ) : isLoading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {[1, 2, 3].map(i => <div key={i} className="animate-pulse bg-gray-100 h-64 rounded-xl border-2 border-black"></div>)}
             </div>
@@ -235,7 +243,6 @@ function DashboardContent() {
                     />
                   </div>
 
-                  {/* ACTIUNI REALE: EDITARE SI START/STOP */}
                   <div className="mt-4 grid grid-cols-2 gap-3">
                     <button 
                       onClick={() => router.push(`/editeaza-anunt/${item.id}`)}
@@ -273,98 +280,231 @@ function DashboardContent() {
         </div>
       )}
 
-      {/* TAB OFERTE (Deal Room) - ACUM IMPLEMENTAT CU DATE REALE */}
+      {/* TAB CUMPĂRĂRI (Cereri de Capital) */}
+      {activeTab === 'cumparari' && (
+        <div className="animate-in fade-in duration-500">
+          {isLoading && paymentStatus ? (
+             <div className="bg-[#FFD100] p-4 rounded-xl border-2 border-black mb-8 animate-pulse flex items-center justify-center gap-3">
+               <span className="text-xl">⚡</span>
+               <p className="font-black uppercase italic text-black text-[10px]">Așteptăm confirmarea plății de la Stripe. Te rugăm să aștepți...</p>
+            </div>
+          ) : isLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[1, 2, 3].map(i => <div key={i} className="animate-pulse bg-gray-100 h-48 rounded-xl border-2 border-black"></div>)}
+            </div>
+          ) : myDemands.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {myDemands.map(demand => (
+                <div key={demand.id} className="bg-white border-[3px] border-black rounded-[2rem] p-6 shadow-[6px_6px_0_0_rgba(0,0,0,1)] flex flex-col justify-between relative">
+                  <div className={`absolute top-0 right-0 px-3 py-1 font-black uppercase italic text-[9px] rounded-bl-xl border-b-2 border-l-2 border-black ${demand.status === 'active' ? 'bg-green-500 text-black' : demand.status === 'suspended' ? 'bg-gray-400 text-white' : 'bg-red-600 text-white'}`}>
+                    {demand.status === 'active' ? '✓ CĂUTARE ACTIVĂ' : demand.status === 'suspended' ? '⏸ OPRIT' : 'NEPLĂTIT'}
+                  </div>
+                  <div>
+                    <span className="text-[9px] font-black uppercase text-gray-500 mb-1 inline-block">{demand.category}</span>
+                    <h3 className="text-xl font-black uppercase italic leading-tight mb-4">{demand.target_asset}</h3>
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Buget</p>
+                    <p className="text-3xl font-black italic">€{demand.budget?.toLocaleString('ro-RO')}</p>
+                  </div>
+                  <div className="mt-6 pt-4 border-t-2 border-gray-100">
+                    {demand.status === 'pending_payment' ? (
+                      <button className="w-full bg-gray-100 border-2 border-gray-300 py-3 rounded-lg text-[9px] font-black uppercase text-gray-400 cursor-not-allowed">
+                        Așteaptă Plata
+                      </button>
+                    ) : (
+                      <button 
+                        onClick={() => toggleDemandStatus(demand)}
+                        className={`w-full border-2 border-black py-3 rounded-lg text-[9px] font-black uppercase flex items-center justify-center gap-2 transition-all shadow-[2px_2px_0_0_rgba(0,0,0,1)] active:translate-y-px active:shadow-none ${demand.status === 'active' ? 'bg-red-50 text-red-600 hover:bg-red-600 hover:text-white' : 'bg-green-400 text-black hover:bg-green-500'}`}
+                      >
+                        {demand.status === 'active' ? <><Power size={12}/> Oprește Căutarea</> : <><Play size={12}/> Reia Căutarea</>}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+             <div className="bg-white p-16 flex flex-col items-center justify-center text-center rounded-3xl border-2 border-dashed border-gray-300">
+              <PiggyBank className="w-12 h-12 text-gray-200 mb-4" />
+              <h3 className="text-xl font-black uppercase italic mb-2">Fără Capital Listat</h3>
+              <p className="font-bold text-gray-400 uppercase tracking-widest text-[9px] mb-8">Nu ai anunțat buget pentru nicio achiziție.</p>
+              <button onClick={() => router.push('/posteaza-cerere')} className="bg-[#FFD100] text-black border-2 border-black px-8 py-4 rounded-xl font-black uppercase tracking-widest text-[10px] italic shadow-[4px_4px_0_0_rgba(0,0,0,1)] hover:-translate-y-0.5 hover:shadow-none transition-all">
+                Postează Cerere Cumpărare
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* TAB OFERTE (Deal Room) */}
       {activeTab === 'oferte' && (
         <div className="animate-in fade-in slide-in-from-right-2 duration-500">
           <div className="flex items-center gap-4 mb-8 border-b-2 border-gray-200 pb-4">
             <Inbox className="w-8 h-8 md:w-10 md:h-10 text-[#FFD100]" />
             <div>
               <h2 className="text-2xl md:text-3xl font-black uppercase italic tracking-tighter">Cameră de <span className="text-[#FFD100]">Negociere</span></h2>
-              <p className="text-[9px] md:text-[10px] font-bold text-gray-500 uppercase tracking-widest">Aici primești ofertele cash de la investitori.</p>
+              <p className="text-[9px] md:text-[10px] font-bold text-gray-500 uppercase tracking-widest">Aici primești pitch-uri și contra-oferte.</p>
             </div>
           </div>
 
           {isLoading ? (
              <div className="text-center py-20 animate-pulse font-black uppercase tracking-widest text-xs text-gray-400">Sincronizare mesaje...</div>
-          ) : myOffers.length > 0 ? (
-            <div className="space-y-6">
-              {myOffers.map(offer => {
-                // Găsim detaliile anunțului asociat ofertei curente
-                const listing = myListings.find(l => l.id === offer.listing_id); 
-                
-                return (
-                  <div key={offer.id} className={`bg-white border-[3px] border-black rounded-[2rem] p-6 md:p-8 shadow-[8px_8px_0_0_rgba(0,0,0,1)] relative overflow-hidden transition-all ${offer.status === 'rejected' ? 'opacity-60 grayscale' : ''}`}>
-                    
-                    {/* Badge Status Explicit */}
-                    <div className={`absolute top-0 right-0 px-4 py-2 text-[9px] font-black uppercase tracking-widest rounded-bl-xl border-b-[3px] border-l-[3px] border-black ${offer.status === 'new' ? 'bg-[#FFD100] text-black animate-pulse' : offer.status === 'accepted_exit_price' ? 'bg-red-600 text-white animate-pulse' : offer.status === 'accepted' ? 'bg-green-500 text-black' : 'bg-gray-200 text-gray-500'}`}>
-                      {offer.status === 'new' ? 'Ofertă Nouă' : offer.status === 'accepted_exit_price' ? 'A Acceptat Prețul' : offer.status === 'accepted' ? 'Ofertă Acceptată' : 'Ofertă Refuzată'}
-                    </div>
-
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-center">
-                      
-                      {/* Coloana de Detalii Ofertă */}
-                      <div className="lg:col-span-2">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1 italic">Pentru Activul:</p>
-                        <p className="text-xl md:text-2xl font-black uppercase italic tracking-tight mb-6">{listing?.title || "Activ Nelistat/Șters"}</p>
-                        
-                        <div className="flex flex-wrap items-center gap-4 md:gap-8 mb-6">
-                           <div>
-                             <p className="text-[9px] font-black uppercase text-gray-400 mb-1">Oferta Primită (Cash):</p>
-                             <p className="text-4xl md:text-5xl font-black italic tracking-tighter text-black leading-none">
-                               €{offer.offer_price?.toLocaleString('ro-RO')}
-                             </p>
-                           </div>
-                           {listing?.exit_price && (
-                             <div className="bg-gray-50 border-[3px] border-black px-4 py-3 rounded-xl text-center shadow-[4px_4px_0_0_rgba(0,0,0,1)]">
-                               <p className="text-[8px] font-black uppercase text-gray-400 mb-1">Prețul tău afișat</p>
-                               <p className="text-lg font-black italic text-gray-500 line-through">€{listing.exit_price.toLocaleString('ro-RO')}</p>
-                             </div>
-                           )}
-                        </div>
-
-                        <div className="bg-gray-50 p-5 rounded-xl border-[3px] border-gray-100 mb-4">
-                          <p className="text-[10px] font-black uppercase text-gray-400 mb-2">Mesajul Cumpărătorului:</p>
-                          <p className="text-sm font-bold italic text-gray-700 leading-relaxed">&quot;{offer.message || "Sunt interesat să cumpăr."}&quot;</p>
-                        </div>
-                      </div>
-
-                      {/* Coloana de Acțiuni și Contact */}
-                      <div className="lg:col-span-1 border-t-[3px] lg:border-t-0 lg:border-l-[3px] border-gray-100 pt-6 lg:pt-0 lg:pl-6 flex flex-col h-full justify-between">
-                        <div className="mb-6">
-                          <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-3">Contact Direct:</p>
-                          <a href={`tel:${offer.buyer_phone}`} className="flex items-center justify-center gap-2 bg-black text-[#FFD100] px-4 py-4 rounded-xl font-black text-sm uppercase tracking-widest shadow-[4px_4px_0_0_rgba(255,209,0,1)] hover:scale-105 active:translate-y-1 active:shadow-none transition-all mb-3 w-full border-2 border-black">
-                            📞 Sună Cumpărătorul
-                          </a>
-                          {offer.buyer_email && (
-                            <a href={`mailto:${offer.buyer_email}`} className="block text-center text-[10px] font-bold text-gray-500 uppercase tracking-widest hover:text-black">
-                              ✉️ {offer.buyer_email}
-                            </a>
-                          )}
-                          <p className="text-center font-black text-xl italic mt-3">{offer.buyer_phone}</p>
-                        </div>
-
-                        {offer.status === 'new' || offer.status === 'accepted_exit_price' ? (
-                          <div className="grid grid-cols-2 gap-3 mt-auto">
-                            <button onClick={() => handleOfferAction(offer.id, 'accepted')} className="bg-white border-[3px] border-black text-black py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-green-400 hover:border-green-400 transition-colors shadow-[3px_3px_0_0_rgba(0,0,0,1)] active:shadow-none active:translate-y-1">
-                              Accept Oferta
-                            </button>
-                            <button onClick={() => handleOfferAction(offer.id, 'rejected')} className="bg-gray-50 border-[3px] border-transparent text-gray-400 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-red-500 hover:text-white transition-colors">
-                              Refuză
-                            </button>
+          ) : (myOffers.length > 0 || myDemandOffers.length > 0) ? (
+            <div className="space-y-12">
+              
+              {/* SECȚIUNE: Oferte primite pentru Activele Tale (Vânzări) */}
+              {myOffers.length > 0 && (
+                <div>
+                  <h3 className="text-lg font-black uppercase italic tracking-widest text-gray-400 mb-4 border-b-2 border-black inline-block">Oferte Pentru Activele Mele</h3>
+                  <div className="space-y-6">
+                    {myOffers.map(offer => {
+                      const listing = myListings.find(l => l.id === offer.listing_id); 
+                      return (
+                        <div key={offer.id} className={`bg-white border-[3px] border-black rounded-[2rem] p-6 md:p-8 shadow-[8px_8px_0_0_rgba(0,0,0,1)] relative overflow-hidden transition-all ${offer.status === 'rejected' ? 'opacity-60 grayscale' : ''}`}>
+                          
+                          <div className={`absolute top-0 right-0 px-4 py-2 text-[9px] font-black uppercase tracking-widest rounded-bl-xl border-b-[3px] border-l-[3px] border-black ${offer.status === 'new' ? 'bg-[#FFD100] text-black animate-pulse' : offer.status === 'accepted_exit_price' ? 'bg-red-600 text-white animate-pulse' : offer.status === 'accepted' ? 'bg-green-500 text-black' : 'bg-gray-200 text-gray-500'}`}>
+                            {offer.status === 'new' ? 'Ofertă Nouă' : offer.status === 'accepted_exit_price' ? 'A Acceptat Prețul' : offer.status === 'accepted' ? 'Ofertă Acceptată' : 'Ofertă Refuzată'}
                           </div>
-                        ) : (
-                          <div className="text-center mt-auto border-t-2 border-gray-100 pt-4">
-                             <span className={`text-[10px] font-black uppercase tracking-widest ${offer.status === 'accepted' ? 'text-green-600' : 'text-gray-400'}`}>
-                               {offer.status === 'accepted' ? '✓ Ai acceptat această ofertă' : '✕ Ofertă închisă / Refuzată'}
-                             </span>
-                          </div>
-                        )}
-                      </div>
 
-                    </div>
+                          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-center">
+                            
+                            <div className="lg:col-span-2">
+                              <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1 italic">Pentru Activul:</p>
+                              <p className="text-xl md:text-2xl font-black uppercase italic tracking-tight mb-6">{listing?.title || "Activ Nelistat/Șters"}</p>
+                              
+                              <div className="flex flex-wrap items-center gap-4 md:gap-8 mb-6">
+                                <div>
+                                  <p className="text-[9px] font-black uppercase text-gray-400 mb-1">Oferta Primită (Cash):</p>
+                                  <p className="text-4xl md:text-5xl font-black italic tracking-tighter text-black leading-none">
+                                    €{offer.offer_price?.toLocaleString('ro-RO')}
+                                  </p>
+                                </div>
+                                {listing?.exit_price && (
+                                  <div className="bg-gray-50 border-[3px] border-black px-4 py-3 rounded-xl text-center shadow-[4px_4px_0_0_rgba(0,0,0,1)]">
+                                    <p className="text-[8px] font-black uppercase text-gray-400 mb-1">Prețul tău afișat</p>
+                                    <p className="text-lg font-black italic text-gray-500 line-through">€{listing.exit_price.toLocaleString('ro-RO')}</p>
+                                  </div>
+                                )}
+                              </div>
+
+                              <div className="bg-gray-50 p-5 rounded-xl border-[3px] border-gray-100 mb-4">
+                                <p className="text-[10px] font-black uppercase text-gray-400 mb-2">Mesajul Cumpărătorului:</p>
+                                <p className="text-sm font-bold italic text-gray-700 leading-relaxed">&quot;{offer.message || "Sunt interesat să cumpăr."}&quot;</p>
+                              </div>
+                            </div>
+
+                            <div className="lg:col-span-1 border-t-[3px] lg:border-t-0 lg:border-l-[3px] border-gray-100 pt-6 lg:pt-0 lg:pl-6 flex flex-col h-full justify-between">
+                              <div className="mb-6">
+                                <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-3">Contact Direct:</p>
+                                <a href={`tel:${offer.buyer_phone}`} className="flex items-center justify-center gap-2 bg-black text-[#FFD100] px-4 py-4 rounded-xl font-black text-sm uppercase tracking-widest shadow-[4px_4px_0_0_rgba(255,209,0,1)] hover:scale-105 active:translate-y-1 active:shadow-none transition-all mb-3 w-full border-2 border-black">
+                                  📞 Sună Cumpărătorul
+                                </a>
+                                {offer.buyer_email && (
+                                  <a href={`mailto:${offer.buyer_email}`} className="block text-center text-[10px] font-bold text-gray-500 uppercase tracking-widest hover:text-black">
+                                    ✉️ {offer.buyer_email}
+                                  </a>
+                                )}
+                                <p className="text-center font-black text-xl italic mt-3">{offer.buyer_phone}</p>
+                              </div>
+
+                              {offer.status === 'new' || offer.status === 'accepted_exit_price' ? (
+                                <div className="grid grid-cols-2 gap-3 mt-auto">
+                                  <button onClick={() => handleOfferAction(offer.id, 'accepted', 'listing')} className="bg-white border-[3px] border-black text-black py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-green-400 hover:border-green-400 transition-colors shadow-[3px_3px_0_0_rgba(0,0,0,1)] active:shadow-none active:translate-y-1">
+                                    Accept Oferta
+                                  </button>
+                                  <button onClick={() => handleOfferAction(offer.id, 'rejected', 'listing')} className="bg-gray-50 border-[3px] border-transparent text-gray-400 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-red-500 hover:text-white transition-colors">
+                                    Refuză
+                                  </button>
+                                </div>
+                              ) : (
+                                <div className="text-center mt-auto border-t-2 border-gray-100 pt-4">
+                                  <span className={`text-[10px] font-black uppercase tracking-widest ${offer.status === 'accepted' ? 'text-green-600' : 'text-gray-400'}`}>
+                                    {offer.status === 'accepted' ? '✓ Ai acceptat această ofertă' : '✕ Ofertă închisă / Refuzată'}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
-                );
-              })}
+                </div>
+              )}
+
+              {/* SECȚIUNE: Pitch-uri primite pentru Cererile Tale (Cumpărări) */}
+              {myDemandOffers.length > 0 && (
+                <div>
+                  <h3 className="text-lg font-black uppercase italic tracking-widest text-gray-400 mb-4 border-b-2 border-black inline-block">Pitch-uri Pentru Capitalul Meu</h3>
+                  <div className="space-y-6">
+                    {myDemandOffers.map(offer => {
+                      const demand = myDemands.find(d => d.id === offer.demand_id); 
+                      return (
+                        <div key={offer.id} className={`bg-gray-50 border-[3px] border-black rounded-[2rem] p-6 md:p-8 shadow-[8px_8px_0_0_rgba(0,0,0,1)] relative overflow-hidden transition-all ${offer.status === 'rejected' ? 'opacity-60 grayscale' : ''}`}>
+                          
+                          <div className={`absolute top-0 right-0 px-4 py-2 text-[9px] font-black uppercase tracking-widest rounded-bl-xl border-b-[3px] border-l-[3px] border-black ${offer.status === 'new' ? 'bg-[#FFD100] text-black animate-pulse' : offer.status === 'accepted' ? 'bg-green-500 text-black' : 'bg-gray-200 text-gray-500'}`}>
+                            {offer.status === 'new' ? 'Pitch Nou' : offer.status === 'accepted' ? 'Pitch Acceptat' : 'Pitch Refuzat'}
+                          </div>
+
+                          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-center">
+                            
+                            <div className="lg:col-span-2">
+                              <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1 italic">Pentru Bugetul Tău de:</p>
+                              <p className="text-xl md:text-2xl font-black uppercase italic tracking-tight mb-6">{demand?.target_asset || "Cerere Nelistată"} <span className="text-sm font-bold text-gray-400">(Max €{demand?.budget?.toLocaleString()})</span></p>
+                              
+                              <div>
+                                <p className="text-[9px] font-black uppercase text-gray-400 mb-1">Preț Solicitat de Vânzător:</p>
+                                <p className="text-4xl md:text-5xl font-black italic tracking-tighter text-black leading-none mb-6">
+                                  €{offer.offer_price?.toLocaleString('ro-RO')}
+                                </p>
+                              </div>
+
+                              <div className="bg-white p-5 rounded-xl border-[3px] border-gray-200 mb-4 shadow-sm">
+                                <p className="text-[10px] font-black uppercase text-gray-400 mb-2">Detalii Activ Vânzător:</p>
+                                <p className="text-sm font-bold italic text-gray-700 leading-relaxed">&quot;{offer.asset_description || "Sunt interesat să vă vând."}&quot;</p>
+                              </div>
+                            </div>
+
+                            <div className="lg:col-span-1 border-t-[3px] lg:border-t-0 lg:border-l-[3px] border-gray-200 pt-6 lg:pt-0 lg:pl-6 flex flex-col h-full justify-between">
+                              <div className="mb-6">
+                                <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-3">Contact Vânzător:</p>
+                                <a href={`tel:${offer.seller_phone}`} className="flex items-center justify-center gap-2 bg-black text-[#FFD100] px-4 py-4 rounded-xl font-black text-sm uppercase tracking-widest shadow-[4px_4px_0_0_rgba(255,209,0,1)] hover:scale-105 active:translate-y-1 active:shadow-none transition-all mb-3 w-full border-2 border-black">
+                                  📞 Sună Vânzătorul
+                                </a>
+                                {offer.seller_email && (
+                                  <a href={`mailto:${offer.seller_email}`} className="block text-center text-[10px] font-bold text-gray-500 uppercase tracking-widest hover:text-black">
+                                    ✉️ {offer.seller_email}
+                                  </a>
+                                )}
+                                <p className="text-center font-black text-xl italic mt-3">{offer.seller_phone}</p>
+                              </div>
+
+                              {offer.status === 'new' ? (
+                                <div className="grid grid-cols-2 gap-3 mt-auto">
+                                  <button onClick={() => handleOfferAction(offer.id, 'accepted', 'demand')} className="bg-white border-[3px] border-black text-black py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-green-400 hover:border-green-400 transition-colors shadow-[3px_3px_0_0_rgba(0,0,0,1)] active:shadow-none active:translate-y-1">
+                                    Accept Pitch
+                                  </button>
+                                  <button onClick={() => handleOfferAction(offer.id, 'rejected', 'demand')} className="bg-gray-100 border-[3px] border-transparent text-gray-400 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-red-500 hover:text-white transition-colors">
+                                    Refuză
+                                  </button>
+                                </div>
+                              ) : (
+                                <div className="text-center mt-auto border-t-2 border-gray-100 pt-4">
+                                  <span className={`text-[10px] font-black uppercase tracking-widest ${offer.status === 'accepted' ? 'text-green-600' : 'text-gray-400'}`}>
+                                    {offer.status === 'accepted' ? '✓ Ai acceptat acest pitch' : '✕ Pitch închis / Refuzat'}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
             </div>
           ) : (
             <div className="bg-white p-16 flex flex-col items-center justify-center text-center rounded-[3rem] border-[4px] border-dashed border-gray-200 shadow-sm">
