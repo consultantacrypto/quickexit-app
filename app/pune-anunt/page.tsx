@@ -39,6 +39,14 @@ export default function PostAdPage() {
     'Afaceri de vânzare', 'Gadgets', 'Foto & Audio'
   ];
 
+  // Matricea de prețuri pentru pachete
+  const packagePrices: Record<string, number> = {
+    economy: 99,
+    standard: 79,
+    urgent: 48,
+    licitatie: 111,
+  };
+
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       setImages(Array.from(e.target.files));
@@ -140,9 +148,9 @@ export default function PostAdPage() {
           
           const { error: uploadError } = await supabase.storage.from('listings').upload(filePath, file);
          if (uploadError) {
-  console.error("Supabase Upload Error:", uploadError);
-  throw new Error(`Eroare Supabase la urcarea pozei: ${uploadError.message}`);
-}
+            console.error("Supabase Upload Error:", uploadError);
+            throw new Error(`Eroare Supabase la urcarea pozei: ${uploadError.message}`);
+          }
           
           const { data: publicUrlData } = supabase.storage.from('listings').getPublicUrl(filePath);
           uploadedImageUrls.push(publicUrlData.publicUrl);
@@ -152,7 +160,8 @@ export default function PostAdPage() {
       const finalMarketPrice = marketPrice > 0 ? marketPrice : baseRequestedPrice;
       const dealScore = Math.min(Math.round(currentDiscountPercent * 1.5), 99); 
 
-      const { error } = await supabase
+      // 1. Salvăm anunțul ca "PENDING_PAYMENT" și îl returnăm din baza de date
+      const { data: insertedData, error } = await supabase
         .from('listings')
         .insert({
           user_id: user.id,
@@ -162,28 +171,50 @@ export default function PostAdPage() {
           market_price: finalMarketPrice,
           exit_price: finalCalculatedExitPrice, 
           sale_strategy: selectedPackage, 
-          status: 'active',
+          status: 'pending_payment', // Anunțul este reținut până se confirmă plata
           is_seed: false, 
           deal_score: dealScore, 
           discount: currentDiscountPercent, 
           images: uploadedImageUrls,
           details: { ...formData, package: selectedPackage, strategy: saleStrategy } 
-        });
+        })
+        .select()
+        .single();
 
       if (error) {
         alert(`Eroare Supabase: ${error.message}`);
         throw error;
       }
       
-      setIsSuccess(true); 
+      // 2. Apelăm motorul de plăți Stripe
+      const stripeRes = await fetch("/api/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          listingId: insertedData.id,
+          packageId: selectedPackage,
+          price: packagePrices[selectedPackage],
+          title: adTitle
+        }),
+      });
+
+      const stripeData = await stripeRes.json();
+      
+      if (stripeData.url) {
+        // 3. Aruncăm utilizatorul către pagina securizată Stripe
+        window.location.href = stripeData.url;
+      } else {
+        throw new Error(stripeData.error || "Eroare la generarea plății.");
+      }
+      
     } catch (error: any) {
-      console.error("Eroare salvare anunț:", error);
-      alert(error.message || "A apărut o problemă la publicarea anunțului.");
-    } finally {
+      console.error("Eroare salvare anunț / plată:", error);
+      alert(error.message || "A apărut o problemă la generarea plății.");
       setIsSaving(false);
     }
   };
 
+  // Acest ecran nu va mai fi atins în mod normal aici, pentru că redirecționăm către Stripe
   if (isSuccess) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
@@ -218,7 +249,7 @@ export default function PostAdPage() {
         <div className="flex justify-between mb-8 border-b-4 border-black pb-4">
           <div className={`text-[10px] font-black uppercase tracking-widest italic ${step >= 1 ? 'text-black' : 'text-gray-300'}`}>1. Date Tehnice</div>
           <div className={`text-[10px] font-black uppercase tracking-widest italic ${step >= 2 ? 'text-black' : 'text-gray-300'}`}>2. Evaluare AI</div>
-          <div className={`text-[10px] font-black uppercase tracking-widest italic ${step >= 3 ? 'text-black' : 'text-gray-300'}`}>3. Activare</div>
+          <div className={`text-[10px] font-black uppercase tracking-widest italic ${step >= 3 ? 'text-black' : 'text-gray-300'}`}>3. Plată Securizată</div>
         </div>
 
         <div className="bg-white p-6 md:p-10 rounded-2xl border-[3px] border-black shadow-[10px_10px_0_0_rgba(0,0,0,1)] relative overflow-hidden">
@@ -566,7 +597,6 @@ export default function PostAdPage() {
                       )}
                     </div>
 
-                    {/* SELECTIA STRATEGIEI CU SUGESITII MATEMATICE PENTRU CULLINAN */}
                     <div className="pt-6 border-t-2 border-gray-100">
                       <p className="text-[10px] font-black uppercase tracking-widest text-black mb-4">Alege Strategia de Vânzare</p>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -616,28 +646,24 @@ export default function PostAdPage() {
             </div>
           )}
 
-          {/* ===== MODIFICAREA LOGICĂ 4: Alinierea Pachetelor cu Pagina de Tarife ===== */}
           {step === 3 && (
             <div className="space-y-6 animate-in slide-in-from-right-4 duration-500">
               <h2 className="text-2xl font-black uppercase italic mb-6">Pachete de Lichiditate</h2>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 
-                {/* ECONOMY */}
                 <div onClick={() => setSelectedPackage('economy')} className={`p-5 border-[3px] rounded-2xl cursor-pointer transition-all ${selectedPackage === 'economy' ? 'border-black bg-[#FFD100] shadow-[6px_6px_0_0_rgba(0,0,0,1)]' : 'border-gray-200 hover:border-black bg-white'}`}>
                   <p className="font-black uppercase italic text-lg text-black">Economy <span className="text-[10px] bg-black text-white px-2 py-1 rounded ml-2">30 ZILE</span></p>
                   <p className="text-[10px] font-bold text-gray-700 mt-2">Afișare standard în listă. Alerte AI.</p>
                   <p className="font-black text-2xl mt-4">99 RON</p>
                 </div>
 
-                {/* STANDARD */}
                 <div onClick={() => setSelectedPackage('standard')} className={`p-5 border-[3px] rounded-2xl cursor-pointer transition-all ${selectedPackage === 'standard' ? 'border-black bg-black text-white shadow-[6px_6px_0_0_rgba(255,209,0,1)]' : 'border-black bg-black text-white opacity-90'}`}>
                   <p className="font-black uppercase italic text-lg">Standard <span className="text-[10px] bg-[#FFD100] text-black px-2 py-1 rounded ml-2">14 ZILE</span></p>
                   <p className="text-[10px] font-bold text-gray-300 mt-2">Poziționare Priority. Badge FAST.</p>
                   <p className="font-black text-2xl mt-4 text-[#FFD100]">79 RON</p>
                 </div>
 
-                {/* URGENT */}
                 <div onClick={() => setSelectedPackage('urgent')} className={`p-5 border-[3px] rounded-2xl cursor-pointer transition-all ${selectedPackage === 'urgent' ? 'border-black bg-gray-100 text-black shadow-[6px_6px_0_0_rgba(0,0,0,1)]' : 'border-gray-200 bg-gray-50 hover:border-black'}`}>
                   <div className="absolute -top-3 -right-3 bg-black text-white text-[9px] font-black px-3 py-1 uppercase rounded-full border-2 border-white animate-pulse">Lichidare</div>
                   <p className="font-black uppercase italic text-lg text-black">Urgent <span className="text-[10px] bg-black text-white px-2 py-1 rounded ml-2">48 ORE</span></p>
@@ -645,9 +671,8 @@ export default function PostAdPage() {
                   <p className="font-black text-2xl mt-4">48 RON</p>
                 </div>
 
-                {/* LICITAȚIE SNIPER */}
-                <div onClick={() => setSelectedPackage('licitatie')} className={`p-5 border-[3px] rounded-2xl cursor-pointer transition-all ${selectedPackage === 'licitatie' ? 'border-black bg-purple-600 text-[#FFD100] shadow-[6px_6px_0_0_rgba(0,0,0,1)]' : 'border-gray-200 hover:border-black bg-white'}`}>
-                  <p className="font-black uppercase italic text-lg text-black">Licitație <span className="text-[10px] bg-black text-white px-2 py-1 rounded ml-2">SNIPER</span></p>
+                <div onClick={() => setSelectedPackage('licitatie')} className={`p-5 border-[3px] rounded-2xl cursor-pointer transition-all ${selectedPackage === 'licitatie' ? 'border-black bg-[#FFD100] text-black shadow-[6px_6px_0_0_rgba(0,0,0,1)]' : 'border-gray-200 hover:border-black bg-white'}`}>
+                  <p className="font-black uppercase italic text-lg text-black">Licitație <span className="text-[10px] bg-black text-[#FFD100] px-2 py-1 rounded ml-2">SNIPER</span></p>
                   <p className="text-[10px] font-bold text-gray-800 mt-2 opacity-80">Război al ofertelor. Tu alegi durata.</p>
                   <p className="font-black text-2xl mt-4">111 RON</p>
                 </div>
@@ -657,9 +682,9 @@ export default function PostAdPage() {
               <button 
                 onClick={handleFinalSubmit}
                 disabled={isSaving}
-                className="w-full mt-8 bg-[#FFD100] border-[3px] border-black text-black py-5 rounded-2xl font-black uppercase tracking-widest text-sm italic hover:scale-[1.01] transition-transform shadow-[8px_8px_0_0_rgba(0,0,0,1)] active:translate-y-0.5 active:shadow-none disabled:opacity-50"
+                className="w-full mt-8 bg-black text-[#FFD100] border-[3px] border-black py-5 rounded-2xl font-black uppercase tracking-widest text-sm italic hover:scale-[1.01] transition-transform shadow-[8px_8px_0_0_rgba(0,0,0,1)] active:translate-y-0.5 active:shadow-none disabled:opacity-50"
               >
-                {isSaving ? "Se Procesează..." : "Plătește & Activează Anunțul"}
+                {isSaving ? "Se Conectează la Bancă..." : "Plătește Securizat cu Stripe →"}
               </button>
               
               <button onClick={() => setStep(2)} className="w-full mt-3 text-[10px] font-black uppercase text-gray-400 hover:text-black transition-colors italic border-b-2 border-transparent hover:border-black text-center pb-1 mx-auto block w-fit">

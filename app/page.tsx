@@ -1,5 +1,6 @@
 import { ro } from "../locales/ro";
 import AdCard from "./components/AdCard";
+import DemandCard from "./components/DemandCard"; // Am adus componenta Tanc pentru investitori
 import Link from "next/link";
 import GlobalStats from "./components/GlobalStats";
 import { supabase } from "@/lib/supabase"; 
@@ -9,20 +10,22 @@ import { normalizeSaleType } from "@/utils/normalizeSaleType";
 export default async function Home() {
   const { hero, types, home } = ro;
 
-  // FETCH DATE REALE - FILTRARE SEED ACTIVATĂ
+  // FETCH DATE REALE - FILTRARE SEED ACTIVATĂ + LIMITA 9
   const { data: realListings } = await supabase
     .from('listings')
     .select('*')
     .eq('status', 'active')
     .eq('is_seed', false) // Asigurăm izolarea datelor de index de interfața publică
     .order('created_at', { ascending: false })
-    .limit(6);
+    .limit(9); // Modificat la 9
 
   const { data: realDemands } = await supabase
     .from('demands')
     .select('*')
+    .eq('status', 'active') // Adaugam si aici protecții
+    .eq('is_seed', false) // În cazul în care avem și seeds pentru cereri în viitor
     .order('created_at', { ascending: false })
-    .limit(6);
+    .limit(9); // Modificat la 9
 
   // Separăm licitațiile de anunțurile normale folosind funcția globală
   const auctions = realListings?.filter(item => normalizeSaleType(item.sale_strategy) === 'auction') || [];
@@ -205,7 +208,7 @@ export default async function Home() {
     
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 lg:gap-12">
                 {standardListings && standardListings.length > 0 ? (
-                  standardListings.slice(0, 6).map((item) => (
+                  standardListings.slice(0, 9).map((item) => (
                     <AdCard 
                       key={item.id}
                       id={item.id}
@@ -235,33 +238,31 @@ export default async function Home() {
                   <h2 className="text-4xl md:text-5xl font-black uppercase italic tracking-tighter leading-none">
                     Capital <span className="text-black underline decoration-[#FFD100] decoration-[6px]">Disponibil</span>
                   </h2>
+                  {/* Butonul tău de oferte cumpărare din Home */}
+                  <Link href="/capital-disponibil" className="text-[10px] md:text-xs font-black uppercase tracking-widest italic hover:text-[#FFD100] transition-colors border-b-2 border-transparent hover:border-[#FFD100] py-2 whitespace-nowrap">
+                    Vezi toate cererile →
+                  </Link>
               </div>
               <p className="text-sm md:text-base font-bold text-gray-500 uppercase italic">Clienți cu fonduri verificate caută să cumpere urgent aceste active.</p>
             </div>
     
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 lg:gap-12">
-                {realDemands?.map((demand, idx) => (
-                    <div key={idx} className="bg-white border-[4px] border-[#FFD100] rounded-[2rem] p-8 shadow-[8px_8px_0_0_rgba(0,0,0,1)] hover:-translate-y-2 hover:shadow-[12px_12px_0_0_rgba(0,0,0,1)] transition-all flex flex-col justify-between group">
-                      <div>
-                        <div className="flex justify-between items-start mb-6">
-                          <span className="bg-[#FFD100] text-black px-4 py-2 rounded-lg text-[9px] md:text-[10px] font-black uppercase tracking-widest italic border-2 border-black">
-                            CASH PREGĂTIT
-                          </span>
-                        </div>
-                        <h3 className="text-2xl font-black uppercase italic tracking-tight leading-none mb-3 text-black">{demand.target_asset}</h3>
-                        <p className="text-sm font-bold text-gray-600 italic line-clamp-3 leading-relaxed">
-                          &quot;{demand.description}&quot;
-                        </p>
-                      </div>
-                      <div className="mt-8 pt-6 border-t-[3px] border-gray-100">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1">Buget Alocat</p>
-                        <p className="text-4xl font-black italic tracking-tighter text-black mb-6">€{demand.budget.toLocaleString('ro-RO')}</p>
-                        <Link href="/capital-disponibil" className="w-full bg-[#FFD100] border-[3px] border-black text-black py-4 rounded-xl font-black uppercase tracking-widest text-[11px] italic hover:bg-black hover:text-[#FFD100] transition-colors shadow-[4px_4px_0_0_rgba(0,0,0,1)] active:shadow-none active:translate-y-1 block text-center">
-                          Vinde-i Activul Tău
-                        </Link>
-                      </div>
-                    </div>
-                ))}
+                {realDemands && realDemands.length > 0 ? (
+                  realDemands.slice(0, 9).map((demand) => (
+                    <DemandCard 
+                      key={demand.id}
+                      id={demand.id}
+                      targetAsset={demand.target_asset}
+                      category={demand.category}
+                      budget={demand.budget?.toLocaleString('ro-RO')}
+                      description={demand.description}
+                    />
+                  ))
+                ) : (
+                  <div className="col-span-full py-16 text-center bg-gray-50 border-[3px] border-dashed border-gray-300 rounded-[2rem]">
+                    <p className="font-black uppercase italic text-gray-400">Nicio cerere de capital înregistrată momentan.</p>
+                  </div>
+                )}
             </div>
         </div>
       </section>

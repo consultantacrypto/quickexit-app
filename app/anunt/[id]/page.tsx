@@ -6,7 +6,6 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { supabase } from "@/lib/supabase"; 
 import AdCard from "../../components/AdCard";
-// IMPORTUL GLOBAL
 import { normalizeSaleType } from "@/utils/normalizeSaleType"; 
 
 export default function AdDetail() {
@@ -17,20 +16,17 @@ export default function AdDetail() {
   const [activeModal, setActiveModal] = useState<string | null>(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
-  // Stări pentru datele reale ale anunțului
   const [adData, setAdData] = useState<any>(null);
   const [similarAds, setSimilarAds] = useState<any[]>([]); 
   const [isLoading, setIsLoading] = useState(true);
   const [offerPrice, setOfferPrice] = useState(0);
 
-  // Stări pentru Trimitere Ofertă (Negociere)
   const [buyerPhone, setBuyerPhone] = useState("");
   const [buyerEmail, setBuyerEmail] = useState("");
   const [offerMessage, setOfferMessage] = useState("");
   const [isSubmittingOffer, setIsSubmittingOffer] = useState(false);
   const [offerSuccess, setOfferSuccess] = useState(false);
 
-  // Stări pentru "Acceptă Prețul de Exit"
   const [acceptPhone, setAcceptPhone] = useState("");
   const [acceptEmail, setAcceptEmail] = useState("");
   const [isAccepting, setIsAccepting] = useState(false);
@@ -50,13 +46,14 @@ export default function AdDetail() {
         setAdData(data);
         setOfferPrice(data.exit_price); 
 
-        // Extragem Oportunități Similare din aceeași categorie
+        // EXTRAGERE OPORTUNITĂȚI SIMILARE (Cu protecție is_seed)
         if (data.category) {
           const { data: similarData } = await supabase
             .from('listings')
             .select('*')
             .eq('category', data.category)
             .eq('status', 'active')
+            .eq('is_seed', false) // <-- PROTECȚIA ADĂUGATĂ AICI
             .neq('id', data.id)
             .limit(3);
             
@@ -72,7 +69,6 @@ export default function AdDetail() {
     fetchAd();
   }, [id]);
 
-  // FUNCȚIA DE NEGOCIERE
   const submitListingOffer = async () => {
     if (!buyerPhone || !offerPrice) return;
     setIsSubmittingOffer(true);
@@ -98,7 +94,6 @@ export default function AdDetail() {
     }
   };
 
-  // FUNCȚIA DE ACCEPTARE EXIT PRICE
   const submitAcceptExitPrice = async () => {
     if (!acceptPhone) return;
     setIsAccepting(true);
@@ -160,13 +155,10 @@ export default function AdDetail() {
     );
   };
 
-  // Helper funcție pentru a extrage datele tehnice relevante
   const renderTechnicalDetails = () => {
     if (!adData.details) return null;
     
-    // Extragem doar field-urile care au o valoare reală și nu sunt goale
     const validDetails = Object.entries(adData.details).filter(([key, value]) => {
-      // Ignoram campurile de sistem sau cele goale
       return value && value !== "" && !['package', 'strategy', 'source', 'observed_at'].includes(key);
     });
 
@@ -188,7 +180,6 @@ export default function AdDetail() {
     <div className="min-h-screen bg-white font-sans text-black selection:bg-[#FFD100] selection:text-black">
       <div className="max-w-[1400px] mx-auto px-4 md:px-8 py-6 md:py-8">
         
-        {/* Navigare Sus */}
         <div className="flex justify-between items-center mb-8">
           <Link href="/" className="group flex items-center gap-2">
             <span className="text-[10px] md:text-[11px] font-black uppercase tracking-[0.3em] italic border-b-[3px] border-black pb-1 group-hover:text-[#FFD100] group-hover:border-[#FFD100] transition-all">
@@ -202,7 +193,6 @@ export default function AdDetail() {
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 mb-20">
           
-          {/* COLOANA STÂNGA */}
           <div className="lg:col-span-8 space-y-8">
             <div className="space-y-4">
               <div className="relative h-[300px] md:h-[400px] lg:h-[450px] w-full rounded-[2rem] overflow-hidden border-[3px] border-black shadow-[8px_8px_0_0_rgba(0,0,0,1)] cursor-pointer group bg-gray-50">
@@ -232,7 +222,6 @@ export default function AdDetail() {
                 {renderTitle(adData.title)}
               </h1>
               
-              {/* MODIFICAREA LOGICĂ: Afișarea Datelor Tehnice */}
               {renderTechnicalDetails()}
 
               <div className="flex flex-wrap gap-2.5 mt-6">
@@ -247,7 +236,6 @@ export default function AdDetail() {
             </div>
           </div>
 
-          {/* COLOANA DREAPTĂ (Terminal) */}
           <div className="lg:col-span-4">
             <div className="sticky top-24 space-y-6">
               <div className="bg-white border-[3px] border-black p-6 rounded-[2rem] shadow-[8px_8px_0_0_rgba(0,0,0,1)]">
@@ -298,7 +286,6 @@ export default function AdDetail() {
           </div>
         </div>
 
-        {/* OPORTUNITĂȚI SIMILARE */}
         <div className="border-t-[3px] border-black pt-12 md:pt-16">
           <h2 className="text-3xl font-black uppercase italic tracking-tighter mb-8 md:mb-10">Oportunități <span className="text-[#FFD100]">Similare</span></h2>
           
@@ -325,7 +312,6 @@ export default function AdDetail() {
           )}
         </div>
 
-        {/* MODALE SISTEM */}
         {activeModal && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setActiveModal(null)} />
