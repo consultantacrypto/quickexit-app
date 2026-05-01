@@ -1,0 +1,9 @@
+
+==============================
+FILE: D:\MEDIA\quickexit\market-index.csv
+==============================
+category,title,make,model,year,km,market_price,brand,surface,location,source
+Auto & Moto,Audi A4 2021 S-Line,Audi,A4,2021,85000,31000,,,,Autovit
+Auto & Moto,BMW 320d 2020,BMW,3 Series,2020,120000,24500,,,,Autovit
+Imobiliare,Apartament 2 Camere Aviatiei,,,,,165000,,55,Bucuresti,Imobiliare.ro
+Lux & Ceasuri,Rolex Datejust 41,,,,,12800,Rolex,,,Chrono24

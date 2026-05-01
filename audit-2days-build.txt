@@ -1,0 +1,56 @@
+
+> quickexit@0.1.0 build
+> next build
+
+Γû▓ Next.js 16.2.4 (Turbopack)
+- Environments: .env.local
+
+  Creating an optimized production build ...
+Γ£ô Compiled successfully in 5.7s
+  Running TypeScript ...
+  Finished TypeScript in 10.3s ...
+  Collecting page data using 23 workers ...
+  Generating static pages using 23 workers (0/23) ...
+  Generating static pages using 23 workers (5/23) 
+  Generating static pages using 23 workers (11/23) 
+  Generating static pages using 23 workers (17/23) 
+Γ£ô Generating static pages using 23 workers (23/23) in 1370ms
+  Finalizing page optimization ...
+
+Route (app)
+Γöî Γùï /
+Γö£ Γùï /_not-found
+Γö£ ╞Æ /anunt/[id]
+Γö£ ╞Æ /api/checkout
+Γö£ ╞Æ /api/checkout-demand
+Γö£ ╞Æ /api/create-verification-session
+Γö£ ╞Æ /api/evaluate
+Γö£ ╞Æ /api/webhook
+Γö£ ╞Æ /api/webhooks/kyc
+Γö£ Γùï /capital-disponibil
+Γö£ Γùï /cariere
+Γö£ ╞Æ /categorii/[slug]
+Γö£ Γùï /confidentialitate
+Γö£ Γùï /contact
+Γö£ Γùï /cookies
+Γö£ Γùï /cum-functioneaza
+Γö£ Γùï /dashboard
+Γö£ ╞Æ /editeaza-anunt/[id]
+Γö£ Γùï /evaluare
+Γö£ Γùï /hq-admin
+Γö£ Γùï /icon.png
+Γö£ Γùï /posteaza-cerere
+Γö£ Γùï /pune-anunt
+Γö£ Γùï /tarife
+Γö£ Γùï /termeni
+Γöö ╞Æ /trimite-oferta/[id]
+
+
+Γùï  (Static)   prerendered as static content
+╞Æ  (Dynamic)  server-rendered on demand
+
+npm notice
+npm notice New minor version of npm available! 11.7.0 -> 11.13.0
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.13.0
+npm notice To update run: npm install -g npm@11.13.0
+npm notice

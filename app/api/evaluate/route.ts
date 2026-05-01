@@ -1,70 +1,101 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
-// --- TOOLKIT MATEMATIC ---
-const clamp = (value: number, min?: number | null, max?: number | null) => {
-  let result = value;
-  if (typeof min === "number") result = Math.max(result, min);
-  if (typeof max === "number") result = Math.min(result, max);
-  return result;
+const toSafeInt = (value: unknown) => {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return 0;
+  return Math.max(0, Math.round(n));
 };
 
-const safeNumber = (val: any) => {
-  const n = Number(val);
-  return isNaN(n) ? 0 : n;
+const toConfidence = (value: unknown) => {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return 1;
+  return Math.max(1, Math.min(99, Math.round(n)));
 };
 
-const median = (values: number[]) => {
+const percentile = (values: number[], p: number) => {
   if (!values.length) return 0;
   const sorted = [...values].sort((a, b) => a - b);
-  const mid = Math.floor(sorted.length / 2);
-  return sorted.length % 2 === 0 ? Math.round((sorted[mid - 1] + sorted[mid]) / 2) : Math.round(sorted[mid]);
+  const idx = Math.max(0, Math.min(sorted.length - 1, Math.floor((sorted.length - 1) * p)));
+  return sorted[idx];
 };
 
-// --- CONFIGURAȚIA CELOR 6 CATEGORII ---
-const categoryConfig: Record<string, any> = {
+const extractJsonPayload = (rawText: string) => {
+  const trimmed = rawText.trim();
+  if (trimmed.startsWith("```")) {
+    return trimmed
+      .replace(/^```(?:json)?\s*/i, "")
+      .replace(/\s*```$/, "")
+      .trim();
+  }
+  return trimmed;
+};
+
+// --- CONFIGURAȚIA CELOR 6 CATEGORII (fără discounturi hardcodate) ---
+const categoryConfig: Record<string, { accepted: string[]; requiredFields: string[] }> = {
   auto: {
     accepted: ["Auto & Moto", "auto"],
     requiredFields: ["make", "model", "year"],
-    baseDiscount: 0.85, // Quick Exit
-    strongDiscount: 0.79, // Standard
   },
   imobiliare: {
     accepted: ["Imobiliare", "real_estate"],
     requiredFields: ["surface", "location"],
-    baseDiscount: 0.82,
-    strongDiscount: 0.75,
   },
   lux: {
     accepted: ["Lux & Ceasuri", "lux", "ceasuri"],
     requiredFields: ["brand", "model"],
-    baseDiscount: 0.78,
-    strongDiscount: 0.70,
   },
   business: {
     accepted: ["Afaceri de vânzare", "business"],
     requiredFields: ["industry", "revenue"],
-    baseDiscount: 0.75,
-    strongDiscount: 0.65,
   },
   gadgets: {
     accepted: ["Gadgets", "laptop", "phone"],
     requiredFields: ["brand", "model"],
-    baseDiscount: 0.80,
-    strongDiscount: 0.70,
   },
   foto: {
     accepted: ["Foto & Audio", "foto", "audio"],
     requiredFields: ["brand", "model"],
-    baseDiscount: 0.80,
-    strongDiscount: 0.70,
-  }
+  },
+};
+
+const buildDeterministicFallback = (params: {
+  comps: any[];
+  dataQualityLabel: string;
+  liveCount: number;
+  seedCount: number;
+  warningsCount: number;
+  dynamicExplanation: string;
+}) => {
+  const { comps, liveCount, seedCount, warningsCount, dynamicExplanation } = params;
+  const usablePrices = (comps || [])
+    .map((item) => Number(item?.exit_price ?? item?.market_price ?? 0))
+    .filter((v) => Number.isFinite(v) && v > 0) as number[];
+
+  const marketBase = usablePrices.length ? percentile(usablePrices, 0.5) : 0;
+  const quickExit = Math.round(marketBase * 0.86);
+  const strongExit = Math.round(marketBase * 0.75);
+  const liquidation = Math.round(marketBase * 0.58);
+  const confidenceRaw = 25 + Math.min(usablePrices.length, 25) * 2 + Math.min(liveCount, 10) * 2 - Math.min(seedCount, 10) - warningsCount * 3;
+
+  return {
+    estimated_market_price: toSafeInt(marketBase),
+    quick_exit_price: toSafeInt(quickExit),
+    strong_exit_price: toSafeInt(strongExit),
+    liquidation_price: toSafeInt(liquidation),
+    confidence_score: toConfidence(confidenceRaw),
+    explanation:
+      `${dynamicExplanation} ` +
+      "Fallback-ul deterministic a folosit distribuția comparabilelor disponibile și discounturi fixe de lichidare rapidă pentru a menține stabilitatea evaluării.",
+  };
 };
 
 export async function POST(req: NextRequest) {
   try {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    const geminiApiKey = process.env.GEMINI_API_KEY;
 
     if (!supabaseUrl || !serviceRoleKey) {
       return NextResponse.json({ success: false, message: "Eroare Server: Chei lipsă." }, { status: 500 });
@@ -156,55 +187,103 @@ export async function POST(req: NextRequest) {
     } else if (data_quality_label === 'platform_market') {
       dynamic_explanation = "Evaluare bazată predominant pe listări reale din platformă.";
     }
-    // -----------------------------------
-
-    if (fetchError || !comps || comps.length < 2) {
-      return NextResponse.json({ 
-        success: true, 
-        estimated_market_price: 0, // <-- NOU: Adăugat explicit ca să declanșeze corect VIP screen în lipsă de date
-        confidence_score: 15, 
-        message: "Date insuficiente pentru o evaluare granulară.",
-        warning: "Scor de încredere scăzut. Se recomandă consultarea unui expert.",
-        data_quality_label,
-        live_comparable_count,
-        seed_comparable_count,
-        explanation: dynamic_explanation
-      });
+    
+    if (fetchError) {
+      return NextResponse.json({ success: false, message: "Eroare la extragerea comparabilelor." }, { status: 500 });
     }
 
-    // 3. Calcul Mediană și Ajustări specifice
-    const adjustedPrices = comps.map(item => {
-      let price = safeNumber(item.exit_price || item.market_price);
-      if (price === 0) return null;
+    const fallbackEvaluation = buildDeterministicFallback({
+      comps: comps ?? [],
+      dataQualityLabel: data_quality_label,
+      liveCount: live_comparable_count,
+      seedCount: seed_comparable_count,
+      warningsCount: warnings.length,
+      dynamicExplanation: dynamic_explanation,
+    });
 
-      // Ajustare m2 Imobiliare
-      if (catKey === "imobiliare" && body.surface && item.details?.surface) {
-        price = (price / item.details.surface) * body.surface;
+    let estimated_market_price = fallbackEvaluation.estimated_market_price;
+    let quick_exit_price = fallbackEvaluation.quick_exit_price;
+    let strong_exit_price = fallbackEvaluation.strong_exit_price;
+    let liquidation_price = fallbackEvaluation.liquidation_price;
+    let confidence_score = fallbackEvaluation.confidence_score;
+    let explanation = fallbackEvaluation.explanation;
+
+    if (geminiApiKey) {
+      try {
+        const genAI = new GoogleGenerativeAI(geminiApiKey);
+        const model = genAI.getGenerativeModel({
+          model: "gemini-1.5-flash",
+          systemInstruction: `
+Ești Sniper, evaluator financiar expert pentru platforma QuickExit (lichidare rapidă de active).
+Analizezi datele activului trimise de client și comparabilele de piață.
+Ții cont de uzură, an, suprafață, locație, brand, model, revenue și alți factori relevanți.
+Calculezi realist 4 niveluri de preț:
+- estimated_market_price: prețul real de piață
+- quick_exit_price: vânzare rapidă în 7-14 zile
+- strong_exit_price: preț de start licitație/panic sell
+- liquidation_price: cash instant ultra-redus
+
+Răspuns OBLIGATORIU:
+- Returnezi EXCLUSIV JSON valid, fără markdown, fără explicații în afara JSON.
+- JSON-ul trebuie să conțină EXACT aceste câmpuri:
+  estimated_market_price, quick_exit_price, strong_exit_price, liquidation_price, confidence_score, explanation
+- Toate câmpurile de preț sunt numere întregi >= 0.
+- confidence_score este număr întreg între 1 și 99.
+- explanation este un singur paragraf scurt în limba română.
+          `.trim(),
+          generationConfig: {
+            responseMimeType: "application/json",
+          },
+        });
+
+        const geminiPrompt = {
+          category: catKey,
+          asset_details: body,
+          comparables: comps ?? [],
+          data_quality: {
+            data_quality_label,
+            live_comparable_count,
+            seed_comparable_count,
+          },
+          warnings,
+          instruction: "Generează evaluarea finală conform regulilor și răspunde strict în JSON.",
+        };
+
+        const geminiResult = await model.generateContent(JSON.stringify(geminiPrompt));
+        const geminiText = geminiResult.response.text();
+        const parsed = JSON.parse(extractJsonPayload(geminiText));
+
+        estimated_market_price = toSafeInt(parsed.estimated_market_price);
+        quick_exit_price = toSafeInt(parsed.quick_exit_price);
+        strong_exit_price = toSafeInt(parsed.strong_exit_price);
+        liquidation_price = toSafeInt(parsed.liquidation_price);
+        confidence_score = toConfidence(parsed.confidence_score);
+        explanation =
+          typeof parsed.explanation === "string" && parsed.explanation.trim().length > 0
+            ? parsed.explanation.trim()
+            : fallbackEvaluation.explanation;
+      } catch (geminiError) {
+        console.warn("[evaluate] Gemini fallback activated", {
+          category: catKey,
+          comparable_count: comps?.length || 0,
+          data_quality_label,
+          reason: geminiError instanceof Error ? geminiError.message : "unknown_error",
+        });
+        // Silent fallback: păstrăm valorile deterministice pentru robusteză în producție.
       }
-      
-      // Ajustare Multiplicator Afaceri (dacă avem revenue)
-      if (catKey === "business" && body.revenue && item.details?.revenue) {
-        const itemMultiple = price / item.details.revenue;
-        price = body.revenue * itemMultiple;
-      }
-
-      return price;
-    }).filter(Boolean) as number[];
-
-    const marketMedian = median(adjustedPrices);
-    const confidence = Math.min((adjustedPrices.length * 8) + (warnings.length ? 10 : 30), 95);
+    }
 
     // 4. Salvare Raport
     let reportId = null;
-    if (body.save_report || body.vehicle_profile_id) {
+    if (body.save_report) {
       const { data: r } = await supabase.from("valuation_reports").insert({
         vehicle_profile_id: body.vehicle_profile_id || null,
-        market_anchor_price: marketMedian,
-        quick_exit_price: Math.round(marketMedian * config.baseDiscount),
-        strong_exit_price: Math.round(marketMedian * config.strongDiscount),
-        liquidation_price: Math.round(marketMedian * 0.60),
-        confidence_score: confidence,
-        ai_strategy_explanation: `Evaluare v1.5 finală pentru ${catKey.toUpperCase()}.`
+        market_anchor_price: estimated_market_price,
+        quick_exit_price,
+        strong_exit_price,
+        liquidation_price,
+        confidence_score,
+        ai_strategy_explanation: explanation,
       }).select("id").single();
       reportId = r?.id;
     }
@@ -213,16 +292,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       category: catKey,
-      estimated_market_price: marketMedian,
-      quick_exit_price: Math.round(marketMedian * config.baseDiscount),
-      strong_exit_price: Math.round(marketMedian * config.strongDiscount),
-      liquidation_price: Math.round(marketMedian * 0.60),
-      confidence_score: confidence,
-      comparable_count: adjustedPrices.length,
+      estimated_market_price,
+      quick_exit_price,
+      strong_exit_price,
+      liquidation_price,
+      confidence_score,
+      comparable_count: comps?.length || 0,
       data_quality_label, 
       live_comparable_count, 
       seed_comparable_count, 
-      explanation: dynamic_explanation, 
+      explanation,
       warnings,
       valuation_report_id: reportId
     });
