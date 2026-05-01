@@ -6,6 +6,8 @@ import { supabase } from "@/lib/supabase";
 import AdCard from "../components/AdCard";
 import { normalizeSaleType } from "@/utils/normalizeSaleType";
 import { Wallet, Inbox, ShieldCheck, PlusCircle, Search, Settings, Power, Play, PiggyBank } from "lucide-react";
+// Importul corectat cu calea relativă
+import KycBanner from "../components/KycBanner"; 
 
 function DashboardContent() {
   const searchParams = useSearchParams();
@@ -13,27 +15,27 @@ function DashboardContent() {
   
   const paymentStatus = searchParams.get("payment");
   const listingId = searchParams.get("listing");
-  const demandId = searchParams.get("demand"); // Am adăugat citirea ID-ului cererii
+  const demandId = searchParams.get("demand"); 
 
   const [activeTab, setActiveTab] = useState('portofoliu');
   
-  // Date Vânzător
+  // Stare pentru profilul utilizatorului (pentru KYC)
+  const [userProfile, setUserProfile] = useState<any>(null);
+  const [currentUserId, setCurrentUserId] = useState<string>("");
+
   const [myListings, setMyListings] = useState<any[]>([]);
   const [myOffers, setMyOffers] = useState<any[]>([]);
   
-  // Date Investitor (NOU)
   const [myDemands, setMyDemands] = useState<any[]>([]);
   const [myDemandOffers, setMyDemandOffers] = useState<any[]>([]);
   
   const [isLoading, setIsLoading] = useState(true);
 
-  // Buffer pentru Stripe Webhook
   useEffect(() => {
     fetchDashboardData();
     
     if (paymentStatus === "success" || paymentStatus === "success_demand") {
       setIsLoading(true);
-      // Așteptăm 3 secunde pentru ca webhook-ul Stripe să apuce să modifice DB-ul pe server
       const timer = setTimeout(() => {
         fetchDashboardData();
         router.replace('/dashboard', { scroll: false });
@@ -42,13 +44,21 @@ function DashboardContent() {
     }
   }, [paymentStatus, listingId, demandId, router]);
 
-  // Funcție centralizată pentru a trage TOATE datele user-ului
   const fetchDashboardData = async () => {
     setIsLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
       
+      // Salvăm ID-ul și tragem profilul pentru KYC
+      setCurrentUserId(user.id);
+      const { data: profile } = await supabase
+        .from('profiles') 
+        .select('*')
+        .eq('id', user.id)
+        .single();
+      setUserProfile(profile);
+
       // 1. Tragem Anunțurile de Vânzare
       const { data: listings } = await supabase
         .from('listings')
@@ -151,6 +161,10 @@ function DashboardContent() {
   const newDemandOffersCount = myDemandOffers.filter(o => o.status === 'new').length;
   const totalNotifications = newOffersCount + newDemandOffersCount;
 
+  // Logica de afișare a banner-ului KYC
+  const hasItemsInPortfolio = myListings.length > 0 || myDemands.length > 0;
+  const needsKyc = userProfile && userProfile.kyc_status !== 'verified' && hasItemsInPortfolio;
+
   return (
     <div className="max-w-[1200px] mx-auto min-h-screen pb-20">
       
@@ -173,6 +187,14 @@ function DashboardContent() {
         </div>
       </div>
 
+      {/* Randăm Banner-ul KYC DOAR dacă are elemente în portofoliu și nu e verificat */}
+      {!isLoading && needsKyc && (
+        <KycBanner 
+          userId={currentUserId} 
+          kycStatus={userProfile.kyc_status || 'unverified'} 
+        />
+      )}
+
       {/* KPI-URI COMPACTE */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
         <div className="bg-white border-2 border-black p-4 rounded-xl shadow-[3px_3px_0_0_rgba(0,0,0,1)]">
@@ -184,8 +206,17 @@ function DashboardContent() {
           <p className="text-xl font-black italic text-[#FFD100]">€{capitalTotal.toLocaleString('ro-RO')}</p>
         </div>
         <div className="hidden md:flex bg-white border-2 border-black p-4 rounded-xl items-center justify-center gap-2 shadow-[3px_3px_0_0_rgba(0,0,0,1)]">
-           <ShieldCheck className="w-5 h-5 text-gray-300" />
-           <span className="text-[8px] font-black uppercase text-gray-400 tracking-widest italic">KYC Inactiv</span>
+           {userProfile?.kyc_status === 'verified' ? (
+             <>
+                <ShieldCheck className="w-5 h-5 text-green-500" />
+                <span className="text-[8px] font-black uppercase text-green-600 tracking-widest italic">KYC Activ</span>
+             </>
+           ) : (
+             <>
+                <ShieldCheck className="w-5 h-5 text-gray-300" />
+                <span className="text-[8px] font-black uppercase text-gray-400 tracking-widest italic">KYC Inactiv</span>
+             </>
+           )}
         </div>
         <div onClick={() => router.push('/profil')} className="bg-[#FFD100] border-2 border-black p-4 rounded-xl flex items-center justify-center cursor-pointer hover:bg-black hover:text-[#FFD100] transition-all shadow-[3px_3px_0_0_rgba(0,0,0,1)]">
            <Settings size={16} />
