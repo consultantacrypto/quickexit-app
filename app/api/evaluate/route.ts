@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import type { RequestOptions } from "@google/generative-ai";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import dns from "node:dns";
+
+dns.setDefaultResultOrder("ipv4first");
 
 /** Convenție: lei → EUR pentru fallback-uri numerice în snippet-uri. */
 const EUR_PER_RON = 1 / 5.05;
@@ -333,13 +336,8 @@ async function fetchSerpOrganicLite(
   console.log("URL SerpApi complet:", url);
 
   const res = await fetch(url, {
-    method: "GET",
-    headers: {
-      Accept: "application/json",
-      Connection: "keep-alive",
-    },
+    headers: { Accept: "application/json" },
     cache: "no-store",
-    keepalive: true,
   });
 
   const raw = await res.json().catch(() => ({}));
