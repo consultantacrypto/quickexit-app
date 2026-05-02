@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { createHash } from "node:crypto";
 import dns from "node:dns";
 import https from "https";
@@ -75,8 +75,12 @@ function getQuerySignature(body: Record<string, unknown>, catKey: string): strin
     normalizeSigValue(pick("make", "vehicle_make", "brand")),
     normalizeSigValue(pick("model", "vehicle_model", "refModel")),
     normalizeSigValue(pick("year", "vehicle_year", "buildYear")),
+    normalizeSigValue(pick("km", "mileage_km")),
+    normalizeSigValue(pick("revenue")),
+    normalizeSigValue(pick("industry", "domain", "businessDomain")),
     normalizeSigValue(pick("location")),
     normalizeSigValue(pick("surface")),
+    normalizeSigValue(pick("rooms")),
   ].join("|");
 
   return createHash("sha256").update(signatureBase).digest("hex");
@@ -549,6 +553,47 @@ const extractGeminiText = (payload: unknown): string => {
   return typeof textPart?.text === "string" ? textPart.text : "";
 };
 
+const toBool = (value: unknown) =>
+  value === true || value === "true" || value === 1 || value === "1";
+
+async function saveValuationReport(params: {
+  supabase: SupabaseClient;
+  body: Record<string, unknown>;
+  estimatedMarketPrice: number;
+  quickExitPrice: number;
+  strongExitPrice: number;
+  liquidationPrice: number;
+  confidenceScore: number;
+  explanation: string;
+}): Promise<string | null> {
+  const {
+    supabase,
+    body,
+    estimatedMarketPrice,
+    quickExitPrice,
+    strongExitPrice,
+    liquidationPrice,
+    confidenceScore,
+    explanation,
+  } = params;
+
+  const { data: r } = await supabase
+    .from("valuation_reports")
+    .insert({
+      vehicle_profile_id: body.vehicle_profile_id || null,
+      market_anchor_price: estimatedMarketPrice,
+      quick_exit_price: quickExitPrice,
+      strong_exit_price: strongExitPrice,
+      liquidation_price: liquidationPrice,
+      confidence_score: confidenceScore,
+      ai_strategy_explanation: explanation,
+    })
+    .select("id")
+    .single();
+
+  return (r?.id as string | undefined) ?? null;
+}
+
 export async function POST(req: NextRequest) {
   try {
     if (!process.env.SERPAPI_KEY) {
@@ -606,13 +651,8 @@ export async function POST(req: NextRequest) {
 
     const surfaceNum = Number(body.surface);
     const revenueNum = Number(body.revenue);
-    const declaredPriceNum = Number(
-      body.price ?? body.estimated_market_price ?? body.asking_price ?? 0
-    );
     const penthouseVip =
-      mentionsPenthouse &&
-      ((Number.isFinite(surfaceNum) && surfaceNum > 250) ||
-        (Number.isFinite(declaredPriceNum) && declaredPriceNum > 500_000));
+      mentionsPenthouse && Number.isFinite(surfaceNum) && surfaceNum > 250;
 
     const isVipAsset =
       (catKey === "imobiliare" &&
@@ -663,8 +703,28 @@ export async function POST(req: NextRequest) {
       const cachedRow = Array.isArray(cacheRows) ? cacheRows[0] : null;
       const cachedResult = cachedRow?.normalized_result;
       if (cachedResult && typeof cachedResult === "object") {
-        return NextResponse.json({
+        const cachedPayload = {
           ...(cachedResult as Record<string, unknown>),
+        };
+        let reportId: string | null = null;
+        if (toBool(body.save_report)) {
+          reportId = await saveValuationReport({
+            supabase,
+            body,
+            estimatedMarketPrice: toSafeInt(cachedPayload.estimated_market_price),
+            quickExitPrice: toSafeInt(cachedPayload.quick_exit_price),
+            strongExitPrice: toSafeInt(cachedPayload.strong_exit_price),
+            liquidationPrice: toSafeInt(cachedPayload.liquidation_price),
+            confidenceScore: toConfidence(cachedPayload.confidence_score),
+            explanation:
+              typeof cachedPayload.explanation === "string"
+                ? cachedPayload.explanation
+                : "",
+          });
+        }
+        return NextResponse.json({
+          ...cachedPayload,
+          valuation_report_id: reportId,
           cache_hit: true,
         });
       }
@@ -843,22 +903,18 @@ Prețuri: întregi ≥ 0. confidence_score: întreg între 1 și 99. explanation
       }
     }
 
-    let reportId = null;
-    if (body.save_report) {
-      const { data: r } = await supabase
-        .from("valuation_reports")
-        .insert({
-          vehicle_profile_id: body.vehicle_profile_id || null,
-          market_anchor_price: estimated_market_price,
-          quick_exit_price,
-          strong_exit_price,
-          liquidation_price,
-          confidence_score,
-          ai_strategy_explanation: explanation,
-        })
-        .select("id")
-        .single();
-      reportId = r?.id;
+    let reportId: string | null = null;
+    if (toBool(body.save_report)) {
+      reportId = await saveValuationReport({
+        supabase,
+        body,
+        estimatedMarketPrice: estimated_market_price,
+        quickExitPrice: quick_exit_price,
+        strongExitPrice: strong_exit_price,
+        liquidationPrice: liquidation_price,
+        confidenceScore: confidence_score,
+        explanation,
+      });
     }
 
     const responsePayload = {
@@ -881,6 +937,9 @@ Prețuri: întregi ≥ 0. confidence_score: întreg între 1 și 99. explanation
       cache_hit: false,
     };
 
+    const { valuation_report_id: _dropReportId, cache_hit: _dropCacheHit, ...cacheNormalizedResult } =
+      responsePayload;
+
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
     const { error: cacheWriteError } = await supabase
       .from("market_search_cache")
@@ -889,7 +948,7 @@ Prețuri: întregi ≥ 0. confidence_score: întreg între 1 și 99. explanation
           query_signature: querySignature,
           category: catKey,
           query_text: searchQuery,
-          normalized_result: responsePayload,
+          normalized_result: cacheNormalizedResult,
           expires_at: expiresAt,
         },
         { onConflict: "query_signature" }
