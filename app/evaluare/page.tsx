@@ -1,372 +1,390 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ShieldCheck, Zap, ArrowRight, Info, Search, Gavel } from "lucide-react";
+import { Clock3, ShieldCheck } from "lucide-react";
+
+type ApiResult = {
+  success: boolean;
+  estimated_market_price: number;
+  quick_exit_price: number;
+  strong_exit_price: number;
+  liquidation_price: number;
+  confidence_score: number;
+  explanation?: string;
+  data_quality_label?: string;
+  comparable_count?: number;
+  google_result_count?: number;
+  cache_hit?: boolean;
+  [key: string]: unknown;
+};
+
+type CategoryId = "auto" | "imobiliare" | "lux" | "business" | "gadgets" | "foto";
+
+type CategoryOption = {
+  id: CategoryId;
+  title: string;
+  hint: string;
+};
+
+const CATEGORY_OPTIONS: CategoryOption[] = [
+  { id: "auto", title: "Auto & Moto", hint: "estimare dupa marca, model, an, km" },
+  { id: "imobiliare", title: "Imobiliare", hint: "estimare dupa zona, suprafata, camere" },
+  { id: "lux", title: "Lux & Ceasuri", hint: "estimare dupa brand, model, acte/stare" },
+  { id: "business", title: "Afaceri de vanzare", hint: "estimare dupa domeniu, venit, locatie" },
+  { id: "gadgets", title: "Gadgets", hint: "estimare dupa brand, model, stare" },
+  { id: "foto", title: "Foto & Audio", hint: "estimare dupa brand, model, stare" },
+];
+
+const LOADING_MESSAGES = [
+  "Scanam piata din Romania...",
+  "Eliminam semnalele false: leasing, rate, piese...",
+  "Calculam preturile de exit...",
+];
+
+const LABEL_MAP: Record<string, string> = {
+  external_search_strong: "Incredere buna",
+  external_search: "Incredere moderata",
+  low_data: "Date insuficiente",
+  vip_asset: "Evaluare speciala necesara",
+};
+
+function formatPrice(price: unknown) {
+  const n = Number(price);
+  if (!Number.isFinite(n) || n <= 0) return "N/A";
+  return `EUR ${n.toLocaleString("ro-RO")}`;
+}
 
 export default function EvaluationPage() {
-  const [step, setStep] = useState(1);
-  const [category, setCategory] = useState("Auto & Moto");
-  
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [evaluationResult, setEvaluationResult] = useState<any>(null);
+  const [category, setCategory] = useState<CategoryId>("auto");
+  const [phase, setPhase] = useState<"form" | "loading" | "result">("form");
+  const [loadingIndex, setLoadingIndex] = useState(0);
+  const [result, setResult] = useState<ApiResult | null>(null);
 
-  // Stocăm TOATE datele granulare exact ca în pune-anunt
   const [formData, setFormData] = useState({
-    // Auto & Moto
-    make: "", model: "", year: "", km: "", fuel: "Benzină", engine: "", transmission: "Automată", bodyType: "Sedan", status: "Înmatriculat RO", tva: "Nu (Vânzător PF)",
-    // Imobiliare
-    propType: "Apartament", surface: "", rooms: "", buildYear: "", floor: "", parking: "Inclus în preț", landSurface: "", location: "",
-    // Lux & Ceasuri
-    brand: "", refModel: "", purchaseYear: "", mechanism: "Automatic", material: "", boxPapers: "Full Set (Cutie + Acte)",
-    // Afaceri
-    businessDomain: "", businessAge: "", revenue: "", profit: "", employees: "", includes: "",
-    // Gadgets / Foto
-    specs: "", warranty: "",
-    // Global
-    description: ""
+    make: "",
+    model: "",
+    year: "",
+    km: "",
+    property_type: "Apartament",
+    location: "",
+    surface: "",
+    rooms: "",
+    brand: "",
+    condition: "Foarte buna",
+    optionalYear: "",
+    industry: "",
+    revenue: "",
   });
 
-  const categoriesList = [
-    'Auto & Moto', 'Imobiliare', 'Lux & Ceasuri', 
-    'Afaceri de vânzare', 'Gadgets', 'Foto & Audio'
-  ];
+  useEffect(() => {
+    if (phase !== "loading") return;
+    const interval = setInterval(() => {
+      setLoadingIndex((prev) => (prev + 1) % LOADING_MESSAGES.length);
+    }, 1800);
+    return () => clearInterval(interval);
+  }, [phase]);
 
-  const triggerAI = async () => {
-    setIsAnalyzing(true);
+  const activeStep = phase === "form" ? 2 : phase === "loading" ? 3 : 4;
+
+  const qualityLabel = useMemo(() => {
+    if (!result?.data_quality_label) return "";
+    return LABEL_MAP[result.data_quality_label] || "Evaluare disponibila";
+  }, [result]);
+
+  const analyzedSources = Number(result?.google_result_count ?? result?.comparable_count ?? 0);
+
+  const buildPayload = () => ({
+    category,
+    make: category === "auto" ? formData.make : undefined,
+    model:
+      category === "auto"
+        ? formData.model
+        : category === "lux" || category === "gadgets" || category === "foto"
+          ? formData.model
+          : undefined,
+    year: category === "auto" ? Number(formData.year) || undefined : undefined,
+    km: category === "auto" ? Number(formData.km) || undefined : undefined,
+    vehicle_km: category === "auto" ? Number(formData.km) || undefined : undefined,
+    surface: category === "imobiliare" ? Number(formData.surface) || undefined : undefined,
+    rooms: category === "imobiliare" ? Number(formData.rooms) || undefined : undefined,
+    location:
+      category === "imobiliare" || category === "business" ? formData.location : undefined,
+    brand:
+      category === "lux" || category === "gadgets" || category === "foto"
+        ? formData.brand
+        : undefined,
+    revenue: category === "business" ? Number(formData.revenue) || undefined : undefined,
+    industry: category === "business" ? formData.industry : undefined,
+    details: {
+      property_type: formData.property_type,
+      condition: formData.condition,
+      optionalYear: formData.optionalYear,
+      domain: formData.industry,
+    },
+    extraDetails: formData,
+    save_report: true,
+  });
+
+  const runEvaluation = async () => {
+    setPhase("loading");
+    setLoadingIndex(0);
+    setResult(null);
+
     try {
-      const apiCategory = category === 'Auto & Moto' ? 'auto' :
-                          category === 'Imobiliare' ? 'imobiliare' :
-                          category === 'Lux & Ceasuri' ? 'lux' :
-                          category === 'Afaceri de vânzare' ? 'business' :
-                          category === 'Gadgets' ? 'gadgets' : 'foto';
-
-      const payload = {
-        category: apiCategory,
-        make: formData.make,
-        model: formData.model,
-        year: formData.year ? parseInt(formData.year) : undefined,
-        km: formData.km ? parseInt(formData.km) : undefined,
-        surface: formData.surface ? parseInt(formData.surface) : undefined,
-        location: formData.location,
-        brand: formData.brand,
-        revenue: formData.revenue ? parseInt(formData.revenue) : undefined,
-        extraDetails: formData,
-        save_report: true 
-      };
-
       const response = await fetch("/api/evaluate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(buildPayload()),
       });
 
-      const data = await response.json();
-      if (data.success) {
-        setEvaluationResult(data);
-        setStep(2);
-      } else {
-        alert(data.message || "Eroare de procesare. Verifică datele introduse.");
+      const data = (await response.json()) as ApiResult & { message?: string };
+      if (!data.success) {
+        alert(data.message || "Evaluarea nu a putut fi procesata.");
+        setPhase("form");
+        return;
       }
-    } catch (error) {
-      alert("Terminalul de preț este momentan indisponibil.");
-    } finally {
-      setIsAnalyzing(false);
+
+      setResult(data);
+      setPhase("result");
+    } catch {
+      alert("Serviciul de evaluare este temporar indisponibil.");
+      setPhase("form");
     }
   };
 
-  const formatPrice = (price: any) => {
-    if (!price || isNaN(price)) return "N/A";
-    return `€${Number(price).toLocaleString('ro-RO')}`;
-  };
+  const StepPill = ({ index, title }: { index: number; title: string }) => (
+    <div
+      className={`rounded-full border px-3 py-1 text-[10px] font-bold uppercase tracking-wider ${
+        activeStep >= index
+          ? "border-[#FFD100] bg-[#FFD100] text-black"
+          : "border-neutral-700 bg-neutral-900 text-neutral-400"
+      }`}
+    >
+      {index}. {title}
+    </div>
+  );
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-20 pb-24 px-4 font-sans text-black selection:bg-[#FFD100] antialiased">
-      {/* AM MODIFICAT MAX-W-5XL în MAX-W-4XL PENTRU O CENTRARE PERFECTĂ PE DESKTOP */}
-      <div className="max-w-4xl mx-auto">
-        
-        {/* HEADER TERMINAL */}
-        <div className="mb-10 text-center">
-          <div className="flex justify-center items-center gap-2 mb-4">
-            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-            <span className="text-[10px] font-black uppercase tracking-[0.2em] italic text-gray-400">AI Evaluator Activ</span>
-          </div>
-          <h1 className="text-5xl md:text-7xl font-black uppercase italic tracking-tighter mb-4">
-            Cât <span className="text-[#FFD100]">Valorează?</span>
+    <div className="min-h-screen bg-black px-4 pb-16 pt-20 text-white antialiased">
+      <div className="mx-auto max-w-5xl">
+        <div className="mb-8 text-center">
+          <p className="text-xs font-bold uppercase tracking-[0.22em] text-neutral-400">Quick Exit Terminal</p>
+          <h1 className="mt-3 text-4xl font-black uppercase italic tracking-tight md:text-6xl">
+            Evaluare <span className="text-[#FFD100]">Lichiditate</span>
           </h1>
-          <p className="text-xs md:text-sm font-bold text-gray-500 uppercase italic tracking-widest max-w-xl mx-auto leading-relaxed">
-            Primul marketplace din România cu evaluator AI integrat. Analizăm piața în timp real și scanăm mii de anunțuri similare cu produsul tău.
+          <p className="mx-auto mt-4 max-w-2xl text-sm font-semibold uppercase tracking-widest text-neutral-300">
+            Nu vindem visuri. Calculam lichiditate.
           </p>
         </div>
 
-        <div className="bg-white p-6 md:p-10 rounded-[2.5rem] border-[4px] border-black shadow-[10px_10px_0_0_rgba(0,0,0,1)] md:shadow-[15px_15px_0_0_rgba(0,0,0,1)] relative overflow-hidden">
-          <div className="absolute top-0 right-0 p-8 opacity-5 pointer-events-none">
-            <Search size={150} strokeWidth={3} />
-          </div>
+        <div className="mb-8 flex flex-wrap justify-center gap-2">
+          <StepPill index={1} title="Alege categoria" />
+          <StepPill index={2} title="Completeaza detaliile" />
+          <StepPill index={3} title="Scanare piata" />
+          <StepPill index={4} title="Rezultat + actiune" />
+        </div>
 
-          {/* PASUL 1: FORMULARUL GRANULAR */}
-          {step === 1 && (
-            <div className="space-y-8 relative z-10">
-              
-              <div>
-                <h2 className="text-lg md:text-xl font-black uppercase italic mb-4">1. Selectează Categoria</h2>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  {categoriesList.map((cat) => (
-                    <button 
-                      key={cat}
-                      onClick={() => setCategory(cat)}
-                      className={`p-3 md:p-4 border-[3px] rounded-xl font-black uppercase text-[10px] md:text-xs italic transition-all ${category === cat ? 'border-black bg-black text-[#FFD100] shadow-[4px_4px_0_0_rgba(0,0,0,1)]' : 'border-gray-200 hover:border-black hover:bg-gray-50'}`}
+        <div className="rounded-[2rem] border-4 border-white bg-neutral-950 p-6 shadow-[10px_10px_0_0_rgba(255,255,255,0.2)] md:p-10">
+          {phase !== "result" && (
+            <>
+              <section className="mb-8">
+                <h2 className="mb-4 text-xl font-black uppercase italic">1. Alege categoria</h2>
+                <div className="grid gap-4 md:grid-cols-3">
+                  {CATEGORY_OPTIONS.map((opt) => (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => setCategory(opt.id)}
+                      className={`rounded-2xl border-2 p-5 text-left transition-all ${
+                        category === opt.id
+                          ? "border-[#FFD100] bg-[#FFD100] text-black"
+                          : "border-neutral-700 bg-neutral-900 hover:border-neutral-400"
+                      }`}
                     >
-                      {cat}
+                      <p className="text-sm font-black uppercase tracking-wider">{opt.title}</p>
+                      <p className="mt-2 text-xs font-semibold uppercase tracking-wide opacity-80">{opt.hint}</p>
                     </button>
                   ))}
                 </div>
-              </div>
+              </section>
 
-              <div className="pt-6 border-t-2 border-gray-100">
-                <h2 className="text-lg md:text-xl font-black uppercase italic mb-6">2. Date Tehnice (Precizie AI)</h2>
-                {/* GRILA ADAPTATĂ PENTRU A FI COMPACTĂ */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-5">
-                  
-                  {/* AUTO & MOTO */}
-                  {category === 'Auto & Moto' && (
+              <section>
+                <h2 className="mb-4 text-xl font-black uppercase italic">2. Completeaza detaliile</h2>
+                <div className="grid gap-4 md:grid-cols-2">
+                  {category === "auto" && (
                     <>
-                      <div><label className="text-[10px] font-black uppercase tracking-widest text-gray-500">Marcă</label>
-                      <input type="text" placeholder="Ex: Audi" value={formData.make} onChange={(e) => setFormData({...formData, make: e.target.value})} className="w-full mt-2 p-3 md:p-4 border-[3px] border-black rounded-xl font-bold uppercase focus:outline-none focus:bg-[#FFD100]/10" /></div>
-                      <div><label className="text-[10px] font-black uppercase tracking-widest text-gray-500">Model</label>
-                      <input type="text" placeholder="Ex: A4" value={formData.model} onChange={(e) => setFormData({...formData, model: e.target.value})} className="w-full mt-2 p-3 md:p-4 border-[3px] border-black rounded-xl font-bold uppercase focus:outline-none focus:bg-[#FFD100]/10" /></div>
-                      <div><label className="text-[10px] font-black uppercase tracking-widest text-gray-500">An Fabricație</label>
-                      <input type="number" placeholder="2021" value={formData.year} onChange={(e) => setFormData({...formData, year: e.target.value})} className="w-full mt-2 p-3 md:p-4 border-[3px] border-black rounded-xl font-bold focus:outline-none focus:bg-gray-50" /></div>
-                      <div><label className="text-[10px] font-black uppercase tracking-widest text-gray-500">Rulaj (KM Curenți)</label>
-                      <input type="number" placeholder="85000" value={formData.km} onChange={(e) => setFormData({...formData, km: e.target.value})} className="w-full mt-2 p-3 md:p-4 border-[3px] border-black rounded-xl font-bold focus:outline-none focus:bg-gray-50" /></div>
-                      <div><label className="text-[10px] font-black uppercase tracking-widest text-gray-500">Combustibil</label>
-                      <select value={formData.fuel} onChange={(e) => setFormData({...formData, fuel: e.target.value})} className="w-full mt-2 p-3 md:p-4 border-[3px] border-black rounded-xl font-bold uppercase focus:outline-none focus:bg-gray-50 appearance-none"><option>Benzină</option><option>Diesel</option><option>Hibrid</option><option>Electric</option></select></div>
-                      <div><label className="text-[10px] font-black uppercase tracking-widest text-gray-500">Motorizare / CP</label>
-                      <input type="text" placeholder="Ex: 2.0 / 190 CP" value={formData.engine} onChange={(e) => setFormData({...formData, engine: e.target.value})} className="w-full mt-2 p-3 md:p-4 border-[3px] border-black rounded-xl font-bold uppercase focus:outline-none focus:bg-gray-50" /></div>
-                      <div><label className="text-[10px] font-black uppercase tracking-widest text-gray-500">Cutie de viteze</label>
-                      <select value={formData.transmission} onChange={(e) => setFormData({...formData, transmission: e.target.value})} className="w-full mt-2 p-3 md:p-4 border-[3px] border-black rounded-xl font-bold uppercase focus:outline-none focus:bg-gray-50 appearance-none"><option>Automată</option><option>Manuală</option></select></div>
-                      <div><label className="text-[10px] font-black uppercase tracking-widest text-gray-500">Caroserie</label>
-                      <select value={formData.bodyType} onChange={(e) => setFormData({...formData, bodyType: e.target.value})} className="w-full mt-2 p-3 md:p-4 border-[3px] border-black rounded-xl font-bold uppercase focus:outline-none focus:bg-gray-50 appearance-none"><option>Sedan</option><option>SUV</option><option>Coupe</option><option>Cabrio</option><option>Off-Road</option></select></div>
-                      <div><label className="text-[10px] font-black uppercase tracking-widest text-gray-500">TVA DEDUCTIBIL?</label>
-                      <select value={formData.tva} onChange={(e) => setFormData({...formData, tva: e.target.value})} className="w-full mt-2 p-3 md:p-4 border-[3px] border-black rounded-xl font-bold uppercase focus:outline-none focus:bg-gray-50 appearance-none"><option>Nu (Vânzător PF)</option><option>Da (Vânzător PJ)</option></select></div>
+                      <input placeholder="Marca" value={formData.make} onChange={(e) => setFormData({ ...formData, make: e.target.value })} className="input" />
+                      <input placeholder="Model" value={formData.model} onChange={(e) => setFormData({ ...formData, model: e.target.value })} className="input" />
+                      <input placeholder="An" type="number" value={formData.year} onChange={(e) => setFormData({ ...formData, year: e.target.value })} className="input" />
+                      <input placeholder="Kilometraj (km)" type="number" value={formData.km} onChange={(e) => setFormData({ ...formData, km: e.target.value })} className="input" />
                     </>
                   )}
 
-                  {/* IMOBILIARE */}
-                  {category === 'Imobiliare' && (
+                  {category === "imobiliare" && (
                     <>
-                      <div><label className="text-[10px] font-black uppercase tracking-widest text-gray-500">Tip Proprietate</label>
-                      <select value={formData.propType} onChange={(e) => setFormData({...formData, propType: e.target.value})} className="w-full mt-2 p-3 md:p-4 border-[3px] border-black rounded-xl font-bold uppercase focus:outline-none focus:bg-gray-50 appearance-none"><option>Apartament</option><option>Casă / Vilă</option><option>Teren</option><option>Spațiu Comercial</option></select></div>
-                      <div><label className="text-[10px] font-black uppercase tracking-widest text-gray-500">Suprafață Utilă (mp)</label>
-                      <input type="number" placeholder="Ex: 85" value={formData.surface} onChange={(e) => setFormData({...formData, surface: e.target.value})} className="w-full mt-2 p-3 md:p-4 border-[3px] border-black rounded-xl font-bold focus:outline-none focus:bg-gray-50" /></div>
-                      <div><label className="text-[10px] font-black uppercase tracking-widest text-gray-500">Număr Camere</label>
-                      <input type="number" placeholder="Ex: 3" value={formData.rooms} onChange={(e) => setFormData({...formData, rooms: e.target.value})} className="w-full mt-2 p-3 md:p-4 border-[3px] border-black rounded-xl font-bold focus:outline-none focus:bg-gray-50" /></div>
-                      <div className="md:col-span-2"><label className="text-[10px] font-black uppercase tracking-widest text-gray-500">Localizare Exactă</label>
-                      <input type="text" placeholder="Ex: București, Sector 1" value={formData.location} onChange={(e) => setFormData({...formData, location: e.target.value})} className="w-full mt-2 p-3 md:p-4 border-[3px] border-black rounded-xl font-bold uppercase focus:outline-none focus:bg-gray-50" /></div>
-                      <div><label className="text-[10px] font-black uppercase tracking-widest text-gray-500">An Construcție</label>
-                      <input type="number" placeholder="Ex: 2023" value={formData.buildYear} onChange={(e) => setFormData({...formData, buildYear: e.target.value})} className="w-full mt-2 p-3 md:p-4 border-[3px] border-black rounded-xl font-bold focus:outline-none focus:bg-gray-50" /></div>
+                      <input placeholder="Tip proprietate" value={formData.property_type} onChange={(e) => setFormData({ ...formData, property_type: e.target.value })} className="input" />
+                      <input placeholder="Localizare" value={formData.location} onChange={(e) => setFormData({ ...formData, location: e.target.value })} className="input" />
+                      <input placeholder="Suprafata (mp)" type="number" value={formData.surface} onChange={(e) => setFormData({ ...formData, surface: e.target.value })} className="input" />
+                      <input placeholder="Numar camere" type="number" value={formData.rooms} onChange={(e) => setFormData({ ...formData, rooms: e.target.value })} className="input" />
                     </>
                   )}
 
-                  {/* LUX & CEASURI */}
-                  {category === 'Lux & Ceasuri' && (
+                  {(category === "lux" || category === "gadgets" || category === "foto") && (
                     <>
-                      <div><label className="text-[10px] font-black uppercase tracking-widest text-gray-500">Brand</label>
-                      <input type="text" placeholder="Ex: Rolex" value={formData.brand} onChange={(e) => setFormData({...formData, brand: e.target.value})} className="w-full mt-2 p-3 md:p-4 border-[3px] border-black rounded-xl font-bold uppercase focus:outline-none focus:bg-gray-50" /></div>
-                      <div><label className="text-[10px] font-black uppercase tracking-widest text-gray-500">Model & Referință</label>
-                      <input type="text" placeholder="Ex: Submariner" value={formData.refModel} onChange={(e) => setFormData({...formData, refModel: e.target.value})} className="w-full mt-2 p-3 md:p-4 border-[3px] border-black rounded-xl font-bold uppercase focus:outline-none focus:bg-gray-50" /></div>
-                      <div><label className="text-[10px] font-black uppercase tracking-widest text-gray-500">Pachet & Proveniență</label>
-                      <select value={formData.boxPapers} onChange={(e) => setFormData({...formData, boxPapers: e.target.value})} className="w-full mt-2 p-3 md:p-4 border-[3px] border-black rounded-xl font-bold uppercase focus:outline-none focus:bg-gray-50 appearance-none"><option>Full Set (Cutie + Acte)</option><option>Doar Ceasul</option><option>Ceas + Cutie</option></select></div>
+                      <input placeholder="Brand" value={formData.brand} onChange={(e) => setFormData({ ...formData, brand: e.target.value })} className="input" />
+                      <input placeholder="Model" value={formData.model} onChange={(e) => setFormData({ ...formData, model: e.target.value })} className="input" />
+                      <input placeholder="Stare" value={formData.condition} onChange={(e) => setFormData({ ...formData, condition: e.target.value })} className="input" />
+                      <input placeholder="An (optional)" value={formData.optionalYear} onChange={(e) => setFormData({ ...formData, optionalYear: e.target.value })} className="input" />
                     </>
                   )}
 
-                  {/* AFACERI DE VÂNZARE */}
-                  {category === 'Afaceri de vânzare' && (
+                  {category === "business" && (
                     <>
-                      <div className="sm:col-span-2"><label className="text-[10px] font-black uppercase tracking-widest text-gray-500">Domeniu de Activitate</label>
-                      <input type="text" placeholder="Ex: E-commerce, Restaurant, Producție" value={formData.businessDomain} onChange={(e) => setFormData({...formData, businessDomain: e.target.value})} className="w-full mt-2 p-3 md:p-4 border-[3px] border-black rounded-xl font-bold uppercase focus:outline-none focus:bg-gray-50" /></div>
-                      <div><label className="text-[10px] font-black uppercase tracking-widest text-gray-500">Cifră Afaceri Anuală (€)</label>
-                      <input type="number" placeholder="Ex: 250000" value={formData.revenue} onChange={(e) => setFormData({...formData, revenue: e.target.value})} className="w-full mt-2 p-3 md:p-4 border-[3px] border-black rounded-xl font-bold focus:outline-none focus:bg-gray-50" /></div>
-                    </>
-                  )}
-
-                  {/* GADGETS / FOTO */}
-                  {(category === 'Gadgets' || category === 'Foto & Audio') && (
-                    <>
-                      <div className="sm:col-span-2"><label className="text-[10px] font-black uppercase tracking-widest text-gray-500">Brand & Model Exact</label>
-                      <input type="text" placeholder="Ex: Apple MacBook Pro M3 Max" value={formData.brand} onChange={(e) => setFormData({...formData, brand: e.target.value})} className="w-full mt-2 p-3 md:p-4 border-[3px] border-black rounded-xl font-bold uppercase focus:outline-none focus:bg-gray-50" /></div>
-                      <div><label className="text-[10px] font-black uppercase tracking-widest text-gray-500">Garanție Rămasă</label>
-                      <input type="text" placeholder="Ex: 12 Luni" value={formData.warranty} onChange={(e) => setFormData({...formData, warranty: e.target.value})} className="w-full mt-2 p-3 md:p-4 border-[3px] border-black rounded-xl font-bold uppercase focus:outline-none focus:bg-gray-50" /></div>
+                      <input placeholder="Domeniu" value={formData.industry} onChange={(e) => setFormData({ ...formData, industry: e.target.value })} className="input" />
+                      <input placeholder="Venit anual (EUR)" type="number" value={formData.revenue} onChange={(e) => setFormData({ ...formData, revenue: e.target.value })} className="input" />
+                      <input placeholder="Locatie" value={formData.location} onChange={(e) => setFormData({ ...formData, location: e.target.value })} className="input md:col-span-2" />
                     </>
                   )}
                 </div>
 
-                <div className="mt-8 pt-8 border-t-2 border-gray-100">
-                  <button 
-                    onClick={triggerAI} 
-                    disabled={isAnalyzing}
-                    className="w-full bg-black text-[#FFD100] py-5 md:py-6 rounded-2xl font-black uppercase tracking-widest text-base md:text-xl italic hover:bg-gray-900 transition-colors shadow-[6px_6px_0_0_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none disabled:opacity-50"
-                  >
-                    {isAnalyzing ? "Scanăm piața..." : "Află Valoarea Reală →"}
-                  </button>
-                  <p className="text-center text-[9px] md:text-[10px] font-bold text-gray-400 mt-4 uppercase tracking-widest px-4">
-                    Asigură-te că introduci exact marca și modelul (ex: Audi / A4) pentru ca algoritmul să găsească referințe.
-                  </p>
-                </div>
-              </div>
-            </div>
+                <p className="mt-4 text-xs font-bold uppercase tracking-wider text-neutral-400">
+                  Cu cat datele sunt mai exacte, cu atat raportul va fi mai precis.
+                </p>
+
+                <button
+                  type="button"
+                  onClick={runEvaluation}
+                  disabled={phase === "loading"}
+                  className="mt-6 w-full rounded-2xl border-2 border-[#FFD100] bg-[#FFD100] px-6 py-4 text-sm font-black uppercase tracking-widest text-black transition hover:bg-yellow-300 disabled:opacity-60"
+                >
+                  3. Scanare piata
+                </button>
+              </section>
+            </>
           )}
 
-          {/* PASUL 2: REZULTATE */}
-          {step === 2 && evaluationResult && (
-            <div className="animate-in fade-in slide-in-from-bottom-8 duration-500">
-              
-              {evaluationResult.data_quality_label === "vip_asset" ? (
-                
-                /* Ecran dedicat asset-urilor comerciale mari excluse de la evaluare automată */
-                <div className="text-center py-10">
-                  <h3 className="text-4xl md:text-5xl font-black italic uppercase tracking-tighter leading-none mb-6">
-                    Activ <span className="text-red-600">Complex</span> Identificat.
-                  </h3>
-                  <p className="text-xs font-bold uppercase italic tracking-widest text-gray-500 leading-relaxed mb-10 max-w-lg mx-auto">
-                    Algoritmul necesită o validare manuală pentru acest model rar. Consultanții noștri te vor contacta pentru o evaluare de precizie.
+          {phase === "loading" && (
+            <section className="space-y-4 py-10 text-center">
+              <Clock3 className="mx-auto h-10 w-10 animate-pulse text-[#FFD100]" />
+              <p className="text-lg font-black uppercase tracking-wider">{LOADING_MESSAGES[loadingIndex]}</p>
+              <p className="text-xs font-semibold uppercase tracking-widest text-neutral-400">Analiza ruleaza in timp real</p>
+            </section>
+          )}
+
+          {phase === "result" && result && (
+            <section>
+              {result.data_quality_label === "vip_asset" ? (
+                <div className="rounded-3xl border-2 border-[#FFD100] bg-neutral-900 p-8 text-center">
+                  <h3 className="text-3xl font-black uppercase italic">Activ exclusivist detectat</h3>
+                  <p className="mx-auto mt-4 max-w-2xl text-sm font-semibold text-neutral-300">
+                    Acest activ depaseste zona de evaluare automata standard. Poti seta manual pretul de referinta sau poti solicita evaluare asistata.
                   </p>
-                  <div className="flex flex-col md:flex-row justify-center gap-4">
-                    <Link href="/posteaza-cerere" className="w-full md:w-auto bg-black text-[#FFD100] px-10 py-4 rounded-2xl font-black uppercase tracking-widest text-xs italic shadow-[4px_4px_0_0_rgba(0,0,0,1)] hover:translate-y-1 transition-transform">
-                      Evaluare Manuală
-                    </Link>
-                    <button onClick={() => setStep(1)} className="w-full md:w-auto border-[3px] border-black px-10 py-4 rounded-2xl font-black uppercase tracking-widest text-xs italic shadow-[4px_4px_0_0_rgba(0,0,0,1)] hover:bg-gray-50">
-                      Altă Căutare
-                    </button>
+                  <div className="mt-6 flex flex-col gap-3 md:flex-row md:justify-center">
+                    <Link href="/pune-anunt" className="rounded-xl border-2 border-white px-6 py-3 text-xs font-black uppercase tracking-wider">Setez manual pretul</Link>
+                    <Link href="/posteaza-cerere" className="rounded-xl border-2 border-[#FFD100] bg-[#FFD100] px-6 py-3 text-xs font-black uppercase tracking-wider text-black">Solicit evaluare premium</Link>
                   </div>
                 </div>
-
-              ) : !evaluationResult.estimated_market_price ? (
-
-                /* Date din piață insuficiente / preț 0 — nu e același caz cu VIP-ul API */
-                <div className="text-center py-10">
-                  <h3 className="text-3xl md:text-4xl font-black italic uppercase tracking-tighter leading-none mb-6">
-                    Date de piață <span className="text-orange-600">insuficiente</span>.
-                  </h3>
-                  <p className="text-xs font-bold uppercase italic tracking-widest text-gray-500 leading-relaxed mb-10 max-w-lg mx-auto">
-                    Nu am putut extrage suficiente prețuri comparative din rezultatele curente. Completează câmpuri mai precise sau solicită evaluare manuală.
+              ) : result.data_quality_label === "low_data" ? (
+                <div className="rounded-3xl border-2 border-orange-400 bg-neutral-900 p-8 text-center">
+                  <h3 className="text-3xl font-black uppercase italic">Piata subtire pentru acest activ</h3>
+                  <p className="mx-auto mt-4 max-w-2xl text-sm font-semibold text-neutral-300">
+                    Nu avem suficiente semnale curate pentru o estimare de precizie ridicata. Poti continua cu un pret manual, iar Quick Exit iti va calcula strategia de lichidare.
                   </p>
-                  <div className="flex flex-col md:flex-row justify-center gap-4">
-                    <Link href="/posteaza-cerere" className="w-full md:w-auto bg-black text-[#FFD100] px-10 py-4 rounded-2xl font-black uppercase tracking-widest text-xs italic shadow-[4px_4px_0_0_rgba(0,0,0,1)] hover:translate-y-1 transition-transform">
-                      Evaluare Manuală
-                    </Link>
-                    <button onClick={() => setStep(1)} className="w-full md:w-auto border-[3px] border-black px-10 py-4 rounded-2xl font-black uppercase tracking-widest text-xs italic shadow-[4px_4px_0_0_rgba(0,0,0,1)] hover:bg-gray-50">
-                      Altă Căutare
-                    </button>
+                  <div className="mt-6">
+                    <Link href="/pune-anunt" className="rounded-xl border-2 border-[#FFD100] bg-[#FFD100] px-6 py-3 text-xs font-black uppercase tracking-wider text-black">Continui cu pret manual</Link>
                   </div>
                 </div>
-
               ) : (
-
-                /* ECRANUL DE SUCCES */
-                <div>
-                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-6 border-b-[4px] border-black pb-6">
+                <>
+                  <div className="mb-6 flex flex-col gap-3 rounded-2xl border border-neutral-700 bg-neutral-900 p-4 md:flex-row md:items-center md:justify-between">
                     <div>
-                      <div className="flex items-center gap-2 mb-2">
-                        <ShieldCheck size={18} className="text-green-600" />
-                        <span className="text-[10px] font-black uppercase tracking-widest italic text-gray-500">Analiză Validată de Piață</span>
-                      </div>
-                      <h3 className="text-4xl md:text-6xl font-black italic uppercase tracking-tighter leading-none">
-                        Valoarea <span className="text-[#FFD100]">Reală</span>.
-                      </h3>
+                      <p className="text-xs font-black uppercase tracking-widest text-neutral-300">4. Rezultat + actiune</p>
+                      <p className="mt-1 text-lg font-black uppercase">{qualityLabel}</p>
                     </div>
-                    <div className="bg-gray-50 p-4 rounded-2xl text-center min-w-[120px] border-[3px] border-black shadow-[4px_4px_0_0_rgba(0,0,0,1)] self-start sm:self-auto">
-                      <p className="text-[9px] font-black uppercase text-gray-500 mb-1 tracking-widest">Încredere AI</p>
-                      <p className={`text-3xl md:text-4xl font-black ${evaluationResult.confidence_score >= 70 ? 'text-green-600' : 'text-orange-500'}`}>
-                        {evaluationResult.confidence_score || 0}%
-                      </p>
+                    <div className="text-right">
+                      <p className="text-xs font-semibold uppercase tracking-wider text-neutral-400">Surse analizate</p>
+                      <p className="text-2xl font-black">{analyzedSources}</p>
                     </div>
                   </div>
 
-                  {/* INFO BAR - EXPLICAREA DATELOR */}
-                  <div className={`mb-8 p-4 rounded-xl border-[2px] flex items-start gap-4 ${evaluationResult.data_quality_label === 'market_index' ? 'bg-orange-50 border-orange-200 text-orange-800' : evaluationResult.data_quality_label === 'platform_market' ? 'bg-green-50 border-green-200 text-green-800' : 'bg-gray-100 border-gray-300 text-gray-600'}`}>
-                    <Info size={20} className="mt-1 flex-shrink-0" />
-                    <div>
-                      <p className="font-bold text-xs md:text-sm uppercase tracking-widest mb-1">Status AI Evaluator:</p>
-                      <p className="text-[11px] md:text-xs italic leading-relaxed">{evaluationResult.explanation || "Algoritmul a calculat prețul folosind comparabile disponibile."}</p>
-                      {evaluationResult.data_quality_label !== 'low_data' && (
-                        <p className="text-[9px] md:text-[10px] mt-2 font-bold opacity-70 uppercase tracking-widest">
-                          Sursă calcul: {evaluationResult.live_comparable_count} anunțuri platformă | {evaluationResult.seed_comparable_count} index piață externă.
+                  <div className="mb-6 grid gap-4 md:grid-cols-2">
+                    <div className="rounded-2xl border-2 border-white bg-neutral-950 p-5">
+                      <p className="text-xs font-bold uppercase tracking-widest text-neutral-400">Pret piata estimat</p>
+                      <p className="mt-2 text-3xl font-black">{formatPrice(result.estimated_market_price)}</p>
+                    </div>
+                    <div className="rounded-2xl border-2 border-[#FFD100] bg-[#FFD100] p-5 text-black">
+                      <p className="text-xs font-bold uppercase tracking-widest">Quick Exit Price</p>
+                      <p className="mt-1 text-xs font-semibold uppercase">recomandat pentru vanzare accelerata</p>
+                      <p className="mt-2 text-3xl font-black">{formatPrice(result.quick_exit_price)}</p>
+                    </div>
+                    <div className="rounded-2xl border-2 border-neutral-600 bg-neutral-900 p-5">
+                      <p className="text-xs font-bold uppercase tracking-widest text-neutral-300">Strong Exit Price</p>
+                      <p className="mt-1 text-xs font-semibold uppercase text-neutral-400">vanzare rapida cu discount controlat</p>
+                      <p className="mt-2 text-3xl font-black">{formatPrice(result.strong_exit_price)}</p>
+                    </div>
+                    <div className="rounded-2xl border-2 border-red-400 bg-neutral-900 p-5">
+                      <p className="text-xs font-bold uppercase tracking-widest text-red-300">Liquidation Price</p>
+                      <p className="mt-1 text-xs font-semibold uppercase text-neutral-400">cash rapid / lichidare agresiva</p>
+                      <p className="mt-2 text-3xl font-black">{formatPrice(result.liquidation_price)}</p>
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-neutral-700 bg-neutral-900 p-4">
+                    <div className="flex items-start gap-3">
+                      <ShieldCheck className="mt-1 h-5 w-5 text-[#FFD100]" />
+                      <div>
+                        <p className="text-sm font-semibold text-neutral-200">{typeof result.explanation === "string" ? result.explanation : "Estimare disponibila."}</p>
+                        <p className="mt-2 text-xs font-semibold uppercase tracking-widest text-neutral-400">
+                          {result.cache_hit ? "Rezultat recalculat recent" : "Evaluare generata acum"}
                         </p>
-                      )}
+                      </div>
                     </div>
                   </div>
 
-                  <p className="text-[10px] md:text-xs uppercase italic font-black text-black mb-4 tracking-widest">Opțiunile tale de vânzare bazate pe piața actuală:</p>
-
-                  {/* NOUA GRILĂ SIMETRICĂ (3 SUS, 1 MARE JOS) */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                    
-                    {/* OPTIUNEA 1: STANDARD */}
-                    <div className="p-5 bg-white rounded-2xl border-[3px] border-black flex flex-col justify-between shadow-[4px_4px_0_0_rgba(0,0,0,1)] hover:bg-gray-50 transition-colors">
-                      <div>
-                        <p className="text-[11px] font-black uppercase text-gray-500 mb-1 italic tracking-widest">Piață (Standard)</p>
-                        <p className="text-[9px] font-bold uppercase text-gray-400 mb-4 italic">Max 30 zile valabilitate</p>
-                      </div>
-                      <p className="text-2xl md:text-3xl font-black italic">{formatPrice(evaluationResult.estimated_market_price)}</p>
-                    </div>
-                    
-                    {/* OPTIUNEA 2: VANZARE RAPIDA */}
-                    <div className="p-5 bg-white rounded-2xl border-[3px] border-black flex flex-col justify-between shadow-[4px_4px_0_0_rgba(0,0,0,1)] hover:bg-gray-50 transition-colors">
-                      <div>
-                        <p className="text-[11px] font-black uppercase text-black mb-1 italic tracking-widest">Vânzare Rapidă</p>
-                        <p className="text-[9px] font-bold uppercase text-gray-500 mb-4 italic">Interval 7-14 zile</p>
-                      </div>
-                      <p className="text-2xl md:text-3xl font-black italic">{formatPrice(evaluationResult.quick_exit_price)}</p>
-                    </div>
-
-                    {/* OPTIUNEA 3: LICITATIE SNIPER */}
-                    <div className="p-5 bg-gray-900 text-white rounded-2xl border-[3px] border-black flex flex-col justify-between shadow-[4px_4px_0_0_rgba(0,0,0,1)] transition-transform hover:-translate-y-1">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <p className="text-[11px] font-black uppercase text-[#FFD100] mb-1 italic tracking-widest">Licitație Sniper</p>
-                          <p className="text-[9px] font-bold uppercase text-gray-400 mb-4 italic">Start Recomandat</p>
-                        </div>
-                        <Gavel size={18} className="text-[#FFD100]" />
-                      </div>
-                      <p className="text-2xl md:text-3xl font-black italic">{formatPrice(evaluationResult.strong_exit_price)}</p>
-                    </div>
+                  <div className="mt-8 flex flex-col gap-3 md:flex-row">
+                    <Link href="/pune-anunt" className="flex-1 rounded-xl border-2 border-[#FFD100] bg-[#FFD100] px-6 py-4 text-center text-xs font-black uppercase tracking-widest text-black">
+                      Publica anunt cu pretul Quick Exit
+                    </Link>
+                    <Link href="/pune-anunt" className="flex-1 rounded-xl border-2 border-white px-6 py-4 text-center text-xs font-black uppercase tracking-widest">
+                      Aleg alta strategie
+                    </Link>
+                    <button onClick={() => setPhase("form")} className="flex-1 rounded-xl border-2 border-neutral-500 bg-neutral-900 px-6 py-4 text-xs font-black uppercase tracking-widest">
+                      Reiau evaluarea
+                    </button>
                   </div>
-
-                  {/* OPTIUNEA 4: QUICK EXIT (Ocupă toată lățimea jos) */}
-                  <div className="p-6 md:p-8 bg-[#FFD100] rounded-3xl border-[4px] border-black flex flex-col justify-between shadow-[8px_8px_0_0_rgba(0,0,0,1)] relative overflow-hidden transition-transform hover:scale-[1.01]">
-                    <Zap className="absolute -top-4 -right-4 text-black opacity-10" size={150} />
-                    <div className="flex justify-between items-start relative z-10">
-                      <div>
-                        <p className="text-sm md:text-base font-black uppercase text-black mb-1 italic tracking-widest">Quick Exit (Lichidare)</p>
-                        <p className="text-[10px] md:text-xs font-bold uppercase text-black/70 mb-4 md:mb-6 italic">Ofertă Cash în 48h</p>
-                      </div>
-                      <ArrowRight size={32} className="text-black hidden sm:block" />
-                    </div>
-                    <p className="text-5xl md:text-7xl font-black italic relative z-10">{formatPrice(evaluationResult.liquidation_price)}</p>
-                  </div>
-                  
-                  {/* SUBSOL ACȚIUNI */}
-                  <div className="mt-10 pt-6 border-t-[4px] border-black flex flex-col md:flex-row justify-between items-center gap-6">
-                    <div className="text-[9px] md:text-[10px] font-black uppercase italic text-gray-500 tracking-wider text-center md:text-left">
-                      Acest preț a fost calculat prin compararea a {evaluationResult.comparable_count || 0} anunțuri similare.
-                    </div>
-                    <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
-                      <Link href="/pune-anunt" className="w-full sm:w-auto bg-black text-[#FFD100] px-8 py-4 rounded-xl font-black uppercase tracking-widest text-xs italic shadow-[4px_4px_0_0_rgba(0,0,0,1)] text-center hover:translate-y-1 transition-transform">
-                        Vinde Acum
-                      </Link>
-                      <button onClick={() => setStep(1)} className="w-full sm:w-auto border-[3px] border-black bg-white px-8 py-4 rounded-xl font-black uppercase tracking-widest text-xs italic shadow-[4px_4px_0_0_rgba(0,0,0,1)] hover:bg-gray-50">
-                        Altă Evaluare
-                      </button>
-                    </div>
-                  </div>
-                </div>
+                </>
               )}
-            </div>
-          )}
 
+              <p className="mt-8 text-center text-[11px] font-semibold uppercase tracking-wider text-neutral-500">
+                Estimare orientativa, nu evaluare autorizata sau garantie de vanzare.
+              </p>
+            </section>
+          )}
         </div>
       </div>
+
+      <style jsx>{`
+        .input {
+          border: 2px solid #3f3f46;
+          background: #171717;
+          color: #fafafa;
+          border-radius: 0.9rem;
+          padding: 0.95rem 1rem;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.04em;
+          font-size: 0.78rem;
+        }
+        .input:focus {
+          outline: none;
+          border-color: #ffd100;
+          box-shadow: 0 0 0 2px rgba(255, 209, 0, 0.2);
+        }
+        .input::placeholder {
+          color: #737373;
+        }
+      `}</style>
     </div>
   );
 }
