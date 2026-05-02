@@ -332,8 +332,13 @@ async function fetchSerpOrganicLite(
   console.log("URL SerpApi complet:", url);
 
   const res = await fetch(url, {
-    headers: { Accept: "application/json" },
+    method: "GET",
+    headers: {
+      Accept: "application/json",
+      Connection: "keep-alive",
+    },
     cache: "no-store",
+    keepalive: true,
   });
 
   const raw = await res.json().catch(() => ({}));
