@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { createHash } from "node:crypto";
 import dns from "node:dns";
 import https from "https";
 
@@ -49,6 +50,37 @@ const extractJsonPayload = (rawText: string) => {
   }
   return trimmed;
 };
+
+const normalizeSigValue = (value: unknown) =>
+  String(value ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ");
+
+function getQuerySignature(body: Record<string, unknown>, catKey: string): string {
+  const details = (body.details as Record<string, unknown> | undefined) ?? {};
+  const extraDetails = (body.extraDetails as Record<string, unknown> | undefined) ?? {};
+  const pick = (...keys: string[]) => {
+    for (const key of keys) {
+      const value = body[key] ?? details[key] ?? extraDetails[key];
+      if (value !== undefined && value !== null && String(value).trim().length > 0) {
+        return value;
+      }
+    }
+    return "";
+  };
+
+  const signatureBase = [
+    normalizeSigValue(catKey),
+    normalizeSigValue(pick("make", "vehicle_make", "brand")),
+    normalizeSigValue(pick("model", "vehicle_model", "refModel")),
+    normalizeSigValue(pick("year", "vehicle_year", "buildYear")),
+    normalizeSigValue(pick("location")),
+    normalizeSigValue(pick("surface")),
+  ].join("|");
+
+  return createHash("sha256").update(signatureBase).digest("hex");
+}
 
 type SerpOrganicLite = {
   title: string;
@@ -542,7 +574,7 @@ export async function POST(req: NextRequest) {
     }
 
     const supabase = createClient(supabaseUrl, serviceRoleKey);
-    const body = await req.json();
+    const body = (await req.json()) as Record<string, unknown>;
     const catInput =
       typeof body.category === "string" ? body.category.toLowerCase() : "auto";
 
@@ -565,13 +597,22 @@ export async function POST(req: NextRequest) {
     const config = categoryConfig[catKey];
 
     const payloadString = JSON.stringify(body).toLowerCase();
+    const querySignature = getQuerySignature(body, catKey);
 
     /** Keyword VIP: cuvânt-întreg / frază, ca substring-uri gen „fabricație” să nu declanșeze VIP. */
     const vipMegaAssetKeywords =
-      /\b(?:resort|hotel|pensiune|aquapark|fabrica|hala|penthouse)\b|\bcomplex\s+turistic\b/;
+      /\b(?:resort|hotel|pensiune|aquapark|fabrica|hala)\b|\bcomplex\s+turistic\b/;
+    const mentionsPenthouse = /\bpenthouse\b/.test(payloadString);
 
     const surfaceNum = Number(body.surface);
     const revenueNum = Number(body.revenue);
+    const declaredPriceNum = Number(
+      body.price ?? body.estimated_market_price ?? body.asking_price ?? 0
+    );
+    const penthouseVip =
+      mentionsPenthouse &&
+      ((Number.isFinite(surfaceNum) && surfaceNum > 250) ||
+        (Number.isFinite(declaredPriceNum) && declaredPriceNum > 500_000));
 
     const isVipAsset =
       (catKey === "imobiliare" &&
@@ -580,7 +621,8 @@ export async function POST(req: NextRequest) {
       (catKey === "business" &&
         Number.isFinite(revenueNum) &&
         revenueNum > 500_000) ||
-      vipMegaAssetKeywords.test(payloadString);
+      vipMegaAssetKeywords.test(payloadString) ||
+      penthouseVip;
 
     if (isVipAsset) {
       return NextResponse.json({
@@ -600,7 +642,32 @@ export async function POST(req: NextRequest) {
         explanation:
           "Algoritmul a detectat un activ comercial sau exclusivist. Evaluările standard nu se pot aplica.",
         warnings: ["Activ VIP detectat. Necesită setare manuală a prețului."],
+        cache_hit: false,
       });
+    }
+
+    const nowIso = new Date().toISOString();
+    const { data: cacheRows, error: cacheReadError } = await supabase
+      .from("market_search_cache")
+      .select("normalized_result, expires_at")
+      .eq("query_signature", querySignature)
+      .gt("expires_at", nowIso)
+      .order("expires_at", { ascending: false })
+      .limit(1);
+
+    if (cacheReadError) {
+      console.warn("[evaluate] cache read skipped", {
+        reason: cacheReadError.message,
+      });
+    } else {
+      const cachedRow = Array.isArray(cacheRows) ? cacheRows[0] : null;
+      const cachedResult = cachedRow?.normalized_result;
+      if (cachedResult && typeof cachedResult === "object") {
+        return NextResponse.json({
+          ...(cachedResult as Record<string, unknown>),
+          cache_hit: true,
+        });
+      }
     }
 
     const warnings: string[] = [];
@@ -794,7 +861,7 @@ Prețuri: întregi ≥ 0. confidence_score: întreg între 1 și 99. explanation
       reportId = r?.id;
     }
 
-    return NextResponse.json({
+    const responsePayload = {
       success: true,
       category: catKey,
       estimated_market_price,
@@ -811,7 +878,30 @@ Prețuri: întregi ≥ 0. confidence_score: întreg între 1 și 99. explanation
       explanation,
       warnings,
       valuation_report_id: reportId,
-    });
+      cache_hit: false,
+    };
+
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+    const { error: cacheWriteError } = await supabase
+      .from("market_search_cache")
+      .upsert(
+        {
+          query_signature: querySignature,
+          category: catKey,
+          query_text: searchQuery,
+          normalized_result: responsePayload,
+          expires_at: expiresAt,
+        },
+        { onConflict: "query_signature" }
+      );
+
+    if (cacheWriteError) {
+      console.warn("[evaluate] cache write skipped", {
+        reason: cacheWriteError.message,
+      });
+    }
+
+    return NextResponse.json(responsePayload);
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : "Eroare necunoscută";
     return NextResponse.json({ success: false, error: message }, { status: 500 });
