@@ -417,6 +417,82 @@ async function fetchSerpOrganicLite(
   return { organic };
 }
 
+type GeminiFetchResponseLike = {
+  ok: boolean;
+  status: number;
+  statusText: string;
+  json: () => Promise<unknown>;
+  text: () => Promise<string>;
+};
+
+const normalizeHeaderRecord = (
+  headers: RequestInit["headers"]
+): Record<string, string> => {
+  if (!headers) return {};
+  if (headers instanceof Headers) {
+    return Object.fromEntries(headers.entries());
+  }
+  if (Array.isArray(headers)) {
+    return Object.fromEntries(headers);
+  }
+  return Object.entries(headers).reduce<Record<string, string>>((acc, [k, v]) => {
+    acc[k] = String(v);
+    return acc;
+  }, {});
+};
+
+const geminiFetch = async (
+  input: RequestInfo | URL,
+  init?: RequestInit
+): Promise<GeminiFetchResponseLike> => {
+  const url = typeof input === "string" || input instanceof URL ? new URL(input.toString()) : new URL(input.url);
+  const method = init?.method ?? "GET";
+  const headers = normalizeHeaderRecord(init?.headers);
+  const body =
+    typeof init?.body === "string"
+      ? init.body
+      : init?.body
+        ? String(init.body)
+        : undefined;
+
+  return new Promise<GeminiFetchResponseLike>((resolve, reject) => {
+    const req = https.request(
+      {
+        hostname: url.hostname,
+        port: url.port || 443,
+        path: `${url.pathname}${url.search}`,
+        method,
+        headers,
+      },
+      (incoming) => {
+        const chunks: Buffer[] = [];
+        incoming.on("data", (chunk: Buffer) => chunks.push(chunk));
+        incoming.on("error", reject);
+        incoming.on("end", () => {
+          const responseText = Buffer.concat(chunks).toString("utf8");
+          const status = incoming.statusCode ?? 0;
+          resolve({
+            ok: status >= 200 && status < 300,
+            status,
+            statusText: incoming.statusMessage ?? "",
+            async json() {
+              if (!responseText.trim()) return {};
+              return JSON.parse(responseText) as unknown;
+            },
+            async text() {
+              return responseText;
+            },
+          });
+        });
+      }
+    );
+
+    req.on("error", reject);
+    if (body) req.write(body);
+    req.end();
+  });
+};
+
 export async function POST(req: NextRequest) {
   try {
     if (!process.env.SERPAPI_KEY) {
@@ -580,14 +656,6 @@ export async function POST(req: NextRequest) {
       try {
         const genAI = new GoogleGenerativeAI(geminiApiKey);
 
-        const nativeFetch = globalThis.fetch.bind(globalThis) as typeof fetch;
-        const customFetch = (input: RequestInfo | URL, init?: RequestInit) => {
-          return nativeFetch(input, {
-            ...(init ?? {}),
-            keepalive: true,
-          });
-        };
-
         const geminiSystemInstruction =
           `
 Ești Sniper, evaluator financiar pentru QuickExit (lichidare rapidă).
@@ -613,7 +681,7 @@ Prețuri: întregi ≥ 0. confidence_score: întreg între 1 și 99. explanation
           { model: "gemini-1.5-flash" },
           {
             apiVersion: "v1",
-            customFetch,
+            customFetch: geminiFetch,
           } as RequestOptions & { customFetch: typeof fetch }
         );
 
@@ -631,9 +699,9 @@ Prețuri: întregi ≥ 0. confidence_score: întreg între 1 și 99. explanation
             "Extrage prețuri reale pentru comparabile și răspunde strict în schema JSON solicitată.",
         };
 
-        /** SDK 0.24.1 folosește `fetch` global, nu proprietatea customFetch din RequestOptions. */
+        /** SDK 0.24.1 ignoră customFetch în RequestOptions; forțăm fetch-ul global pe durata apelului. */
         const previousFetch = globalThis.fetch;
-        globalThis.fetch = customFetch as typeof globalThis.fetch;
+        globalThis.fetch = geminiFetch as typeof globalThis.fetch;
         let geminiResult: Awaited<ReturnType<typeof model.generateContent>>;
         try {
           geminiResult = await model.generateContent({
