@@ -466,12 +466,21 @@ export async function POST(req: NextRequest) {
 
     const payloadString = JSON.stringify(body).toLowerCase();
 
+    /** Keyword VIP: cuvânt-întreg / frază, ca substring-uri gen „fabricație” să nu declanșeze VIP. */
+    const vipMegaAssetKeywords =
+      /\b(?:resort|hotel|pensiune|aquapark|fabrica|hala|penthouse)\b|\bcomplex\s+turistic\b/;
+
+    const surfaceNum = Number(body.surface);
+    const revenueNum = Number(body.revenue);
+
     const isVipAsset =
-      (catKey === "imobiliare" && Number(body.surface) > 500) ||
-      (catKey === "business" && Number(body.revenue) > 500000) ||
-      payloadString.match(
-        /resort|hotel|pensiune|aquapark|fabrica|hala|complex turistic|penthouse/
-      );
+      (catKey === "imobiliare" &&
+        Number.isFinite(surfaceNum) &&
+        surfaceNum > 500) ||
+      (catKey === "business" &&
+        Number.isFinite(revenueNum) &&
+        revenueNum > 500_000) ||
+      vipMegaAssetKeywords.test(payloadString);
 
     if (isVipAsset) {
       return NextResponse.json({
@@ -581,7 +590,7 @@ export async function POST(req: NextRequest) {
 
         const model = genAI.getGenerativeModel(
           {
-            model: "gemini-1.5-flash-latest",
+            model: "gemini-1.5-flash",
             systemInstruction: `
 Ești Sniper, evaluator financiar pentru QuickExit (lichidare rapidă).
 Primești ca intrare rezultate de căutare Google BRUTE (organic_results din SerpApi) de pe și spre portaluri cu anunțuri din România.
@@ -605,7 +614,10 @@ Prețuri: întregi ≥ 0. confidence_score: întreg între 1 și 99. explanation
               responseMimeType: "application/json",
             },
           },
-          { customFetch } as RequestOptions & { customFetch: typeof fetch }
+          {
+            apiVersion: "v1",
+            customFetch,
+          } as RequestOptions & { customFetch: typeof fetch }
         );
 
         const geminiPrompt = {

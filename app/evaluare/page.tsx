@@ -221,15 +221,35 @@ export default function EvaluationPage() {
           {step === 2 && evaluationResult && (
             <div className="animate-in fade-in slide-in-from-bottom-8 duration-500">
               
-              {!evaluationResult.estimated_market_price ? (
+              {evaluationResult.data_quality_label === "vip_asset" ? (
                 
-                /* ECRANUL VIP (DACA NU GĂSEȘTE DATE EXACTE) */
+                /* Ecran dedicat asset-urilor comerciale mari excluse de la evaluare automată */
                 <div className="text-center py-10">
                   <h3 className="text-4xl md:text-5xl font-black italic uppercase tracking-tighter leading-none mb-6">
                     Activ <span className="text-red-600">Complex</span> Identificat.
                   </h3>
                   <p className="text-xs font-bold uppercase italic tracking-widest text-gray-500 leading-relaxed mb-10 max-w-lg mx-auto">
                     Algoritmul necesită o validare manuală pentru acest model rar. Consultanții noștri te vor contacta pentru o evaluare de precizie.
+                  </p>
+                  <div className="flex flex-col md:flex-row justify-center gap-4">
+                    <Link href="/posteaza-cerere" className="w-full md:w-auto bg-black text-[#FFD100] px-10 py-4 rounded-2xl font-black uppercase tracking-widest text-xs italic shadow-[4px_4px_0_0_rgba(0,0,0,1)] hover:translate-y-1 transition-transform">
+                      Evaluare Manuală
+                    </Link>
+                    <button onClick={() => setStep(1)} className="w-full md:w-auto border-[3px] border-black px-10 py-4 rounded-2xl font-black uppercase tracking-widest text-xs italic shadow-[4px_4px_0_0_rgba(0,0,0,1)] hover:bg-gray-50">
+                      Altă Căutare
+                    </button>
+                  </div>
+                </div>
+
+              ) : !evaluationResult.estimated_market_price ? (
+
+                /* Date din piață insuficiente / preț 0 — nu e același caz cu VIP-ul API */
+                <div className="text-center py-10">
+                  <h3 className="text-3xl md:text-4xl font-black italic uppercase tracking-tighter leading-none mb-6">
+                    Date de piață <span className="text-orange-600">insuficiente</span>.
+                  </h3>
+                  <p className="text-xs font-bold uppercase italic tracking-widest text-gray-500 leading-relaxed mb-10 max-w-lg mx-auto">
+                    Nu am putut extrage suficiente prețuri comparative din rezultatele curente. Completează câmpuri mai precise sau solicită evaluare manuală.
                   </p>
                   <div className="flex flex-col md:flex-row justify-center gap-4">
                     <Link href="/posteaza-cerere" className="w-full md:w-auto bg-black text-[#FFD100] px-10 py-4 rounded-2xl font-black uppercase tracking-widest text-xs italic shadow-[4px_4px_0_0_rgba(0,0,0,1)] hover:translate-y-1 transition-transform">
