@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
+/** Convenție: lei → EUR pentru fallback-uri numerice în snippet-uri. */
+const EUR_PER_RON = 1 / 5.05;
+
 const toSafeInt = (value: unknown) => {
   const n = Number(value);
   if (!Number.isFinite(n)) return 0;
@@ -17,7 +20,10 @@ const toConfidence = (value: unknown) => {
 const percentile = (values: number[], p: number) => {
   if (!values.length) return 0;
   const sorted = [...values].sort((a, b) => a - b);
-  const idx = Math.max(0, Math.min(sorted.length - 1, Math.floor((sorted.length - 1) * p)));
+  const idx = Math.max(
+    0,
+    Math.min(sorted.length - 1, Math.floor((sorted.length - 1) * p))
+  );
   return sorted[idx];
 };
 
@@ -32,8 +38,17 @@ const extractJsonPayload = (rawText: string) => {
   return trimmed;
 };
 
-// --- CONFIGURAȚIA CELOR 6 CATEGORII (fără discounturi hardcodate) ---
-const categoryConfig: Record<string, { accepted: string[]; requiredFields: string[] }> = {
+type SerpOrganicLite = {
+  title: string;
+  snippet: string;
+  link: string;
+};
+
+// --- CONFIGURAȚIA CELOR 6 CATEGORII ---
+const categoryConfig: Record<
+  string,
+  { accepted: string[]; requiredFields: string[] }
+> = {
   auto: {
     accepted: ["Auto & Moto", "auto"],
     requiredFields: ["make", "model", "year"],
@@ -60,24 +75,234 @@ const categoryConfig: Record<string, { accepted: string[]; requiredFields: strin
   },
 };
 
+function tokenizeQuotedSearchParts(parts: string[]): string {
+  const inner = parts
+    .map((p) => String(p ?? "").trim())
+    .filter(Boolean)
+    .join(" ");
+  return inner.length ? `"${inner.replace(/"/g, "").slice(0, 180)}"` : "";
+}
+
+/** Construiește query-ul Google pentru SerpApi, pe categorii. */
+function buildSerpSearchQuery(body: Record<string, unknown>, catKey: string): string {
+  const details = (body.details as Record<string, unknown> | undefined) ?? {};
+
+  const get = (keys: string[]) => {
+    for (const k of keys) {
+      const v = body[k] ?? details[k];
+      const s =
+        typeof v === "number" ? String(v) : typeof v === "string" ? v : "";
+      if (s.trim()) return s.trim();
+    }
+    return "";
+  };
+
+  if (catKey === "auto") {
+    const make = get(["vehicle_make", "make"]);
+    const model = get(["vehicle_model", "model"]);
+    const year = get(["vehicle_year", "year"]);
+    const quoted = tokenizeQuotedSearchParts([make, model, year]);
+    const core = quoted || `"${make} ${model}`.trim();
+    return `site:autovit.ro OR site:olx.ro ${core}`.slice(0, 400);
+  }
+
+  if (catKey === "imobiliare") {
+    const title = get(["title"]);
+    const propType =
+      get(["prop_type", "property_type"]) ||
+      (body.extraDetails as Record<string, string> | undefined)?.propType ||
+      "apartament";
+    const loc = get(["location"]);
+    const surface = get(["surface"]);
+    const rooms =
+      get(["rooms"]) ||
+      (body.extraDetails as Record<string, string> | undefined)?.rooms ||
+      "";
+
+    const quoted = tokenizeQuotedSearchParts([
+      title || propType,
+      loc,
+      rooms && `${rooms} camere`,
+      surface && `${surface} mp`,
+    ]);
+
+    const tail = quoted || tokenizeQuotedSearchParts([propType, loc]);
+
+    return `site:olx.ro OR site:imobiliare.ro OR site:storia.ro OR site:lajumate.ro ${tail}`.slice(
+      0,
+      400
+    );
+  }
+
+  const title = get(["title"]);
+  const brand = get(["brand"]);
+  const model = get(["model"]);
+  const industry =
+    get(["businessDomain", "industry"]) ||
+    (body.extraDetails as Record<string, string> | undefined)?.businessDomain ||
+    "";
+
+  if (catKey === "business") {
+    const quoted = tokenizeQuotedSearchParts(
+      [title || "afacere", industry].filter(Boolean)
+    );
+    const core = quoted || `"afacere România"`;
+    return `site:olx.ro OR site:lajumate.ro OR site:intreprinzator.ro ${core}`.slice(
+      0,
+      400
+    );
+  }
+
+  const gadgetSites =
+    "site:olx.ro OR site:emag.ro OR site:altex.ro OR site:pcgarage.ro";
+
+  const quoted = tokenizeQuotedSearchParts([title, brand, model]);
+  const fallbackCore =
+    quoted ||
+    tokenizeQuotedSearchParts(
+      [catKey === "lux" ? "ceas luxury" : "", brand, model].filter(Boolean)
+    ) ||
+    `${catKey} România`;
+
+  return `${gadgetSites} ${fallbackCore}`.slice(0, 400);
+}
+
+/** Parse numeric price token (format RO comun în snippet-uri Google). */
+function parseRoAdvertNumber(numPart: string): number | null {
+  const trimmed = numPart.replace(/\u00a0/g, " ").trim();
+  if (!trimmed) return null;
+
+  const noSpaces = trimmed.replace(/\s+/g, "");
+
+  if (/^\d{1,3}([.,]\d{3})+$/.test(noSpaces)) {
+    const asInt = noSpaces.replace(/[.,]/g, "");
+    const n = parseInt(asInt, 10);
+    return Number.isFinite(n) ? n : null;
+  }
+
+  if (/^\d{1,3}([.\s]\d{3})*(,\d{1,2})?$/.test(noSpaces.replace(/\./g, "."))) {
+    const hasCommaDecimals = /,\d{1,2}$/.test(noSpaces);
+
+    if (hasCommaDecimals) {
+      const main = noSpaces.replace(/,(.*)$/, "").replace(/\./g, "");
+      const n = parseFloat(main.replace(/,/g, "."));
+      return Number.isFinite(n) ? n : null;
+    }
+
+    const digits = noSpaces.replace(/\./g, "").replace(/\s/g, "");
+    const n = parseInt(digits, 10);
+    return Number.isFinite(n) ? n : null;
+  }
+
+  const simple = parseFloat(noSpaces.replace(/,/g, "."));
+  return Number.isFinite(simple) && simple >= 30 ? Math.round(simple) : null;
+}
+
+function extractPricesEURFromOrganic(
+  organic: SerpOrganicLite[],
+  catKey: string
+): number[] {
+  const text = organic.map((o) => `${o.title}\n${o.snippet}`).join("\n");
+
+  const skipContext = [
+    "/lună",
+    " lunar",
+    "leasing",
+    "avans",
+    "rate ",
+    "/mo",
+    "schi",
+    "schimb ",
+    "piesă",
+    "piese",
+    "dezmembr",
+  ];
+
+  const maxReasonable =
+    catKey === "imobiliare"
+      ? 50_000_000
+      : catKey === "business"
+        ? 100_000_000
+        : 2_500_000;
+  const minReasonableEUR =
+    catKey === "gadgets" || catKey === "foto"
+      ? 25
+      : catKey === "lux"
+        ? 75
+        : 400;
+
+  const eurVals: number[] = [];
+
+  const numericPrefix = String.raw`\b(\d[\d\s\u00a0.]{2,}?)`; // permite și prețuri mici în EUR
+  const eurRe = new RegExp(`${numericPrefix}\\s*(?:€|EUR|euro)\\b`, "gi");
+  const ronRe = new RegExp(
+    `${numericPrefix}\\s*(?:lei\\s*RON|lei\\b|RON\\b|r\\.\\s*lei)\\b`,
+    "gi"
+  );
+
+  const run = (r: RegExp, isEur: boolean) => {
+    let m: RegExpExecArray | null;
+    const copy = new RegExp(r.source, r.flags);
+
+    while ((m = copy.exec(text)) !== null) {
+      const start = Math.max(0, m.index - 28);
+      const ctx = text.slice(start, m.index + m[0].length).toLowerCase();
+
+      if (skipContext.some((s) => ctx.includes(s))) continue;
+
+      const raw = parseRoAdvertNumber(m[1]);
+      if (raw == null || raw < minReasonableEUR || raw > maxReasonable) continue;
+
+      const inEur = isEur ? raw : Math.round(raw * EUR_PER_RON);
+      if (Number.isFinite(inEur) && inEur >= minReasonableEUR) {
+        eurVals.push(inEur);
+      }
+    }
+  };
+
+  run(eurRe, true);
+  run(ronRe, false);
+
+  return [...new Set(eurVals)].sort((a, b) => a - b);
+}
+
 const buildDeterministicFallback = (params: {
-  comps: any[];
+  serpOrganic: SerpOrganicLite[];
   dataQualityLabel: string;
   liveCount: number;
   seedCount: number;
   warningsCount: number;
   dynamicExplanation: string;
+  extractedPricesEUR: number[];
+  catKey: string;
 }) => {
-  const { comps, liveCount, seedCount, warningsCount, dynamicExplanation } = params;
-  const usablePrices = (comps || [])
-    .map((item) => Number(item?.exit_price ?? item?.market_price ?? 0))
-    .filter((v) => Number.isFinite(v) && v > 0) as number[];
+  const {
+    serpOrganic,
+    liveCount,
+    seedCount,
+    warningsCount,
+    dynamicExplanation,
+    extractedPricesEUR,
+    catKey,
+  } = params;
+
+  const usablePrices =
+    extractedPricesEUR.length > 0
+      ? extractedPricesEUR
+      : extractPricesEURFromOrganic(serpOrganic, catKey);
 
   const marketBase = usablePrices.length ? percentile(usablePrices, 0.5) : 0;
   const quickExit = Math.round(marketBase * 0.86);
   const strongExit = Math.round(marketBase * 0.75);
   const liquidation = Math.round(marketBase * 0.58);
-  const confidenceRaw = 25 + Math.min(usablePrices.length, 25) * 2 + Math.min(liveCount, 10) * 2 - Math.min(seedCount, 10) - warningsCount * 3;
+
+  const priceSignal = usablePrices.length;
+  const confidenceRaw =
+    20 +
+    Math.min(priceSignal, 20) * 2 +
+    Math.min(liveCount, 15) +
+    Math.min(seedCount, 5) -
+    Math.min(warningsCount, 8) * 3;
 
   return {
     estimated_market_price: toSafeInt(marketBase),
@@ -87,118 +312,202 @@ const buildDeterministicFallback = (params: {
     confidence_score: toConfidence(confidenceRaw),
     explanation:
       `${dynamicExplanation} ` +
-      "Fallback-ul deterministic a folosit distribuția comparabilelor disponibile și discounturi fixe de lichidare rapidă pentru a menține stabilitatea evaluării.",
+      (usablePrices.length
+        ? "Fallback-ul deterministic a extras prețuri din titlurile și snippet-uri (EUR/lei) și a aplicat discounturi quick/strong/lichidare."
+        : "Fallback-ul nu a găsit suficiente prețuri interpretabile în texte — rezultatele rămân la 0 pentru a nu halucina sume."),
   };
 };
 
+async function fetchSerpOrganicLite(
+  searchQuery: string
+): Promise<{ organic: SerpOrganicLite[] }> {
+  const key = process.env.SERPAPI_KEY;
+
+  if (!key) throw new Error("SERPAPI_KEY missing");
+
+  const url = `https://serpapi.com/search.json?engine=google&q=${encodeURIComponent(
+    searchQuery
+  )}&api_key=${encodeURIComponent(key)}&gl=ro&hl=ro`;
+
+  const res = await fetch(url, {
+    headers: { Accept: "application/json" },
+    cache: "no-store",
+  });
+
+  const raw = await res.json().catch(() => ({}));
+
+  if (!res.ok) {
+    const msg =
+      typeof raw?.error === "string" ? raw.error : `SerpApi HTTP ${res.status}`;
+    throw new Error(msg);
+  }
+
+  if (typeof raw?.error === "string" && raw.error) {
+    throw new Error(raw.error);
+  }
+
+  const list = Array.isArray(raw.organic_results) ? raw.organic_results : [];
+
+  const organic: SerpOrganicLite[] = list.slice(0, 25).map((row: Record<string, unknown>) => {
+    let snippet = "";
+    if (typeof row.snippet === "string") {
+      snippet = row.snippet;
+    } else if (Array.isArray(row.snippet_highlighted_words)) {
+      snippet = row.snippet_highlighted_words
+        .filter((x): x is string => typeof x === "string")
+        .join(" ");
+    }
+
+    return {
+      title: typeof row.title === "string" ? row.title : "",
+      snippet,
+      link: typeof row.link === "string" ? row.link : "",
+    };
+  });
+
+  return { organic };
+}
+
 export async function POST(req: NextRequest) {
   try {
+    if (!process.env.SERPAPI_KEY) {
+      return NextResponse.json(
+        {
+          success: false,
+          message:
+            "Eroare Server: SERPAPI_KEY lipsește. Configurați cheia pentru căutare Google (SerpApi).",
+        },
+        { status: 500 }
+      );
+    }
+
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
     const geminiApiKey = process.env.GEMINI_API_KEY;
 
     if (!supabaseUrl || !serviceRoleKey) {
-      return NextResponse.json({ success: false, message: "Eroare Server: Chei lipsă." }, { status: 500 });
+      return NextResponse.json(
+        { success: false, message: "Eroare Server: Chei lipsă." },
+        { status: 500 }
+      );
     }
 
     const supabase = createClient(supabaseUrl, serviceRoleKey);
     const body = await req.json();
-    const catInput = body.category?.toLowerCase() || "auto";
-    
-    // Identificăm configurația corectă
+    const catInput =
+      typeof body.category === "string" ? body.category.toLowerCase() : "auto";
+
     let catKey = "auto";
     if (catInput.includes("imobil")) catKey = "imobiliare";
     else if (catInput.includes("lux") || catInput.includes("ceas")) catKey = "lux";
-    else if (catInput.includes("afacer") || catInput.includes("business")) catKey = "business";
-    else if (catInput.includes("gadget") || catInput.includes("phone") || catInput.includes("laptop")) catKey = "gadgets";
+    else if (
+      catInput.includes("afacer") ||
+      catInput.includes("business")
+    )
+      catKey = "business";
+    else if (
+      catInput.includes("gadget") ||
+      catInput.includes("phone") ||
+      catInput.includes("laptop")
+    )
+      catKey = "gadgets";
     else if (catInput.includes("foto") || catInput.includes("audio")) catKey = "foto";
 
     const config = categoryConfig[catKey];
 
-    // ==========================================
-    // 🛡️ NOU: FILTRU ANTI-BĂLĂRIE PENTRU VIP/COMPLEXE
-    // ==========================================
     const payloadString = JSON.stringify(body).toLowerCase();
-    
-    // Dacă e peste 500mp, peste 500k EUR cifră afaceri, sau conține cuvinte cheie grele
-    const isVipAsset = 
+
+    const isVipAsset =
       (catKey === "imobiliare" && Number(body.surface) > 500) ||
       (catKey === "business" && Number(body.revenue) > 500000) ||
-      payloadString.match(/resort|hotel|pensiune|aquapark|fabrica|hala|complex turistic|penthouse/);
+      payloadString.match(
+        /resort|hotel|pensiune|aquapark|fabrica|hala|complex turistic|penthouse/
+      );
 
     if (isVipAsset) {
       return NextResponse.json({
         success: true,
         category: catKey,
-        estimated_market_price: 0, // Asta declanșează instant ECRANUL VIP în frontend!
+        estimated_market_price: 0,
         quick_exit_price: 0,
         strong_exit_price: 0,
         liquidation_price: 0,
         confidence_score: 0,
         comparable_count: 0,
-        data_quality_label: 'vip_asset',
+        data_quality_label: "vip_asset",
         live_comparable_count: 0,
         seed_comparable_count: 0,
-        explanation: "Algoritmul a detectat un activ comercial sau exclusivist. Evaluările standard nu se pot aplica.",
-        warnings: ["Activ VIP detectat. Necesită setare manuală a prețului."]
+        explanation:
+          "Algoritmul a detectat un activ comercial sau exclusivist. Evaluările standard nu se pot aplica.",
+        warnings: ["Activ VIP detectat. Necesită setare manuală a prețului."],
       });
     }
-    // ==========================================
 
-    // 1. Validare Câmpuri
     const warnings: string[] = [];
     config.requiredFields.forEach((f: string) => {
-      if (!body[f] && !body.details?.[f]) warnings.push(`Lipsește: ${f}`);
+      if (!body[f] && !(body.details as Record<string, unknown> | undefined)?.[f]) {
+        warnings.push(`Lipsește: ${f}`);
+      }
     });
 
-    // 2. Query Comparabile (Active + Seed)
-    let query = supabase.from("listings")
-      .select("*")
-      .in("category", config.accepted)
-      .or(`status.eq.active,status.eq.seed,is_seed.eq.true`); 
+    const searchQuery = buildSerpSearchQuery(body, catKey);
 
-    // Matching specific pe categorii (MODIFICAT AICI PENTRU A FI INSENSIBIL LA CASE ȘI SPAȚII)
-    if (catKey === "auto") {
-      if (body.make) query = query.ilike("vehicle_make", body.make.trim());
-      if (body.model) query = query.ilike("vehicle_model", body.model.trim());
-    } else if (body.brand) {
-      // Pentru Lux, Gadgets, Foto folosim brand din details JSONB
-      query = query.contains('details', { brand: body.brand });
+    let serpOrganic: SerpOrganicLite[] = [];
+    try {
+      const fetched = await fetchSerpOrganicLite(searchQuery);
+      serpOrganic = fetched.organic;
+    } catch (serpErr) {
+      console.error("[evaluate] SerpApi failure", {
+        category: catKey,
+        query: searchQuery.slice(0, 120),
+        reason:
+          serpErr instanceof Error ? serpErr.message : String(serpErr),
+      });
+
+      return NextResponse.json(
+        {
+          success: false,
+          message:
+            serpErr instanceof Error
+              ? `Căutare piață eșuată: ${serpErr.message}`
+              : "Căutare piață eșuată (SerpApi).",
+        },
+        { status: 502 }
+      );
     }
 
-    const { data: comps, error: fetchError } = await query.limit(50);
+    const organicCount = serpOrganic.length;
+    const live_comparable_count = organicCount;
+    const seed_comparable_count = 0;
 
-    // --- LOGICA NOUĂ: QUALITY LABELS ---
-    const live_comparable_count = comps ? comps.filter((c: any) => !c.is_seed && c.status === 'active').length : 0;
-    const seed_comparable_count = comps ? comps.filter((c: any) => c.is_seed || c.status === 'seed').length : 0;
-
-    let data_quality_label = 'low_data';
-    if (comps && comps.length >= 3) {
-      if (live_comparable_count > seed_comparable_count) {
-        data_quality_label = 'platform_market';
-      } else {
-        data_quality_label = 'market_index';
-      }
+    let data_quality_label = "low_data";
+    if (organicCount >= 10) {
+      data_quality_label = "platform_market";
+    } else if (organicCount >= 4) {
+      data_quality_label = "market_index";
     }
 
-    let dynamic_explanation = "Date insuficiente pentru o evaluare de precizie ridicată.";
-    if (data_quality_label === 'market_index') {
-      dynamic_explanation = "Evaluare bazată pe Quick Exit Market Index.";
-    } else if (data_quality_label === 'platform_market') {
-      dynamic_explanation = "Evaluare bazată predominant pe listări reale din platformă.";
+    let dynamic_explanation =
+      "Date limitate în rezultatele de căutare Google pentru această interogare.";
+    if (data_quality_label === "market_index") {
+      dynamic_explanation =
+        "Analiză pe baza unui volum moderat de rezultate Google spre portaluri cu anunțuri din România.";
+    } else if (data_quality_label === "platform_market") {
+      dynamic_explanation =
+        "Analiză bazată pe un set bogat de rezultate organice către marketplace-uri RO.";
     }
-    
-    if (fetchError) {
-      return NextResponse.json({ success: false, message: "Eroare la extragerea comparabilelor." }, { status: 500 });
-    }
+
+    const extractedPricesEUR = extractPricesEURFromOrganic(serpOrganic, catKey);
 
     const fallbackEvaluation = buildDeterministicFallback({
-      comps: comps ?? [],
+      serpOrganic,
       dataQualityLabel: data_quality_label,
       liveCount: live_comparable_count,
       seedCount: seed_comparable_count,
       warningsCount: warnings.length,
       dynamicExplanation: dynamic_explanation,
+      extractedPricesEUR,
+      catKey,
     });
 
     let estimated_market_price = fallbackEvaluation.estimated_market_price;
@@ -214,22 +523,23 @@ export async function POST(req: NextRequest) {
         const model = genAI.getGenerativeModel({
           model: "gemini-1.5-flash",
           systemInstruction: `
-Ești Sniper, evaluator financiar expert pentru platforma QuickExit (lichidare rapidă de active).
-Analizezi datele activului trimise de client și comparabilele de piață.
-Ții cont de uzură, an, suprafață, locație, brand, model, revenue și alți factori relevanți.
-Calculezi realist 4 niveluri de preț:
-- estimated_market_price: prețul real de piață
-- quick_exit_price: vânzare rapidă în 7-14 zile
-- strong_exit_price: preț de start licitație/panic sell
-- liquidation_price: cash instant ultra-redus
+Ești Sniper, evaluator financiar pentru QuickExit (lichidare rapidă).
+Primești ca intrare rezultate de căutare Google BRUTE (organic_results din SerpApi) de pe și spre portaluri cu anunțuri din România.
+Nu este JSON structural de anunțuri: fiecare rând este doar title, snippet și link.
+
+Îndatoriri:
+1) Citești textul și scoți PREȚURI REALE pentru bunuri echivalente (vânzare).
+2) Ignori zgomotul: avans/leasing/rate lunare sau „de la …/lună”, schimb/schimburi, piese/auto dezmembrări, servicii, job-uri, rezultate fără preț numeric.
+3) Mixed RON/EUR în snippet-uri este posibil — output-ul tău de preț trebuie să fie consecvent în EUR (numere întregi), echivalând lei atunci când e clar că prețul e în lei.
+
+Calculezi 4 niveluri (EUR): estimated_market_price, quick_exit_price (7–14 zile),
+strong_exit_price (panic/licitație), liquidation_price (cash imediat, foarte mic).
 
 Răspuns OBLIGATORIU:
-- Returnezi EXCLUSIV JSON valid, fără markdown, fără explicații în afara JSON.
-- JSON-ul trebuie să conțină EXACT aceste câmpuri:
-  estimated_market_price, quick_exit_price, strong_exit_price, liquidation_price, confidence_score, explanation
-- Toate câmpurile de preț sunt numere întregi >= 0.
-- confidence_score este număr întreg între 1 și 99.
-- explanation este un singur paragraf scurt în limba română.
+Returnezi EXCLUSIV JSON valid — fără markdown, fără text în afara obiectului.
+Câmpuri EXACTe: estimated_market_price, quick_exit_price, strong_exit_price,
+liquidation_price, confidence_score, explanation.
+Prețuri: întregi ≥ 0. confidence_score: întreg între 1 și 99. explanation: română, un singur paragraf scurt.
           `.trim(),
           generationConfig: {
             responseMimeType: "application/json",
@@ -239,17 +549,20 @@ Răspuns OBLIGATORIU:
         const geminiPrompt = {
           category: catKey,
           asset_details: body,
-          comparables: comps ?? [],
+          google_organic_results_romania: serpOrganic,
           data_quality: {
             data_quality_label,
-            live_comparable_count,
-            seed_comparable_count,
+            google_organic_count: organicCount,
+            heuristic_prices_eur_from_snippets: extractedPricesEUR.slice(-20),
           },
           warnings,
-          instruction: "Generează evaluarea finală conform regulilor și răspunde strict în JSON.",
+          instruction:
+            "Extrage prețuri reale pentru comparabile și răspunde strict în schema JSON solicitată.",
         };
 
-        const geminiResult = await model.generateContent(JSON.stringify(geminiPrompt));
+        const geminiResult = await model.generateContent(
+          JSON.stringify(geminiPrompt)
+        );
         const geminiText = geminiResult.response.text();
         const parsed = JSON.parse(extractJsonPayload(geminiText));
 
@@ -259,36 +572,42 @@ Răspuns OBLIGATORIU:
         liquidation_price = toSafeInt(parsed.liquidation_price);
         confidence_score = toConfidence(parsed.confidence_score);
         explanation =
-          typeof parsed.explanation === "string" && parsed.explanation.trim().length > 0
+          typeof parsed.explanation === "string" &&
+          parsed.explanation.trim().length > 0
             ? parsed.explanation.trim()
             : fallbackEvaluation.explanation;
       } catch (geminiError) {
         console.warn("[evaluate] Gemini fallback activated", {
           category: catKey,
-          comparable_count: comps?.length || 0,
+          google_organic_count: organicCount,
           data_quality_label,
-          reason: geminiError instanceof Error ? geminiError.message : "unknown_error",
+          hint_prices_found: extractedPricesEUR.length,
+          reason:
+            geminiError instanceof Error
+              ? geminiError.message
+              : "unknown_error",
         });
-        // Silent fallback: păstrăm valorile deterministice pentru robusteză în producție.
       }
     }
 
-    // 4. Salvare Raport
     let reportId = null;
     if (body.save_report) {
-      const { data: r } = await supabase.from("valuation_reports").insert({
-        vehicle_profile_id: body.vehicle_profile_id || null,
-        market_anchor_price: estimated_market_price,
-        quick_exit_price,
-        strong_exit_price,
-        liquidation_price,
-        confidence_score,
-        ai_strategy_explanation: explanation,
-      }).select("id").single();
+      const { data: r } = await supabase
+        .from("valuation_reports")
+        .insert({
+          vehicle_profile_id: body.vehicle_profile_id || null,
+          market_anchor_price: estimated_market_price,
+          quick_exit_price,
+          strong_exit_price,
+          liquidation_price,
+          confidence_score,
+          ai_strategy_explanation: explanation,
+        })
+        .select("id")
+        .single();
       reportId = r?.id;
     }
 
-    // Returnăm Răspunsul Final incluzând toate etichetele de calitate (FĂRĂ a șterge vechile date)
     return NextResponse.json({
       success: true,
       category: catKey,
@@ -297,16 +616,16 @@ Răspuns OBLIGATORIU:
       strong_exit_price,
       liquidation_price,
       confidence_score,
-      comparable_count: comps?.length || 0,
-      data_quality_label, 
-      live_comparable_count, 
-      seed_comparable_count, 
+      comparable_count: organicCount,
+      data_quality_label,
+      live_comparable_count,
+      seed_comparable_count,
       explanation,
       warnings,
-      valuation_report_id: reportId
+      valuation_report_id: reportId,
     });
-
-  } catch (e: any) {
-    return NextResponse.json({ success: false, error: e.message }, { status: 500 });
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : "Eroare necunoscută";
+    return NextResponse.json({ success: false, error: message }, { status: 500 });
   }
 }
