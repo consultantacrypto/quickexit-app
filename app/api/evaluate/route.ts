@@ -329,6 +329,8 @@ async function fetchSerpOrganicLite(
     searchQuery
   )}&api_key=${encodeURIComponent(key)}&gl=ro&hl=ro`;
 
+  console.log("URL SerpApi complet:", url);
+
   const res = await fetch(url, {
     headers: { Accept: "application/json" },
     cache: "no-store",
@@ -457,6 +459,7 @@ export async function POST(req: NextRequest) {
       const fetched = await fetchSerpOrganicLite(searchQuery);
       serpOrganic = fetched.organic;
     } catch (serpErr) {
+      console.error("Eroare Detaliată Fetch:", serpErr);
       console.error("[evaluate] SerpApi failure", {
         category: catKey,
         query: searchQuery.slice(0, 120),
