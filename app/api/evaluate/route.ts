@@ -588,10 +588,8 @@ export async function POST(req: NextRequest) {
           });
         };
 
-        const model = genAI.getGenerativeModel(
-          {
-            model: "gemini-1.5-flash",
-            systemInstruction: `
+        const geminiSystemInstruction =
+          `
 Ești Sniper, evaluator financiar pentru QuickExit (lichidare rapidă).
 Primești ca intrare rezultate de căutare Google BRUTE (organic_results din SerpApi) de pe și spre portaluri cu anunțuri din România.
 Nu este JSON structural de anunțuri: fiecare rând este doar title, snippet și link.
@@ -609,11 +607,10 @@ Returnezi EXCLUSIV JSON valid — fără markdown, fără text în afara obiectu
 Câmpuri EXACTe: estimated_market_price, quick_exit_price, strong_exit_price,
 liquidation_price, confidence_score, explanation.
 Prețuri: întregi ≥ 0. confidence_score: întreg între 1 și 99. explanation: română, un singur paragraf scurt.
-            `.trim(),
-            generationConfig: {
-              responseMimeType: "application/json",
-            },
-          },
+          `.trim();
+
+        const model = genAI.getGenerativeModel(
+          { model: "gemini-1.5-flash" },
           {
             apiVersion: "v1",
             customFetch,
@@ -639,7 +636,16 @@ Prețuri: întregi ≥ 0. confidence_score: întreg între 1 și 99. explanation
         globalThis.fetch = customFetch as typeof globalThis.fetch;
         let geminiResult: Awaited<ReturnType<typeof model.generateContent>>;
         try {
-          geminiResult = await model.generateContent(JSON.stringify(geminiPrompt));
+          geminiResult = await model.generateContent({
+            contents: [
+              {
+                role: "user",
+                parts: [{ text: JSON.stringify(geminiPrompt) }],
+              },
+            ],
+            system_instruction: geminiSystemInstruction,
+            generation_config: { response_mime_type: "application/json" },
+          } as Parameters<typeof model.generateContent>[0]);
         } finally {
           globalThis.fetch = previousFetch;
         }
