@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import type { RequestOptions } from "@google/generative-ai";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 /** Convenție: lei → EUR pentru fallback-uri numerice în snippet-uri. */
@@ -528,9 +529,19 @@ export async function POST(req: NextRequest) {
     if (geminiApiKey) {
       try {
         const genAI = new GoogleGenerativeAI(geminiApiKey);
-        const model = genAI.getGenerativeModel({
-          model: "gemini-1.5-flash",
-          systemInstruction: `
+
+        const nativeFetch = globalThis.fetch.bind(globalThis) as typeof fetch;
+        const customFetch = (input: RequestInfo | URL, init?: RequestInit) => {
+          return nativeFetch(input, {
+            ...(init ?? {}),
+            keepalive: true,
+          });
+        };
+
+        const model = genAI.getGenerativeModel(
+          {
+            model: "gemini-1.5-flash",
+            systemInstruction: `
 Ești Sniper, evaluator financiar pentru QuickExit (lichidare rapidă).
 Primești ca intrare rezultate de căutare Google BRUTE (organic_results din SerpApi) de pe și spre portaluri cu anunțuri din România.
 Nu este JSON structural de anunțuri: fiecare rând este doar title, snippet și link.
@@ -548,11 +559,13 @@ Returnezi EXCLUSIV JSON valid — fără markdown, fără text în afara obiectu
 Câmpuri EXACTe: estimated_market_price, quick_exit_price, strong_exit_price,
 liquidation_price, confidence_score, explanation.
 Prețuri: întregi ≥ 0. confidence_score: întreg între 1 și 99. explanation: română, un singur paragraf scurt.
-          `.trim(),
-          generationConfig: {
-            responseMimeType: "application/json",
+            `.trim(),
+            generationConfig: {
+              responseMimeType: "application/json",
+            },
           },
-        });
+          { customFetch } as RequestOptions & { customFetch: typeof fetch }
+        );
 
         const geminiPrompt = {
           category: catKey,
@@ -568,9 +581,15 @@ Prețuri: întregi ≥ 0. confidence_score: întreg între 1 și 99. explanation
             "Extrage prețuri reale pentru comparabile și răspunde strict în schema JSON solicitată.",
         };
 
-        const geminiResult = await model.generateContent(
-          JSON.stringify(geminiPrompt)
-        );
+        /** SDK 0.24.1 folosește `fetch` global, nu proprietatea customFetch din RequestOptions. */
+        const previousFetch = globalThis.fetch;
+        globalThis.fetch = customFetch as typeof globalThis.fetch;
+        let geminiResult: Awaited<ReturnType<typeof model.generateContent>>;
+        try {
+          geminiResult = await model.generateContent(JSON.stringify(geminiPrompt));
+        } finally {
+          globalThis.fetch = previousFetch;
+        }
         const geminiText = geminiResult.response.text();
         const parsed = JSON.parse(extractJsonPayload(geminiText));
 
