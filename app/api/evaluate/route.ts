@@ -3,6 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import type { RequestOptions } from "@google/generative-ai";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import dns from "node:dns";
+import https from "https";
 
 dns.setDefaultResultOrder("ipv4first");
 
@@ -335,12 +336,48 @@ async function fetchSerpOrganicLite(
 
   console.log("URL SerpApi complet:", url);
 
-  const res = await fetch(url, {
-    headers: { Accept: "application/json" },
-    cache: "no-store",
+  const res = await new Promise<{
+    ok: boolean;
+    status: number;
+    json: () => Promise<unknown>;
+  }>((resolve, reject) => {
+    const parsed = new URL(url);
+    const req = https.get(
+      {
+        hostname: parsed.hostname,
+        port: parsed.port || 443,
+        path: `${parsed.pathname}${parsed.search}`,
+        method: "GET",
+        headers: { Accept: "application/json" },
+      },
+      (incoming) => {
+        const chunks: Buffer[] = [];
+        incoming.on("data", (chunk: Buffer) => {
+          chunks.push(chunk);
+        });
+        incoming.on("end", () => {
+          const bodyStr = Buffer.concat(chunks).toString("utf8");
+          const status = incoming.statusCode ?? 0;
+          resolve({
+            ok: status >= 200 && status < 300,
+            status,
+            async json() {
+              if (!bodyStr.trim()) return {};
+              try {
+                return JSON.parse(bodyStr) as unknown;
+              } catch {
+                return {};
+              }
+            },
+          });
+        });
+        incoming.on("error", reject);
+      }
+    );
+    req.on("error", reject);
   });
 
-  const raw = await res.json().catch(() => ({}));
+  const raw = (await res.json().catch(() => ({}))) as Record<string, unknown>;
 
   if (!res.ok) {
     const msg =
