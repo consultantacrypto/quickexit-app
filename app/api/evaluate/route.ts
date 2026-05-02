@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import type { RequestOptions } from "@google/generative-ai";
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import dns from "node:dns";
 import https from "https";
+
+export const runtime = "nodejs";
 
 dns.setDefaultResultOrder("ipv4first");
 
@@ -30,6 +30,13 @@ const percentile = (values: number[], p: number) => {
     Math.min(sorted.length - 1, Math.floor((sorted.length - 1) * p))
   );
   return sorted[idx];
+};
+
+const trimmedValues = (values: number[]) => {
+  if (values.length <= 8) return values;
+  const sorted = [...values].sort((a, b) => a - b);
+  const trim = Math.floor(sorted.length * 0.1);
+  return sorted.slice(trim, sorted.length - trim);
 };
 
 const extractJsonPayload = (rawText: string) => {
@@ -244,7 +251,7 @@ function extractPricesEURFromOrganic(
 
   const eurVals: number[] = [];
 
-  const numericPrefix = String.raw`\b(\d[\d\s\u00a0.]{2,}?)`; // permite și prețuri mici în EUR
+  const numericPrefix = String.raw`\b(\d[\d\s\u00a0.,]{1,}?)`; // include și prețuri din 2 cifre (ex: 49 EUR)
   const eurRe = new RegExp(`${numericPrefix}\\s*(?:€|EUR|euro)\\b`, "gi");
   const ronRe = new RegExp(
     `${numericPrefix}\\s*(?:lei\\s*RON|lei\\b|RON\\b|r\\.\\s*lei)\\b`,
@@ -302,7 +309,8 @@ const buildDeterministicFallback = (params: {
       ? extractedPricesEUR
       : extractPricesEURFromOrganic(serpOrganic, catKey);
 
-  const marketBase = usablePrices.length ? percentile(usablePrices, 0.5) : 0;
+  const cleanedPrices = trimmedValues(usablePrices);
+  const marketBase = cleanedPrices.length ? percentile(cleanedPrices, 0.5) : 0;
   const quickExit = Math.round(marketBase * 0.86);
   const strongExit = Math.round(marketBase * 0.75);
   const liquidation = Math.round(marketBase * 0.58);
@@ -340,7 +348,10 @@ async function fetchSerpOrganicLite(
     searchQuery
   )}&api_key=${encodeURIComponent(key)}&gl=ro&hl=ro`;
 
-  console.log("URL SerpApi complet:", url);
+  console.log("[evaluate] SerpApi request", {
+    host: "serpapi.com",
+    query: searchQuery.slice(0, 160),
+  });
 
   const res = await new Promise<{
     ok: boolean;
@@ -493,6 +504,19 @@ const geminiFetch = async (
   });
 };
 
+const extractGeminiText = (payload: unknown): string => {
+  const root = payload as Record<string, unknown>;
+  const candidates = Array.isArray(root?.candidates) ? root.candidates : [];
+  if (!candidates.length) return "";
+  const first = candidates[0] as Record<string, unknown>;
+  const content = (first?.content as Record<string, unknown>) ?? {};
+  const parts = Array.isArray(content?.parts) ? content.parts : [];
+  const textPart = parts.find((p) => typeof (p as Record<string, unknown>)?.text === "string") as
+    | Record<string, unknown>
+    | undefined;
+  return typeof textPart?.text === "string" ? textPart.text : "";
+};
+
 export async function POST(req: NextRequest) {
   try {
     if (!process.env.SERPAPI_KEY) {
@@ -568,6 +592,8 @@ export async function POST(req: NextRequest) {
         liquidation_price: 0,
         confidence_score: 0,
         comparable_count: 0,
+        google_result_count: 0,
+        market_source: "serpapi_google",
         data_quality_label: "vip_asset",
         live_comparable_count: 0,
         seed_comparable_count: 0,
@@ -612,22 +638,22 @@ export async function POST(req: NextRequest) {
     }
 
     const organicCount = serpOrganic.length;
-    const live_comparable_count = organicCount;
+    const live_comparable_count = 0;
     const seed_comparable_count = 0;
 
     let data_quality_label = "low_data";
     if (organicCount >= 10) {
-      data_quality_label = "platform_market";
+      data_quality_label = "external_search_strong";
     } else if (organicCount >= 4) {
-      data_quality_label = "market_index";
+      data_quality_label = "external_search";
     }
 
     let dynamic_explanation =
       "Date limitate în rezultatele de căutare Google pentru această interogare.";
-    if (data_quality_label === "market_index") {
+    if (data_quality_label === "external_search") {
       dynamic_explanation =
         "Analiză pe baza unui volum moderat de rezultate Google spre portaluri cu anunțuri din România.";
-    } else if (data_quality_label === "platform_market") {
+    } else if (data_quality_label === "external_search_strong") {
       dynamic_explanation =
         "Analiză bazată pe un set bogat de rezultate organice către marketplace-uri RO.";
     }
@@ -654,8 +680,6 @@ export async function POST(req: NextRequest) {
 
     if (geminiApiKey) {
       try {
-        const genAI = new GoogleGenerativeAI(geminiApiKey);
-
         const geminiSystemInstruction =
           `
 Ești Sniper, evaluator financiar pentru QuickExit (lichidare rapidă).
@@ -677,14 +701,6 @@ liquidation_price, confidence_score, explanation.
 Prețuri: întregi ≥ 0. confidence_score: întreg între 1 și 99. explanation: română, un singur paragraf scurt.
           `.trim();
 
-        const model = genAI.getGenerativeModel(
-          { model: "gemini-1.5-flash" },
-          {
-            apiVersion: "v1",
-            customFetch: geminiFetch,
-          } as RequestOptions & { customFetch: typeof fetch }
-        );
-
         const geminiPrompt = {
           category: catKey,
           asset_details: body,
@@ -699,25 +715,41 @@ Prețuri: întregi ≥ 0. confidence_score: întreg între 1 și 99. explanation
             "Extrage prețuri reale pentru comparabile și răspunde strict în schema JSON solicitată.",
         };
 
-        /** SDK 0.24.1 ignoră customFetch în RequestOptions; forțăm fetch-ul global pe durata apelului. */
-        const previousFetch = globalThis.fetch;
-        globalThis.fetch = geminiFetch as typeof globalThis.fetch;
-        let geminiResult: Awaited<ReturnType<typeof model.generateContent>>;
-        try {
-          geminiResult = await model.generateContent({
+        const geminiUrl =
+          "https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent";
+
+        const geminiResponse = await geminiFetch(geminiUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-goog-api-key": geminiApiKey,
+          },
+          body: JSON.stringify({
             contents: [
               {
                 role: "user",
                 parts: [{ text: JSON.stringify(geminiPrompt) }],
               },
             ],
-            system_instruction: geminiSystemInstruction,
+            system_instruction: {
+              parts: [{ text: geminiSystemInstruction }],
+            },
             generation_config: { response_mime_type: "application/json" },
-          } as Parameters<typeof model.generateContent>[0]);
-        } finally {
-          globalThis.fetch = previousFetch;
+          }),
+        });
+
+        const geminiJson = (await geminiResponse.json()) as Record<string, unknown>;
+        if (!geminiResponse.ok) {
+          const apiError = (geminiJson?.error as Record<string, unknown>) ?? {};
+          const message =
+            typeof apiError.message === "string"
+              ? apiError.message
+              : `Gemini HTTP ${geminiResponse.status}`;
+          throw new Error(message);
         }
-        const geminiText = geminiResult.response.text();
+
+        const geminiText = extractGeminiText(geminiJson);
+        if (!geminiText) throw new Error("Gemini response missing text payload");
         const parsed = JSON.parse(extractJsonPayload(geminiText));
 
         estimated_market_price = toSafeInt(parsed.estimated_market_price);
@@ -771,6 +803,8 @@ Prețuri: întregi ≥ 0. confidence_score: întreg între 1 și 99. explanation
       liquidation_price,
       confidence_score,
       comparable_count: organicCount,
+      google_result_count: organicCount,
+      market_source: "serpapi_google",
       data_quality_label,
       live_comparable_count,
       seed_comparable_count,
