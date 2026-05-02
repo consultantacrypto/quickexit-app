@@ -75,7 +75,7 @@ function getQuerySignature(body: Record<string, unknown>, catKey: string): strin
     normalizeSigValue(pick("make", "vehicle_make", "brand")),
     normalizeSigValue(pick("model", "vehicle_model", "refModel")),
     normalizeSigValue(pick("year", "vehicle_year", "buildYear")),
-    normalizeSigValue(pick("km", "mileage_km")),
+    normalizeSigValue(pick("km", "mileage_km", "vehicle_km")),
     normalizeSigValue(pick("revenue")),
     normalizeSigValue(pick("industry", "domain", "businessDomain")),
     normalizeSigValue(pick("location")),
@@ -366,7 +366,7 @@ const buildDeterministicFallback = (params: {
     liquidation_price: toSafeInt(liquidation),
     confidence_score: toConfidence(confidenceRaw),
     explanation:
-      `${dynamicExplanation} ` +
+      `[${params.dataQualityLabel}] ${dynamicExplanation} ` +
       (usablePrices.length
         ? "Fallback-ul deterministic a extras prețuri din titlurile și snippet-uri (EUR/lei) și a aplicat discounturi quick/strong/lichidare."
         : "Fallback-ul nu a găsit suficiente prețuri interpretabile în texte — rezultatele rămân la 0 pentru a nu halucina sume."),
