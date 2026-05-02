@@ -124,14 +124,20 @@ function buildSerpSearchQuery(body: Record<string, unknown>, catKey: string): st
       (body.extraDetails as Record<string, string> | undefined)?.rooms ||
       "";
 
-    const quoted = tokenizeQuotedSearchParts([
-      title || propType,
-      loc,
-      rooms && `${rooms} camere`,
-      surface && `${surface} mp`,
-    ]);
+    const quotePhrase = (s: string) => {
+      const t = String(s).replace(/"/g, "").trim();
+      return t ? `"${t}"` : "";
+    };
 
-    const tail = quoted || tokenizeQuotedSearchParts([propType, loc]);
+    const typePhrase = title || propType;
+    const tail = [
+      quotePhrase(typePhrase),
+      quotePhrase(loc),
+      rooms ? `${rooms} camere` : "",
+      surface ? `${surface} mp` : "",
+    ]
+      .filter(Boolean)
+      .join(" ");
 
     return `site:olx.ro OR site:imobiliare.ro OR site:storia.ro OR site:lajumate.ro ${tail}`.slice(
       0,
@@ -575,7 +581,7 @@ export async function POST(req: NextRequest) {
 
         const model = genAI.getGenerativeModel(
           {
-            model: "gemini-1.5-flash",
+            model: "gemini-1.5-flash-latest",
             systemInstruction: `
 Ești Sniper, evaluator financiar pentru QuickExit (lichidare rapidă).
 Primești ca intrare rezultate de căutare Google BRUTE (organic_results din SerpApi) de pe și spre portaluri cu anunțuri din România.
