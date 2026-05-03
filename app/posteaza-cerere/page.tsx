@@ -50,6 +50,23 @@ export default function PostDemandPage() {
         return;
       }
 
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .upsert(
+          {
+            id: user.id,
+            full_name: user.user_metadata?.full_name || user.user_metadata?.name || null,
+            user_type: "buyer",
+          },
+          { onConflict: "id" }
+        );
+
+      if (profileError) {
+        setErrorMsg(`Eroare profil: ${profileError.message}`);
+        setIsSubmitting(false);
+        return;
+      }
+
       // 2. INSERĂM DATELE + USER_ID (Așteaptă plata)
       const { data: insertedData, error } = await supabase
         .from('demands')
