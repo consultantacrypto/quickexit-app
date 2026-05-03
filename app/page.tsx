@@ -5,7 +5,10 @@ import Link from "next/link";
 import GlobalStats from "./components/GlobalStats";
 import { supabase } from "@/lib/supabase"; 
 // IMPORT GLOBAL NOU
-import { normalizeSaleType } from "@/utils/normalizeSaleType"; 
+import { normalizeSaleType } from "@/utils/normalizeSaleType";
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export default async function Home() {
   const { hero, types, home } = ro;
