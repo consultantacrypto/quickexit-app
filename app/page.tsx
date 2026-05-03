@@ -22,10 +22,9 @@ export default async function Home() {
   const { data: realDemands } = await supabase
     .from('demands')
     .select('*')
-    .eq('status', 'active') // Adaugam si aici protecții
-    .eq('is_seed', false) // În cazul în care avem și seeds pentru cereri în viitor
+    .eq('status', 'active')
     .order('created_at', { ascending: false })
-    .limit(9); // Modificat la 9
+    .limit(9);
 
   // Separăm licitațiile de anunțurile normale folosind funcția globală
   const auctions = realListings?.filter(item => normalizeSaleType(item.sale_strategy) === 'auction') || [];
