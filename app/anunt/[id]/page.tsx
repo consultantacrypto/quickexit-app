@@ -57,6 +57,152 @@ function userTypeRo(t: string | null | undefined): string {
   return "Utilizator Quick Exit";
 }
 
+type DetailFormat = "plain" | "mp" | "km" | "eur" | "tva_boolean";
+
+type DetailDef = {
+  keys: readonly string[];
+  labelRo: string;
+  format: DetailFormat;
+};
+
+const DETAILS_BY_CATEGORY: Record<string, readonly DetailDef[]> = {
+  "Auto & Moto": [
+    { keys: ["vehicle_year", "year"], labelRo: "An", format: "plain" },
+    { keys: ["vehicle_km", "km", "kilometers"], labelRo: "Kilometraj", format: "km" },
+    { keys: ["transmission"], labelRo: "Transmisie", format: "plain" },
+    { keys: ["fuel"], labelRo: "Combustibil", format: "plain" },
+    { keys: ["bodyType", "body_type"], labelRo: "Caroserie", format: "plain" },
+    { keys: ["drivetrain", "traction"], labelRo: "Tracțiune", format: "plain" },
+    { keys: ["accident_status", "accidents"], labelRo: "Istoric daune", format: "plain" },
+  ],
+  Imobiliare: [
+    { keys: ["propType", "property_type", "tip_proprietate"], labelRo: "Tip proprietate", format: "plain" },
+    { keys: ["location", "locatie", "zona"], labelRo: "Localizare", format: "plain" },
+    { keys: ["surface", "suprafata"], labelRo: "Suprafață utilă", format: "mp" },
+    { keys: ["landSurface", "land_surface"], labelRo: "Teren", format: "mp" },
+    { keys: ["rooms", "camere"], labelRo: "Camere", format: "plain" },
+    { keys: ["buildYear", "build_year", "an_constructie"], labelRo: "An construcție", format: "plain" },
+    { keys: ["parking", "parcaj"], labelRo: "Parcare", format: "plain" },
+    { keys: ["tva"], labelRo: "TVA", format: "tva_boolean" },
+  ],
+  "Lux & Ceasuri": [
+    { keys: ["brand"], labelRo: "Brand", format: "plain" },
+    { keys: ["model", "refModel"], labelRo: "Model", format: "plain" },
+    { keys: ["boxPapers", "box_papers", "documents"], labelRo: "Cutie și acte", format: "plain" },
+    { keys: ["mechanism"], labelRo: "Mecanism", format: "plain" },
+    { keys: ["condition", "conditie", "stare"], labelRo: "Stare", format: "plain" },
+    { keys: ["year", "optionalYear", "purchaseYear"], labelRo: "An", format: "plain" },
+  ],
+  Gadgets: [
+    { keys: ["brand"], labelRo: "Brand", format: "plain" },
+    { keys: ["model", "specs"], labelRo: "Model", format: "plain" },
+    { keys: ["condition", "stare"], labelRo: "Stare", format: "plain" },
+    { keys: ["storage"], labelRo: "Stocare", format: "plain" },
+    { keys: ["warranty", "waranty"], labelRo: "Garanție", format: "plain" },
+  ],
+  "Foto & Audio": [
+    { keys: ["brand"], labelRo: "Brand", format: "plain" },
+    { keys: ["model", "specs"], labelRo: "Model", format: "plain" },
+    { keys: ["condition", "stare"], labelRo: "Stare", format: "plain" },
+    { keys: ["warranty", "waranty"], labelRo: "Garanție", format: "plain" },
+  ],
+  "Afaceri de vânzare": [
+    { keys: ["industry", "businessDomain", "domeniu"], labelRo: "Domeniu", format: "plain" },
+    { keys: ["location", "locatie"], labelRo: "Localizare", format: "plain" },
+    { keys: ["revenue", "cifra"], labelRo: "Venit anual", format: "eur" },
+    { keys: ["profit"], labelRo: "Profit", format: "eur" },
+    { keys: ["employees", "employees_count"], labelRo: "Angajați", format: "plain" },
+  ],
+};
+
+function detailValuePresent(v: unknown): boolean {
+  if (v === undefined || v === null) return false;
+  if (typeof v === "number") return Number.isFinite(v);
+  if (typeof v === "boolean") return true;
+  if (typeof v === "string") return v.trim() !== "";
+  return true;
+}
+
+function getDetailValue(adData: Record<string, unknown>, key: string): unknown {
+  const root = adData[key];
+  if (detailValuePresent(root)) return root;
+  const details = adData.details;
+  if (details !== null && details !== undefined && typeof details === "object" && !Array.isArray(details)) {
+    const d = details as Record<string, unknown>;
+    const nested = d[key];
+    if (detailValuePresent(nested)) return nested;
+  }
+  return undefined;
+}
+
+function pickFirstPresent(adData: Record<string, unknown>, keys: readonly string[]): unknown {
+  for (const k of keys) {
+    const v = getDetailValue(adData, k);
+    if (detailValuePresent(v)) return v;
+  }
+  return undefined;
+}
+
+function formatMoneyEURIfNumeric(raw: unknown): string {
+  if (typeof raw === "number" && Number.isFinite(raw)) {
+    return `€${raw.toLocaleString("ro-RO")}`;
+  }
+  if (typeof raw === "string") {
+    const t = raw.trim();
+    if (/[a-zA-ZîâășțÎÂĂȘȚ]/.test(t)) return t;
+    if (/^[\d\s.,€-]+$/.test(t)) {
+      const normalized = t.replace(/€/g, "").replace(/\u00a0/g, "").replace(/\s/g, "").replace(/\./g, "").replace(",", ".");
+      const n = Number(normalized);
+      if (Number.isFinite(n)) return `€${n.toLocaleString("ro-RO")}`;
+    }
+    return t;
+  }
+  return String(raw ?? "").trim();
+}
+
+function formatSqm(raw: unknown): string {
+  if (typeof raw === "number" && Number.isFinite(raw))
+    return `${raw.toLocaleString("ro-RO")} mp`;
+  const s = String(raw).trim();
+  if (/mp|m²|m2/i.test(s)) return s;
+  return `${s} mp`;
+}
+
+function formatKmRo(raw: unknown): string {
+  if (typeof raw === "number" && Number.isFinite(raw))
+    return `${raw.toLocaleString("ro-RO")} km`;
+  const s = String(raw).trim();
+  if (/km\b/i.test(s)) return s;
+  const n = Number(String(s).replace(/\s|\./g, "").replace(",", "."));
+  if (Number.isFinite(n)) return `${n.toLocaleString("ro-RO")} km`;
+  return `${s} km`;
+}
+
+function formatTvaRo(raw: unknown): string {
+  if (typeof raw === "boolean") return raw ? "Da" : "Nu";
+  if (typeof raw === "string") {
+    const low = raw.trim().toLowerCase();
+    if (low === "true" || low === "da" || low === "yes" || low === "1") return "Da";
+    if (low === "false" || low === "nu" || low === "no" || low === "0") return "Nu";
+  }
+  return String(raw).trim();
+}
+
+function formatDetailField(raw: unknown, format: DetailFormat): string {
+  switch (format) {
+    case "mp":
+      return formatSqm(raw);
+    case "km":
+      return formatKmRo(raw);
+    case "eur":
+      return formatMoneyEURIfNumeric(raw);
+    case "tva_boolean":
+      return formatTvaRo(raw);
+    default:
+      return typeof raw === "number" ? String(raw) : String(raw).trim();
+  }
+}
+
 export default function AdDetail() {
   const params = useParams();
   const id = params.id as string;
@@ -88,10 +234,35 @@ export default function AdDetail() {
   useEffect(() => {
     async function fetchAd() {
       if (!id) return;
+      setAdData(null);
+      setSimilarAds([]);
+      setSellerProfile(null);
+      setSellerOtherListings([]);
+      setSellerActiveCount(null);
       try {
-        const { data, error } = await supabase.from("listings").select("*").eq("id", id).single();
+        const { data, error } = await supabase
+          .from("listings")
+          .select("*")
+          .eq("id", id)
+          .eq("status", "active")
+          .eq("is_seed", false)
+          .maybeSingle();
 
-        if (error) throw error;
+        if (error) {
+          console.error("Eroare la extragerea anunțului:", error);
+          setAdData(null);
+          return;
+        }
+
+        if (
+          !data ||
+          data.status !== "active" ||
+          data.is_seed !== false
+        ) {
+          setAdData(null);
+          return;
+        }
+
         setAdData(data);
         setOfferPrice(data.exit_price);
 
@@ -142,6 +313,7 @@ export default function AdDetail() {
         }
       } catch (error) {
         console.error("Eroare la extragerea anunțului:", error);
+        setAdData(null);
       } finally {
         setIsLoading(false);
       }
@@ -270,23 +442,38 @@ export default function AdDetail() {
   };
 
   const renderTechnicalDetails = () => {
-    if (!adData.details) return null;
+    const ad = adData as Record<string, unknown>;
+    const defs =
+      typeof adData.category === "string" ? DETAILS_BY_CATEGORY[adData.category] : undefined;
 
-    const validDetails = Object.entries(adData.details).filter(([key, value]) => {
-      return value && value !== "" && !["package", "strategy", "source", "observed_at"].includes(key);
-    });
+    const rows: { labelRo: string; display: string }[] = [];
+    if (defs?.length) {
+      for (const def of defs) {
+        const raw = pickFirstPresent(ad, def.keys);
+        if (!detailValuePresent(raw)) continue;
+        rows.push({ labelRo: def.labelRo, display: formatDetailField(raw, def.format) });
+      }
+    }
 
-    if (validDetails.length === 0) return null;
+    if (rows.length === 0) {
+      return (
+        <p className="mt-6 text-sm font-medium italic text-neutral-500">
+          Detaliile tehnice nu au fost completate.
+        </p>
+      );
+    }
 
     return (
       <div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
-        {validDetails.map(([key, value]) => (
+        {rows.map(({ labelRo, display }, idx) => (
           <div
-            key={key}
+            key={`${labelRo}-${idx}`}
             className="rounded-xl border-[3px] border-black bg-neutral-50/80 p-4 shadow-[3px_3px_0_0_rgba(0,0,0,0.08)] md:rounded-2xl"
           >
-            <p className="mb-1 text-[9px] font-black uppercase tracking-widest text-neutral-400">{key}</p>
-            <p className="font-bold capitalize leading-snug text-black">{String(value)}</p>
+            <p className="mb-1 text-[9px] font-black uppercase tracking-widest text-neutral-400">
+              {labelRo}
+            </p>
+            <p className="font-bold leading-snug text-black [overflow-wrap:anywhere]">{display}</p>
           </div>
         ))}
       </div>
