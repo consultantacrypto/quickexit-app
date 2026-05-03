@@ -349,8 +349,11 @@ export default function PostAdPage() {
         </div>
 
         <div className="relative overflow-hidden rounded-[2rem] border-[3px] border-black bg-white p-8 shadow-[12px_12px_0_0_rgba(0,0,0,0.12)] md:p-14 md:shadow-[14px_14px_0_0_#FFD100]">
-          <div className="pointer-events-none absolute right-0 top-0 p-8 opacity-[0.06]">
-            <Search size={150} strokeWidth={3} />
+          <div
+            className="pointer-events-none absolute right-0 top-0 z-0 hidden p-8 opacity-[0.06] md:block"
+            aria-hidden
+          >
+            <Search size={150} strokeWidth={3} className="pointer-events-none" />
           </div>
 
           {step === 1 && (
