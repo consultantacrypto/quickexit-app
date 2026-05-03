@@ -47,7 +47,7 @@ export default function Header() {
           <div className="flex items-center shrink-0">
             <Link href="/" className="relative h-10 w-36 sm:h-12 sm:w-44 md:h-16 md:w-60 lg:h-20 lg:w-72 block transition-transform hover:scale-105">
               <Image 
-                src="/logo.png" 
+                src="/logo.png?v=2" 
                 alt="QuickExit Logo" 
                 fill
                 className="object-contain object-left"
