@@ -20,7 +20,7 @@ export default function PostAdPage() {
   
   const [exitPrice, setExitPrice] = useState("");
   const [saleStrategy, setSaleStrategy] = useState("standard");
-  const [selectedPackage, setSelectedPackage] = useState("economy"); 
+  const [selectedPackage, setSelectedPackage] = useState<"economy" | "standard" | "urgent" | "auction">("standard"); 
   
   const [isSaving, setIsSaving] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -39,13 +39,78 @@ export default function PostAdPage() {
     'Afaceri de vânzare', 'Gadgets', 'Foto & Audio'
   ];
 
-  // Matricea de prețuri pentru pachete
-  const packagePrices: Record<string, number> = {
+  const packagePrices: Record<"economy" | "standard" | "urgent" | "auction", number> = {
     economy: 99,
     standard: 79,
     urgent: 48,
-    licitatie: 111,
+    auction: 111,
   };
+
+  type PackageId = keyof typeof packagePrices;
+
+  const PACKAGE_DEFS: {
+    id: PackageId;
+    title: string;
+    durationLabel: string;
+    description: string;
+    badge?: string;
+  }[] = [
+    {
+      id: "economy",
+      title: "Expunere Maximă",
+      durationLabel: "30 zile",
+      description: "Pentru vânzători care vor mai mult timp pentru a primi oferte.",
+    },
+    {
+      id: "standard",
+      title: "Vânzare Rapidă",
+      durationLabel: "14 zile",
+      description: "Pentru cei care vor să vândă repede, dar fără presiune extremă.",
+      badge: "Recomandat",
+    },
+    {
+      id: "urgent",
+      title: "Vânzare Urgentă",
+      durationLabel: "48 ore",
+      description: "Pentru situații în care ai nevoie de cumpărători rapid.",
+    },
+    {
+      id: "auction",
+      title: "Licitație Rapidă",
+      durationLabel: "Licitație",
+      description: "Cumpărătorii pot concura prin oferte pentru activul tău.",
+    },
+  ];
+
+  const PACKAGE_TO_STRATEGY: Record<PackageId, "standard" | "lichidare" | "licitatie"> = {
+    economy: "standard",
+    standard: "standard",
+    urgent: "lichidare",
+    auction: "licitatie",
+  };
+
+  function selectPackage(pkg: PackageId) {
+    setSelectedPackage(pkg);
+    setSaleStrategy(PACKAGE_TO_STRATEGY[pkg]);
+  }
+
+  function validatePrimaryAssetFields(): string | null {
+    if (!adTitle.trim()) return "Completează titlul anunțului.";
+    if (category === "Auto & Moto") {
+      if (!formData.make.trim() || !formData.model.trim()) return "Completează marca și modelul vehiculului.";
+    } else if (category === "Imobiliare") {
+      if (!formData.location.trim() || !formData.surface.trim()) return "Completează localizarea și suprafața.";
+    } else if (category === "Lux & Ceasuri") {
+      if (!formData.brand.trim() || !formData.refModel.trim()) return "Completează brandul și modelul.";
+    } else if (category === "Afaceri de vânzare") {
+      if (!formData.businessDomain.trim() || !formData.revenue.trim()) return "Completează domeniul și cifra de afaceri.";
+    } else if (category === "Gadgets" || category === "Foto & Audio") {
+      if (!formData.brand.trim()) return "Completează brandul și modelul produsului.";
+    }
+    return null;
+  }
+
+  const selectedPackageMeta = PACKAGE_DEFS.find((p) => p.id === selectedPackage)!;
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -54,6 +119,11 @@ export default function PostAdPage() {
   };
 
   const generateAiPricing = async () => {
+    const missing = validatePrimaryAssetFields();
+    if (missing) {
+      alert(missing);
+      return;
+    }
     setIsAnalyzing(true);
     setStep(2);
 
@@ -247,9 +317,9 @@ export default function PostAdPage() {
 
         {/* Progresie */}
         <div className="flex justify-between mb-8 border-b-4 border-black pb-4">
-          <div className={`text-[10px] font-black uppercase tracking-widest italic ${step >= 1 ? 'text-black' : 'text-gray-300'}`}>1. Date Tehnice</div>
-          <div className={`text-[10px] font-black uppercase tracking-widest italic ${step >= 2 ? 'text-black' : 'text-gray-300'}`}>2. Evaluare AI</div>
-          <div className={`text-[10px] font-black uppercase tracking-widest italic ${step >= 3 ? 'text-black' : 'text-gray-300'}`}>3. Plată Securizată</div>
+          <div className={`text-[10px] font-black uppercase tracking-widest italic ${step >= 1 ? 'text-black' : 'text-gray-300'}`}>1. Date despre activ</div>
+          <div className={`text-[10px] font-black uppercase tracking-widest italic ${step >= 2 ? 'text-black' : 'text-gray-300'}`}>2. Estimare piață</div>
+          <div className={`text-[10px] font-black uppercase tracking-widest italic ${step >= 3 ? 'text-black' : 'text-gray-300'}`}>3. Pachet & plată</div>
         </div>
 
         <div className="bg-white p-6 md:p-10 rounded-2xl border-[3px] border-black shadow-[10px_10px_0_0_rgba(0,0,0,1)] relative overflow-hidden">
@@ -476,7 +546,7 @@ export default function PostAdPage() {
 
                 {/* Descriere Generala */}
                 <div className="md:col-span-3 pt-4 border-t-2 border-gray-100">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">Motivul vânzării & Detalii de finețe (Crucial pt AI)</label>
+                  <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">Motivul vânzării și detalii (pentru încrederea cumpărătorilor)</label>
                   <textarea 
                     rows={4} 
                     value={description}
@@ -508,7 +578,7 @@ export default function PostAdPage() {
                   disabled={!adTitle}
                   className="w-full bg-black text-[#FFD100] py-5 rounded-2xl font-black uppercase tracking-widest text-sm italic hover:bg-gray-900 transition-colors shadow-[6px_6px_0_0_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none disabled:opacity-50 disabled:shadow-none"
                 >
-                  Confirm Datele & Generează Raport AI →
+                  Continuă către estimarea pe piață →
                 </button>
                 {!adTitle && <p className="text-center text-[9px] font-bold text-red-500 mt-3 uppercase tracking-widest">Completează Titlul pentru a continua.</p>}
               </div>
@@ -546,7 +616,7 @@ export default function PostAdPage() {
                         </p>
                         <div className="mt-4 pt-4 border-t-2 border-gray-100 flex flex-col gap-2">
                            <p className="text-xs font-bold text-gray-600">✓ Analiză generată comparând <span className="font-black text-black">{analyzedItems} anunțuri similare</span>.</p>
-                           <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-2">Încredere Algoritm: {evaluationResult?.confidence_score || 0}%</p>
+                           <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-2">Încredere estimare: {evaluationResult?.confidence_score || 0}%</p>
                         </div>
                       </>
                     ) : (
@@ -556,7 +626,7 @@ export default function PostAdPage() {
                           Activ Rar Identificat.
                         </p>
                         <div className="mt-4 pt-4 border-t-2 border-gray-100 flex flex-col gap-2">
-                           <p className="text-xs font-bold text-gray-600">Algoritmul AI nu a găsit suficiente produse identice în piață pentru a genera o medie de preț. <span className="font-black">Setează prețul tău de bază mai jos.</span></p>
+                           <p className="text-xs font-bold text-gray-600">Nu am găsit suficiente repere identice în piață pentru o medie clară de preț. <span className="font-black">Setează prețul tău de bază mai jos.</span></p>
                         </div>
                       </>
                     )}
@@ -597,36 +667,9 @@ export default function PostAdPage() {
                       )}
                     </div>
 
-                    <div className="pt-6 border-t-2 border-gray-100">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-black mb-4">Alege Strategia de Vânzare</p>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        
-                        <button onClick={() => setSaleStrategy('standard')} className={`p-4 rounded-2xl border-[3px] text-left transition-all ${saleStrategy === 'standard' ? 'border-black bg-[#FFD100] shadow-[4px_4px_0_0_rgba(0,0,0,1)]' : 'border-gray-200 bg-white hover:border-black'}`}>
-                          <p className="font-black uppercase italic text-sm text-black">Standard</p>
-                          <p className="text-[10px] font-bold text-gray-600 mt-1 uppercase">Fără discount. Așteptare 14-30 zile.</p>
-                          {marketPrice === 0 && exitPrice && <p className="text-xs font-black mt-2">Preț final: €{Number(exitPrice).toLocaleString('ro-RO')}</p>}
-                        </button>
-
-                        <button onClick={() => setSaleStrategy('lichidare')} className={`p-4 rounded-2xl border-[3px] text-left transition-all ${saleStrategy === 'lichidare' ? 'border-black bg-[#FFD100] shadow-[4px_4px_0_0_rgba(0,0,0,1)]' : 'border-gray-200 bg-white hover:border-black'}`}>
-                          <p className="font-black uppercase italic text-sm text-black">Lichidare {marketPrice === 0 && '(-10%)'}</p>
-                          <p className="text-[10px] font-bold text-gray-600 mt-1 uppercase">Preț redus. Targetăm oferte în 7-14 zile.</p>
-                          {marketPrice === 0 && exitPrice && <p className="text-xs font-black mt-2">Preț final: €{Math.round(Number(exitPrice) * 0.9).toLocaleString('ro-RO')}</p>}
-                        </button>
-
-                        <button onClick={() => setSaleStrategy('panic')} className={`p-4 rounded-2xl border-[3px] text-left transition-all ${saleStrategy === 'panic' ? 'border-black bg-black text-[#FFD100] shadow-[4px_4px_0_0_rgba(0,0,0,1)]' : 'border-gray-200 bg-white hover:border-black'}`}>
-                          <p className="font-black uppercase italic text-sm flex items-center gap-2">Panic Sell {marketPrice === 0 && '(-20%)'} <span className="text-xs">⚡</span></p>
-                          <p className="text-[10px] font-bold mt-1 uppercase text-gray-400">Preț tăiat extrem. Alerte instant. Cash azi.</p>
-                          {marketPrice === 0 && exitPrice && <p className="text-xs font-black mt-2">Preț final: €{Math.round(Number(exitPrice) * 0.8).toLocaleString('ro-RO')}</p>}
-                        </button>
-
-                        <button onClick={() => setSaleStrategy('licitatie')} className={`p-4 rounded-2xl border-[3px] text-left transition-all ${saleStrategy === 'licitatie' ? 'border-black bg-black text-white shadow-[4px_4px_0_0_rgba(0,0,0,1)]' : 'border-gray-200 bg-white hover:border-black'}`}>
-                          <p className="font-black uppercase italic text-sm text-black flex items-center gap-2 group-hover:text-white">Licitație Flash {marketPrice === 0 && '(-30%)'} <span className="text-xs">🔨</span></p>
-                          <p className="text-[10px] font-bold mt-1 uppercase text-gray-400">Vânzare la cea mai bună ofertă în 24h.</p>
-                          {marketPrice === 0 && exitPrice && <p className="text-xs font-black mt-2">Start licitație: €{Math.round(Number(exitPrice) * 0.7).toLocaleString('ro-RO')}</p>}
-                        </button>
-
-                      </div>
-                    </div>
+                    <p className="pt-6 text-xs font-semibold text-neutral-600 border-t-2 border-gray-100">
+                      Viteza și modul de promovare le alegi la pasul următor (după ce stabilești prețul).
+                    </p>
                   </div>
 
                   <div className="flex gap-4 pt-6 border-t-2 border-gray-100">
@@ -638,7 +681,7 @@ export default function PostAdPage() {
                       disabled={!exitPrice}
                       className="w-2/3 bg-black text-[#FFD100] py-5 rounded-2xl font-black uppercase tracking-widest text-sm italic shadow-[6px_6px_0_0_rgba(0,0,0,1)] active:translate-y-0.5 active:shadow-none disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed"
                     >
-                      Spre Pachete →
+                      Alege viteza de vânzare →
                     </button>
                   </div>
                 </div>
@@ -647,48 +690,69 @@ export default function PostAdPage() {
           )}
 
           {step === 3 && (
-            <div className="space-y-6 animate-in slide-in-from-right-4 duration-500">
-              <h2 className="text-2xl font-black uppercase italic mb-6">Pachete de Lichiditate</h2>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                
-                <div onClick={() => setSelectedPackage('economy')} className={`p-5 border-[3px] rounded-2xl cursor-pointer transition-all ${selectedPackage === 'economy' ? 'border-black bg-[#FFD100] shadow-[6px_6px_0_0_rgba(0,0,0,1)]' : 'border-gray-200 hover:border-black bg-white'}`}>
-                  <p className="font-black uppercase italic text-lg text-black">Economy <span className="text-[10px] bg-black text-white px-2 py-1 rounded ml-2">30 ZILE</span></p>
-                  <p className="text-[10px] font-bold text-gray-700 mt-2">Afișare standard în listă. Alerte AI.</p>
-                  <p className="font-black text-2xl mt-4">99 RON</p>
-                </div>
-
-                <div onClick={() => setSelectedPackage('standard')} className={`p-5 border-[3px] rounded-2xl cursor-pointer transition-all ${selectedPackage === 'standard' ? 'border-black bg-black text-white shadow-[6px_6px_0_0_rgba(255,209,0,1)]' : 'border-black bg-black text-white opacity-90'}`}>
-                  <p className="font-black uppercase italic text-lg">Standard <span className="text-[10px] bg-[#FFD100] text-black px-2 py-1 rounded ml-2">14 ZILE</span></p>
-                  <p className="text-[10px] font-bold text-gray-300 mt-2">Poziționare Priority. Badge FAST.</p>
-                  <p className="font-black text-2xl mt-4 text-[#FFD100]">79 RON</p>
-                </div>
-
-                <div onClick={() => setSelectedPackage('urgent')} className={`p-5 border-[3px] rounded-2xl cursor-pointer transition-all ${selectedPackage === 'urgent' ? 'border-black bg-gray-100 text-black shadow-[6px_6px_0_0_rgba(0,0,0,1)]' : 'border-gray-200 bg-gray-50 hover:border-black'}`}>
-                  <div className="absolute -top-3 -right-3 bg-black text-white text-[9px] font-black px-3 py-1 uppercase rounded-full border-2 border-white animate-pulse">Lichidare</div>
-                  <p className="font-black uppercase italic text-lg text-black">Urgent <span className="text-[10px] bg-black text-white px-2 py-1 rounded ml-2">48 ORE</span></p>
-                  <p className="text-[10px] font-bold text-gray-700 mt-2">Primul loc în terminal 48h. Push Global.</p>
-                  <p className="font-black text-2xl mt-4">48 RON</p>
-                </div>
-
-                <div onClick={() => setSelectedPackage('licitatie')} className={`p-5 border-[3px] rounded-2xl cursor-pointer transition-all ${selectedPackage === 'licitatie' ? 'border-black bg-[#FFD100] text-black shadow-[6px_6px_0_0_rgba(0,0,0,1)]' : 'border-gray-200 hover:border-black bg-white'}`}>
-                  <p className="font-black uppercase italic text-lg text-black">Licitație <span className="text-[10px] bg-black text-[#FFD100] px-2 py-1 rounded ml-2">SNIPER</span></p>
-                  <p className="text-[10px] font-bold text-gray-800 mt-2 opacity-80">Război al ofertelor. Tu alegi durata.</p>
-                  <p className="font-black text-2xl mt-4">111 RON</p>
-                </div>
-
+            <div className="space-y-8 animate-in slide-in-from-right-4 duration-500">
+              <div>
+                <h2 className="text-2xl font-black uppercase italic tracking-tight text-black md:text-3xl">
+                  Alege viteza de vânzare
+                </h2>
+                <p className="mt-3 max-w-2xl text-sm font-semibold leading-relaxed text-neutral-600">
+                  Pachetul stabilește cât timp va fi promovat anunțul și cât de rapid vrei să găsești cumpărători.
+                </p>
               </div>
 
-              <button 
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-5">
+                {PACKAGE_DEFS.map((pkg) => {
+                  const isSelected = selectedPackage === pkg.id;
+                  const price = packagePrices[pkg.id];
+                  return (
+                    <button
+                      key={pkg.id}
+                      type="button"
+                      onClick={() => selectPackage(pkg.id)}
+                      className={`relative rounded-2xl border-[3px] p-6 text-left transition-all ${
+                        isSelected
+                          ? "border-black bg-[#FFD100] shadow-[8px_8px_0_0_rgba(0,0,0,1)]"
+                          : "border-neutral-200 bg-white hover:border-black hover:shadow-[4px_4px_0_0_rgba(0,0,0,0.12)]"
+                      }`}
+                    >
+                      {pkg.badge && (
+                        <span className="absolute -right-2 -top-2 rounded-full border-2 border-black bg-black px-3 py-1 text-[9px] font-black uppercase tracking-wider text-[#FFD100]">
+                          {pkg.badge}
+                        </span>
+                      )}
+                      <div className="flex flex-wrap items-baseline justify-between gap-2">
+                        <p className="text-lg font-black uppercase italic text-black">{pkg.title}</p>
+                        <span className="rounded-md border-2 border-black bg-white px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-black">
+                          {pkg.durationLabel}
+                        </span>
+                      </div>
+                      <p className="mt-3 text-[11px] font-semibold leading-snug text-neutral-700">{pkg.description}</p>
+                      <p className="mt-5 font-black tabular-nums text-2xl text-black">{price} RON</p>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="rounded-2xl border-2 border-dashed border-neutral-300 bg-[#fafafa] px-5 py-4 text-center">
+                <p className="text-sm font-black uppercase tracking-wide text-neutral-800">
+                  Pachet ales: {selectedPackageMeta.title} — {packagePrices[selectedPackage]} RON
+                </p>
+              </div>
+
+              <button
                 onClick={handleFinalSubmit}
                 disabled={isSaving}
-                className="w-full mt-8 bg-black text-[#FFD100] border-[3px] border-black py-5 rounded-2xl font-black uppercase tracking-widest text-sm italic hover:scale-[1.01] transition-transform shadow-[8px_8px_0_0_rgba(0,0,0,1)] active:translate-y-0.5 active:shadow-none disabled:opacity-50"
+                className="w-full bg-black py-5 text-[#FFD100] border-[3px] border-black rounded-2xl font-black uppercase tracking-widest text-sm italic transition-transform hover:scale-[1.01] shadow-[8px_8px_0_0_rgba(0,0,0,1)] active:translate-y-0.5 active:shadow-none disabled:opacity-50"
               >
-                {isSaving ? "Se Conectează la Bancă..." : "Plătește Securizat cu Stripe →"}
+                {isSaving ? "Se pregătește plata..." : "Plătește și publică anunțul"}
               </button>
-              
-              <button onClick={() => setStep(2)} className="w-full mt-3 text-[10px] font-black uppercase text-gray-400 hover:text-black transition-colors italic border-b-2 border-transparent hover:border-black text-center pb-1 mx-auto block w-fit">
-                ← Înapoi la Evaluare
+
+              <button
+                type="button"
+                onClick={() => setStep(2)}
+                className="mx-auto block w-fit border-b-2 border-transparent pb-1 text-center text-[10px] font-black uppercase italic text-neutral-400 transition-colors hover:border-black hover:text-black"
+              >
+                ← Înapoi la estimare
               </button>
             </div>
           )}

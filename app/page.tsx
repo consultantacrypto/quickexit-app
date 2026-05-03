@@ -101,10 +101,10 @@ export default async function Home() {
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto mb-16">
             {[
-              { label: 'Economy', desc: 'Perioada Maxima', time: '30 Zile', price: '99 RON' },
-              { label: 'Standard', desc: 'Vânzare Rapidă', time: '14 Zile', price: '79 RON' },
-              { label: 'Urgent', desc: 'Lichidare', time: '48 Ore', price: '48 RON' },
-              { label: 'Flash', desc: 'Metoda Sniper', time: 'Licitație', price: '111 RON' }
+              { label: 'Expunere maximă', desc: 'Mai mult timp pentru oferte', time: '30 zile', price: '99 RON' },
+              { label: 'Vânzare rapidă', desc: 'Echilibru viteză / preț', time: '14 zile', price: '79 RON' },
+              { label: 'Vânzare urgentă', desc: 'Cumpărători în termen scurt', time: '48 ore', price: '48 RON' },
+              { label: 'Licitație rapidă', desc: 'Oferte competitive', time: 'Licitație', price: '111 RON' }
             ].map((item) => (
               <div key={item.label} className="p-6 border-[3px] border-black rounded-2xl bg-white shadow-[4px_4px_0_0_rgba(0,0,0,1)] hover:-translate-y-1 transition-all">
                 <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1">{item.label}</p>
@@ -116,7 +116,7 @@ export default async function Home() {
           </div>
 
           <div className="flex flex-col items-center mb-24 group">
-            <Link href="/pune-anunt">
+            <Link href="/evaluare">
               <button className="bg-black text-[#FFD100] px-16 py-10 rounded-[2.5rem] font-black uppercase tracking-widest transition-all border-b-8 border-yellow-700 active:border-b-0 active:translate-y-2 hover:scale-[1.02] shadow-[0_15px_40px_rgba(255,209,0,0.2)] hover:shadow-[0_25px_50px_rgba(255,209,0,0.4)] relative overflow-hidden">
                 <div className="absolute top-0 -left-[100%] w-1/2 h-full bg-white/10 skew-x-[-25deg] group-hover:left-[150%] transition-all duration-1000 ease-in-out" />
                 <span className="text-3xl md:text-4xl italic uppercase leading-none block relative z-10">Cât valorează ce vinzi?</span>
@@ -158,7 +158,7 @@ export default async function Home() {
                   <span className="text-red-500 font-black uppercase tracking-widest text-[10px]">Competiție Live</span>
                 </div>
                 <h2 className="text-4xl md:text-5xl font-black uppercase italic tracking-tighter leading-none text-white">
-                  Licitații <span className="text-[#FFD100]">Sniper</span>
+                  Licitații <span className="text-[#FFD100]">rapide</span>
                 </h2>
               </div>
               <p className="text-gray-400 font-bold uppercase tracking-widest text-[10px] md:max-w-xs mt-4 md:mt-0 text-left md:text-right">

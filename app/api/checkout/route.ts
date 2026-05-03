@@ -14,6 +14,15 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { listingId, packageId, price, title } = body;
 
+    const packageTitlesRo: Record<string, string> = {
+      economy: 'Expunere maximă',
+      standard: 'Vânzare rapidă',
+      urgent: 'Vânzare urgentă',
+      auction: 'Licitație rapidă',
+      licitatie: 'Licitație rapidă',
+    };
+    const pachetNume = packageTitlesRo[String(packageId)] || 'Promovare anunț';
+
     // Creăm sesiunea de plată către Stripe
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
@@ -22,8 +31,8 @@ export async function POST(req: Request) {
           price_data: {
             currency: 'ron',
             product_data: {
-              name: `Lichidare QuickExit: Pachet ${packageId.toUpperCase()}`,
-              description: `Taxă activare pentru: ${title}`,
+              name: `Quick Exit — ${pachetNume}`,
+              description: `Activare anunț: ${title}`,
             },
             unit_amount: price * 100, // Stripe lucrează în "bani" (ex: 99 RON = 9900 bani)
           },

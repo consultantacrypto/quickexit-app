@@ -55,7 +55,7 @@ export async function POST(req: Request) {
         const expiryDate = new Date();
         
         if (pachet === 'urgent') expiryDate.setHours(expiryDate.getHours() + 48);
-        else if (pachet === 'licitatie') expiryDate.setHours(expiryDate.getHours() + 24);
+        else if (pachet === 'licitatie' || pachet === 'auction') expiryDate.setHours(expiryDate.getHours() + 24);
         else if (pachet === 'standard') expiryDate.setDate(expiryDate.getDate() + 14);
         else expiryDate.setDate(expiryDate.getDate() + 30);
 
