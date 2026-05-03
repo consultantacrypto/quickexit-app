@@ -67,7 +67,12 @@ export default function PostDemandPage() {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error("Eroare Supabase demands insert:", error.message);
+        setErrorMsg(`Eroare Supabase: ${error.message}`);
+        setIsSubmitting(false);
+        return;
+      }
 
       // 3. APELĂM STRIPE PENTRU PLATA DE 99 RON
       const stripeRes = await fetch("/api/checkout-demand", {
@@ -81,17 +86,22 @@ export default function PostDemandPage() {
       });
 
       const stripeData = await stripeRes.json();
-      
+
       if (stripeData.url) {
         // Redirecționăm către Stripe
         window.location.href = stripeData.url;
       } else {
-        throw new Error(stripeData.error || "Eroare la generarea plății.");
+        if (stripeData.error) {
+          setErrorMsg(`Eroare Stripe: ${stripeData.error}`);
+        } else {
+          throw new Error("Eroare la generarea plății.");
+        }
+        setIsSubmitting(false);
       }
       
     } catch (error: any) {
       console.error("Eroare la inserare/plată:", error.message);
-      setErrorMsg("A apărut o eroare la salvare sau plată. Verifică conexiunea.");
+      setErrorMsg(`A apărut o eroare: ${error.message}`);
       setIsSubmitting(false);
     }
   };
