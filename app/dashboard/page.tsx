@@ -82,7 +82,7 @@ function DashboardContent() {
       const { data: demands } = await supabase
         .from('demands')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('buyer_id', user.id)
         .order('created_at', { ascending: false });
       
       setMyDemands(demands || []);

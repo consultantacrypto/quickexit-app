@@ -55,7 +55,7 @@ export default function PostDemandPage() {
         .from('demands')
         .insert([
           {
-            user_id: user.id,
+            buyer_id: user.id,
             target_asset: targetAsset,
             category: category,
             budget: Number(budget),
