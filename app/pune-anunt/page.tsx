@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase"; 
-import { Search } from "lucide-react";
+import { Loader2, Search } from "lucide-react";
 
 export default function PostAdPage() {
   const [step, setStep] = useState(1);
@@ -29,7 +29,7 @@ export default function PostAdPage() {
   const [formData, setFormData] = useState({
     make: "", model: "", year: "", km: "", fuel: "Benzină", engine: "", transmission: "Automată", bodyType: "Sedan", status: "Înmatriculat RO", tva: "Nu (Vânzător PF)",
     propType: "Apartament", surface: "", rooms: "", buildYear: "", floor: "", parking: "Inclus în preț", landSurface: "", location: "",
-    brand: "", refModel: "", purchaseYear: "", mechanism: "Automatic", material: "", boxPapers: "Full Set (Cutie + Acte)",
+    brand: "", refModel: "", purchaseYear: "", mechanism: "Automat", material: "", boxPapers: "Full Set (Cutie + Acte)",
     businessDomain: "", businessAge: "", revenue: "", profit: "", employees: "", includes: "",
     specs: "", warranty: "",
   });
@@ -112,6 +112,21 @@ export default function PostAdPage() {
 
   const selectedPackageMeta = PACKAGE_DEFS.find((p) => p.id === selectedPackage)!;
 
+  const StepPill = ({ index, title }: { index: number; title: string }) => (
+    <div
+      className={`rounded-full border-2 px-3 py-1.5 text-[9px] font-bold uppercase tracking-wider transition-colors md:px-4 md:text-[10px] ${
+        step >= index
+          ? "border-black bg-black text-[#FFD100]"
+          : "border-black/15 bg-white text-neutral-600"
+      }`}
+    >
+      {index}. {title}
+    </div>
+  );
+
+  const inputBase =
+    "mt-2 w-full rounded-[0.875rem] border-2 border-black bg-white px-4 py-3 text-sm font-semibold text-neutral-900 placeholder:text-neutral-500 focus:border-[#FFD100] focus:outline-none focus:ring-[3px] focus:ring-[#FFD100]/35";
+
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       setImages(Array.from(e.target.files));
@@ -125,7 +140,7 @@ export default function PostAdPage() {
       return;
     }
     setIsAnalyzing(true);
-    setStep(2);
+    setStep(3);
 
     try {
       const apiCategory = category === 'Auto & Moto' ? 'auto' :
@@ -168,11 +183,11 @@ export default function PostAdPage() {
         }
       } else {
         alert(data.message || "Date insuficiente pentru o evaluare automată.");
-        setStep(1);
+        setStep(2);
       }
     } catch (error) {
-      alert("Terminalul de preț este momentan indisponibil.");
-      setStep(1);
+      alert("Estimarea pe piață este momentan indisponibilă.");
+      setStep(2);
     } finally {
       setIsAnalyzing(false);
     }
@@ -287,15 +302,22 @@ export default function PostAdPage() {
   // Acest ecran nu va mai fi atins în mod normal aici, pentru că redirecționăm către Stripe
   if (isSuccess) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
-        <div className="max-w-md w-full text-center bg-white border-[4px] border-black p-10 rounded-[2.5rem] shadow-[15px_15px_0_0_rgba(255,209,0,1)] animate-in zoom-in-95 duration-500">
-          <span className="text-6xl mb-6 block">⚡</span>
-          <h1 className="text-3xl font-black uppercase italic tracking-tighter mb-4">Lichiditate Activată!</h1>
-          <p className="font-bold text-gray-500 uppercase text-xs tracking-widest leading-relaxed mb-8">
-            Activul tău a fost listat în terminal cu galerie foto și investitorii au primit notificarea.
+      <div className="flex min-h-screen items-center justify-center bg-[#F7F4EC] p-6 antialiased">
+        <div className="w-full max-w-md rounded-[2rem] border-[3px] border-black bg-white p-10 text-center shadow-[12px_12px_0_0_#FFD100]">
+          <span className="mb-6 block text-5xl" aria-hidden>
+            ✓
+          </span>
+          <h1 className="mb-4 text-2xl font-black uppercase italic leading-tight tracking-tight text-black md:text-3xl">
+            Anunț activat cu succes
+          </h1>
+          <p className="mb-8 text-sm font-medium leading-relaxed text-neutral-600">
+            Anunțul este publicat. Poți urmări ofertele din cont.
           </p>
-          <Link href="/dashboard" className="block w-full bg-black text-[#FFD100] py-5 rounded-2xl font-black uppercase tracking-widest text-xs italic hover:scale-[1.02] transition-transform">
-            Mergi în Dashboard →
+          <Link
+            href="/dashboard"
+            className="block w-full rounded-2xl border-[3px] border-black bg-black py-4 text-sm font-black uppercase tracking-widest text-[#FFD100] transition hover:brightness-110"
+          >
+            Mergi la contul meu
           </Link>
         </div>
       </div>
@@ -303,62 +325,68 @@ export default function PostAdPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-10 pb-24 px-4 font-sans text-black selection:bg-[#FFD100] antialiased">
-      <div className="max-w-4xl mx-auto">
-        
-        {/* Header Terminal */}
-        <div className="mb-10 text-center">
-          <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2 italic">Terminal de Lichiditate</p>
-          <h1 className="text-4xl md:text-5xl font-black uppercase italic tracking-tighter">
-            Listează <span className="text-[#FFD100]">Activul</span>
-          </h1>
-          <p className="text-sm font-bold text-gray-500 mt-4 uppercase italic">Oferă date precise pentru încredere maximă a investitorilor.</p>
+    <div className="min-h-screen bg-[#F7F4EC] px-4 pb-28 pt-20 font-sans text-neutral-900 antialiased selection:bg-[#FFD100]/40 md:px-8">
+      <div className="mx-auto max-w-7xl space-y-10 md:space-y-14">
+        <div className="rounded-[2rem] border-[3px] border-black bg-black p-8 text-white shadow-[10px_10px_0_0_#FFD100] md:p-12">
+          <div className="mx-auto max-w-3xl text-center">
+            <p className="text-[10px] font-bold uppercase tracking-[0.28em] text-[#FFD100]/90 md:text-[11px]">Quick Exit Terminal</p>
+            <h1 className="mt-5 text-3xl font-black uppercase italic leading-[1.05] tracking-tight md:text-5xl">
+              Publică <span className="text-[#FFD100]">anunțul</span>
+            </h1>
+            <p className="mx-auto mt-3 max-w-xl text-lg font-black uppercase italic text-[#FFD100] md:text-xl">
+              pentru vânzare rapidă
+            </p>
+            <p className="mx-auto mt-6 max-w-xl text-[11px] font-semibold uppercase leading-relaxed tracking-[0.18em] text-neutral-300 md:text-xs">
+              Completează activul, stabilește prețul și alege viteza de vânzare.
+            </p>
+          </div>
+          <div className="mx-auto mt-10 flex flex-wrap justify-center gap-2 md:gap-3">
+            <StepPill index={1} title="Date activ" />
+            <StepPill index={2} title="Poze și descriere" />
+            <StepPill index={3} title="Preț de vânzare" />
+            <StepPill index={4} title="Pachet și publicare" />
+          </div>
         </div>
 
-        {/* Progresie */}
-        <div className="flex justify-between mb-8 border-b-4 border-black pb-4">
-          <div className={`text-[10px] font-black uppercase tracking-widest italic ${step >= 1 ? 'text-black' : 'text-gray-300'}`}>1. Date despre activ</div>
-          <div className={`text-[10px] font-black uppercase tracking-widest italic ${step >= 2 ? 'text-black' : 'text-gray-300'}`}>2. Estimare piață</div>
-          <div className={`text-[10px] font-black uppercase tracking-widest italic ${step >= 3 ? 'text-black' : 'text-gray-300'}`}>3. Pachet & plată</div>
-        </div>
-
-        <div className="bg-white p-6 md:p-10 rounded-2xl border-[3px] border-black shadow-[10px_10px_0_0_rgba(0,0,0,1)] relative overflow-hidden">
-          <div className="absolute top-0 right-0 p-8 opacity-5 pointer-events-none">
+        <div className="relative overflow-hidden rounded-[2rem] border-[3px] border-black bg-white p-8 shadow-[12px_12px_0_0_rgba(0,0,0,0.12)] md:p-14 md:shadow-[14px_14px_0_0_#FFD100]">
+          <div className="pointer-events-none absolute right-0 top-0 p-8 opacity-[0.06]">
             <Search size={150} strokeWidth={3} />
           </div>
 
           {step === 1 && (
-            <div className="space-y-8 relative z-10">
-              
-              {/* Selectie Categorie */}
+            <div className="relative z-10 space-y-8 md:space-y-10">
               <div>
-                <h2 className="text-xl font-black uppercase italic mb-4">Alege Categoria</h2>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                <h2 className="mb-6 text-xl font-black uppercase italic tracking-tight text-black md:text-2xl">1. Date despre activ</h2>
+                <p className="mb-6 text-sm font-medium text-neutral-600">Alege categoria și completează detaliile tehnice.</p>
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:gap-6">
                   {categoriesList.map((cat) => (
-                    <button 
+                    <button
                       key={cat}
+                      type="button"
                       onClick={() => setCategory(cat)}
-                      className={`p-3 border-[3px] rounded-xl font-black uppercase text-[10px] md:text-xs italic transition-all ${category === cat ? 'border-black bg-black text-[#FFD100] shadow-[2px_2px_0_0_rgba(0,0,0,1)]' : 'border-gray-200 hover:border-black hover:bg-gray-50'}`}
+                      className={`rounded-2xl border-2 border-black p-5 text-left transition-all duration-150 md:p-6 ${
+                        category === cat
+                          ? "bg-black text-[#FFD100] shadow-[6px_6px_0_0_#FFD100]"
+                          : "bg-white text-black hover:border-[#FFD100] hover:shadow-[6px_6px_0_0_rgba(255,209,0,0.65)] active:translate-y-px"
+                      }`}
                     >
-                      {cat}
+                      <p className="text-xs font-black uppercase tracking-wider md:text-sm">{cat}</p>
                     </button>
                   ))}
                 </div>
               </div>
 
-              {/* Titlu Anunt */}
-              <div className="pt-6 border-t-2 border-gray-100">
-                <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 block">Titlu Anunț</label>
-                <input 
-                  type="text" 
+              <div className="rounded-3xl border border-black/[0.08] bg-[#F7F4EC]/80 p-6 md:border-2 md:border-black/[0.06] md:p-10">
+                <label className="block text-[10px] font-bold uppercase tracking-widest text-neutral-500">Titlu anunț</label>
+                <input
+                  type="text"
                   value={adTitle}
                   onChange={(e) => setAdTitle(e.target.value)}
-                  placeholder="Ex: Mercedes S-Class S500 / Penthouse Herăstrău" 
-                  className="w-full mt-2 p-4 border-[3px] border-black rounded-xl font-black uppercase focus:outline-none focus:bg-[#FFD100]/10 shadow-[2px_2px_0_0_rgba(0,0,0,1)] transition-colors" 
+                  placeholder="Ex.: Mercedes S 500 / Apartament Herăstrău"
+                  className={`${inputBase} font-bold uppercase tracking-wide`}
                 />
-              </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-5 pt-4">
+                <div className="mt-8 grid grid-cols-1 gap-5 md:grid-cols-3 md:gap-5">
                 
                 {/* AUTO & MOTO */}
                 {category === 'Auto & Moto' && (
@@ -476,7 +504,7 @@ export default function PostAdPage() {
                     <div>
                       <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">Mecanism</label>
                       <select value={formData.mechanism} onChange={(e) => setFormData({...formData, mechanism: e.target.value})} className="w-full mt-2 p-3 border-[3px] border-black rounded-xl font-bold uppercase focus:outline-none focus:bg-gray-50 appearance-none">
-                        <option>Automatic</option><option>Manual</option><option>Quartz</option>
+                        <option>Automat</option><option>Manual</option><option>Quartz</option>
                       </select>
                     </div>
                     <div>
@@ -543,143 +571,212 @@ export default function PostAdPage() {
                     </div>
                   </>
                 )}
-
-                {/* Descriere Generala */}
-                <div className="md:col-span-3 pt-4 border-t-2 border-gray-100">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">Motivul vânzării și detalii (pentru încrederea cumpărătorilor)</label>
-                  <textarea 
-                    rows={4} 
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Specifică eventuale defecte ascunse, motivul urgenței (ex: nevoie de lichiditate pentru alt proiect) sau dotări extra rare. Sinceritatea crește Scorul Tranzacției." 
-                    className="w-full mt-2 p-4 border-[3px] border-black rounded-xl font-bold italic focus:outline-none focus:bg-gray-50 resize-none shadow-[2px_2px_0_0_rgba(0,0,0,1)]"
-                  ></textarea>
-                </div>
-
-                {/* UPLOAD IMAGINI */}
-                <div className="md:col-span-3 pt-4">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 block mb-3">Galerie Foto (Atenție la detalii)</label>
-                  <div className="w-full min-h-[160px] border-[3px] border-dashed border-black rounded-2xl flex flex-col items-center justify-center bg-gray-50 hover:bg-[#FFD100]/10 hover:border-[#FFD100] transition-all cursor-pointer relative p-6 shadow-[inner_0_0_10px_rgba(0,0,0,0.05)]">
-                    <input type="file" multiple accept="image/*" onChange={handleImageUpload} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
-                    <div className="text-center flex flex-col items-center">
-                      <span className="text-4xl mb-3">📸</span>
-                      <p className="text-xs font-black uppercase italic text-black">
-                        {images.length > 0 ? `${images.length} imagini selectate` : 'Click / Drag & Drop pentru Fotografii'}
-                      </p>
-                      <p className="text-[9px] font-bold text-gray-400 mt-2">Investitorii verifică atent uzura. Pune minim 5 poze clare din unghiuri diferite.</p>
-                    </div>
-                  </div>
                 </div>
               </div>
 
-              <div className="mt-10 pt-8 border-t-2 border-gray-100">
-                <button 
-                  onClick={generateAiPricing} 
-                  disabled={!adTitle}
-                  className="w-full bg-black text-[#FFD100] py-5 rounded-2xl font-black uppercase tracking-widest text-sm italic hover:bg-gray-900 transition-colors shadow-[6px_6px_0_0_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none disabled:opacity-50 disabled:shadow-none"
+              <div className="mt-10 border-t-2 border-neutral-200/80 pt-8">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const err = validatePrimaryAssetFields();
+                    if (err) {
+                      alert(err);
+                      return;
+                    }
+                    if (!adTitle.trim()) {
+                      alert("Completează titlul anunțului.");
+                      return;
+                    }
+                    setStep(2);
+                  }}
+                  className="w-full rounded-2xl border-[3px] border-black bg-[#FFD100] py-5 text-sm font-black uppercase tracking-[0.15em] text-black shadow-[6px_6px_0_0_#000] transition hover:brightness-105 active:translate-y-0.5 active:shadow-[4px_4px_0_0_#000]"
                 >
-                  Continuă către estimarea pe piață →
+                  Continuă la poze și descriere →
                 </button>
-                {!adTitle && <p className="text-center text-[9px] font-bold text-red-500 mt-3 uppercase tracking-widest">Completează Titlul pentru a continua.</p>}
               </div>
             </div>
           )}
 
           {step === 2 && (
-            <div className="space-y-8 text-center min-h-[500px] flex flex-col justify-center">
-              
+            <div className="relative z-10 space-y-8">
+              <div>
+                <h2 className="mb-3 text-xl font-black uppercase italic tracking-tight text-black md:text-2xl">2. Poze și descriere</h2>
+                <p className="text-sm font-medium text-neutral-600">
+                  Pozele reale și descrierea sinceră cresc încrederea și numărul de oferte.
+                </p>
+              </div>
+
+              <div className="rounded-3xl border border-black/[0.08] bg-[#F7F4EC]/80 p-6 md:border-2 md:border-black/[0.06] md:p-10">
+                <label className="block text-[10px] font-bold uppercase tracking-widest text-neutral-500">
+                  Descriere anunț
+                </label>
+                <textarea
+                  rows={5}
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Stare, dotări, motivul vânzării, eventuale defecte — transparența ajută la tranzacție."
+                  className={`${inputBase} mt-2 resize-none font-medium leading-relaxed normal-case`}
+                />
+
+                <div className="mt-10">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-neutral-500">Fotografii</p>
+                  <div className="relative mt-3 flex min-h-[180px] cursor-pointer flex-col items-center justify-center rounded-2xl border-[3px] border-dashed border-black bg-white p-8 transition hover:border-[#FFD100] hover:bg-[#FFFDF8] md:min-h-[200px]">
+                    <input
+                      type="file"
+                      multiple
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      className="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0"
+                    />
+                    <span className="text-4xl" aria-hidden>
+                      📷
+                    </span>
+                    <p className="mt-4 text-center text-sm font-black text-neutral-900">Adaugă poze reale ale activului</p>
+                    <p className="mt-2 max-w-md text-center text-xs font-medium text-neutral-600">
+                      Pozele cresc încrederea și viteza ofertelor.
+                    </p>
+                    {images.length > 0 && (
+                      <p className="mt-4 text-[11px] font-bold uppercase tracking-wider text-[#FFD100]">
+                        {images.length} fișiere selectate
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
+                <button
+                  type="button"
+                  onClick={() => setStep(1)}
+                  className="w-full rounded-2xl border-[3px] border-black bg-white py-4 text-xs font-black uppercase tracking-widest text-black shadow-[4px_4px_0_0_rgba(0,0,0,1)] transition hover:bg-neutral-50 sm:w-1/3"
+                >
+                  Înapoi
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void generateAiPricing()}
+                  className="w-full rounded-2xl border-[3px] border-black bg-black py-4 text-xs font-black uppercase tracking-widest text-[#FFD100] shadow-[6px_6px_0_0_#000] transition hover:bg-neutral-900 sm:flex-1"
+                >
+                  Continuă către estimarea pe piață →
+                </button>
+              </div>
+            </div>
+          )}
+
+          {step === 3 && (
+            <div className="relative z-10 min-h-[420px]">
               {isAnalyzing ? (
-                <div className="animate-pulse space-y-6">
-                  <div className="text-6xl mb-4 animate-spin inline-block">🎯</div>
-                  <h2 className="text-3xl font-black uppercase italic">Scanăm Piața...</h2>
-                  <p className="text-sm font-bold text-gray-500 uppercase italic">Identificăm {adTitle} în bazele de date partenere</p>
-                  <div className="space-y-2 max-w-sm mx-auto text-left border-l-4 border-[#FFD100] pl-4">
-                    <p className="text-xs font-bold text-black uppercase tracking-widest">Se extrag anunțurile active...</p>
-                    <p className="text-xs font-bold text-black uppercase tracking-widest">Calculare depreciere & istoric...</p>
-                    <p className="text-xs font-bold text-black uppercase tracking-widest">Generare Raport Lichiditate...</p>
+                <div className="flex justify-center py-8 md:py-12">
+                  <div className="w-full max-w-lg rounded-[1.75rem] border-[3px] border-black bg-black px-8 py-12 text-center text-white shadow-[10px_10px_0_0_#FFD100] md:px-12 md:py-14">
+                    <Loader2 className="mx-auto mb-4 h-12 w-12 animate-spin text-[#FFD100]" aria-hidden />
+                    <h2 className="text-lg font-black uppercase tracking-wider text-white md:text-xl">Analizăm piața…</h2>
+                    <p className="mt-3 text-sm font-medium text-neutral-300">Căutăm repere pentru: {adTitle || "anunțul tău"}</p>
+                    <ul className="mx-auto mt-8 max-w-sm space-y-2 border-l-4 border-[#FFD100] pl-4 text-left text-xs font-semibold text-neutral-300">
+                      <li>Comparăm anunțuri similare</li>
+                      <li>Verificăm tendințe de preț</li>
+                      <li>Pregătim estimarea</li>
+                    </ul>
                   </div>
                 </div>
               ) : (
-                <div className="animate-in fade-in slide-in-from-bottom-8 duration-500 space-y-8">
-                  
-                  {/* MODIFICAREA DE DESIGN PENTRU ACTIV EXCLUSIVIST */}
-                  <div className="bg-white border-[4px] border-black p-6 md:p-8 rounded-[2rem] shadow-[8px_8px_0_0_rgba(0,0,0,1)] relative overflow-hidden text-left">
-                    <div className={`absolute top-0 right-0 ${marketPrice > 0 ? 'bg-black text-[#FFD100]' : 'bg-orange-500 text-white'} text-[9px] font-black px-4 py-2 uppercase tracking-widest rounded-bl-xl`}>
-                      {marketPrice > 0 ? 'Date Reale' : 'Activ Exclusivist'}
+                <div className="animate-in fade-in slide-in-from-bottom-8 space-y-8 duration-500">
+                  <div>
+                    <h2 className="text-xl font-black uppercase italic tracking-tight text-black md:text-2xl">3. Preț de vânzare</h2>
+                    <p className="mt-2 text-sm font-medium text-neutral-600">
+                      Folosește estimarea ca reper, apoi stabilește prețul la care vrei să vinzi rapid.
+                    </p>
+                  </div>
+
+                  <div className="relative overflow-hidden rounded-[2rem] border-[3px] border-black bg-white p-6 text-left shadow-[8px_8px_0_0_rgba(0,0,0,0.1)] md:p-8">
+                    <div
+                      className={`absolute right-0 top-0 rounded-bl-xl px-4 py-2 text-[9px] font-black uppercase tracking-widest ${marketPrice > 0 ? "bg-black text-[#FFD100]" : "bg-amber-600 text-white"}`}
+                    >
+                      {marketPrice > 0 ? "Estimare disponibilă" : "Puține repere în piață"}
                     </div>
-                    
+
                     {marketPrice > 0 ? (
                       <>
-                        <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">Preț Mediu Piață Estimat</p>
-                        <p className="text-4xl md:text-5xl font-black italic tracking-tighter text-black">
-                          €{marketPrice.toLocaleString('ro-RO')}
+                        <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-500">Preț estimat de piață</p>
+                        <p className="mt-2 font-black italic tracking-tighter text-black text-4xl md:text-5xl">
+                          €{marketPrice.toLocaleString("ro-RO")}
                         </p>
-                        <div className="mt-4 pt-4 border-t-2 border-gray-100 flex flex-col gap-2">
-                           <p className="text-xs font-bold text-gray-600">✓ Analiză generată comparând <span className="font-black text-black">{analyzedItems} anunțuri similare</span>.</p>
-                           <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-2">Încredere estimare: {evaluationResult?.confidence_score || 0}%</p>
+                        <div className="mt-4 flex flex-col gap-2 border-t border-neutral-200 pt-4">
+                          <p className="text-sm font-medium text-neutral-600">
+                            Comparație cu <span className="font-black text-black">{analyzedItems}</span> anunțuri similare.
+                          </p>
+                          <p className="text-[10px] font-semibold uppercase tracking-wider text-neutral-400">
+                            Încredere estimare: {evaluationResult?.confidence_score ?? 0}%
+                          </p>
                         </div>
                       </>
                     ) : (
                       <>
-                        <p className="text-[10px] font-black uppercase tracking-widest text-orange-500 mb-2">Atenție: Istoric Insuficient</p>
-                        <p className="text-2xl md:text-3xl font-black italic tracking-tighter text-black">
-                          Activ Rar Identificat.
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-amber-700">Repere limitate</p>
+                        <p className="mt-2 text-2xl font-black italic tracking-tighter text-black md:text-3xl">Activ mai rar pe piață</p>
+                        <p className="mt-4 text-sm font-medium text-neutral-600">
+                          Nu avem suficiente anunțuri identice pentru o medie clară. Stabilește mai jos prețul la care ești dispus să vinzi.
                         </p>
-                        <div className="mt-4 pt-4 border-t-2 border-gray-100 flex flex-col gap-2">
-                           <p className="text-xs font-bold text-gray-600">Nu am găsit suficiente repere identice în piață pentru o medie clară de preț. <span className="font-black">Setează prețul tău de bază mai jos.</span></p>
-                        </div>
                       </>
                     )}
                   </div>
 
-                  <div className="text-left space-y-6">
-                    <div>
-                      <h3 className="text-xl font-black uppercase italic mb-2">Setează Prețul Tău (Cash)</h3>
-                      <p className="text-xs font-bold text-gray-500 uppercase italic">
-                        {marketPrice > 0 
-                          ? "Alege cât ești dispus să lași din preț pentru a obține banii imediat." 
-                          : "Setează prețul dorit pe care îl vei folosi ca bază de pornire."}
-                      </p>
-                    </div>
-
-                    <div className="flex flex-col md:flex-row gap-4">
-                      <div className="flex-1 bg-gray-50 p-6 rounded-2xl border-[3px] border-black shadow-[inner_0_0_10px_rgba(0,0,0,0.05)]">
-                        <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">
-                          {marketPrice > 0 ? "Vreau să încasez (EUR)" : "Prețul Tău Dorit (Bază / EUR)"}
+                  <div className="space-y-6 text-left">
+                    <div className="flex flex-col gap-4 md:flex-row">
+                      <div className="flex-1 rounded-2xl border-[3px] border-black bg-[#F7F4EC]/80 p-6">
+                        <label className="text-[10px] font-bold uppercase tracking-widest text-neutral-500">
+                          Preț de vânzare rapidă (EUR)
                         </label>
                         <div className="relative mt-2">
-                          <span className="absolute left-4 top-1/2 -translate-y-1/2 font-black text-xl">€</span>
-                          <input 
-                            type="number" 
+                          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl font-black text-neutral-900">€</span>
+                          <input
+                            type="number"
                             value={exitPrice}
                             onChange={(e) => setExitPrice(e.target.value)}
-                            placeholder={marketPrice > 0 ? marketPrice.toString() : "Ex: 500000"} 
-                            className="w-full p-4 pl-10 border-[3px] border-black rounded-xl font-black text-3xl italic focus:outline-none focus:bg-white shadow-[4px_4px_0_0_rgba(0,0,0,1)]" 
+                            placeholder={marketPrice > 0 ? marketPrice.toString() : "ex. 45000"}
+                            className={`${inputBase} pl-11 text-2xl font-black italic tabular-nums focus:bg-white md:text-3xl`}
                           />
                         </div>
+                        <p className="mt-3 text-xs font-medium text-neutral-500">
+                          {marketPrice > 0
+                            ? "Poți sub prețul pieței pentru lichiditate mai rapidă."
+                            : "Introdu prețul la care vrei să încasezi."}
+                        </p>
                       </div>
 
                       {(marketPrice > 0 || (marketPrice === 0 && exitPrice)) && (
-                        <div className={`w-full md:w-32 flex flex-col items-center justify-center p-4 rounded-2xl border-[3px] border-black shadow-[4px_4px_0_0_rgba(0,0,0,1)] transition-colors ${currentDiscountPercent >= 15 ? 'bg-[#FFD100] text-black' : currentDiscountPercent > 0 ? 'bg-black text-[#FFD100]' : 'bg-gray-100 text-gray-400'}`}>
-                           <span className="text-[10px] font-black uppercase tracking-widest mb-1">Discount</span>
-                           <span className="text-3xl font-black italic leading-none">-{currentDiscountPercent}%</span>
+                        <div
+                          className={`flex w-full flex-col items-center justify-center rounded-2xl border-[3px] border-black p-6 md:w-36 ${
+                            currentDiscountPercent >= 15
+                              ? "bg-[#FFD100] text-black"
+                              : currentDiscountPercent > 0
+                                ? "bg-black text-[#FFD100]"
+                                : "bg-neutral-100 text-neutral-400"
+                          }`}
+                        >
+                          <span className="text-[10px] font-black uppercase tracking-widest">Discount aplicat</span>
+                          <span className="mt-1 text-3xl font-black italic tabular-nums leading-none">-{currentDiscountPercent}%</span>
                         </div>
                       )}
                     </div>
 
-                    <p className="pt-6 text-xs font-semibold text-neutral-600 border-t-2 border-gray-100">
-                      Viteza și modul de promovare le alegi la pasul următor (după ce stabilești prețul).
+                    <p className="border-t border-neutral-200 pt-6 text-sm font-medium text-neutral-600">
+                      La pasul următor alegi cât timp rămâne promovat anunțul și cât de urgent vrei oferte.
                     </p>
                   </div>
 
-                  <div className="flex gap-4 pt-6 border-t-2 border-gray-100">
-                    <button onClick={() => setStep(1)} className="w-1/3 border-[3px] border-black py-5 rounded-2xl font-black uppercase text-xs italic hover:bg-gray-50 transition-colors shadow-[4px_4px_0_0_rgba(0,0,0,1)] active:translate-y-0.5 active:shadow-none">
+                  <div className="flex flex-col gap-3 border-t border-neutral-200 pt-6 sm:flex-row sm:gap-4">
+                    <button
+                      type="button"
+                      onClick={() => setStep(2)}
+                      className="w-full rounded-2xl border-[3px] border-black bg-white py-4 text-xs font-black uppercase tracking-widest text-black shadow-[4px_4px_0_0_rgba(0,0,0,1)] transition hover:bg-neutral-50 sm:w-1/3"
+                    >
                       Înapoi
                     </button>
-                    <button 
-                      onClick={() => setStep(3)} 
+                    <button
+                      type="button"
+                      onClick={() => setStep(4)}
                       disabled={!exitPrice}
-                      className="w-2/3 bg-black text-[#FFD100] py-5 rounded-2xl font-black uppercase tracking-widest text-sm italic shadow-[6px_6px_0_0_rgba(0,0,0,1)] active:translate-y-0.5 active:shadow-none disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed"
+                      className="w-full flex-1 rounded-2xl border-[3px] border-black bg-black py-4 text-xs font-black uppercase tracking-widest text-[#FFD100] shadow-[6px_6px_0_0_#000] transition hover:bg-neutral-900 disabled:cursor-not-allowed disabled:opacity-40"
                     >
                       Alege viteza de vânzare →
                     </button>
@@ -689,7 +786,7 @@ export default function PostAdPage() {
             </div>
           )}
 
-          {step === 3 && (
+          {step === 4 && (
             <div className="space-y-8 animate-in slide-in-from-right-4 duration-500">
               <div>
                 <h2 className="text-2xl font-black uppercase italic tracking-tight text-black md:text-3xl">
@@ -749,10 +846,10 @@ export default function PostAdPage() {
 
               <button
                 type="button"
-                onClick={() => setStep(2)}
-                className="mx-auto block w-fit border-b-2 border-transparent pb-1 text-center text-[10px] font-black uppercase italic text-neutral-400 transition-colors hover:border-black hover:text-black"
+                onClick={() => setStep(3)}
+                className="mx-auto block w-fit border-b-2 border-transparent pb-1 text-center text-[10px] font-black uppercase italic text-neutral-500 transition-colors hover:border-black hover:text-black"
               >
-                ← Înapoi la estimare
+                ← Înapoi la preț
               </button>
             </div>
           )}
