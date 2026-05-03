@@ -18,6 +18,8 @@ export async function POST(request: Request) {
       );
     }
 
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://quickexit-app.vercel.app";
+
     // Creăm sesiunea de verificare a identității
     const verificationSession = await stripe.identity.verificationSessions.create({
       type: 'document',
@@ -30,7 +32,7 @@ export async function POST(request: Request) {
         },
       },
       // Unde se întoarce utilizatorul după ce termină procesul (chiar dacă încă se procesează în background)
-      return_url: `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard?kyc_process=started`,
+      return_url: `${baseUrl}/dashboard?kyc_process=started`,
     });
 
     // Trimitem URL-ul către interfață pentru a face redirect
