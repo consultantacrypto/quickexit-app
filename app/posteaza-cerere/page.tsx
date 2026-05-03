@@ -7,7 +7,7 @@ import Link from "next/link";
 const labelBase =
   "block text-[10px] font-black uppercase tracking-widest text-neutral-500";
 const inputBase =
-  "w-full mt-2 rounded-xl border-[3px] border-black bg-white p-3 md:p-4 font-semibold text-black placeholder:text-neutral-500 outline-none transition focus:border-[#FFD100] focus:ring-4 focus:ring-[#FFD100]/30";
+  "w-full mt-2 rounded-xl border-[3px] border-black bg-white p-4 font-bold text-black outline-none transition focus:border-[#FFD100] focus:ring-4 focus:ring-[#FFD100]/30 placeholder:text-neutral-500";
 
 export default function PostDemandPage() {
   const [step, setStep] = useState(1);
@@ -356,9 +356,9 @@ export default function PostDemandPage() {
                           className={`${inputBase} cursor-pointer appearance-none`}
                         >
                           <option value="">Alege o opțiune</option>
-                          <option>Set complet obligatoriu</option>
-                          <option>Doar acte / card</option>
-                          <option>Accept doar ceasul (verificare specialist)</option>
+                          <option>Full Set Obligatoriu</option>
+                          <option>Doar Acte / Card</option>
+                          <option>Accept Watch Only (Verificare specialist)</option>
                         </select>
                       </div>
                       <div>
