@@ -40,7 +40,7 @@ export default function Header() {
 
   return (
     <>
-      <header className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-b border-gray-100 h-20 md:h-28 flex items-center">
+      <header className="fixed top-0 left-0 right-0 z-50 bg-[#F7F4EC]/95 backdrop-blur-md border-b border-black/10 shadow-[0_4px_20px_rgba(0,0,0,0.04)] h-20 md:h-28 flex items-center">
         <div className="max-w-[1400px] mx-auto px-4 md:px-8 w-full flex items-center justify-between">
           
           {/* LOGO */}
@@ -125,9 +125,9 @@ export default function Header() {
       </header>
 
       {/* MOBILE OVERLAY */}
-      <div className={`fixed inset-0 z-[60] bg-white transition-transform duration-500 ${isOpen ? "translate-x-0" : "translate-x-full"}`}>
+      <div className={`fixed inset-0 z-[60] bg-[#F7F4EC] transition-transform duration-500 ${isOpen ? "translate-x-0" : "translate-x-full"}`}>
         <div className="flex flex-col h-full">
-          <div className="flex items-center justify-between px-6 h-20 border-b border-gray-100">
+          <div className="flex items-center justify-between px-6 h-20 border-b border-black/10">
             <div className="h-8 w-32 relative font-black text-xl italic text-black">QUICKEXIT</div>
             <button onClick={() => setIsOpen(false)} className="p-2 text-black bg-gray-100 rounded-full">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-6 h-6">
