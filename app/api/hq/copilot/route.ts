@@ -269,7 +269,11 @@ export async function POST(req: NextRequest) {
       adminSupabase.from("listing_offers").select("*").order("created_at", { ascending: false }).limit(300),
       adminSupabase.from("demand_offers").select("*").order("created_at", { ascending: false }).limit(300),
       adminSupabase.from("profiles").select("id, full_name, kyc_status, user_type, created_at").order("created_at", { ascending: false }).limit(500),
-      adminSupabase.from("valuation_reports").select("id, confidence_score, created_at").order("created_at", { ascending: false }).limit(500),
+      adminSupabase
+        .from("valuation_reports")
+        .select("id, confidence_score, market_anchor_price, quick_exit_price, generated_at")
+        .order("generated_at", { ascending: false })
+        .limit(500),
     ]);
 
     const errors = [listingsRes.error, demandsRes.error, listingOffersRes.error, demandOffersRes.error, profilesRes.error, valuationRes.error].filter(Boolean);
@@ -393,7 +397,9 @@ export async function POST(req: NextRequest) {
         recent_low_confidence_reports: lowConfidenceReports.slice(0, 10).map((r) => ({
           id: r.id ?? null,
           confidence_score: toNum(r.confidence_score),
-          created_at: r.created_at ?? null,
+          market_anchor_price: toNum(r.market_anchor_price),
+          quick_exit_price: toNum(r.quick_exit_price),
+          generated_at: r.generated_at ?? null,
         })),
       },
       risks: {
