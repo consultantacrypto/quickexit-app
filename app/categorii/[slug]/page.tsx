@@ -86,7 +86,7 @@ function CategoryContent() {
       
       {/* HEADER CATEGORIE - BRUTALIST STYLE */}
       <div className="mb-10 border-b-[6px] border-black pb-10">
-        <Link href="/" className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400 hover:text-black italic mb-4 block transition-colors">
+        <Link href="/" className="text-[11px] font-black uppercase tracking-[0.3em] text-neutral-600 hover:text-black italic mb-4 block transition-colors">
           ← TERMINAL LICHIDITATE
         </Link>
         <h1 className="text-6xl md:text-8xl font-black uppercase italic tracking-tighter leading-none mb-8">
@@ -96,11 +96,11 @@ function CategoryContent() {
         {/* BARA DE SUBCATEGORII */}
         {categoryConfig.subs.length > 0 && (
           <div className="flex flex-wrap gap-2 md:gap-3 items-center bg-gray-50 p-3 md:p-4 rounded-2xl border-[3px] border-black shadow-[4px_4px_0_0_rgba(0,0,0,1)]">
-             <span className="text-[9px] font-black uppercase tracking-widest text-gray-400 mr-2 italic">Afișare Rapidă:</span>
+             <span className="text-[11px] font-black uppercase tracking-widest text-neutral-600 mr-2 italic">Afișare Rapidă:</span>
              
              <button 
                 onClick={() => router.push(`/categorii/${slug}`)}
-                className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest italic transition-all border-2 ${!activeSub ? 'bg-black text-[#FFD100] border-black shadow-[2px_2px_0_0_rgba(255,209,0,1)]' : 'bg-white text-gray-500 border-transparent hover:border-black hover:text-black'}`}
+                className={`px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-widest italic transition-all border-2 ${!activeSub ? 'bg-black text-[#FFD100] border-black shadow-[2px_2px_0_0_rgba(255,209,0,1)]' : 'bg-white text-neutral-700 border-transparent hover:border-black hover:text-black'}`}
              >
                Toate Activele
              </button>
@@ -109,7 +109,7 @@ function CategoryContent() {
                <button 
                   key={sub}
                   onClick={() => router.push(`/categorii/${slug}?sub=${encodeURIComponent(sub)}`)}
-                  className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest italic transition-all border-2 ${activeSub === sub ? 'bg-black text-[#FFD100] border-black shadow-[2px_2px_0_0_rgba(255,209,0,1)]' : 'bg-white text-black border-black shadow-[2px_2px_0_0_rgba(0,0,0,0.1)] hover:-translate-y-0.5 hover:shadow-[3px_3px_0_0_rgba(0,0,0,1)]'}`}
+                  className={`px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-widest italic transition-all border-2 ${activeSub === sub ? 'bg-black text-[#FFD100] border-black shadow-[2px_2px_0_0_rgba(255,209,0,1)]' : 'bg-white text-black border-black shadow-[2px_2px_0_0_rgba(0,0,0,0.1)] hover:-translate-y-0.5 hover:shadow-[3px_3px_0_0_rgba(0,0,0,1)]'}`}
                >
                  {sub}
                </button>
@@ -157,7 +157,7 @@ function CategoryContent() {
                 <div className="w-4 h-10 bg-[#FFD100] border-2 border-black"></div>
                 <h2 className="text-3xl font-black uppercase italic tracking-tighter">Oportunități de Vânzare</h2>
               </div>
-              <span className="text-[10px] font-black uppercase tracking-widest text-gray-400 bg-gray-100 px-3 py-1 rounded-md">{filteredListings.filter(l => normalizeSaleType(l.sale_strategy) !== 'auction').length} Rezultate</span>
+              <span className="text-[11px] font-black uppercase tracking-widest text-neutral-600 bg-gray-100 px-3 py-1 rounded-md">{filteredListings.filter(l => normalizeSaleType(l.sale_strategy) !== 'auction').length} Rezultate</span>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
@@ -179,7 +179,7 @@ function CategoryContent() {
             {/* Afișăm un mesaj dacă nu există rezultate pentru filtru */}
             {filteredListings.filter(l => normalizeSaleType(l.sale_strategy) !== 'auction').length === 0 && (
               <div className="text-center py-16 border-[3px] border-dashed border-gray-200 rounded-[2rem] bg-gray-50">
-                 <p className="font-black uppercase tracking-widest text-gray-400 italic">Nu s-au găsit oferte de vânzare pentru acest filtru.</p>
+                 <p className="font-black uppercase tracking-widest text-neutral-700 italic">Nu s-au găsit oferte de vânzare pentru acest filtru.</p>
                  {activeSub && (
                    <button onClick={() => router.push(`/categorii/${slug}`)} className="mt-4 bg-black text-[#FFD100] px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest italic hover:scale-[1.02] transition-transform shadow-[4px_4px_0_0_rgba(0,0,0,1)]">
                      Resetează Filtrul
@@ -196,7 +196,7 @@ function CategoryContent() {
                 <div className="w-4 h-10 bg-black"></div>
                 <h2 className="text-3xl font-black uppercase italic tracking-tighter text-black">Capital Disponibil (Investitori)</h2>
               </div>
-              <span className="text-[10px] font-black uppercase tracking-widest text-gray-400 bg-gray-100 px-3 py-1 rounded-md">{filteredDemands.length} Rezultate</span>
+              <span className="text-[11px] font-black uppercase tracking-widest text-neutral-600 bg-gray-100 px-3 py-1 rounded-md">{filteredDemands.length} Rezultate</span>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
@@ -207,7 +207,7 @@ function CategoryContent() {
                        <span className="bg-black text-[#FFD100] px-3 py-1.5 rounded-lg text-[9px] font-black uppercase italic tracking-widest border border-black">
                         CASH PREGĂTIT
                        </span>
-                       <span className="text-[10px] font-black uppercase text-gray-300 italic tracking-widest">ID: {demand.id.split('-')[0]}</span>
+                       <span className="text-[11px] font-black uppercase text-neutral-600 italic tracking-widest">ID: {demand.id.split('-')[0]}</span>
                     </div>
                     <h3 className="text-2xl font-black uppercase italic leading-tight mb-4 tracking-tighter">
                       {demand.target_asset}
@@ -218,7 +218,7 @@ function CategoryContent() {
                   </div>
 
                   <div className="mt-4 pt-8 border-t-[3px] border-gray-100">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">Buget Alocat</p>
+                    <p className="text-[11px] font-black uppercase tracking-widest text-neutral-600 mb-2">Buget Alocat</p>
                     <p className="text-4xl font-black italic tracking-tighter text-black mb-8">
                       €{demand.budget.toLocaleString('ro-RO')}
                     </p>
@@ -233,7 +233,7 @@ function CategoryContent() {
                 </div>
               )) : (
                 <div className="col-span-full py-16 text-center bg-gray-50 border-[3px] border-dashed border-gray-200 rounded-[2rem]">
-                  <p className="font-black uppercase italic text-gray-400">Nicio cerere de cumpărare găsită pentru acest filtru.</p>
+                  <p className="font-black uppercase italic text-neutral-700">Nicio cerere de cumpărare găsită pentru acest filtru.</p>
                 </div>
               )}
             </div>

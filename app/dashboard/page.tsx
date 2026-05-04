@@ -174,14 +174,14 @@ function DashboardContent() {
           <h1 className="text-2xl font-black uppercase italic tracking-tighter leading-none">
             CENTRU DE <span className="text-[#FFD100]">COMANDĂ</span>
           </h1>
-          <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-gray-400 mt-1 italic">Monitorizare Portofoliu QuickExit</p>
+          <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-neutral-600 mt-1 italic">Monitorizare Portofoliu QuickExit</p>
         </div>
         
         <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
-          <button onClick={() => router.push('/pune-anunt')} className="bg-black text-[#FFD100] px-4 py-3 rounded-lg font-black uppercase text-[9px] italic border-2 border-black shadow-[3px_3px_0_0_rgba(255,209,0,1)] hover:-translate-y-px hover:shadow-none transition-all flex items-center justify-center gap-2">
+          <button onClick={() => router.push('/pune-anunt')} className="bg-black text-[#FFD100] px-4 py-3 rounded-lg font-black uppercase text-[11px] italic border-2 border-black shadow-[3px_3px_0_0_rgba(255,209,0,1)] hover:-translate-y-px hover:shadow-none transition-all flex items-center justify-center gap-2">
             <PlusCircle size={14} /> Pune Anunț Vânzare
           </button>
-          <button onClick={() => router.push('/posteaza-cerere')} className="bg-white text-black px-4 py-3 rounded-lg font-black uppercase text-[9px] italic border-2 border-black shadow-[3px_3px_0_0_rgba(0,0,0,1)] hover:-translate-y-px hover:shadow-none transition-all flex items-center justify-center gap-2">
+          <button onClick={() => router.push('/posteaza-cerere')} className="bg-white text-black px-4 py-3 rounded-lg font-black uppercase text-[11px] italic border-2 border-black shadow-[3px_3px_0_0_rgba(0,0,0,1)] hover:-translate-y-px hover:shadow-none transition-all flex items-center justify-center gap-2">
             <Search size={14} /> Pune Cerere Cumpărare
           </button>
         </div>
@@ -198,41 +198,41 @@ function DashboardContent() {
       {/* KPI-URI COMPACTE */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
         <div className="bg-white border-2 border-black p-4 rounded-xl shadow-[3px_3px_0_0_rgba(0,0,0,1)]">
-          <span className="text-[8px] font-black uppercase text-gray-400 block mb-1">Valoare Active (Vânzare)</span>
+          <span className="text-[11px] font-black uppercase text-neutral-600 block mb-1">Valoare Active (Vânzare)</span>
           <p className="text-xl font-black italic">€{valoareTotala.toLocaleString('ro-RO')}</p>
         </div>
         <div className="bg-black text-white border-2 border-black p-4 rounded-xl shadow-[3px_3px_0_0_rgba(255,209,0,1)]">
-          <span className="text-[8px] font-black uppercase text-gray-500 block mb-1">Capital Pregătit</span>
+          <span className="text-[11px] font-black uppercase text-neutral-600 block mb-1">Capital Pregătit</span>
           <p className="text-xl font-black italic text-[#FFD100]">€{capitalTotal.toLocaleString('ro-RO')}</p>
         </div>
         <div className="hidden md:flex bg-white border-2 border-black p-4 rounded-xl items-center justify-center gap-2 shadow-[3px_3px_0_0_rgba(0,0,0,1)]">
            {userProfile?.kyc_status === 'verified' ? (
              <>
                 <ShieldCheck className="w-5 h-5 text-green-500" />
-                <span className="text-[8px] font-black uppercase text-green-600 tracking-widest italic">KYC Activ</span>
+                <span className="text-[11px] font-black uppercase text-green-700 tracking-widest italic">KYC Activ</span>
              </>
            ) : (
              <>
                 <ShieldCheck className="w-5 h-5 text-gray-300" />
-                <span className="text-[8px] font-black uppercase text-gray-400 tracking-widest italic">KYC Inactiv</span>
+                <span className="text-[11px] font-black uppercase text-neutral-600 tracking-widest italic">KYC Inactiv</span>
              </>
            )}
         </div>
         <div onClick={() => router.push('/profil')} className="bg-[#FFD100] border-2 border-black p-4 rounded-xl flex items-center justify-center cursor-pointer hover:bg-black hover:text-[#FFD100] transition-all shadow-[3px_3px_0_0_rgba(0,0,0,1)]">
            <Settings size={16} />
-           <span className="text-[9px] font-black uppercase ml-2 italic">Setări Cont</span>
+           <span className="text-[11px] font-black uppercase ml-2 italic">Setări Cont</span>
         </div>
       </div>
 
       {/* TAB-URI NAVIGARE */}
       <div className="flex flex-wrap gap-2 mb-8 border-b border-gray-200 pb-2">
-        <button onClick={() => setActiveTab('portofoliu')} className={`px-4 py-2 rounded-md font-black uppercase text-[10px] tracking-widest italic transition-colors ${activeTab === 'portofoliu' ? 'bg-black text-[#FFD100]' : 'text-gray-400 hover:text-black'}`}>
+        <button onClick={() => setActiveTab('portofoliu')} className={`px-4 py-2 rounded-md font-black uppercase text-[11px] tracking-widest italic transition-colors ${activeTab === 'portofoliu' ? 'bg-black text-[#FFD100]' : 'text-neutral-600 hover:text-black'}`}>
           Activele Mele (Vânzare)
         </button>
-        <button onClick={() => setActiveTab('cumparari')} className={`px-4 py-2 rounded-md font-black uppercase text-[10px] tracking-widest italic transition-colors ${activeTab === 'cumparari' ? 'bg-black text-[#FFD100]' : 'text-gray-400 hover:text-black'}`}>
+        <button onClick={() => setActiveTab('cumparari')} className={`px-4 py-2 rounded-md font-black uppercase text-[11px] tracking-widest italic transition-colors ${activeTab === 'cumparari' ? 'bg-black text-[#FFD100]' : 'text-neutral-600 hover:text-black'}`}>
           Oferte Cumpărare
         </button>
-        <button onClick={() => setActiveTab('oferte')} className={`flex items-center gap-2 px-4 py-2 rounded-md font-black uppercase text-[10px] tracking-widest italic transition-colors ${activeTab === 'oferte' ? 'bg-black text-[#FFD100]' : 'text-gray-400 hover:text-black'}`}>
+        <button onClick={() => setActiveTab('oferte')} className={`flex items-center gap-2 px-4 py-2 rounded-md font-black uppercase text-[11px] tracking-widest italic transition-colors ${activeTab === 'oferte' ? 'bg-black text-[#FFD100]' : 'text-neutral-600 hover:text-black'}`}>
           Cameră Negociere
           {totalNotifications > 0 && (
             <span className="bg-red-600 text-white px-2 py-0.5 rounded text-[8px] animate-pulse">{totalNotifications} Noi</span>
@@ -333,7 +333,7 @@ function DashboardContent() {
                   <div>
                     <span className="text-[9px] font-black uppercase text-gray-500 mb-1 inline-block">{demand.category}</span>
                     <h3 className="text-xl font-black uppercase italic leading-tight mb-4">{demand.target_asset}</h3>
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Buget</p>
+                    <p className="text-[11px] font-bold text-neutral-600 uppercase tracking-widest mb-1">Buget</p>
                     <p className="text-3xl font-black italic">€{demand.budget?.toLocaleString('ro-RO')}</p>
                   </div>
                   <div className="mt-6 pt-4 border-t-2 border-gray-100">
@@ -373,7 +373,7 @@ function DashboardContent() {
             <Inbox className="w-8 h-8 md:w-10 md:h-10 text-[#FFD100]" />
             <div>
               <h2 className="text-2xl md:text-3xl font-black uppercase italic tracking-tighter">Cameră de <span className="text-[#FFD100]">Negociere</span></h2>
-              <p className="text-[9px] md:text-[10px] font-bold text-gray-500 uppercase tracking-widest">Aici primești pitch-uri și contra-oferte.</p>
+              <p className="text-[11px] md:text-[11px] font-bold text-neutral-700 uppercase tracking-widest">Aici primești pitch-uri și contra-oferte.</p>
             </div>
           </div>
 

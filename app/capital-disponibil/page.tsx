@@ -102,7 +102,7 @@ export default function CapitalDirectoryPage() {
 
           {/* Numărul afișat aici este dinamic (filteredBuyers.length) */}
           <div className="w-full md:w-1/4 bg-black text-[#FFD100] p-4 rounded-xl border-[3px] border-black flex flex-col justify-center items-center h-full">
-             <span className="text-[10px] font-black uppercase tracking-widest text-white/70">Rezultate Filtrare</span>
+             <span className="text-[11px] font-black uppercase tracking-widest text-white/80">Rezultate Filtrare</span>
              <span className="text-2xl font-black italic leading-none">{filteredBuyers.length} Cereri</span>
           </div>
 
@@ -112,7 +112,7 @@ export default function CapitalDirectoryPage() {
         {isLoading ? (
           <div className="py-24 text-center bg-white border-[3px] border-dashed border-gray-300 rounded-[2rem]">
             <div className="w-16 h-16 border-[6px] border-gray-200 border-t-black rounded-full animate-spin mx-auto mb-4"></div>
-            <p className="text-xs font-black uppercase tracking-widest text-gray-400">Scuturăm baza de date...</p>
+            <p className="text-xs font-black uppercase tracking-widest text-neutral-600">Scuturăm baza de date...</p>
           </div>
         ) : filteredBuyers.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 lg:gap-12">
@@ -120,7 +120,7 @@ export default function CapitalDirectoryPage() {
               <div key={buyer.id} className="bg-white border-[4px] border-[#FFD100] rounded-[2rem] p-8 shadow-[8px_8px_0_0_rgba(0,0,0,1)] hover:-translate-y-2 hover:shadow-[12px_12px_0_0_rgba(0,0,0,1)] transition-all flex flex-col justify-between group">
                 <div>
                   <div className="flex justify-between items-start mb-6">
-                    <span className="bg-[#FFD100] text-black px-4 py-2 rounded-lg text-[9px] md:text-[10px] font-black uppercase tracking-widest italic border-2 border-black">
+                    <span className="bg-[#FFD100] text-black px-4 py-2 rounded-lg text-[11px] md:text-[11px] font-black uppercase tracking-widest italic border-2 border-black">
                       {buyer.budget >= 100000 ? "FONDURI VERIFICATE" : "CASH PREGĂTIT"}
                     </span>
                     <span className="text-2xl grayscale opacity-50 group-hover:grayscale-0 group-hover:opacity-100 transition-all">💰</span>
@@ -131,10 +131,10 @@ export default function CapitalDirectoryPage() {
                   </h3>
                   
                   <div className="flex items-center gap-2 mb-6">
-                    <span className="text-[10px] font-black uppercase tracking-widest bg-gray-100 px-2 py-1 rounded border border-gray-200">
+                    <span className="text-[11px] font-black uppercase tracking-widest bg-gray-100 px-2 py-1 rounded border border-gray-200">
                       {buyer.category || "General"}
                     </span>
-                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                    <span className="text-[11px] font-bold text-neutral-600 uppercase tracking-widest">
                       Investitor: <span className="text-black">Investitor Verificat</span>
                     </span>
                   </div>
@@ -145,7 +145,7 @@ export default function CapitalDirectoryPage() {
                 </div>
                 
                 <div className="mt-8 pt-6 border-t-[3px] border-gray-100">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1">Buget Maxim Alocat</p>
+                  <p className="text-[11px] font-black uppercase tracking-widest text-neutral-600 mb-1">Buget Maxim Alocat</p>
                   <p className="text-4xl md:text-5xl font-black italic tracking-tighter text-black mb-8 break-words">
                     €{buyer.budget.toLocaleString('ro-RO')}
                   </p>
@@ -161,7 +161,7 @@ export default function CapitalDirectoryPage() {
           <div className="text-center py-24 bg-white border-[3px] border-black rounded-[2rem] shadow-[8px_8px_0_0_rgba(0,0,0,1)]">
             <span className="text-6xl mb-6 block">🧭</span>
             <h3 className="text-3xl font-black uppercase italic mb-2">Niciun investitor găsit</h3>
-            <p className="text-gray-500 font-bold mb-8">Nu am găsit oferte de cumpărare pentru acești termeni.</p>
+            <p className="text-neutral-700 font-bold mb-8">Nu am găsit oferte de cumpărare pentru acești termeni.</p>
             <button onClick={() => {setSearchTerm(""); setSelectedCategory("Toate");}} className="bg-black text-[#FFD100] px-8 py-4 rounded-xl font-black uppercase text-xs italic">
               Resetează Filtrele
             </button>

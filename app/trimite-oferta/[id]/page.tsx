@@ -119,7 +119,7 @@ export default function PitchOfferPage() {
       <div className="max-w-4xl mx-auto">
         
         <div className="mb-10 text-center">
-          <Link href="/capital-disponibil" className="text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-black transition-colors italic mb-4 inline-block border-b-2 border-transparent hover:border-black">
+          <Link href="/capital-disponibil" className="text-[11px] font-black uppercase tracking-widest text-neutral-600 hover:text-black transition-colors italic mb-4 inline-block border-b-2 border-transparent hover:border-black">
             ← Înapoi la Cereri Capital
           </Link>
           <h1 className="text-4xl md:text-5xl font-black uppercase italic tracking-tighter">
@@ -132,12 +132,12 @@ export default function PitchOfferPage() {
           {/* COLOANA STÂNGA - Detalii Investitor Dinamice (Sticky) */}
           <div className="lg:col-span-1">
             <div className="bg-black text-white p-6 rounded-[2rem] border-[3px] border-black shadow-[6px_6px_0_0_rgba(255,209,0,1)] sticky top-24">
-              <p className="text-[9px] font-black uppercase tracking-widest text-[#FFD100] mb-4">Investitor Țintă</p>
+              <p className="text-[11px] font-black uppercase tracking-widest text-[#FFD100] mb-4">Investitor Țintă</p>
               <h3 className="text-xl font-black uppercase italic leading-tight mb-2">{buyer.target_asset}</h3>
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-6">Investitor Verificat</p>
+              <p className="text-xs font-bold text-neutral-600 uppercase tracking-widest mb-6">Investitor Verificat</p>
               
               <div className="border-t border-gray-800 pt-6">
-                <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1">Buget Maxim</p>
+                <p className="text-[11px] font-black uppercase tracking-widest text-neutral-600 mb-1">Buget Maxim</p>
                 <p className="text-3xl font-black italic tracking-tighter text-white">€{buyer.budget.toLocaleString('ro-RO')}</p>
               </div>
 
@@ -159,16 +159,16 @@ export default function PitchOfferPage() {
                   
                   {/* Upload Poze (Vizual) */}
                   <div>
-                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 block mb-2">Imagini (Minim 3 foto reale)</label>
+                    <label className="text-[11px] font-black uppercase tracking-widest text-neutral-700 block mb-2">Imagini (Minim 3 foto reale)</label>
                     <div className="w-full h-32 border-[3px] border-dashed border-gray-300 rounded-2xl flex flex-col items-center justify-center bg-gray-50 hover:bg-gray-100 hover:border-black transition-colors cursor-pointer">
                       <span className="text-2xl mb-2">📸</span>
-                      <span className="text-[10px] font-black uppercase text-gray-400 italic">Click pentru Upload</span>
+                      <span className="text-[11px] font-black uppercase text-neutral-600 italic">Click pentru Upload</span>
                     </div>
                   </div>
 
                   {/* Preț cu Validare Visuală */}
                   <div>
-                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 flex justify-between">
+                    <label className="text-[11px] font-black uppercase tracking-widest text-neutral-700 flex justify-between">
                       <span>Prețul Solicitat (Cash)</span>
                       <span className="text-red-500">Max €{buyer.budget.toLocaleString('ro-RO')}</span>
                     </label>
@@ -184,13 +184,13 @@ export default function PitchOfferPage() {
                       />
                     </div>
                     {Number(offerPrice) > buyer.budget && (
-                      <p className="text-[9px] font-black uppercase text-red-500 mt-2">Prețul tău depășește bugetul investitorului!</p>
+                      <p className="text-[11px] font-black uppercase text-red-600 mt-2">Prețul tău depășește bugetul investitorului!</p>
                     )}
                   </div>
 
                   {/* Detalii text */}
                   <div>
-                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 block mb-2">Mesaj / Stare Activ</label>
+                    <label className="text-[11px] font-black uppercase tracking-widest text-neutral-700 block mb-2">Mesaj / Stare Activ</label>
                     <textarea 
                       rows={4} 
                       value={assetDescription}
@@ -203,7 +203,7 @@ export default function PitchOfferPage() {
                   {/* Date contact */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 block mb-2">Telefonul tău</label>
+                      <label className="text-[11px] font-black uppercase tracking-widest text-neutral-700 block mb-2">Telefonul tău</label>
                       <input 
                         type="tel" 
                         value={sellerPhone}
@@ -213,7 +213,7 @@ export default function PitchOfferPage() {
                       />
                     </div>
                     <div>
-                      <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 block mb-2">Email Contact</label>
+                      <label className="text-[11px] font-black uppercase tracking-widest text-neutral-700 block mb-2">Email Contact</label>
                       <input 
                         type="email" 
                         value={sellerEmail}
@@ -246,12 +246,12 @@ export default function PitchOfferPage() {
                         <p className="font-black text-xl text-green-600 italic text-right">GRATUIT</p>
                       </div>
                       <p className="text-xs font-bold text-gray-500 mt-1">Sistemul detectează automat contul tău activ.</p>
-                      <button disabled={isSubmitting} className="mt-4 w-full border-[3px] border-black text-black py-3 rounded-xl font-black uppercase text-[10px] tracking-widest italic group-hover:bg-black group-hover:text-[#FFD100] transition-colors">
+                      <button disabled={isSubmitting} className="mt-4 w-full border-[3px] border-black text-black py-3 rounded-xl font-black uppercase text-[11px] tracking-widest italic group-hover:bg-black group-hover:text-[#FFD100] transition-colors">
                         {isSubmitting ? "Se trimite..." : "Trimite Oferta Acum"}
                       </button>
                     </div>
 
-                    <div className="text-center font-black text-gray-300 uppercase tracking-widest text-[10px] my-2">SAU</div>
+                    <div className="text-center font-black text-neutral-600 uppercase tracking-widest text-[11px] my-2">SAU</div>
 
                     <div onClick={submitOffer} className="p-6 border-[3px] border-black bg-black text-white rounded-2xl relative shadow-[6px_6px_0_0_rgba(255,209,0,1)] cursor-pointer hover:bg-gray-900 transition-colors">
                       <div className="flex justify-between items-center mb-2">
@@ -265,7 +265,7 @@ export default function PitchOfferPage() {
                     </div>
                   </div>
 
-                  <button onClick={() => setStep(1)} className="text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-black transition-colors italic border-b-2 border-transparent hover:border-black mt-4">
+                  <button onClick={() => setStep(1)} className="text-[11px] font-black uppercase tracking-widest text-neutral-600 hover:text-black transition-colors italic border-b-2 border-transparent hover:border-black mt-4">
                     ← Editează detaliile ofertei
                   </button>
                 </div>

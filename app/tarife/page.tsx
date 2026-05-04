@@ -40,7 +40,7 @@ export default function PricingPage() {
         
         {/* HEADER - SUBDIMENSIONAT */}
         <div className="text-center mb-12 md:mb-16">
-          <Link href="/" className="text-[9px] font-black uppercase tracking-[0.3em] text-gray-400 hover:text-black transition-colors italic mb-6 inline-block border-b-2 border-transparent hover:border-black">
+          <Link href="/" className="text-[11px] font-black uppercase tracking-[0.3em] text-neutral-600 hover:text-black transition-colors italic mb-6 inline-block border-b-2 border-transparent hover:border-black">
             ← Înapoi Acasă
           </Link>
           <h1 className="text-4xl md:text-6xl font-black uppercase italic tracking-tighter leading-none mb-4">
@@ -53,7 +53,7 @@ export default function PricingPage() {
 
         {/* 1. PACHETE VÂNZARE - ALINIATE ȘI MICȘORATE */}
         <div className="mb-8 border-b-2 border-black pb-2">
-           <h2 className="text-xl font-black uppercase italic tracking-tight text-gray-400">1. Listare Activ <span className="text-black">(Vânzător)</span></h2>
+           <h2 className="text-xl font-black uppercase italic tracking-tight text-neutral-600">1. Listare Activ <span className="text-black">(Vânzător)</span></h2>
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
@@ -87,7 +87,7 @@ export default function PricingPage() {
 
         {/* 2. LICITAȚIE - RECONFIGURATĂ PENTRU FLEXIBILITATE */}
         <div className="mb-8 border-b-2 border-black pb-2">
-           <h2 className="text-xl font-black uppercase italic tracking-tight text-gray-400">2. Metoda <span className="text-black">Sniper</span></h2>
+           <h2 className="text-xl font-black uppercase italic tracking-tight text-neutral-600">2. <span className="text-black">Licitație rapidă</span></h2>
         </div>
 
         <div className="bg-[#FFD100] border-[4px] border-black rounded-[2rem] p-6 md:p-10 shadow-[10px_10px_0_0_rgba(0,0,0,1)] mb-16 relative overflow-hidden group">
@@ -99,9 +99,9 @@ export default function PricingPage() {
                 Tu alegi durata: <span className="underline decoration-white">24h, 48h sau 72h</span>. Activul tău devine centrul atenției în terminal, generând competiție directă între investitori sub presiunea timpului.
               </p>
               <ul className="space-y-3 mb-4">
-                <li className="flex items-center gap-2 font-black uppercase italic text-[10px] text-black">⚔️ Război al ofertelor în timp real</li>
-                <li className="flex items-center gap-2 font-black uppercase italic text-[10px] text-black">📢 Alerte recurente către baza Sniper</li>
-                <li className="flex items-center gap-2 font-black uppercase italic text-[10px] text-black">⏱️ Cronometru vizual pe pagina activului</li>
+                <li className="flex items-center gap-2 font-black uppercase italic text-[11px] text-black">⚔️ Metodă de vânzare rapidă, cu competiție în timp real</li>
+                <li className="flex items-center gap-2 font-black uppercase italic text-[11px] text-black">📢 Expunere accelerată către cumpărători pregătiți</li>
+                <li className="flex items-center gap-2 font-black uppercase italic text-[11px] text-black">⏱️ Cronometru vizual pe pagina activului</li>
               </ul>
             </div>
             <div className="text-center lg:border-l-2 lg:border-black/10 lg:pl-10">
@@ -117,20 +117,20 @@ export default function PricingPage() {
 
         {/* 3. ALTE COSTURI - MICȘORATE */}
         <div className="mb-8 border-b-2 border-black pb-2">
-           <h2 className="text-xl font-black uppercase italic tracking-tight text-gray-400">3. Servicii <span className="text-black">Cumpărători & Guest</span></h2>
+           <h2 className="text-xl font-black uppercase italic tracking-tight text-neutral-600">3. Servicii <span className="text-black">Cumpărători & Guest</span></h2>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-16">
           <div className="bg-white border-[3px] border-black p-6 rounded-[1.5rem] shadow-[6px_6px_0_0_rgba(0,0,0,1)]">
             <h3 className="text-2xl font-black uppercase italic tracking-tight mb-2">Cerere Capital</h3>
-            <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-6 italic">Anunță cash-ul pregătit pentru achiziții urgente sub preț.</p>
+            <p className="text-[11px] font-bold text-neutral-700 uppercase tracking-widest mb-6 italic">Anunță capital disponibil pentru achiziții urgente sub preț.</p>
             <p className="text-3xl font-black italic tracking-tighter mb-6">99 RON</p>
             <Link href="/posteaza-cerere" className="block w-full border-2 border-black py-3 rounded-lg font-black uppercase tracking-widest text-[9px] italic text-center hover:bg-black hover:text-[#FFD100] transition-all">Postează Bugetul</Link>
           </div>
 
           <div className="bg-white border-[3px] border-black p-6 rounded-[1.5rem] shadow-[6px_6px_0_0_rgba(0,0,0,1)]">
             <h3 className="text-2xl font-black uppercase italic tracking-tight mb-2">Guest Offer</h3>
-            <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-6 italic">Trimite o ofertă directă fără a avea un cont verificat.</p>
+            <p className="text-[11px] font-bold text-neutral-700 uppercase tracking-widest mb-6 italic">Trimite o ofertă directă fără a avea un cont verificat.</p>
             <p className="text-3xl font-black italic tracking-tighter mb-6">49 RON</p>
             <Link href="/capital-disponibil" className="block w-full border-2 border-black py-3 rounded-lg font-black uppercase tracking-widest text-[9px] italic text-center hover:bg-black hover:text-[#FFD100] transition-all">Vinde-i Activul Tău</Link>
           </div>
