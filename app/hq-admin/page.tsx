@@ -7,7 +7,7 @@ import { companyInfo } from "@/lib/company";
 
 const ADMIN_EMAILS = ["consultantacrypto.ro@gmail.com"];
 
-type TabId = "overview" | "listings" | "demands" | "offers" | "profiles" | "risks";
+type TabId = "overview" | "copilot" | "listings" | "demands" | "offers" | "profiles" | "risks";
 
 type OperationalRiskSeverity = "critical" | "high" | "medium" | "low";
 
@@ -35,6 +35,38 @@ type RiskResolutionRow = {
   resolved_by: string | null;
   resolved_at: string | null;
   created_at: string | null;
+};
+
+type CopilotMode = "daily" | "risk" | "priorities" | "growth";
+
+type CopilotRiskItem = {
+  title: string;
+  why: string;
+  severity: OperationalRiskSeverity;
+};
+
+type CopilotOpportunityItem = {
+  title: string;
+  why: string;
+  impact: "mare" | "mediu" | "mic";
+};
+
+type CopilotActionItem = {
+  title: string;
+  why: string;
+  impact: "mare" | "mediu" | "mic";
+  effort: "mic" | "mediu" | "mare";
+  urgency: "azi" | "curand" | "backlog";
+};
+
+type CopilotStructuredResult = {
+  executiveSummary?: string;
+  criticalRisks?: CopilotRiskItem[];
+  opportunities?: CopilotOpportunityItem[];
+  recommendedActions?: CopilotActionItem[];
+  founderNote?: string;
+  rawText?: string;
+  parseWarning?: boolean;
 };
 
 function isAdminEmail(email: string | undefined | null): boolean {
@@ -225,6 +257,7 @@ function kycBadgeLabel(status: string | null | undefined): string {
 
 const TAB_LABELS: { id: TabId; label: string }[] = [
   { id: "overview", label: "Panou general" },
+  { id: "copilot", label: "HQ Copilot" },
   { id: "listings", label: "Listări" },
   { id: "demands", label: "Cereri" },
   { id: "offers", label: "Oferte" },
@@ -248,6 +281,11 @@ export default function AdminHQ() {
 
   const [loadNote, setLoadNote] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [copilotLoading, setCopilotLoading] = useState(false);
+  const [copilotError, setCopilotError] = useState<string | null>(null);
+  const [copilotMode, setCopilotMode] = useState<CopilotMode | null>(null);
+  const [copilotResult, setCopilotResult] = useState<CopilotStructuredResult | null>(null);
+  const [copilotGeneratedAt, setCopilotGeneratedAt] = useState<string | null>(null);
 
   const loadAdminData = useCallback(async () => {
     setLoadNote(null);
@@ -392,6 +430,55 @@ export default function AdminHQ() {
     }
 
     await loadAdminData();
+  };
+
+  const runCopilot = async (mode: CopilotMode) => {
+    setCopilotError(null);
+    setCopilotLoading(true);
+    setCopilotMode(mode);
+    setCopilotResult(null);
+
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    const accessToken = session?.access_token;
+
+    if (!accessToken) {
+      setCopilotLoading(false);
+      setCopilotError("Sesiunea ta a expirat. Reautentifică-te și încearcă din nou.");
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/hq/copilot", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ mode }),
+      });
+
+      const payload = (await res.json()) as {
+        success?: boolean;
+        error?: string;
+        generatedAt?: string;
+        result?: CopilotStructuredResult;
+      };
+
+      if (!res.ok || !payload.success) {
+        setCopilotLoading(false);
+        setCopilotError(payload.error || "HQ Copilot nu a putut genera analiza.");
+        return;
+      }
+
+      setCopilotGeneratedAt(payload.generatedAt || null);
+      setCopilotResult(payload.result || {});
+      setCopilotLoading(false);
+    } catch (err) {
+      setCopilotLoading(false);
+      setCopilotError(err instanceof Error ? err.message : "Eroare necunoscută la rularea HQ Copilot.");
+    }
   };
 
   const activateListingManual = async (id: string) => {
@@ -545,6 +632,14 @@ export default function AdminHQ() {
             </button>
           </div>
         )}
+        {copilotError && (
+          <div className="rounded-2xl border-2 border-red-800/30 bg-red-50 px-4 py-3 text-center text-sm font-semibold text-red-900">
+            {copilotError}
+            <button type="button" className="ml-2 underline" onClick={() => setCopilotError(null)}>
+              Închide
+            </button>
+          </div>
+        )}
 
         <div className="flex flex-wrap gap-2 md:gap-3">
           {TAB_LABELS.map((t) => (
@@ -588,6 +683,157 @@ export default function AdminHQ() {
                   </div>
                 ))}
               </div>
+            </div>
+          )}
+
+          {activeTab === "copilot" && (
+            <div className="space-y-6">
+              <div className="rounded-2xl border-[3px] border-black bg-black px-6 py-5 text-white">
+                <h2 className="text-lg font-black uppercase italic tracking-tight">HQ Copilot</h2>
+                <p className="mt-2 text-sm font-medium text-neutral-200">
+                  Asistent strategic read-only pentru snapshot operațional. Nu scrie în bază.
+                </p>
+              </div>
+              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                <button
+                  type="button"
+                  onClick={() => void runCopilot("daily")}
+                  disabled={copilotLoading}
+                  className="rounded-2xl border-[3px] border-black bg-white px-4 py-3 text-xs font-black uppercase tracking-widest text-black shadow-[3px_3px_0_0_#FFD100] disabled:opacity-50"
+                >
+                  Analizează ziua
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void runCopilot("risk")}
+                  disabled={copilotLoading}
+                  className="rounded-2xl border-[3px] border-black bg-white px-4 py-3 text-xs font-black uppercase tracking-widest text-black shadow-[3px_3px_0_0_#FFD100] disabled:opacity-50"
+                >
+                  Detectează riscuri
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void runCopilot("priorities")}
+                  disabled={copilotLoading}
+                  className="rounded-2xl border-[3px] border-black bg-white px-4 py-3 text-xs font-black uppercase tracking-widest text-black shadow-[3px_3px_0_0_#FFD100] disabled:opacity-50"
+                >
+                  Recomandă priorități
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void runCopilot("growth")}
+                  disabled={copilotLoading}
+                  className="rounded-2xl border-[3px] border-black bg-white px-4 py-3 text-xs font-black uppercase tracking-widest text-black shadow-[3px_3px_0_0_#FFD100] disabled:opacity-50"
+                >
+                  Găsește oportunități
+                </button>
+              </div>
+
+              {copilotLoading && (
+                <div className="rounded-2xl border-2 border-black bg-[#F7F4EC] px-5 py-4 text-sm font-semibold text-neutral-800">
+                  HQ Copilot analizează platforma...
+                </div>
+              )}
+
+              {copilotResult && !copilotLoading && (
+                <div className="space-y-4">
+                  {copilotGeneratedAt && (
+                    <p className="text-[11px] font-semibold uppercase tracking-widest text-neutral-500">
+                      Generat la {new Date(copilotGeneratedAt).toLocaleString("ro-RO")}
+                      {copilotMode ? ` · mod: ${copilotMode}` : ""}
+                    </p>
+                  )}
+                  {copilotResult.executiveSummary && (
+                    <div className="rounded-2xl border-[3px] border-black bg-white p-5">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-neutral-500">Rezumat</p>
+                      <p className="mt-2 text-sm font-medium leading-relaxed text-neutral-800">
+                        {copilotResult.executiveSummary}
+                      </p>
+                    </div>
+                  )}
+
+                  {!!copilotResult.criticalRisks?.length && (
+                    <div className="space-y-2">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-neutral-500">
+                        Riscuri critice
+                      </p>
+                      <div className="grid gap-2 md:grid-cols-2">
+                        {copilotResult.criticalRisks.map((risk, idx) => (
+                          <div key={`${risk.title}-${idx}`} className="rounded-xl border-2 border-black bg-[#FFF8F8] p-4">
+                            <p className="text-sm font-bold text-black">{risk.title}</p>
+                            <p className="mt-1 text-xs font-medium text-neutral-700">{risk.why}</p>
+                            <p className="mt-2 text-[10px] font-black uppercase text-red-900">{severityRo(risk.severity)}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {!!copilotResult.opportunities?.length && (
+                    <div className="space-y-2">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-neutral-500">Oportunități</p>
+                      <div className="grid gap-2 md:grid-cols-2">
+                        {copilotResult.opportunities.map((op, idx) => (
+                          <div key={`${op.title}-${idx}`} className="rounded-xl border-2 border-black bg-[#F7F4EC]/60 p-4">
+                            <p className="text-sm font-bold text-black">{op.title}</p>
+                            <p className="mt-1 text-xs font-medium text-neutral-700">{op.why}</p>
+                            <p className="mt-2 text-[10px] font-black uppercase text-neutral-600">Impact: {op.impact}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {!!copilotResult.recommendedActions?.length && (
+                    <div className="space-y-2">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-neutral-500">
+                        Acțiuni recomandate
+                      </p>
+                      <ul className="space-y-2">
+                        {copilotResult.recommendedActions.map((action, idx) => (
+                          <li key={`${action.title}-${idx}`} className="rounded-xl border-2 border-black bg-white p-4">
+                            <p className="text-sm font-bold text-black">{action.title}</p>
+                            <p className="mt-1 text-xs font-medium text-neutral-700">{action.why}</p>
+                            <div className="mt-2 flex flex-wrap gap-2 text-[10px] font-black uppercase">
+                              <span className="rounded-full border border-black bg-[#FFD100]/80 px-2 py-0.5">
+                                Impact: {action.impact}
+                              </span>
+                              <span className="rounded-full border border-black bg-neutral-100 px-2 py-0.5">
+                                Efort: {action.effort}
+                              </span>
+                              <span className="rounded-full border border-black bg-neutral-100 px-2 py-0.5">
+                                Urgență: {action.urgency === "curand" ? "curând" : action.urgency}
+                              </span>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {copilotResult.founderNote && (
+                    <div className="rounded-2xl border-2 border-black/70 bg-[#F7F4EC] p-5">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-neutral-500">
+                        Notă pentru fondator
+                      </p>
+                      <p className="mt-2 text-sm font-medium leading-relaxed text-neutral-800">
+                        {copilotResult.founderNote}
+                      </p>
+                    </div>
+                  )}
+
+                  {copilotResult.rawText && (
+                    <div className="rounded-2xl border-2 border-black bg-white p-5">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-neutral-500">
+                        Răspuns HQ Copilot
+                      </p>
+                      <pre className="mt-2 overflow-x-auto whitespace-pre-wrap text-xs font-medium text-neutral-800">
+                        {copilotResult.rawText}
+                      </pre>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
