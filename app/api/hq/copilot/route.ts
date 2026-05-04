@@ -447,9 +447,9 @@ export async function POST(req: NextRequest) {
         "x-goog-api-key": geminiApiKey,
       },
       body: JSON.stringify({
-        system_instruction: { parts: [{ text: SYSTEM_INSTRUCTION }] },
         contents: [{ role: "user", parts: [{ text: JSON.stringify(geminiPrompt) }] }],
-        generation_config: { response_mime_type: "application/json" },
+        systemInstruction: { parts: [{ text: SYSTEM_INSTRUCTION }] },
+        generationConfig: { temperature: 0.2, responseMimeType: "application/json" },
       }),
     });
 
