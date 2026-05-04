@@ -462,13 +462,32 @@ export default function AdminHQ() {
       const payload = (await res.json()) as {
         success?: boolean;
         error?: string;
+        details?: {
+          message?: string;
+          status?: number;
+          statusText?: string;
+          geminiStatus?: string | null;
+          geminiMessage?: string;
+          model?: string;
+        };
         generatedAt?: string;
         result?: CopilotStructuredResult;
       };
 
       if (!res.ok || !payload.success) {
         setCopilotLoading(false);
-        setCopilotError(payload.error || "HQ Copilot nu a putut genera analiza.");
+        const detailParts = [
+          payload.details?.status ? `HTTP ${payload.details.status}` : null,
+          payload.details?.statusText || null,
+          payload.details?.geminiStatus || null,
+          payload.details?.geminiMessage || payload.details?.message || null,
+          payload.details?.model ? `model: ${payload.details.model}` : null,
+        ].filter(Boolean);
+        setCopilotError(
+          [payload.error || "HQ Copilot nu a putut genera analiza.", detailParts.join(" | ")]
+            .filter(Boolean)
+            .join(" ")
+        );
         return;
       }
 

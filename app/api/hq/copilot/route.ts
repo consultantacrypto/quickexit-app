@@ -3,7 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 
 export const runtime = "nodejs";
 
-type CopilotMode = "daily" | "risk" | "priorities" | "growth";
+type CopilotMode = "daily" | "risk" | "priorities" | "growth" | "selftest";
 type RiskSeverity = "critical" | "high" | "medium" | "low";
 
 type CopilotStructuredResult = {
@@ -20,7 +20,16 @@ type CopilotStructuredResult = {
   founderNote: string;
 };
 
-const VALID_MODES: CopilotMode[] = ["daily", "risk", "priorities", "growth"];
+const VALID_MODES: CopilotMode[] = ["daily", "risk", "priorities", "growth", "selftest"];
+
+function safeBodySnippet(bodyText: string, secret: string): string {
+  let cleaned = bodyText;
+  if (secret) {
+    cleaned = cleaned.split(secret).join("[redacted]");
+  }
+  cleaned = cleaned.replace(/([?&]key=)[^&\s"]+/gi, "$1[redacted]");
+  return cleaned.slice(0, 1000);
+}
 
 function extractGeminiText(payload: unknown): string {
   const root = payload as Record<string, unknown>;
@@ -256,6 +265,78 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
+      geminiModel
+    )}:generateContent?key=${encodeURIComponent(geminiApiKey)}`;
+
+    if (mode === "selftest") {
+      const selftestResponse = await fetch(geminiUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: "Raspunde doar cu OK" }] }],
+        }),
+      });
+
+      const selftestBodyText = await selftestResponse.text();
+      let selftestJson: Record<string, unknown> | null = null;
+      try {
+        selftestJson = JSON.parse(selftestBodyText) as Record<string, unknown>;
+      } catch {
+        selftestJson = null;
+      }
+
+      const selftestError =
+        selftestJson && typeof selftestJson.error === "object"
+          ? (selftestJson.error as Record<string, unknown>)
+          : null;
+
+      const selftestText = selftestJson ? extractGeminiText(selftestJson) : "";
+      const selftestMessage =
+        (typeof selftestError?.message === "string" && selftestError.message) ||
+        (selftestText || safeBodySnippet(selftestBodyText, geminiApiKey));
+
+      if (!selftestResponse.ok) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Gemini request failed",
+            details: {
+              status: selftestResponse.status,
+              statusText: selftestResponse.statusText,
+              geminiStatus:
+                typeof selftestError?.status === "string" ? selftestError.status : null,
+              geminiMessage: selftestMessage,
+              model: geminiModel,
+            },
+            selftest: {
+              geminiApiKeyPresent: Boolean(geminiApiKey),
+              geminiModel: rawModel,
+              geminiModelNormalized: geminiModel,
+              serviceRoleKeyPresent: Boolean(serviceRoleKey),
+            },
+          },
+          { status: 502 }
+        );
+      }
+
+      return NextResponse.json({
+        success: true,
+        mode: "selftest",
+        selftest: {
+          geminiApiKeyPresent: Boolean(geminiApiKey),
+          geminiModel: rawModel,
+          geminiModelNormalized: geminiModel,
+          serviceRoleKeyPresent: Boolean(serviceRoleKey),
+          status: selftestResponse.status,
+          statusText: selftestResponse.statusText,
+          text: selftestText || safeBodySnippet(selftestBodyText, geminiApiKey),
+        },
+      });
+    }
+
     const adminSupabase = createClient(supabaseUrl, serviceRoleKey);
 
     const [listingsRes, demandsRes, listingOffersRes, demandOffersRes, profilesRes, valuationRes] = await Promise.all([
@@ -460,10 +541,6 @@ Format obligatoriu:
 }
 `.trim();
 
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
-      geminiModel
-    )}:generateContent?key=${encodeURIComponent(geminiApiKey)}`;
-
     const geminiResponse = await fetch(geminiUrl, {
       method: "POST",
       headers: {
@@ -474,28 +551,49 @@ Format obligatoriu:
       }),
     });
 
-    const geminiPayload = (await geminiResponse.json().catch(() => ({}))) as Record<string, unknown>;
+    const geminiRawBody = await geminiResponse.text();
+    let geminiPayload: Record<string, unknown> | null = null;
+    try {
+      geminiPayload = JSON.parse(geminiRawBody) as Record<string, unknown>;
+    } catch {
+      geminiPayload = null;
+    }
+
     if (!geminiResponse.ok) {
-      const err = (geminiPayload.error as Record<string, unknown> | undefined)?.message;
-      const errMsg = typeof err === "string" ? err : `HTTP ${geminiResponse.status}`;
-      const looksLikeMissingModel =
-        geminiResponse.status === 404 ||
-        /not found|is not found|model/i.test(errMsg);
+      const geminiError =
+        geminiPayload && typeof geminiPayload.error === "object"
+          ? (geminiPayload.error as Record<string, unknown>)
+          : null;
+      const geminiMessage =
+        typeof geminiError?.message === "string"
+          ? geminiError.message
+          : safeBodySnippet(geminiRawBody, geminiApiKey);
 
       return NextResponse.json(
         {
           success: false,
-          error: looksLikeMissingModel
-            ? `Model Gemini indisponibil sau request invalid. Model folosit: ${geminiModel}`
-            : `Gemini request failed: ${errMsg}`,
+          error: "Gemini request failed",
+          details: {
+            status: geminiResponse.status,
+            statusText: geminiResponse.statusText,
+            geminiStatus: typeof geminiError?.status === "string" ? geminiError.status : null,
+            geminiMessage,
+            model: geminiModel,
+          },
         },
         { status: 502 }
       );
     }
 
-    const text = extractGeminiText(geminiPayload);
+    const text = geminiPayload ? extractGeminiText(geminiPayload) : "";
     if (!text) {
-      return NextResponse.json({ success: true, mode, generatedAt: snapshot.generatedAt, snapshotSummary: snapshot.risks, result: { rawText: "", parseWarning: true } });
+      return NextResponse.json({
+        success: true,
+        mode,
+        generatedAt: snapshot.generatedAt,
+        snapshotSummary: snapshot.risks,
+        result: { rawText: safeBodySnippet(geminiRawBody, geminiApiKey), parseWarning: true },
+      });
     }
 
     try {
@@ -535,6 +633,15 @@ Format obligatoriu:
     }
   } catch (error) {
     const message = error instanceof Error ? error.message : "Eroare necunoscuta";
-    return NextResponse.json({ success: false, error: message }, { status: 500 });
+    return NextResponse.json(
+      {
+        success: false,
+        error: "HQ Copilot error",
+        details: {
+          message,
+        },
+      },
+      { status: 500 }
+    );
   }
 }
