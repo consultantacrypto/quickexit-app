@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { companyInfo } from "@/lib/company";
+import { buildSocialShareKit } from "@/lib/socialShare";
 
 const ADMIN_EMAILS = ["consultantacrypto.ro@gmail.com"];
 
@@ -565,6 +566,34 @@ export default function AdminHQ() {
     setAllListings((prev) => prev.map((l) => (l.id === id ? { ...l, status: "admin_removed" } : l)));
   };
 
+  const copyListingUtm = async (listing: any) => {
+    const kit = buildSocialShareKit({
+      id: String(listing.id),
+      title: listing.title,
+      category: listing.category,
+      market_price: listing.market_price,
+      exit_price: listing.exit_price,
+      discount: listing.discount,
+      discount_percentage: listing.discount_percentage,
+      deal_score: listing.deal_score,
+      location: listing.location,
+      images: listing.images,
+      sale_strategy: listing.sale_strategy,
+      created_at: listing.created_at,
+      details: listing.details,
+    });
+    try {
+      if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(kit.utm.hq);
+        setLoadNote("Link UTM copiat.");
+      } else {
+        setActionError(`Link UTM: ${kit.utm.hq}`);
+      }
+    } catch {
+      setActionError(`Link UTM: ${kit.utm.hq}`);
+    }
+  };
+
   const activateDemandManual = async (id: string) => {
     const ok = window.confirm(
       "Activezi manual această cerere fără plată? Folosește doar pentru cazuri verificate. Statusul va deveni activ."
@@ -971,6 +1000,15 @@ export default function AdminHQ() {
                         </td>
                         <td className="p-3 font-mono text-[10px] text-neutral-500">{listing.user_id || "—"}</td>
                         <td className="p-3 space-y-1">
+                          {listing.status === "active" && listing.is_seed !== true && (
+                            <button
+                              type="button"
+                              onClick={() => void copyListingUtm(listing)}
+                              className="block w-full rounded-lg border-2 border-black bg-white px-2 py-1.5 text-[9px] font-black uppercase text-neutral-900 hover:bg-[#FFD100]/50"
+                            >
+                              Copiază link UTM
+                            </button>
+                          )}
                           {canManualActivate && (
                             <button
                               type="button"

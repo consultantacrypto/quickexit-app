@@ -7,6 +7,7 @@ import { useParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import AdCard from "../../components/AdCard";
 import { normalizeSaleType } from "@/utils/normalizeSaleType";
+import { buildSocialShareKit } from "@/lib/socialShare";
 
 type SellerProfileRow = {
   id: string;
@@ -219,6 +220,8 @@ export default function AdDetail() {
   const [sellerProfile, setSellerProfile] = useState<SellerProfileRow | null>(null);
   const [sellerOtherListings, setSellerOtherListings] = useState<any[]>([]);
   const [sellerActiveCount, setSellerActiveCount] = useState<number | null>(null);
+  const [shareCopiedKey, setShareCopiedKey] = useState<string | null>(null);
+  const [shareFallbackText, setShareFallbackText] = useState<string | null>(null);
 
   const [buyerPhone, setBuyerPhone] = useState("");
   const [buyerEmail, setBuyerEmail] = useState("");
@@ -485,6 +488,41 @@ export default function AdDetail() {
       ? "Identitate verificată"
       : `Încredere: ${kycStatusRo(sellerProfile?.kyc_status ?? null)}`;
 
+  const canShowShareKit = adData?.status === "active" && adData?.is_seed === false;
+  const socialKit = canShowShareKit
+    ? buildSocialShareKit({
+        id: adData.id,
+        title: adData.title,
+        category: adData.category,
+        market_price: adData.market_price,
+        exit_price: adData.exit_price,
+        discount: adData.discount,
+        discount_percentage: adData.discount_percentage,
+        deal_score: adData.deal_score,
+        location: adData.location,
+        images: adData.images,
+        sale_strategy: adData.sale_strategy,
+        created_at: adData.created_at,
+        details: adData.details,
+      })
+    : null;
+
+  const copyShareText = async (label: string, text: string) => {
+    setShareCopiedKey(null);
+    setShareFallbackText(null);
+    try {
+      if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+        setShareCopiedKey(label);
+        setTimeout(() => setShareCopiedKey((prev) => (prev === label ? null : prev)), 1800);
+      } else {
+        setShareFallbackText(text);
+      }
+    } catch {
+      setShareFallbackText(text);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#F7F4EC] font-sans text-black selection:bg-[#FFD100]/40 selection:text-black antialiased">
       <div className="mx-auto max-w-[1400px] px-4 pb-20 pt-6 md:px-8 md:py-10">
@@ -702,6 +740,71 @@ export default function AdDetail() {
                   <p className="mt-5 border-t border-neutral-200 pt-4 text-xs font-medium leading-relaxed text-neutral-600">
                     Datele de contact se transmit doar prin ofertă, pentru protecția ambelor părți.
                   </p>
+                </div>
+              )}
+
+              {canShowShareKit && socialKit && (
+                <div className="rounded-[2rem] border-[3px] border-black bg-[#FFFEF7] p-6 shadow-[8px_8px_0_0_rgba(0,0,0,0.65)]">
+                  <h3 className="mb-2 text-sm font-black uppercase italic tracking-tight text-black">
+                    Distribuie oportunitatea
+                  </h3>
+                  <p className="mb-5 text-xs font-medium leading-relaxed text-neutral-700">
+                    Copiază un mesaj gata pregătit și trimite-l către cumpărători sau comunitatea ta.
+                  </p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => void copyShareText("link", socialKit.utm.hq)}
+                      className="rounded-xl border-2 border-black bg-white px-3 py-2 text-[10px] font-black uppercase tracking-wider hover:bg-[#FFD100]/60"
+                    >
+                      Copiază link
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void copyShareText("whatsapp", socialKit.whatsappMessage)}
+                      className="rounded-xl border-2 border-black bg-white px-3 py-2 text-[10px] font-black uppercase tracking-wider hover:bg-[#FFD100]/60"
+                    >
+                      WhatsApp
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void copyShareText("telegram", socialKit.telegramMessage)}
+                      className="rounded-xl border-2 border-black bg-white px-3 py-2 text-[10px] font-black uppercase tracking-wider hover:bg-[#FFD100]/60"
+                    >
+                      Telegram
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void copyShareText("x", socialKit.xPost)}
+                      className="rounded-xl border-2 border-black bg-white px-3 py-2 text-[10px] font-black uppercase tracking-wider hover:bg-[#FFD100]/60"
+                    >
+                      X
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void copyShareText("linkedin", socialKit.linkedinPost)}
+                      className="rounded-xl border-2 border-black bg-white px-3 py-2 text-[10px] font-black uppercase tracking-wider hover:bg-[#FFD100]/60"
+                    >
+                      LinkedIn
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void copyShareText("instagram", socialKit.instagramCaption)}
+                      className="rounded-xl border-2 border-black bg-white px-3 py-2 text-[10px] font-black uppercase tracking-wider hover:bg-[#FFD100]/60"
+                    >
+                      Instagram
+                    </button>
+                  </div>
+                  {shareCopiedKey && (
+                    <p className="mt-3 text-xs font-semibold text-neutral-700">Copiat.</p>
+                  )}
+                  {shareFallbackText && (
+                    <textarea
+                      readOnly
+                      value={shareFallbackText}
+                      className="mt-3 h-28 w-full rounded-xl border-2 border-black bg-white p-2 text-xs font-medium text-neutral-700"
+                    />
+                  )}
                 </div>
               )}
 
