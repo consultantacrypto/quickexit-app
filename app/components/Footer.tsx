@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
+import { companyInfo } from "@/lib/company";
 
 export default function Footer() {
   return (
@@ -86,10 +86,26 @@ export default function Footer() {
 
         {/* Bottom Bar */}
         <div className="pt-10 border-t border-gray-900 flex flex-col md:flex-row justify-between items-center gap-6">
-          <div className="text-[10px] font-black uppercase tracking-widest text-gray-600 italic">
-            © 2026 QUICK EXIT LLC. TOATE DREPTURILE REZERVATE.
+          <div className="flex flex-col items-center gap-3 md:items-start">
+            <div className="text-center text-[10px] font-medium uppercase tracking-widest text-gray-400 md:text-left md:normal-case md:tracking-normal md:italic">
+              {companyInfo.copyright}
+            </div>
+            <nav className="flex flex-wrap justify-center gap-x-4 gap-y-2 md:justify-start">
+              <Link href="/termeni" className="text-[10px] font-bold uppercase tracking-wide text-[#FFD100] underline-offset-2 hover:underline">
+                Termeni
+              </Link>
+              <Link href="/confidentialitate" className="text-[10px] font-bold uppercase tracking-wide text-[#FFD100] underline-offset-2 hover:underline">
+                Confidențialitate
+              </Link>
+              <Link href="/cookies" className="text-[10px] font-bold uppercase tracking-wide text-[#FFD100] underline-offset-2 hover:underline">
+                Cookies
+              </Link>
+              <Link href="/contact" className="text-[10px] font-bold uppercase tracking-wide text-[#FFD100] underline-offset-2 hover:underline">
+                Contact
+              </Link>
+            </nav>
           </div>
-          
+
           {/* Social Social / Trust */}
           <div className="flex gap-8 items-center opacity-30 grayscale hover:grayscale-0 hover:opacity-100 transition-all">
              <div className="text-[10px] font-black text-white italic tracking-tighter underline decoration-[#FFD100] decoration-2">SECURE PAYMENTS BY STRIPE</div>

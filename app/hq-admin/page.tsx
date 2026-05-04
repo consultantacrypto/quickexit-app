@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
+import { companyInfo } from "@/lib/company";
 
 const ADMIN_EMAILS = ["consultantacrypto.ro@gmail.com"];
 
@@ -301,6 +302,32 @@ export default function AdminHQ() {
               Monitorizează listări, cereri, oferte, verificări și riscuri operaționale.
             </p>
           </div>
+        </div>
+
+        <div className="rounded-[2rem] border-[3px] border-black bg-white p-6 shadow-[6px_6px_0_0_rgba(0,0,0,0.08)] md:p-8 md:shadow-[8px_8px_0_0_#FFD100]/70">
+          <h2 className="text-xs font-black uppercase tracking-widest text-neutral-500">Entitate (intern)</h2>
+          <dl className="mt-3 grid gap-2 text-sm font-medium text-neutral-800 sm:grid-cols-2 md:gap-x-8">
+            <div>
+              <dt className="text-[10px] font-black uppercase text-neutral-500">Denumire</dt>
+              <dd>{companyInfo.legalName}</dd>
+            </div>
+            <div>
+              <dt className="text-[10px] font-black uppercase text-neutral-500">Formă</dt>
+              <dd>Delaware LLC</dd>
+            </div>
+            <div>
+              <dt className="text-[10px] font-black uppercase text-neutral-500">File number</dt>
+              <dd>{companyInfo.filing.fileNumber}</dd>
+            </div>
+            <div>
+              <dt className="text-[10px] font-black uppercase text-neutral-500">Registered Agent</dt>
+              <dd>{companyInfo.registeredAgent}</dd>
+            </div>
+            <div className="sm:col-span-2">
+              <dt className="text-[10px] font-black uppercase text-neutral-500">Manager</dt>
+              <dd>{companyInfo.manager}</dd>
+            </div>
+          </dl>
         </div>
 
         {loadNote && (

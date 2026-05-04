@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { companyInfo } from "@/lib/company";
 
 export default function CareersPage() {
   return (
@@ -14,7 +15,7 @@ export default function CareersPage() {
               Construiește <span className="text-[#FFD100]">Viitorul</span>
             </h1>
             <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 italic">
-              Echipa Quick Exit LLC
+              Echipa {companyInfo.legalName}
             </p>
           </div>
 
