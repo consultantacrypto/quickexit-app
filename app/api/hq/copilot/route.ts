@@ -21,6 +21,37 @@ type CopilotStructuredResult = {
 };
 
 const VALID_MODES: CopilotMode[] = ["daily", "risk", "priorities", "growth", "selftest"];
+const RETRYABLE_HTTP_STATUSES = new Set([429, 500, 502, 503, 504]);
+const RETRYABLE_GEMINI_STATUSES = new Set(["UNAVAILABLE", "RESOURCE_EXHAUSTED"]);
+
+type GeminiAttempt = {
+  model: string;
+  status: number;
+  geminiStatus: string | null;
+  geminiMessage: string;
+};
+
+type GeminiCallResult =
+  | {
+      kind: "success";
+      text: string;
+      usedModel: string;
+      attempts: GeminiAttempt[];
+      rawBody: string;
+    }
+  | {
+      kind: "non_retryable_error";
+      status: number;
+      statusText: string;
+      geminiStatus: string | null;
+      geminiMessage: string;
+      model: string;
+      attempts: GeminiAttempt[];
+    }
+  | {
+      kind: "all_failed";
+      attempts: GeminiAttempt[];
+    };
 
 function safeBodySnippet(bodyText: string, secret: string): string {
   let cleaned = bodyText;
@@ -29,6 +60,112 @@ function safeBodySnippet(bodyText: string, secret: string): string {
   }
   cleaned = cleaned.replace(/([?&]key=)[^&\s"]+/gi, "$1[redacted]");
   return cleaned.slice(0, 1000);
+}
+
+async function callGeminiWithFallback(params: {
+  candidateModels: string[];
+  geminiApiKey: string;
+  prompt: string;
+}): Promise<GeminiCallResult> {
+  const attempts: GeminiAttempt[] = [];
+
+  for (const model of params.candidateModels) {
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
+      model
+    )}:generateContent?key=${encodeURIComponent(params.geminiApiKey)}`;
+
+    const response = await fetch(geminiUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: params.prompt }] }],
+      }),
+    });
+
+    const rawBody = await response.text();
+    let payload: Record<string, unknown> | null = null;
+    try {
+      payload = JSON.parse(rawBody) as Record<string, unknown>;
+    } catch {
+      payload = null;
+    }
+
+    if (response.ok) {
+      const text = payload ? extractGeminiText(payload) : "";
+      return {
+        kind: "success",
+        text,
+        usedModel: model,
+        attempts,
+        rawBody,
+      };
+    }
+
+    const geminiError =
+      payload && typeof payload.error === "object"
+        ? (payload.error as Record<string, unknown>)
+        : null;
+    const geminiStatus =
+      typeof geminiError?.status === "string" ? geminiError.status : null;
+    const geminiMessage =
+      typeof geminiError?.message === "string"
+        ? geminiError.message
+        : safeBodySnippet(rawBody, params.geminiApiKey);
+
+    const attempt: GeminiAttempt = {
+      model,
+      status: response.status,
+      geminiStatus,
+      geminiMessage,
+    };
+    attempts.push(attempt);
+
+    const shouldRetry =
+      RETRYABLE_HTTP_STATUSES.has(response.status) ||
+      (geminiStatus ? RETRYABLE_GEMINI_STATUSES.has(geminiStatus) : false);
+
+    if (!shouldRetry) {
+      return {
+        kind: "non_retryable_error",
+        status: response.status,
+        statusText: response.statusText,
+        geminiStatus,
+        geminiMessage,
+        model,
+        attempts,
+      };
+    }
+  }
+
+  return {
+    kind: "all_failed",
+    attempts,
+  };
+}
+
+async function safeSelect<T>(
+  warnings: string[],
+  label: string,
+  runQuery: () => Promise<{ data: T[] | null; error: { message: string } | null }>,
+  fallback: T[]
+): Promise<T[]> {
+  try {
+    const { data, error } = await runQuery();
+    if (error) {
+      warnings.push(`Nu am putut citi ${label}: ${error.message}`);
+      return fallback;
+    }
+    return data ?? fallback;
+  } catch (error) {
+    warnings.push(
+      `Nu am putut citi ${label}: ${
+        error instanceof Error ? error.message : "Eroare necunoscuta"
+      }`
+    );
+    return fallback;
+  }
 }
 
 function extractGeminiText(payload: unknown): string {
@@ -207,8 +344,14 @@ export async function POST(req: NextRequest) {
     const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
     const geminiApiKey = process.env.GEMINI_API_KEY;
-    const rawModel = process.env.GEMINI_MODEL || "gemini-2.5-flash";
-    const geminiModel = rawModel.replace(/^models\//, "");
+    const configuredModel = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+    const candidateModels = Array.from(
+      new Set(
+        [configuredModel, "gemini-flash-latest", "gemini-2.0-flash", "gemini-2.0-flash-lite"]
+          .map((m) => m.replace(/^models\//, "").trim())
+          .filter(Boolean)
+      )
+    );
 
     if (!supabaseUrl || !anonKey) {
       return NextResponse.json({ success: false, error: "Config Supabase incompleta: lipsesc URL sau anon key." }, { status: 500 });
@@ -260,61 +403,45 @@ export async function POST(req: NextRequest) {
     const mode = String(body.mode || "").trim().toLowerCase() as CopilotMode;
     if (!VALID_MODES.includes(mode)) {
       return NextResponse.json(
-        { success: false, error: "Parametru mode invalid. Acceptat: daily | risk | priorities | growth." },
+        {
+          success: false,
+          error: "Parametru mode invalid. Acceptat: daily | risk | priorities | growth | selftest.",
+        },
         { status: 400 }
       );
     }
 
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
-      geminiModel
-    )}:generateContent?key=${encodeURIComponent(geminiApiKey)}`;
-
     if (mode === "selftest") {
-      const selftestResponse = await fetch(geminiUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: "Raspunde doar cu OK" }] }],
-        }),
+      const selftestRun = await callGeminiWithFallback({
+        candidateModels,
+        geminiApiKey,
+        prompt: "Raspunde doar cu OK",
       });
 
-      const selftestBodyText = await selftestResponse.text();
-      let selftestJson: Record<string, unknown> | null = null;
-      try {
-        selftestJson = JSON.parse(selftestBodyText) as Record<string, unknown>;
-      } catch {
-        selftestJson = null;
-      }
-
-      const selftestError =
-        selftestJson && typeof selftestJson.error === "object"
-          ? (selftestJson.error as Record<string, unknown>)
-          : null;
-
-      const selftestText = selftestJson ? extractGeminiText(selftestJson) : "";
-      const selftestMessage =
-        (typeof selftestError?.message === "string" && selftestError.message) ||
-        (selftestText || safeBodySnippet(selftestBodyText, geminiApiKey));
-
-      if (!selftestResponse.ok) {
+      if (selftestRun.kind !== "success") {
         return NextResponse.json(
           {
             success: false,
-            error: "Gemini request failed",
-            details: {
-              status: selftestResponse.status,
-              statusText: selftestResponse.statusText,
-              geminiStatus:
-                typeof selftestError?.status === "string" ? selftestError.status : null,
-              geminiMessage: selftestMessage,
-              model: geminiModel,
-            },
+            error:
+              selftestRun.kind === "all_failed"
+                ? "Gemini request failed on all fallback models"
+                : "Gemini request failed",
+            details:
+              selftestRun.kind === "all_failed"
+                ? {
+                    attempts: selftestRun.attempts,
+                  }
+                : {
+                    status: selftestRun.status,
+                    statusText: selftestRun.statusText,
+                    geminiStatus: selftestRun.geminiStatus,
+                    geminiMessage: selftestRun.geminiMessage,
+                    model: selftestRun.model,
+                  },
             selftest: {
               geminiApiKeyPresent: Boolean(geminiApiKey),
-              geminiModel: rawModel,
-              geminiModelNormalized: geminiModel,
+              geminiModel: configuredModel,
+              candidateModels,
               serviceRoleKeyPresent: Boolean(serviceRoleKey),
             },
           },
@@ -325,36 +452,54 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({
         success: true,
         mode: "selftest",
+        usedModel: selftestRun.usedModel,
         selftest: {
           geminiApiKeyPresent: Boolean(geminiApiKey),
-          geminiModel: rawModel,
-          geminiModelNormalized: geminiModel,
+          geminiModel: configuredModel,
+          candidateModels,
           serviceRoleKeyPresent: Boolean(serviceRoleKey),
-          status: selftestResponse.status,
-          statusText: selftestResponse.statusText,
-          text: selftestText || safeBodySnippet(selftestBodyText, geminiApiKey),
+          text: selftestRun.text || safeBodySnippet(selftestRun.rawBody, geminiApiKey),
+          attempts: selftestRun.attempts,
         },
       });
     }
 
+    const warnings: string[] = [];
     const adminSupabase = createClient(supabaseUrl, serviceRoleKey);
 
-    const [listingsRes, demandsRes, listingOffersRes, demandOffersRes, profilesRes, valuationRes] = await Promise.all([
+    const [listingsRes, demandsRes, listingOffersRes, demandOffersRes, profilesRes] =
+      await Promise.all([
       adminSupabase.from("listings").select("*").order("created_at", { ascending: false }).limit(500),
       adminSupabase.from("demands").select("*").order("created_at", { ascending: false }).limit(500),
       adminSupabase.from("listing_offers").select("*").order("created_at", { ascending: false }).limit(300),
       adminSupabase.from("demand_offers").select("*").order("created_at", { ascending: false }).limit(300),
       adminSupabase.from("profiles").select("id, full_name, kyc_status, user_type, created_at").order("created_at", { ascending: false }).limit(500),
-      adminSupabase
-        .from("valuation_reports")
-        .select("id, confidence_score, market_anchor_price, quick_exit_price, generated_at")
-        .order("generated_at", { ascending: false })
-        .limit(500),
     ]);
 
-    const errors = [listingsRes.error, demandsRes.error, listingOffersRes.error, demandOffersRes.error, profilesRes.error, valuationRes.error].filter(Boolean);
-    if (errors.length > 0) {
-      return NextResponse.json({ success: false, error: `Nu pot citi snapshot-ul operational: ${errors[0]?.message}` }, { status: 500 });
+    const requiredErrors = [
+      listingsRes.error ? { table: "listings", message: listingsRes.error.message } : null,
+      demandsRes.error ? { table: "demands", message: demandsRes.error.message } : null,
+      listingOffersRes.error
+        ? { table: "listing_offers", message: listingOffersRes.error.message }
+        : null,
+      demandOffersRes.error
+        ? { table: "demand_offers", message: demandOffersRes.error.message }
+        : null,
+      profilesRes.error ? { table: "profiles", message: profilesRes.error.message } : null,
+    ].filter(Boolean) as Array<{ table: string; message: string }>;
+
+    if (requiredErrors.length > 0) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Snapshot error",
+          details: {
+            message: `Nu pot citi snapshot-ul operational: ${requiredErrors[0].message}`,
+            table: requiredErrors[0].table,
+          },
+        },
+        { status: 500 }
+      );
     }
 
     const listings = listingsRes.data ?? [];
@@ -362,18 +507,34 @@ export async function POST(req: NextRequest) {
     const listingOffers = listingOffersRes.data ?? [];
     const demandOffers = demandOffersRes.data ?? [];
     const profiles = profilesRes.data ?? [];
-    const valuationReports = valuationRes.data ?? [];
+    const valuationReports = await safeSelect(
+      warnings,
+      "valuation_reports",
+      async () =>
+        adminSupabase
+        .from("valuation_reports")
+        .select("id, confidence_score, market_anchor_price, quick_exit_price, generated_at")
+        .order("generated_at", { ascending: false })
+        .limit(500),
+      []
+    );
 
     const generatedRisks = generateOperationalRisks({ listings, demands, profiles, valuationReports });
 
-    const riskResolutionsRes = await adminSupabase
-      .from("admin_risk_resolutions")
-      .select("risk_key, title, severity, resolved_at, entity_table")
-      .order("resolved_at", { ascending: false })
-      .limit(50);
-
-    const resolvedRisksAvailable = !riskResolutionsRes.error;
-    const recentResolvedRisks = resolvedRisksAvailable ? riskResolutionsRes.data ?? [] : [];
+    const recentResolvedRisks = await safeSelect(
+      warnings,
+      "admin_risk_resolutions",
+      async () =>
+        adminSupabase
+        .from("admin_risk_resolutions")
+        .select("risk_key, title, severity, resolved_at, entity_table")
+        .order("resolved_at", { ascending: false })
+        .limit(50),
+      []
+    );
+    const resolvedRisksAvailable = !warnings.some((w) =>
+      w.toLowerCase().includes("admin_risk_resolutions")
+    );
 
     const listingsActive = listings.filter((l) => l.status === "active");
     const demandsActive = demands.filter((d) => d.status === "active");
@@ -541,58 +702,75 @@ Format obligatoriu:
 }
 `.trim();
 
-    const geminiResponse = await fetch(geminiUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: fullPrompt }] }],
-      }),
+    const geminiRun = await callGeminiWithFallback({
+      candidateModels,
+      geminiApiKey,
+      prompt: fullPrompt,
     });
 
-    const geminiRawBody = await geminiResponse.text();
-    let geminiPayload: Record<string, unknown> | null = null;
-    try {
-      geminiPayload = JSON.parse(geminiRawBody) as Record<string, unknown>;
-    } catch {
-      geminiPayload = null;
-    }
-
-    if (!geminiResponse.ok) {
-      const geminiError =
-        geminiPayload && typeof geminiPayload.error === "object"
-          ? (geminiPayload.error as Record<string, unknown>)
-          : null;
-      const geminiMessage =
-        typeof geminiError?.message === "string"
-          ? geminiError.message
-          : safeBodySnippet(geminiRawBody, geminiApiKey);
-
+    if (geminiRun.kind === "all_failed") {
       return NextResponse.json(
         {
           success: false,
-          error: "Gemini request failed",
+          error: "Gemini request failed on all fallback models",
           details: {
-            status: geminiResponse.status,
-            statusText: geminiResponse.statusText,
-            geminiStatus: typeof geminiError?.status === "string" ? geminiError.status : null,
-            geminiMessage,
-            model: geminiModel,
+            attempts: geminiRun.attempts,
+          },
+          snapshotSummary: {
+            listings_total: listings.length,
+            demands_total: demands.length,
+            profiles_total: profiles.length,
+            valuation_reports_total: valuationReports.length,
+            active_risks_total: generatedRisks.length,
+            warnings,
           },
         },
         { status: 502 }
       );
     }
 
-    const text = geminiPayload ? extractGeminiText(geminiPayload) : "";
+    if (geminiRun.kind === "non_retryable_error") {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Gemini request failed",
+          details: {
+            status: geminiRun.status,
+            statusText: geminiRun.statusText,
+            geminiStatus: geminiRun.geminiStatus,
+            geminiMessage: geminiRun.geminiMessage,
+            model: geminiRun.model,
+            attempts: geminiRun.attempts,
+          },
+          snapshotSummary: {
+            listings_total: listings.length,
+            demands_total: demands.length,
+            profiles_total: profiles.length,
+            valuation_reports_total: valuationReports.length,
+            active_risks_total: generatedRisks.length,
+            warnings,
+          },
+        },
+        { status: 502 }
+      );
+    }
+
+    const text = geminiRun.text;
     if (!text) {
       return NextResponse.json({
         success: true,
         mode,
         generatedAt: snapshot.generatedAt,
-        snapshotSummary: snapshot.risks,
-        result: { rawText: safeBodySnippet(geminiRawBody, geminiApiKey), parseWarning: true },
+        usedModel: geminiRun.usedModel,
+        snapshotSummary: {
+          listings_total: listings.length,
+          demands_total: demands.length,
+          profiles_total: profiles.length,
+          valuation_reports_total: valuationReports.length,
+          active_risks_total: generatedRisks.length,
+          warnings,
+        },
+        result: { rawText: safeBodySnippet(geminiRun.rawBody, geminiApiKey), parseWarning: true },
       });
     }
 
@@ -602,13 +780,14 @@ Format obligatoriu:
         success: true,
         mode,
         generatedAt: snapshot.generatedAt,
+        usedModel: geminiRun.usedModel,
         snapshotSummary: {
-          listings: snapshot.listings.total,
-          demands: snapshot.demands.total,
-          offers: snapshot.offers.listing_offers_total + snapshot.offers.demand_offers_total,
-          profiles: snapshot.profiles.total,
-          risks_detected: snapshot.risks.total_detected,
-          resolved_risks_available: snapshot.risks.resolved_risks_available,
+          listings_total: listings.length,
+          demands_total: demands.length,
+          profiles_total: profiles.length,
+          valuation_reports_total: valuationReports.length,
+          active_risks_total: generatedRisks.length,
+          warnings,
         },
         result: parsed,
       });
@@ -617,13 +796,14 @@ Format obligatoriu:
         success: true,
         mode,
         generatedAt: snapshot.generatedAt,
+        usedModel: geminiRun.usedModel,
         snapshotSummary: {
-          listings: snapshot.listings.total,
-          demands: snapshot.demands.total,
-          offers: snapshot.offers.listing_offers_total + snapshot.offers.demand_offers_total,
-          profiles: snapshot.profiles.total,
-          risks_detected: snapshot.risks.total_detected,
-          resolved_risks_available: snapshot.risks.resolved_risks_available,
+          listings_total: listings.length,
+          demands_total: demands.length,
+          profiles_total: profiles.length,
+          valuation_reports_total: valuationReports.length,
+          active_risks_total: generatedRisks.length,
+          warnings,
         },
         result: {
           rawText: text,

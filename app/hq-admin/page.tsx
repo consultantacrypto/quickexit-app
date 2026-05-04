@@ -283,9 +283,12 @@ export default function AdminHQ() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [copilotLoading, setCopilotLoading] = useState(false);
   const [copilotError, setCopilotError] = useState<string | null>(null);
+  const [copilotWarnings, setCopilotWarnings] = useState<string[]>([]);
   const [copilotMode, setCopilotMode] = useState<CopilotMode | null>(null);
   const [copilotResult, setCopilotResult] = useState<CopilotStructuredResult | null>(null);
   const [copilotGeneratedAt, setCopilotGeneratedAt] = useState<string | null>(null);
+  const [copilotUsedModel, setCopilotUsedModel] = useState<string | null>(null);
+  const [copilotSessionReady, setCopilotSessionReady] = useState(false);
 
   const loadAdminData = useCallback(async () => {
     setLoadNote(null);
@@ -355,6 +358,22 @@ export default function AdminHQ() {
       cancelled = true;
     };
   }, [loadAdminData]);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function checkSession() {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!cancelled) {
+        setCopilotSessionReady(Boolean(session?.access_token));
+      }
+    }
+    void checkSession();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const stats = useMemo(() => {
     const listingsActive = allListings.filter((l) => l.status === "active").length;
@@ -434,9 +453,11 @@ export default function AdminHQ() {
 
   const runCopilot = async (mode: CopilotMode) => {
     setCopilotError(null);
+    setCopilotWarnings([]);
     setCopilotLoading(true);
     setCopilotMode(mode);
     setCopilotResult(null);
+    setCopilotUsedModel(null);
 
     const {
       data: { session },
@@ -469,19 +490,26 @@ export default function AdminHQ() {
           geminiStatus?: string | null;
           geminiMessage?: string;
           model?: string;
+          table?: string;
         };
+        snapshotSummary?: { warnings?: string[] };
+        warnings?: string[];
         generatedAt?: string;
+        usedModel?: string;
         result?: CopilotStructuredResult;
         selftest?: Record<string, unknown>;
       };
 
       if (!res.ok || !payload.success) {
         setCopilotLoading(false);
+        const warnings = payload.snapshotSummary?.warnings || payload.warnings || [];
+        setCopilotWarnings(warnings);
         const detailParts = [
           payload.details?.status ? `HTTP ${payload.details.status}` : null,
           payload.details?.statusText || null,
           payload.details?.geminiStatus || null,
           payload.details?.geminiMessage || payload.details?.message || null,
+          payload.details?.table ? `table: ${payload.details.table}` : null,
           payload.details?.model ? `model: ${payload.details.model}` : null,
         ].filter(Boolean);
         setCopilotError(
@@ -493,6 +521,8 @@ export default function AdminHQ() {
       }
 
       setCopilotGeneratedAt(payload.generatedAt || null);
+      setCopilotUsedModel(payload.usedModel || null);
+      setCopilotWarnings(payload.snapshotSummary?.warnings || []);
       if (mode === "selftest") {
         setCopilotResult({
           executiveSummary: "Rezultat test conexiune Gemini",
@@ -502,6 +532,7 @@ export default function AdminHQ() {
         setCopilotResult(payload.result || {});
       }
       setCopilotLoading(false);
+      setCopilotSessionReady(Boolean(accessToken));
     } catch (err) {
       setCopilotLoading(false);
       setCopilotError(err instanceof Error ? err.message : "Eroare necunoscută la rularea HQ Copilot.");
@@ -661,7 +692,12 @@ export default function AdminHQ() {
         )}
         {copilotError && (
           <div className="rounded-2xl border-2 border-red-800/30 bg-red-50 px-4 py-3 text-center text-sm font-semibold text-red-900">
-            {copilotError}
+            <p>{copilotError}</p>
+            {copilotWarnings.length > 0 && (
+              <p className="mt-2 text-xs font-medium text-red-800">
+                {copilotWarnings.join(" | ")}
+              </p>
+            )}
             <button type="button" className="ml-2 underline" onClick={() => setCopilotError(null)}>
               Închide
             </button>
@@ -725,7 +761,8 @@ export default function AdminHQ() {
                 <button
                   type="button"
                   onClick={() => void runCopilot("daily")}
-                  disabled={copilotLoading}
+                  disabled={copilotLoading || !copilotSessionReady}
+                  title={!copilotSessionReady ? "HQ Copilot necesită sesiune admin activă." : undefined}
                   className="rounded-2xl border-[3px] border-black bg-white px-4 py-3 text-xs font-black uppercase tracking-widest text-black shadow-[3px_3px_0_0_#FFD100] disabled:opacity-50"
                 >
                   Analizează ziua
@@ -733,7 +770,8 @@ export default function AdminHQ() {
                 <button
                   type="button"
                   onClick={() => void runCopilot("risk")}
-                  disabled={copilotLoading}
+                  disabled={copilotLoading || !copilotSessionReady}
+                  title={!copilotSessionReady ? "HQ Copilot necesită sesiune admin activă." : undefined}
                   className="rounded-2xl border-[3px] border-black bg-white px-4 py-3 text-xs font-black uppercase tracking-widest text-black shadow-[3px_3px_0_0_#FFD100] disabled:opacity-50"
                 >
                   Detectează riscuri
@@ -741,7 +779,8 @@ export default function AdminHQ() {
                 <button
                   type="button"
                   onClick={() => void runCopilot("priorities")}
-                  disabled={copilotLoading}
+                  disabled={copilotLoading || !copilotSessionReady}
+                  title={!copilotSessionReady ? "HQ Copilot necesită sesiune admin activă." : undefined}
                   className="rounded-2xl border-[3px] border-black bg-white px-4 py-3 text-xs font-black uppercase tracking-widest text-black shadow-[3px_3px_0_0_#FFD100] disabled:opacity-50"
                 >
                   Recomandă priorități
@@ -749,17 +788,23 @@ export default function AdminHQ() {
                 <button
                   type="button"
                   onClick={() => void runCopilot("growth")}
-                  disabled={copilotLoading}
+                  disabled={copilotLoading || !copilotSessionReady}
+                  title={!copilotSessionReady ? "HQ Copilot necesită sesiune admin activă." : undefined}
                   className="rounded-2xl border-[3px] border-black bg-white px-4 py-3 text-xs font-black uppercase tracking-widest text-black shadow-[3px_3px_0_0_#FFD100] disabled:opacity-50"
                 >
                   Găsește oportunități
                 </button>
               </div>
+              {!copilotSessionReady && (
+                <p className="text-xs font-medium text-neutral-600">
+                  HQ Copilot necesită sesiune admin activă.
+                </p>
+              )}
               <div className="flex justify-end">
                 <button
                   type="button"
                   onClick={() => void runCopilot("selftest")}
-                  disabled={copilotLoading}
+                  disabled={copilotLoading || !copilotSessionReady}
                   className="rounded-full border border-black/40 bg-white px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-neutral-700 hover:border-black disabled:opacity-50"
                 >
                   Test Gemini
@@ -778,6 +823,11 @@ export default function AdminHQ() {
                     <p className="text-[11px] font-semibold uppercase tracking-widest text-neutral-500">
                       Generat la {new Date(copilotGeneratedAt).toLocaleString("ro-RO")}
                       {copilotMode ? ` · mod: ${copilotMode}` : ""}
+                    </p>
+                  )}
+                  {copilotUsedModel && (
+                    <p className="text-[11px] font-medium text-neutral-600">
+                      Model folosit: <span className="font-semibold">{copilotUsedModel}</span>
                     </p>
                   )}
                   {copilotResult.executiveSummary && (
