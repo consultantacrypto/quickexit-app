@@ -22,12 +22,6 @@ type CopilotStructuredResult = {
 
 const VALID_MODES: CopilotMode[] = ["daily", "risk", "priorities", "growth"];
 
-const SYSTEM_INSTRUCTION =
-  "Esti HQ Copilot pentru Quick Exit, o platforma romaneasca de lichiditate pentru active. " +
-  "Rolul tau este sa ajuti fondatorul sa opereze platforma: risc, produs, tehnic, crestere, date si prioritati. " +
-  "Nu inventa date. Foloseste doar snapshot-ul primit. Raspunde in romana, practic, structurat si orientat pe actiuni. " +
-  "Nu recomanda actiuni riscante fara avertisment. Prioritizeaza increderea, monetizarea, siguranta si claritatea UX.";
-
 function extractGeminiText(payload: unknown): string {
   const root = payload as Record<string, unknown>;
   const candidates = Array.isArray(root?.candidates) ? root.candidates : [];
@@ -415,41 +409,67 @@ export async function POST(req: NextRequest) {
       },
     };
 
-    const geminiPrompt = {
-      mode,
-      instruction: modeSpecificInstruction(mode),
-      output_schema: {
-        executiveSummary: "string",
-        criticalRisks: [{ title: "string", why: "string", severity: "critical|high|medium|low" }],
-        opportunities: [{ title: "string", why: "string", impact: "mare|mediu|mic" }],
-        recommendedActions: [
-          {
-            title: "string",
-            why: "string",
-            impact: "mare|mediu|mic",
-            effort: "mic|mediu|mare",
-            urgency: "azi|curand|backlog",
-          },
-        ],
-        founderNote: "string",
-      },
-      snapshot,
-    };
+    const fullPrompt = `
+Esti HQ Copilot pentru Quick Exit, o platforma romaneasca de lichiditate pentru active.
 
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1/models/${encodeURIComponent(
+Rolul tau:
+- ajuti fondatorul sa opereze platforma
+- analizezi riscuri, produs, date, crestere si prioritati
+- nu inventezi date
+- folosesti doar snapshot-ul primit
+- raspunzi in romana
+- esti practic, structurat si orientat pe actiuni
+- prioritizezi increderea, monetizarea, siguranta si claritatea UX
+
+Mod analiza: ${mode}
+Directie pentru acest mod: ${modeSpecificInstruction(mode)}
+
+Snapshot operational:
+${JSON.stringify(snapshot, null, 2)}
+
+Raspunde STRICT in JSON valid, fara markdown, fara backticks, fara text inainte sau dupa JSON.
+
+Format obligatoriu:
+{
+  "executiveSummary": "string",
+  "criticalRisks": [
+    {
+      "title": "string",
+      "why": "string",
+      "severity": "critical|high|medium|low"
+    }
+  ],
+  "opportunities": [
+    {
+      "title": "string",
+      "why": "string",
+      "impact": "mare|mediu|mic"
+    }
+  ],
+  "recommendedActions": [
+    {
+      "title": "string",
+      "why": "string",
+      "impact": "mare|mediu|mic",
+      "effort": "mic|mediu|mare",
+      "urgency": "azi|curand|backlog"
+    }
+  ],
+  "founderNote": "string"
+}
+`.trim();
+
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
       geminiModel
-    )}:generateContent`;
+    )}:generateContent?key=${encodeURIComponent(geminiApiKey)}`;
 
     const geminiResponse = await fetch(geminiUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-goog-api-key": geminiApiKey,
       },
       body: JSON.stringify({
-        contents: [{ role: "user", parts: [{ text: JSON.stringify(geminiPrompt) }] }],
-        systemInstruction: { parts: [{ text: SYSTEM_INSTRUCTION }] },
-        generationConfig: { temperature: 0.2, responseMimeType: "application/json" },
+        contents: [{ parts: [{ text: fullPrompt }] }],
       }),
     });
 
