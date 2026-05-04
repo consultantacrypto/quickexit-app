@@ -222,6 +222,7 @@ export default function AdDetail() {
   const [sellerActiveCount, setSellerActiveCount] = useState<number | null>(null);
   const [shareCopiedKey, setShareCopiedKey] = useState<string | null>(null);
   const [shareFallbackText, setShareFallbackText] = useState<string | null>(null);
+  const [canQuickShare, setCanQuickShare] = useState(false);
 
   const [buyerPhone, setBuyerPhone] = useState("");
   const [buyerEmail, setBuyerEmail] = useState("");
@@ -323,6 +324,10 @@ export default function AdDetail() {
     }
     fetchAd();
   }, [id]);
+
+  useEffect(() => {
+    setCanQuickShare(typeof navigator !== "undefined" && typeof navigator.share === "function");
+  }, []);
 
   const submitListingOffer = async () => {
     if (!buyerPhone || !offerPrice) return;
@@ -520,6 +525,19 @@ export default function AdDetail() {
       }
     } catch {
       setShareFallbackText(text);
+    }
+  };
+
+  const quickShare = async () => {
+    if (!socialKit || !canQuickShare || !navigator.share) return;
+    try {
+      await navigator.share({
+        title: socialKit.headline,
+        text: socialKit.shortHook,
+        url: socialKit.utm.whatsapp || socialKit.listingUrl,
+      });
+    } catch {
+      // User canceled or platform rejected share; keep silent.
     }
   };
 
@@ -752,6 +770,15 @@ export default function AdDetail() {
                     Copiază un mesaj gata pregătit și trimite-l către cumpărători sau comunitatea ta.
                   </p>
                   <div className="grid grid-cols-2 gap-2">
+                    {canQuickShare && (
+                      <button
+                        type="button"
+                        onClick={() => void quickShare()}
+                        className="col-span-2 rounded-xl border-2 border-black bg-[#FFD100] px-3 py-2 text-[10px] font-black uppercase tracking-wider text-black hover:brightness-105"
+                      >
+                        Distribuie rapid
+                      </button>
+                    )}
                     <button
                       type="button"
                       onClick={() => void copyShareText("link", socialKit.utm.hq)}
