@@ -198,7 +198,8 @@ export async function POST(req: NextRequest) {
     const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
     const geminiApiKey = process.env.GEMINI_API_KEY;
-    const geminiModel = process.env.GEMINI_MODEL || "gemini-2.0-flash";
+    const rawModel = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+    const geminiModel = rawModel.replace(/^models\//, "");
 
     if (!supabaseUrl || !anonKey) {
       return NextResponse.json({ success: false, error: "Config Supabase incompleta: lipsesc URL sau anon key." }, { status: 500 });
@@ -485,7 +486,7 @@ Format obligatoriu:
         {
           success: false,
           error: looksLikeMissingModel
-            ? "Modelul Gemini configurat nu este disponibil. Verifică GEMINI_MODEL în Vercel sau rulează ListModels pentru cheia API."
+            ? `Model Gemini indisponibil sau request invalid. Model folosit: ${geminiModel}`
             : `Gemini request failed: ${errMsg}`,
         },
         { status: 502 }
