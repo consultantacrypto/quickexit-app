@@ -37,7 +37,7 @@ type RiskResolutionRow = {
   created_at: string | null;
 };
 
-type CopilotMode = "daily" | "risk" | "priorities" | "growth";
+type CopilotMode = "daily" | "risk" | "priorities" | "growth" | "selftest";
 
 type CopilotRiskItem = {
   title: string;
@@ -472,6 +472,7 @@ export default function AdminHQ() {
         };
         generatedAt?: string;
         result?: CopilotStructuredResult;
+        selftest?: Record<string, unknown>;
       };
 
       if (!res.ok || !payload.success) {
@@ -492,7 +493,14 @@ export default function AdminHQ() {
       }
 
       setCopilotGeneratedAt(payload.generatedAt || null);
-      setCopilotResult(payload.result || {});
+      if (mode === "selftest") {
+        setCopilotResult({
+          executiveSummary: "Rezultat test conexiune Gemini",
+          rawText: JSON.stringify(payload.selftest || {}, null, 2),
+        });
+      } else {
+        setCopilotResult(payload.result || {});
+      }
       setCopilotLoading(false);
     } catch (err) {
       setCopilotLoading(false);
@@ -745,6 +753,16 @@ export default function AdminHQ() {
                   className="rounded-2xl border-[3px] border-black bg-white px-4 py-3 text-xs font-black uppercase tracking-widest text-black shadow-[3px_3px_0_0_#FFD100] disabled:opacity-50"
                 >
                   Găsește oportunități
+                </button>
+              </div>
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => void runCopilot("selftest")}
+                  disabled={copilotLoading}
+                  className="rounded-full border border-black/40 bg-white px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-neutral-700 hover:border-black disabled:opacity-50"
+                >
+                  Test Gemini
                 </button>
               </div>
 
