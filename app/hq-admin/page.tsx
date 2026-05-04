@@ -9,6 +9,34 @@ const ADMIN_EMAILS = ["consultantacrypto.ro@gmail.com"];
 
 type TabId = "overview" | "listings" | "demands" | "offers" | "profiles" | "risks";
 
+type OperationalRiskSeverity = "critical" | "high" | "medium" | "low";
+
+type OperationalRiskItem = {
+  risk_key: string;
+  risk_type: string;
+  entity_table: string | null;
+  entity_id: string | null;
+  severity: OperationalRiskSeverity;
+  title: string;
+  description: string;
+  detected_at: string | null;
+  href: string | null;
+};
+
+type RiskResolutionRow = {
+  id?: string;
+  risk_key: string;
+  risk_type: string;
+  entity_table: string | null;
+  entity_id: string | null;
+  severity: string;
+  title: string;
+  note: string | null;
+  resolved_by: string | null;
+  resolved_at: string | null;
+  created_at: string | null;
+};
+
 function isAdminEmail(email: string | undefined | null): boolean {
   if (!email) return false;
   return ADMIN_EMAILS.includes(email.trim().toLowerCase());
@@ -32,6 +60,158 @@ function demandStatusLabel(status: string | undefined): string {
   if (s === "admin_removed" || s === "removed" || s === "hidden") return "Ascuns";
   if (!s) return "Necunoscut";
   return "Necunoscut";
+}
+
+function severityRo(s: OperationalRiskSeverity): string {
+  if (s === "critical") return "Critic";
+  if (s === "high") return "Mare";
+  if (s === "medium") return "Mediu";
+  return "Mic";
+}
+
+function severityBadgeClass(s: OperationalRiskSeverity): string {
+  if (s === "critical") return "border-red-800 bg-red-50 text-red-900";
+  if (s === "high") return "border-orange-700 bg-orange-50 text-orange-950";
+  if (s === "medium") return "border-black bg-[#FFD100]/90 text-black";
+  return "border-neutral-400 bg-neutral-100 text-neutral-700";
+}
+
+function generateOperationalRisks(
+  allListings: any[],
+  allDemands: any[],
+  profiles: any[],
+  valuationReports: any[]
+): OperationalRiskItem[] {
+  const risks: OperationalRiskItem[] = [];
+  const now = Date.now();
+  const dayMs = 24 * 60 * 60 * 1000;
+
+  allListings.forEach((l) => {
+    if (l.status === "active" && l.is_seed === true) {
+      risks.push({
+        risk_key: `active_seed_listing_${l.id}`,
+        risk_type: "listing_seed_active_public",
+        entity_table: "listings",
+        entity_id: l.id,
+        severity: "critical",
+        title: "Seed activ vizibil public",
+        description: `Listing Market Index („seed”) apare ca activ public: „${String(l.title || "").slice(0, 120)}”.`,
+        detected_at: l.created_at ?? null,
+        href: `/anunt/${l.id}`,
+      });
+    }
+    if (l.status === "pending_payment" && l.created_at) {
+      if (now - new Date(l.created_at).getTime() > dayMs) {
+        risks.push({
+          risk_key: `old_pending_listing_${l.id}`,
+          risk_type: "listing_pending_stale",
+          entity_table: "listings",
+          entity_id: l.id,
+          severity: "medium",
+          title: "Anunț în așteptarea plății de peste 24h",
+          description: `Încă în „pending_payment” de peste 24 ore: „${String(l.title || "").slice(0, 120)}”.`,
+          detected_at: l.created_at,
+          href: `/anunt/${l.id}`,
+        });
+      }
+    }
+    if (!l.user_id && l.is_seed !== true) {
+      risks.push({
+        risk_key: `listing_missing_user_${l.id}`,
+        risk_type: "listing_missing_owner",
+        entity_table: "listings",
+        entity_id: l.id,
+        severity: "high",
+        title: "Anunț real fără user_id",
+        description: `Listare non-seed fără user_id: „${String(l.title || "").slice(0, 120)}”.`,
+        detected_at: l.created_at ?? null,
+        href: l.status === "active" ? `/anunt/${l.id}` : null,
+      });
+    }
+    const imgs = l.images;
+    const noImg = !Array.isArray(imgs) || imgs.length === 0;
+    if (l.status === "active" && noImg && l.is_seed !== true) {
+      risks.push({
+        risk_key: `active_listing_no_images_${l.id}`,
+        risk_type: "listing_active_without_images",
+        entity_table: "listings",
+        entity_id: l.id,
+        severity: "low",
+        title: "Anunț activ fără poze",
+        description: `Listare activă fără imagini atașate: „${String(l.title || "").slice(0, 120)}”.`,
+        detected_at: l.created_at ?? null,
+        href: `/anunt/${l.id}`,
+      });
+    }
+  });
+
+  allDemands.forEach((d) => {
+    if (d.status === "pending_payment" && d.created_at) {
+      if (now - new Date(d.created_at).getTime() > dayMs) {
+        risks.push({
+          risk_key: `old_pending_demand_${d.id}`,
+          risk_type: "demand_pending_stale",
+          entity_table: "demands",
+          entity_id: d.id,
+          severity: "medium",
+          title: "Cerere în așteptarea plății de peste 24h",
+          description: `Cerere „pending_payment”: ${String(d.target_asset || d.id).slice(0, 120)}.`,
+          detected_at: d.created_at,
+          href: null,
+        });
+      }
+    }
+    if (d.status === "active" && !d.buyer_id) {
+      risks.push({
+        risk_key: `active_demand_missing_buyer_${d.id}`,
+        risk_type: "demand_active_orphan_buyer",
+        entity_table: "demands",
+        entity_id: d.id,
+        severity: "high",
+        title: "Cerere activă fără buyer_id",
+        description: `Cerere activă fără cumpărător asociat: ${String(d.target_asset || d.id).slice(0, 120)}.`,
+        detected_at: d.created_at ?? null,
+        href: null,
+      });
+    }
+  });
+
+  profiles.forEach((p) => {
+    if (p.kyc_status === "requires_input") {
+      risks.push({
+        risk_key: `profile_kyc_requires_input_${p.id}`,
+        risk_type: "profile_kyc_blocked",
+        entity_table: "profiles",
+        entity_id: p.id,
+        severity: "medium",
+        title: "Profil cu KYC de reluat",
+        description: `${p.full_name || "Profil"} — KYC necesită reluare sau date suplimentare.`,
+        detected_at: p.created_at ?? null,
+        href: null,
+      });
+    }
+  });
+
+  valuationReports.forEach((r) => {
+    const c = Number(r.confidence_score);
+    if (Number.isFinite(c) && c < 50) {
+      risks.push({
+        risk_key: `low_confidence_report_${r.id}`,
+        risk_type: "valuation_low_confidence",
+        entity_table: "valuation_reports",
+        entity_id: r.id,
+        severity: "low",
+        title: "Raport de evaluare cu încredere scăzută",
+        description: `Raport evaluare scor încredere ${c}% (sub prag 50%).`,
+        detected_at: r.created_at ?? null,
+        href: null,
+      });
+    }
+  });
+
+  const sevRank: Record<OperationalRiskSeverity, number> = { critical: 0, high: 1, medium: 2, low: 3 };
+  risks.sort((a, b) => sevRank[a.severity] - sevRank[b.severity]);
+  return risks;
 }
 
 function kycBadgeLabel(status: string | null | undefined): string {
@@ -62,6 +242,9 @@ export default function AdminHQ() {
   const [demandOffers, setDemandOffers] = useState<any[]>([]);
   const [profiles, setProfiles] = useState<any[]>([]);
   const [valuationReports, setValuationReports] = useState<any[]>([]);
+  const [riskResolutionHistory, setRiskResolutionHistory] = useState<RiskResolutionRow[]>([]);
+  const [riskTableAvailable, setRiskTableAvailable] = useState(false);
+  const [resolvingRiskKey, setResolvingRiskKey] = useState<string | null>(null);
 
   const [loadNote, setLoadNote] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -78,6 +261,20 @@ export default function AdminHQ() {
       supabase.from("profiles").select("id, full_name, kyc_status, user_type, created_at").order("created_at", { ascending: false }).limit(300),
       supabase.from("valuation_reports").select("id, confidence_score, created_at").order("created_at", { ascending: false }).limit(300),
     ]);
+
+    const resRisks = await supabase
+      .from("admin_risk_resolutions")
+      .select("*")
+      .order("resolved_at", { ascending: false })
+      .limit(50);
+
+    if (resRisks.error) {
+      setRiskTableAvailable(false);
+      setRiskResolutionHistory([]);
+    } else {
+      setRiskTableAvailable(true);
+      setRiskResolutionHistory((resRisks.data ?? []) as RiskResolutionRow[]);
+    }
 
     const anyError = results.some((r) => r.error);
     if (anyError) {
@@ -140,57 +337,62 @@ export default function AdminHQ() {
     };
   }, [allListings, allDemands, listingOffers, demandOffers, profiles, valuationReports]);
 
-  const riskAlerts = useMemo(() => {
-    const alerts: string[] = [];
-    const now = Date.now();
-    const dayMs = 24 * 60 * 60 * 1000;
+  const resolvedRiskKeys = useMemo(
+    () => new Set(riskResolutionHistory.map((r) => r.risk_key).filter(Boolean)),
+    [riskResolutionHistory]
+  );
 
-    if (allListings.some((l) => l.status === "active" && l.is_seed === true)) {
-      alerts.push("Există listări marcate active cu Market Index (is_seed) — verifică consistența.");
+  const detectedRisks = useMemo(
+    () => generateOperationalRisks(allListings, allDemands, profiles, valuationReports),
+    [allListings, allDemands, profiles, valuationReports]
+  );
+
+  const activeOperationalRisks = useMemo(
+    () => detectedRisks.filter((r) => !resolvedRiskKeys.has(r.risk_key)),
+    [detectedRisks, resolvedRiskKeys]
+  );
+
+  const resolveOperationalRisk = async (risk: OperationalRiskItem) => {
+    if (!riskTableAvailable) {
+      setActionError("Activează istoricul riscurilor prin SQL înainte de bifare.");
+      return;
     }
-    allListings.forEach((l) => {
-      if (l.status === "pending_payment" && l.created_at) {
-        if (now - new Date(l.created_at).getTime() > dayMs) {
-          alerts.push(`Listare în așteptarea plății >24h: ${String(l.title || l.id).slice(0, 48)}…`);
-        }
-      }
-    });
-    allDemands.forEach((d) => {
-      if (d.status === "pending_payment" && d.created_at) {
-        if (now - new Date(d.created_at).getTime() > dayMs) {
-          alerts.push(`Cerere în așteptarea plății >24h: ${String(d.target_asset || d.id).slice(0, 48)}…`);
-        }
-      }
-    });
-    if (allDemands.some((d) => d.status === "active" && !d.buyer_id)) {
-      alerts.push("Cereri active fără buyer_id — date vechi sau orfane.");
+    const ok = window.confirm("Marchezi acest risc ca rezolvat? El va fi mutat în istoric.");
+    if (!ok) return;
+    const noteInput = window.prompt("Notă internă opțională", "") ?? "";
+
+    setResolvingRiskKey(risk.risk_key);
+    setActionError(null);
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) {
+      setResolvingRiskKey(null);
+      setActionError("Nu ești autentificat; nu poți marca rezolvări.");
+      return;
     }
-    profiles.forEach((p) => {
-      if (p.kyc_status === "requires_input") {
-        alerts.push(`Profil KYC necesită reluare: ${p.full_name || p.id}`);
-      }
-    });
-    valuationReports.forEach((r) => {
-      const c = Number(r.confidence_score);
-      if (Number.isFinite(c) && c < 50) {
-        alerts.push(`Raport evaluare cu încredere scăzută (${c}): ${r.id}`);
-      }
-    });
-    if (allListings.some((l) => !l.user_id)) {
-      alerts.push("Există listări fără user_id.");
-    }
-    allListings.forEach((l) => {
-      const m = Number(l.market_price);
-      const e = Number(l.exit_price);
-      if (m > 50_000_000 || e > 50_000_000) {
-        alerts.push(`Prețuri foarte mari (verificare): ${String(l.title || "").slice(0, 40)}`);
-      } else if (m > 0 && e > m * 2.5) {
-        alerts.push(`Preț exit mult peste piață: ${String(l.title || "").slice(0, 40)}`);
-      }
+
+    const { error } = await supabase.from("admin_risk_resolutions").insert({
+      risk_key: risk.risk_key,
+      risk_type: risk.risk_type,
+      entity_table: risk.entity_table,
+      entity_id: risk.entity_id,
+      severity: risk.severity,
+      title: risk.title,
+      note: noteInput.trim() || null,
+      resolved_by: user.id,
     });
 
-    return alerts;
-  }, [allListings, allDemands, profiles, valuationReports]);
+    setResolvingRiskKey(null);
+
+    if (error) {
+      setActionError(`Nu am putut înregistra rezolvarea: ${error.message}`);
+      return;
+    }
+
+    await loadAdminData();
+  };
 
   const activateListingManual = async (id: string) => {
     const ok = window.confirm(
@@ -605,22 +807,119 @@ export default function AdminHQ() {
           )}
 
           {activeTab === "risks" && (
-            <div>
-              <h2 className="mb-4 text-xl font-black uppercase italic text-black">Riscuri operaționale</h2>
-              {riskAlerts.length === 0 ? (
-                <p className="text-sm font-medium text-neutral-600">Nu au fost detectate alerte automate în setul curent de date.</p>
+            <div className="space-y-6">
+              <h2 className="text-xl font-black uppercase italic text-black">Riscuri operaționale</h2>
+              {!riskTableAvailable && (
+                <p className="text-xs font-medium leading-relaxed text-neutral-600">
+                  Istoricul riscurilor nu este încă activ. Rulează SQL-ul de creare tabel pentru a putea marca
+                  riscuri ca rezolvate.
+                </p>
+              )}
+              <div className="flex flex-wrap gap-4 text-[11px] font-black uppercase tracking-widest text-neutral-800">
+                <span className="rounded-full border-[2px] border-black bg-[#F7F4EC]/80 px-4 py-1.5">
+                  Riscuri active: {activeOperationalRisks.length}
+                </span>
+                <span className="rounded-full border-[2px] border-black bg-white px-4 py-1.5">
+                  Rezolvate recent: {riskResolutionHistory.length}
+                </span>
+              </div>
+              {activeOperationalRisks.length === 0 ? (
+                <div className="rounded-2xl border-[3px] border-black bg-white px-8 py-6 shadow-[4px_4px_0_0_#000]/10">
+                  <p className="text-sm font-medium text-neutral-800">
+                    Nu există riscuri active detectate în acest moment.
+                  </p>
+                </div>
               ) : (
-                <ul className="space-y-2 rounded-2xl border-[3px] border-black bg-[#F7F4EC]/60 p-6">
-                  {riskAlerts.map((a, i) => (
-                    <li key={i} className="flex gap-2 text-sm font-medium text-neutral-800">
-                      <span className="text-[#FFD100]" aria-hidden>
-                        •
-                      </span>
-                      {a}
+                <ul className="space-y-3">
+                  {activeOperationalRisks.map((risk) => (
+                    <li
+                      key={risk.risk_key}
+                      className="rounded-2xl border-[3px] border-black bg-[#FAFAF7] p-6 shadow-[3px_3px_0_0_rgba(0,0,0,0.15)]"
+                    >
+                      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                        <div className="min-w-0 space-y-2">
+                          <span
+                            className={`inline-flex border-[2px] px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] ${severityBadgeClass(
+                              risk.severity
+                            )}`}
+                          >
+                            {severityRo(risk.severity)}
+                          </span>
+                          <h3 className="text-lg font-black uppercase italic text-black">{risk.title}</h3>
+                          <p className="text-sm font-medium text-neutral-800">{risk.description}</p>
+                          <p className="text-[11px] font-medium text-neutral-500">
+                            {risk.risk_type} · {risk.entity_table || "—"}
+                            {risk.entity_id ? <> · {String(risk.entity_id).slice(0, 8)}…</> : null}
+                          </p>
+                          {risk.href && (
+                            <Link
+                              href={risk.href}
+                              className="inline-block text-xs font-black uppercase tracking-widest text-black underline decoration-2 underline-offset-4"
+                            >
+                              Deschide resursă
+                            </Link>
+                          )}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => void resolveOperationalRisk(risk)}
+                          disabled={!riskTableAvailable || resolvingRiskKey === risk.risk_key}
+                          title={
+                            riskTableAvailable
+                              ? undefined
+                              : "Activează istoricul riscurilor prin SQL înainte de bifare."
+                          }
+                          className="shrink-0 rounded-2xl border-[2px] border-black bg-white px-4 py-2 text-[10px] font-black uppercase tracking-widest text-neutral-900 shadow-[2px_2px_0_0_#000]/20 transition hover:bg-neutral-100 disabled:pointer-events-none disabled:opacity-40"
+                        >
+                          {resolvingRiskKey === risk.risk_key ? "Se salvează…" : "Marchează rezolvat"}
+                        </button>
+                      </div>
                     </li>
                   ))}
                 </ul>
               )}
+              <details className="group rounded-2xl border-[3px] border-black bg-white p-4 shadow-[3px_3px_0_0_#FFD100]/50">
+                <summary className="cursor-pointer list-none text-[11px] font-black uppercase tracking-[0.2em] text-black marker:content-none [&::-webkit-details-marker]:hidden">
+                  <span className="underline decoration-2 underline-offset-4 group-open:no-underline">
+                    Istoric riscuri rezolvate
+                  </span>
+                </summary>
+                {riskResolutionHistory.length === 0 ? (
+                  <p className="mt-4 text-xs font-medium text-neutral-600">
+                    Momentan nu există riscuri rezolvate salvate pentru afișare.
+                  </p>
+                ) : (
+                  <ul className="mt-4 space-y-2">
+                    {riskResolutionHistory.map((row) => (
+                      <li
+                        key={row.id ?? row.risk_key}
+                        className="rounded-xl border-2 border-neutral-200 bg-[#F7F4EC]/40 px-4 py-3 text-[11px] text-neutral-800"
+                      >
+                        <div className="flex flex-wrap items-start justify-between gap-2">
+                          <div className="min-w-0 space-y-1">
+                            <p className="text-sm font-bold text-black">{row.title}</p>
+                            <p className="text-[10px] font-medium text-neutral-600">
+                              {severityRo((row.severity as OperationalRiskSeverity) || "medium")} ·{" "}
+                              {row.entity_table || "—"}
+                            </p>
+                            {row.note ? (
+                              <p className="text-[11px] italic text-neutral-700">Notă: {row.note}</p>
+                            ) : null}
+                          </div>
+                          <div className="shrink-0 text-right text-[10px] font-medium text-neutral-500">
+                            <p>{row.resolved_at ? new Date(row.resolved_at).toLocaleString("ro-RO") : "—"}</p>
+                            {row.resolved_by ? (
+                              <p className="mt-1 max-w-[10rem] break-all font-mono text-[9px] text-neutral-400">
+                                {row.resolved_by}
+                              </p>
+                            ) : null}
+                          </div>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </details>
             </div>
           )}
         </div>
