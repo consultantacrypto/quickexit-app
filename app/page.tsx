@@ -91,12 +91,12 @@ export default async function Home() {
           </h1>
 
           <div className="mx-auto max-w-2xl mb-16 px-4">
-            <p className="text-sm md:text-base font-bold tracking-wide leading-loose">
+            <p className="text-base md:text-lg lg:text-xl font-bold tracking-wide leading-relaxed">
               <span className="bg-[#FFD100] text-black px-2 py-1 box-decoration-clone">
                 Singura platformă de lichiditate din România dedicată vânzărilor rapide. Conectăm direct bunurile tale cu investitori pregătiți pentru achiziții cash.
               </span>
             </p>
-            <p className="mt-4 text-black font-black uppercase tracking-widest text-[10px]">
+            <p className="mt-4 text-black font-black uppercase tracking-widest text-xs md:text-sm leading-relaxed">
               Fără agenți. Fără negocieri infinite. Fără timp pierdut.
             </p>
           </div>
