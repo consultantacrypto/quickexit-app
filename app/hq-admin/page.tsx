@@ -5,6 +5,7 @@ import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { companyInfo } from "@/lib/company";
 import { buildSocialShareKit } from "@/lib/socialShare";
+import { trackEvent } from "@/lib/analytics";
 
 const ADMIN_EMAILS = ["consultantacrypto.ro@gmail.com"];
 
@@ -453,6 +454,7 @@ export default function AdminHQ() {
   };
 
   const runCopilot = async (mode: CopilotMode) => {
+    trackEvent("hq_copilot_run", { mode });
     setCopilotError(null);
     setCopilotWarnings([]);
     setCopilotLoading(true);

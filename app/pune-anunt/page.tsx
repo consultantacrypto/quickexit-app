@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase"; 
 import { Loader2, Search } from "lucide-react";
+import { trackEvent } from "@/lib/analytics";
 
 export default function PostAdPage() {
   const [step, setStep] = useState(1);
@@ -24,6 +25,7 @@ export default function PostAdPage() {
   
   const [isSaving, setIsSaving] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [hasTrackedStart, setHasTrackedStart] = useState(false);
 
   // STATE NOU: Capturăm datele scrise de utilizator pentru API
   const [formData, setFormData] = useState({
@@ -272,6 +274,12 @@ export default function PostAdPage() {
       }
       
       // 2. Apelăm motorul de plăți Stripe
+      trackEvent("checkout_listing_started", {
+        category,
+        package_id: selectedPackage,
+        sale_strategy: saleStrategy,
+        price: packagePrices[selectedPackage],
+      });
       const stripeRes = await fetch("/api/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -589,6 +597,10 @@ export default function PostAdPage() {
                     if (!adTitle.trim()) {
                       alert("Completează titlul anunțului.");
                       return;
+                    }
+                    if (!hasTrackedStart) {
+                      trackEvent("start_post_listing", { category });
+                      setHasTrackedStart(true);
                     }
                     setStep(2);
                   }}

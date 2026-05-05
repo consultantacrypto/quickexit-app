@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Clock3, ShieldCheck } from "lucide-react";
+import { trackEvent } from "@/lib/analytics";
 
 type ApiResult = {
   success: boolean;
@@ -127,6 +128,7 @@ export default function EvaluationPage() {
   });
 
   const runEvaluation = async () => {
+    trackEvent("start_evaluation", { category });
     setPhase("loading");
     setLoadingIndex(0);
     setResult(null);
@@ -146,6 +148,11 @@ export default function EvaluationPage() {
       }
 
       setResult(data);
+      trackEvent("evaluation_success", {
+        category,
+        data_quality_label: data.data_quality_label ? String(data.data_quality_label) : "unknown",
+        confidence_score: Number(data.confidence_score ?? 0),
+      });
       setPhase("result");
     } catch {
       alert("Serviciul de evaluare este temporar indisponibil.");

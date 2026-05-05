@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { trackEvent } from "@/lib/analytics";
 
 export default function PricingPage() {
   const sellerPackages = [
@@ -114,7 +117,11 @@ export default function PricingPage() {
               </div>
               <div className="border-t-2 border-neutral-200 pt-5">
                 <p className="text-4xl font-black italic tracking-tighter mb-5">{pkg.price}</p>
-                <Link href="/pune-anunt" className={`block w-full ${pkg.btnColor} border-[3px] border-black py-3 rounded-xl font-black uppercase tracking-widest text-xs text-center shadow-[3px_3px_0_0_rgba(0,0,0,0.15)] active:translate-y-1`}>
+                <Link
+                  href="/pune-anunt"
+                  onClick={() => trackEvent("click_pricing_package", { package_id: pkg.id, price: Number(pkg.price.replace(/\D/g, "") || 0) })}
+                  className={`block w-full ${pkg.btnColor} border-[3px] border-black py-3 rounded-xl font-black uppercase tracking-widest text-xs text-center shadow-[3px_3px_0_0_rgba(0,0,0,0.15)] active:translate-y-1`}
+                >
                   Publică cu acest pachet
                 </Link>
               </div>
@@ -145,7 +152,11 @@ export default function PricingPage() {
             <div className="text-center lg:border-l-2 lg:border-black/20 lg:pl-10">
               <p className="text-xs font-black uppercase tracking-widest text-black/60 mb-1">Taxă sesiune</p>
               <p className="text-6xl md:text-7xl font-black italic tracking-tighter mb-4 text-black uppercase">111 RON</p>
-              <Link href="/pune-anunt" className="inline-block w-full bg-black text-[#FFD100] border-[3px] border-black py-5 rounded-xl font-black uppercase tracking-widest text-sm shadow-[6px_6px_0_0_rgba(255,255,255,1)] hover:scale-[1.01] transition-transform active:translate-y-1">
+              <Link
+                href="/pune-anunt"
+                onClick={() => trackEvent("click_pricing_package", { package_id: "auction", price: 111 })}
+                className="inline-block w-full bg-black text-[#FFD100] border-[3px] border-black py-5 rounded-xl font-black uppercase tracking-widest text-sm shadow-[6px_6px_0_0_rgba(255,255,255,1)] hover:scale-[1.01] transition-transform active:translate-y-1"
+              >
                 Publică cu acest pachet
               </Link>
               <p className="text-xs font-semibold mt-4 text-black/70">Potrivit pentru active cu nevoie de viteză maximă.</p>

@@ -2,6 +2,7 @@ import { ro } from "../locales/ro";
 import AdCard from "./components/AdCard";
 import DemandCard from "./components/DemandCard"; // Am adus componenta Tanc pentru investitori
 import Link from "next/link";
+import TrackedLink from "./components/TrackedLink";
 import GlobalStats from "./components/GlobalStats";
 import { supabase } from "@/lib/supabase"; 
 // IMPORT GLOBAL NOU
@@ -118,12 +119,12 @@ export default async function Home() {
           </div>
 
           <div className="flex flex-col items-center mb-24 group">
-            <Link href="/evaluare">
+            <TrackedLink href="/evaluare" eventName="click_evaluate" eventParams={{ source: "home_hero" }}>
               <button className="bg-black text-[#FFD100] px-16 py-10 rounded-[2.5rem] font-black uppercase tracking-widest transition-all border-b-8 border-yellow-700 active:border-b-0 active:translate-y-2 hover:scale-[1.02] shadow-[0_15px_40px_rgba(255,209,0,0.2)] hover:shadow-[0_25px_50px_rgba(255,209,0,0.4)] relative overflow-hidden">
                 <div className="absolute top-0 -left-[100%] w-1/2 h-full bg-white/10 skew-x-[-25deg] group-hover:left-[150%] transition-all duration-1000 ease-in-out" />
                 <span className="text-3xl md:text-4xl italic uppercase leading-none block relative z-10">Cât valorează ce vinzi?</span>
               </button>
-            </Link>
+            </TrackedLink>
           </div>
 
           <div className="max-w-6xl mx-auto mb-10 pt-16 border-t border-gray-100">
@@ -199,9 +200,9 @@ export default async function Home() {
                   Anunțuri <span className="text-[#FFD100]">Vânzări Active</span>
                 </h2>
                 <div className="flex flex-wrap items-center gap-4">
-                  <Link href="/pune-anunt" className="bg-black text-[#FFD100] px-5 py-2.5 rounded-lg text-[10px] md:text-xs font-black uppercase tracking-widest italic hover:bg-[#FFD100] hover:text-black transition-colors border-2 border-black shadow-[3px_3px_0_0_rgba(0,0,0,1)]">
+                  <TrackedLink href="/pune-anunt" eventName="click_post_listing" eventParams={{ source: "home_listings_section" }} className="bg-black text-[#FFD100] px-5 py-2.5 rounded-lg text-[10px] md:text-xs font-black uppercase tracking-widest italic hover:bg-[#FFD100] hover:text-black transition-colors border-2 border-black shadow-[3px_3px_0_0_rgba(0,0,0,1)]">
                     + Pune Anunț
-                  </Link>
+                  </TrackedLink>
                   <Link href="/categorii/auto" className="text-[10px] md:text-xs font-black uppercase tracking-widest italic hover:text-[#FFD100] transition-colors border-b-2 border-transparent hover:border-[#FFD100] py-2">
                     Vezi toate anunțurile →
                   </Link>
@@ -241,9 +242,9 @@ export default async function Home() {
                     Capital <span className="text-black underline decoration-[#FFD100] decoration-[6px]">Disponibil</span>
                   </h2>
                   {/* Butonul tău de oferte cumpărare din Home */}
-                  <Link href="/capital-disponibil" className="text-[10px] md:text-xs font-black uppercase tracking-widest italic hover:text-[#FFD100] transition-colors border-b-2 border-transparent hover:border-[#FFD100] py-2 whitespace-nowrap">
+                  <TrackedLink href="/capital-disponibil" eventName="click_capital_available" eventParams={{ source: "home_capital_section" }} className="text-[10px] md:text-xs font-black uppercase tracking-widest italic hover:text-[#FFD100] transition-colors border-b-2 border-transparent hover:border-[#FFD100] py-2 whitespace-nowrap">
                     Vezi toate cererile →
-                  </Link>
+                  </TrackedLink>
               </div>
               <p className="text-sm md:text-base font-bold text-gray-500 uppercase italic">Clienți cu fonduri verificate caută să cumpere urgent aceste active.</p>
             </div>

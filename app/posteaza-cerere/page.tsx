@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import Link from "next/link";
+import { trackEvent } from "@/lib/analytics";
 
 const labelBase =
   "block text-[10px] font-black uppercase tracking-widest text-neutral-500";
@@ -22,6 +23,7 @@ export default function PostDemandPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+  const [hasTrackedStart, setHasTrackedStart] = useState(false);
 
   const categoriesList = [
     "Auto & Moto",
@@ -95,6 +97,11 @@ export default function PostDemandPage() {
         setIsSubmitting(false);
         return;
       }
+
+      trackEvent("checkout_demand_started", {
+        category,
+        price: 99,
+      });
 
       const stripeRes = await fetch("/api/checkout-demand", {
         method: "POST",
@@ -436,7 +443,13 @@ export default function PostDemandPage() {
               <div className="border-t border-neutral-200 pt-8">
                 <button
                   type="button"
-                  onClick={() => setStep(2)}
+                  onClick={() => {
+                    if (!hasTrackedStart) {
+                      trackEvent("start_post_demand", { category });
+                      setHasTrackedStart(true);
+                    }
+                    setStep(2);
+                  }}
                   disabled={!targetAsset}
                   className="w-full rounded-2xl border-[3px] border-black bg-[#FFD100] py-5 text-sm font-black uppercase tracking-[0.15em] text-black shadow-[6px_6px_0_0_#000] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-40"
                 >

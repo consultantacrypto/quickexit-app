@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
+import { trackEvent } from "@/lib/analytics";
 
 export default function CapitalDirectoryPage() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -13,6 +14,10 @@ export default function CapitalDirectoryPage() {
   const [isLoading, setIsLoading] = useState(true);
 
   // Extragem cererile live din Supabase
+  useEffect(() => {
+    trackEvent("view_capital_disponibil", { page_path: "/capital-disponibil" });
+  }, []);
+
   useEffect(() => {
     async function fetchDemands() {
       try {
@@ -149,7 +154,16 @@ export default function CapitalDirectoryPage() {
                     €{buyer.budget.toLocaleString('ro-RO')}
                   </p>
                   
-                  <Link href={`/trimite-oferta/${buyer.id}`} className="w-full bg-[#FFD100] border-[3px] border-black text-black py-4 rounded-2xl font-black uppercase tracking-widest text-xs italic hover:bg-black hover:text-[#FFD100] transition-colors shadow-[4px_4px_0_0_rgba(0,0,0,1)] active:shadow-none active:translate-y-1 block text-center">
+                  <Link
+                    href={`/trimite-oferta/${buyer.id}`}
+                    onClick={() =>
+                      trackEvent("click_send_demand_offer", {
+                        demand_id: buyer.id,
+                        category: buyer.category || "unknown",
+                      })
+                    }
+                    className="w-full bg-[#FFD100] border-[3px] border-black text-black py-4 rounded-2xl font-black uppercase tracking-widest text-xs italic hover:bg-black hover:text-[#FFD100] transition-colors shadow-[4px_4px_0_0_rgba(0,0,0,1)] active:shadow-none active:translate-y-1 block text-center"
+                  >
                     Trimite ofertă
                   </Link>
                 </div>

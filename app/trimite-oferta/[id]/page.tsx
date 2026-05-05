@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { trackEvent } from "@/lib/analytics";
 
 export default function PitchOfferPage() {
   const params = useParams();
@@ -64,6 +65,10 @@ export default function PitchOfferPage() {
         });
 
       if (error) throw error;
+      trackEvent("submit_demand_offer", {
+        demand_id: id,
+        category: buyer?.category || "unknown",
+      });
       setIsSuccess(true);
     } catch (error) {
       console.error("Eroare trimitere ofertă:", error);
