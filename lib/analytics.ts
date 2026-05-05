@@ -1,6 +1,7 @@
 "use client";
 
-export const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
+export const GA_MEASUREMENT_ID =
+  process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID || "G-8LLK172SCX";
 
 type EventParams = Record<string, string | number | boolean | null | undefined>;
 
