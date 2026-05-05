@@ -5,7 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import AdCard from "../components/AdCard";
 import { normalizeSaleType } from "@/utils/normalizeSaleType";
-import { Wallet, Inbox, ShieldCheck, PlusCircle, Search, Settings, Power, Play, PiggyBank } from "lucide-react";
+import { Wallet, Inbox, PlusCircle, Search, Settings, Power, Play, PiggyBank } from "lucide-react";
 // Importul corectat cu calea relativă
 import KycBanner from "../components/KycBanner"; 
 
@@ -154,35 +154,86 @@ function DashboardContent() {
     }
   };
 
-  const valoareTotala = myListings.reduce((sum, item) => sum + (item.exit_price || 0), 0);
-  const capitalTotal = myDemands.reduce((sum, item) => sum + (item.budget || 0), 0);
-  
   const newOffersCount = myOffers.filter(o => o.status === 'new' || o.status === 'accepted_exit_price').length;
   const newDemandOffersCount = myDemandOffers.filter(o => o.status === 'new').length;
   const totalNotifications = newOffersCount + newDemandOffersCount;
+
+  const kycStatusLabel = (status?: string) => {
+    switch (status) {
+      case "verified":
+        return "Identitate verificată";
+      case "pending":
+        return "Verificare în așteptare";
+      case "processing":
+        return "Verificare în procesare";
+      case "requires_input":
+        return "Verificare de reluat";
+      case "canceled":
+        return "Verificare anulată";
+      default:
+        return "Verificare neinițiată";
+    }
+  };
+
+  const statusLabel = (status?: string) => {
+    switch (status) {
+      case "active":
+        return "Activ";
+      case "pending_payment":
+        return "Așteaptă plata";
+      case "seed":
+        return "Market Index";
+      case "hidden":
+      case "admin_removed":
+        return "Ascuns";
+      case "new":
+        return "Nou";
+      case "pending":
+        return "În așteptare";
+      case "suspended":
+        return "Oprit";
+      default:
+        return "În așteptare";
+    }
+  };
 
   // Logica de afișare a banner-ului KYC
   const hasItemsInPortfolio = myListings.length > 0 || myDemands.length > 0;
   const needsKyc = userProfile && userProfile.kyc_status !== 'verified' && hasItemsInPortfolio;
 
   return (
-    <div className="max-w-[1200px] mx-auto min-h-screen pb-20">
-      
-      {/* HEADER COMPACT */}
-      <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4 border-b-2 border-black pb-6">
-        <div>
-          <h1 className="text-2xl font-black uppercase italic tracking-tighter leading-none">
-            CENTRU DE <span className="text-[#FFD100]">COMANDĂ</span>
-          </h1>
-          <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-neutral-600 mt-1 italic">Monitorizare Portofoliu QuickExit</p>
+    <div className="max-w-7xl mx-auto min-h-screen pb-20 overflow-x-hidden">
+      <section className="mb-8 border-[3px] border-black bg-black text-white rounded-[2rem] px-5 md:px-8 py-6 md:py-8 shadow-[8px_8px_0_0_rgba(255,209,0,1)]">
+        <p className="text-xs font-black uppercase tracking-[0.2em] text-[#FFD100] mb-3">Dashboard</p>
+        <div className="flex flex-col md:flex-row justify-between md:items-end gap-4">
+          <div>
+            <h1 className="text-3xl md:text-5xl font-black uppercase italic tracking-tight leading-tight">
+              Centrul tău <span className="inline-block bg-[#FFD100] text-black px-2 py-1 rounded-md">Quick Exit</span>
+            </h1>
+            <p className="text-sm md:text-base text-neutral-200 mt-3">
+              Urmărește anunțurile, cererile, ofertele și verificarea contului tău.
+            </p>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
+            <button onClick={() => router.push('/pune-anunt')} className="bg-[#FFD100] text-black px-4 py-3 rounded-lg font-black uppercase text-xs border-[3px] border-black shadow-[3px_3px_0_0_rgba(0,0,0,1)] hover:-translate-y-px hover:shadow-none transition-all flex items-center justify-center gap-2">
+              <PlusCircle size={14} /> Publică anunț
+            </button>
+            <button onClick={() => router.push('/posteaza-cerere')} className="bg-white text-black px-4 py-3 rounded-lg font-black uppercase text-xs border-[3px] border-black shadow-[3px_3px_0_0_rgba(0,0,0,1)] hover:-translate-y-px hover:shadow-none transition-all flex items-center justify-center gap-2">
+              <Search size={14} /> Publică cerere
+            </button>
+          </div>
         </div>
-        
-        <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
-          <button onClick={() => router.push('/pune-anunt')} className="bg-black text-[#FFD100] px-4 py-3 rounded-lg font-black uppercase text-[11px] italic border-2 border-black shadow-[3px_3px_0_0_rgba(255,209,0,1)] hover:-translate-y-px hover:shadow-none transition-all flex items-center justify-center gap-2">
-            <PlusCircle size={14} /> Pune Anunț Vânzare
-          </button>
-          <button onClick={() => router.push('/posteaza-cerere')} className="bg-white text-black px-4 py-3 rounded-lg font-black uppercase text-[11px] italic border-2 border-black shadow-[3px_3px_0_0_rgba(0,0,0,1)] hover:-translate-y-px hover:shadow-none transition-all flex items-center justify-center gap-2">
-            <Search size={14} /> Pune Cerere Cumpărare
+      </section>
+
+      <div className="bg-[#FDFCF8] border-[3px] border-black rounded-2xl p-4 md:p-5 shadow-[5px_5px_0_0_rgba(255,209,0,0.75)] mb-6">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <div>
+            <p className="text-xs font-black uppercase tracking-widest text-neutral-600 mb-1">Status cont</p>
+            <p className="text-lg font-black italic">{kycStatusLabel(userProfile?.kyc_status)}</p>
+            <p className="text-sm text-neutral-700 mt-1">Verificarea identității ajută la protejarea cumpărătorilor și vânzătorilor.</p>
+          </div>
+          <button onClick={() => router.push('/profil')} className="bg-white border-[3px] border-black px-4 py-3 rounded-xl font-black uppercase text-xs shadow-[3px_3px_0_0_rgba(0,0,0,1)] hover:bg-black hover:text-[#FFD100] transition-all inline-flex items-center justify-center gap-2">
+            <Settings size={16} /> Setări cont
           </button>
         </div>
       </div>
@@ -196,46 +247,37 @@ function DashboardContent() {
       )}
 
       {/* KPI-URI COMPACTE */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
-        <div className="bg-white border-2 border-black p-4 rounded-xl shadow-[3px_3px_0_0_rgba(0,0,0,1)]">
-          <span className="text-[11px] font-black uppercase text-neutral-600 block mb-1">Valoare Active (Vânzare)</span>
-          <p className="text-xl font-black italic">€{valoareTotala.toLocaleString('ro-RO')}</p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
+        <div className="bg-white border-[3px] border-black p-4 rounded-xl shadow-[3px_3px_0_0_rgba(0,0,0,1)]">
+          <span className="text-xs font-black uppercase text-neutral-600 block mb-1">Anunțuri active</span>
+          <p className="text-2xl font-black italic">{myListings.filter(l => l.status === "active").length}</p>
         </div>
-        <div className="bg-black text-white border-2 border-black p-4 rounded-xl shadow-[3px_3px_0_0_rgba(255,209,0,1)]">
-          <span className="text-[11px] font-black uppercase text-neutral-600 block mb-1">Capital Pregătit</span>
-          <p className="text-xl font-black italic text-[#FFD100]">€{capitalTotal.toLocaleString('ro-RO')}</p>
+        <div className="bg-white border-[3px] border-black p-4 rounded-xl shadow-[3px_3px_0_0_rgba(0,0,0,1)]">
+          <span className="text-xs font-black uppercase text-neutral-600 block mb-1">Cereri active</span>
+          <p className="text-2xl font-black italic">{myDemands.filter(d => d.status === "active").length}</p>
         </div>
-        <div className="hidden md:flex bg-white border-2 border-black p-4 rounded-xl items-center justify-center gap-2 shadow-[3px_3px_0_0_rgba(0,0,0,1)]">
-           {userProfile?.kyc_status === 'verified' ? (
-             <>
-                <ShieldCheck className="w-5 h-5 text-green-500" />
-                <span className="text-[11px] font-black uppercase text-green-700 tracking-widest italic">KYC Activ</span>
-             </>
-           ) : (
-             <>
-                <ShieldCheck className="w-5 h-5 text-gray-300" />
-                <span className="text-[11px] font-black uppercase text-neutral-600 tracking-widest italic">KYC Inactiv</span>
-             </>
-           )}
+        <div className="bg-white border-[3px] border-black p-4 rounded-xl shadow-[3px_3px_0_0_rgba(0,0,0,1)]">
+          <span className="text-xs font-black uppercase text-neutral-600 block mb-1">Oferte primite</span>
+          <p className="text-2xl font-black italic">{myOffers.length + myDemandOffers.length}</p>
         </div>
-        <div onClick={() => router.push('/profil')} className="bg-[#FFD100] border-2 border-black p-4 rounded-xl flex items-center justify-center cursor-pointer hover:bg-black hover:text-[#FFD100] transition-all shadow-[3px_3px_0_0_rgba(0,0,0,1)]">
-           <Settings size={16} />
-           <span className="text-[11px] font-black uppercase ml-2 italic">Setări Cont</span>
+        <div className="bg-[#FDFCF8] border-[3px] border-black p-4 rounded-xl shadow-[3px_3px_0_0_rgba(255,209,0,0.8)]">
+          <span className="text-xs font-black uppercase text-neutral-600 block mb-1">Verificare cont</span>
+          <p className="text-sm font-black">{kycStatusLabel(userProfile?.kyc_status)}</p>
         </div>
       </div>
 
       {/* TAB-URI NAVIGARE */}
-      <div className="flex flex-wrap gap-2 mb-8 border-b border-gray-200 pb-2">
-        <button onClick={() => setActiveTab('portofoliu')} className={`px-4 py-2 rounded-md font-black uppercase text-[11px] tracking-widest italic transition-colors ${activeTab === 'portofoliu' ? 'bg-black text-[#FFD100]' : 'text-neutral-600 hover:text-black'}`}>
+      <div className="flex flex-wrap gap-2 mb-8 border-b-2 border-black/20 pb-3">
+        <button onClick={() => setActiveTab('portofoliu')} className={`px-4 py-2 rounded-md font-black uppercase text-xs transition-colors border-2 border-black ${activeTab === 'portofoliu' ? 'bg-black text-[#FFD100]' : 'bg-white text-neutral-700 hover:text-black'}`}>
           Activele Mele (Vânzare)
         </button>
-        <button onClick={() => setActiveTab('cumparari')} className={`px-4 py-2 rounded-md font-black uppercase text-[11px] tracking-widest italic transition-colors ${activeTab === 'cumparari' ? 'bg-black text-[#FFD100]' : 'text-neutral-600 hover:text-black'}`}>
+        <button onClick={() => setActiveTab('cumparari')} className={`px-4 py-2 rounded-md font-black uppercase text-xs transition-colors border-2 border-black ${activeTab === 'cumparari' ? 'bg-black text-[#FFD100]' : 'bg-white text-neutral-700 hover:text-black'}`}>
           Oferte Cumpărare
         </button>
-        <button onClick={() => setActiveTab('oferte')} className={`flex items-center gap-2 px-4 py-2 rounded-md font-black uppercase text-[11px] tracking-widest italic transition-colors ${activeTab === 'oferte' ? 'bg-black text-[#FFD100]' : 'text-neutral-600 hover:text-black'}`}>
+        <button onClick={() => setActiveTab('oferte')} className={`flex items-center gap-2 px-4 py-2 rounded-md font-black uppercase text-xs transition-colors border-2 border-black ${activeTab === 'oferte' ? 'bg-black text-[#FFD100]' : 'bg-white text-neutral-700 hover:text-black'}`}>
           Cameră Negociere
           {totalNotifications > 0 && (
-            <span className="bg-red-600 text-white px-2 py-0.5 rounded text-[8px] animate-pulse">{totalNotifications} Noi</span>
+            <span className="bg-red-600 text-white px-2 py-0.5 rounded text-xs animate-pulse">{totalNotifications} Noi</span>
           )}
         </button>
       </div>
@@ -246,19 +288,19 @@ function DashboardContent() {
           {isLoading && paymentStatus ? (
              <div className="bg-[#FFD100] p-4 rounded-xl border-2 border-black mb-8 animate-pulse flex items-center justify-center gap-3">
                <span className="text-xl">⚡</span>
-               <p className="font-black uppercase italic text-black text-[11px]">Așteptăm confirmarea plății de la Stripe. Te rugăm să aștepți...</p>
+               <p className="font-black uppercase italic text-black text-xs">Așteptăm confirmarea plății. Te rugăm să aștepți...</p>
             </div>
           ) : isLoading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {[1, 2, 3].map(i => <div key={i} className="animate-pulse bg-gray-100 h-64 rounded-xl border-2 border-black"></div>)}
+              {[1, 2, 3].map(i => <div key={i} className="animate-pulse bg-[#FDFCF8] h-64 rounded-xl border-[3px] border-black"></div>)}
             </div>
           ) : myListings.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {myListings.map(item => (
                 <div key={item.id} className="relative group flex flex-col">
                   {/* Badge Dinamic de Status */}
-                  <div className={`absolute -top-3 -right-3 z-20 px-3 py-1.5 font-black uppercase italic text-[9px] shadow-[3px_3px_0_0_rgba(0,0,0,1)] border-2 border-black ${item.status === 'active' ? 'bg-green-500 text-black' : item.status === 'suspended' ? 'bg-gray-400 text-white' : 'bg-red-600 text-white'}`}>
-                    {item.status === 'active' ? '✓ LIVE' : item.status === 'suspended' ? '⏸ OPRIT' : 'NEPLĂTIT'}
+                  <div className={`absolute -top-3 -right-3 z-20 px-3 py-1.5 font-black uppercase text-xs shadow-[3px_3px_0_0_rgba(0,0,0,1)] border-2 border-black ${item.status === 'active' ? 'bg-green-500 text-black' : item.status === 'suspended' ? 'bg-neutral-400 text-white' : 'bg-red-600 text-white'}`}>
+                    {statusLabel(item.status)}
                   </div>
 
                   <div className={`transition-all flex-grow ${item.status !== 'active' ? 'opacity-70 grayscale-[0.5]' : ''}`}>
@@ -277,19 +319,19 @@ function DashboardContent() {
                   <div className="mt-4 grid grid-cols-2 gap-3">
                     <button 
                       onClick={() => router.push(`/editeaza-anunt/${item.id}`)}
-                      className="bg-white border-2 border-black py-2.5 rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-black hover:text-[#FFD100] transition-all shadow-[2px_2px_0_0_rgba(0,0,0,1)] active:translate-y-px active:shadow-none"
+                      className="bg-white border-2 border-black py-2.5 rounded-lg text-xs font-black uppercase hover:bg-black hover:text-[#FFD100] transition-all shadow-[2px_2px_0_0_rgba(0,0,0,1)] active:translate-y-px active:shadow-none"
                     >
                       Editează Detalii
                     </button>
                     
                     {item.status === 'pending_payment' ? (
-                      <button className="bg-gray-100 border-2 border-gray-300 py-2.5 rounded-lg text-[9px] font-black uppercase text-gray-400 cursor-not-allowed">
+                      <button className="bg-[#FDFCF8] border-2 border-neutral-300 py-2.5 rounded-lg text-xs font-black uppercase text-neutral-500 cursor-not-allowed">
                         Așteaptă Plata
                       </button>
                     ) : (
                       <button 
                         onClick={() => toggleStatus(item)}
-                        className={`border-2 border-black py-2.5 rounded-lg text-[9px] font-black uppercase flex items-center justify-center gap-2 transition-all shadow-[2px_2px_0_0_rgba(0,0,0,1)] active:translate-y-px active:shadow-none ${item.status === 'active' ? 'bg-red-50 text-red-600 hover:bg-red-600 hover:text-white' : 'bg-green-400 text-black hover:bg-green-500'}`}
+                        className={`border-2 border-black py-2.5 rounded-lg text-xs font-black uppercase flex items-center justify-center gap-2 transition-all shadow-[2px_2px_0_0_rgba(0,0,0,1)] active:translate-y-px active:shadow-none ${item.status === 'active' ? 'bg-red-50 text-red-600 hover:bg-red-600 hover:text-white' : 'bg-green-400 text-black hover:bg-green-500'}`}
                       >
                         {item.status === 'active' ? <><Power size={12}/> Oprește</> : <><Play size={12}/> Repune Live</>}
                       </button>
@@ -300,11 +342,11 @@ function DashboardContent() {
             </div>
           ) : (
             <div className="bg-white p-16 flex flex-col items-center justify-center text-center rounded-3xl border-2 border-dashed border-gray-300">
-              <Wallet className="w-12 h-12 text-gray-200 mb-4" />
+              <Wallet className="w-12 h-12 text-neutral-300 mb-4" />
               <h3 className="text-xl font-black uppercase italic mb-2">Portofoliu Inactiv</h3>
-              <p className="font-bold text-neutral-600 uppercase tracking-widest text-[11px] mb-8">Nu ai adăugat niciun activ pentru lichidare.</p>
-              <button onClick={() => router.push('/pune-anunt')} className="bg-[#FFD100] text-black border-2 border-black px-8 py-4 rounded-xl font-black uppercase tracking-widest text-[11px] italic shadow-[4px_4px_0_0_rgba(0,0,0,1)] hover:-translate-y-0.5 hover:shadow-none transition-all">
-                Lichidează Primul Activ
+              <p className="font-bold text-neutral-700 text-sm mb-8">Nu ai anunțuri active momentan.</p>
+              <button onClick={() => router.push('/pune-anunt')} className="bg-[#FFD100] text-black border-[3px] border-black px-8 py-4 rounded-xl font-black uppercase text-xs shadow-[4px_4px_0_0_rgba(0,0,0,1)] hover:-translate-y-0.5 hover:shadow-none transition-all">
+                Publică anunț
               </button>
             </div>
           )}
@@ -317,34 +359,34 @@ function DashboardContent() {
           {isLoading && paymentStatus ? (
              <div className="bg-[#FFD100] p-4 rounded-xl border-2 border-black mb-8 animate-pulse flex items-center justify-center gap-3">
                <span className="text-xl">⚡</span>
-               <p className="font-black uppercase italic text-black text-[11px]">Așteptăm confirmarea plății de la Stripe. Te rugăm să aștepți...</p>
+               <p className="font-black uppercase italic text-black text-xs">Așteptăm confirmarea plății. Te rugăm să aștepți...</p>
             </div>
           ) : isLoading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {[1, 2, 3].map(i => <div key={i} className="animate-pulse bg-gray-100 h-48 rounded-xl border-2 border-black"></div>)}
+              {[1, 2, 3].map(i => <div key={i} className="animate-pulse bg-[#FDFCF8] h-48 rounded-xl border-[3px] border-black"></div>)}
             </div>
           ) : myDemands.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {myDemands.map(demand => (
                 <div key={demand.id} className="bg-white border-[3px] border-black rounded-[2rem] p-6 shadow-[6px_6px_0_0_rgba(0,0,0,1)] flex flex-col justify-between relative">
-                  <div className={`absolute top-0 right-0 px-3 py-1 font-black uppercase italic text-[9px] rounded-bl-xl border-b-2 border-l-2 border-black ${demand.status === 'active' ? 'bg-green-500 text-black' : demand.status === 'suspended' ? 'bg-gray-400 text-white' : 'bg-red-600 text-white'}`}>
-                    {demand.status === 'active' ? '✓ CĂUTARE ACTIVĂ' : demand.status === 'suspended' ? '⏸ OPRIT' : 'NEPLĂTIT'}
+                  <div className={`absolute top-0 right-0 px-3 py-1 font-black uppercase text-xs rounded-bl-xl border-b-2 border-l-2 border-black ${demand.status === 'active' ? 'bg-green-500 text-black' : demand.status === 'suspended' ? 'bg-neutral-400 text-white' : 'bg-red-600 text-white'}`}>
+                    {statusLabel(demand.status)}
                   </div>
                   <div>
-                    <span className="text-[9px] font-black uppercase text-gray-500 mb-1 inline-block">{demand.category}</span>
+                    <span className="text-xs font-black uppercase text-neutral-600 mb-1 inline-block">{demand.category}</span>
                     <h3 className="text-xl font-black uppercase italic leading-tight mb-4">{demand.target_asset}</h3>
-                    <p className="text-[11px] font-bold text-neutral-600 uppercase tracking-widest mb-1">Buget</p>
+                    <p className="text-xs font-bold text-neutral-600 uppercase mb-1">Buget</p>
                     <p className="text-3xl font-black italic">€{demand.budget?.toLocaleString('ro-RO')}</p>
                   </div>
                   <div className="mt-6 pt-4 border-t-2 border-gray-100">
                     {demand.status === 'pending_payment' ? (
-                      <button className="w-full bg-gray-100 border-2 border-gray-300 py-3 rounded-lg text-[9px] font-black uppercase text-gray-400 cursor-not-allowed">
+                      <button className="w-full bg-[#FDFCF8] border-2 border-neutral-300 py-3 rounded-lg text-xs font-black uppercase text-neutral-500 cursor-not-allowed">
                         Așteaptă Plata
                       </button>
                     ) : (
                       <button 
                         onClick={() => toggleDemandStatus(demand)}
-                        className={`w-full border-2 border-black py-3 rounded-lg text-[9px] font-black uppercase flex items-center justify-center gap-2 transition-all shadow-[2px_2px_0_0_rgba(0,0,0,1)] active:translate-y-px active:shadow-none ${demand.status === 'active' ? 'bg-red-50 text-red-600 hover:bg-red-600 hover:text-white' : 'bg-green-400 text-black hover:bg-green-500'}`}
+                        className={`w-full border-2 border-black py-3 rounded-lg text-xs font-black uppercase flex items-center justify-center gap-2 transition-all shadow-[2px_2px_0_0_rgba(0,0,0,1)] active:translate-y-px active:shadow-none ${demand.status === 'active' ? 'bg-red-50 text-red-600 hover:bg-red-600 hover:text-white' : 'bg-green-400 text-black hover:bg-green-500'}`}
                       >
                         {demand.status === 'active' ? <><Power size={12}/> Oprește Căutarea</> : <><Play size={12}/> Reia Căutarea</>}
                       </button>
@@ -355,11 +397,11 @@ function DashboardContent() {
             </div>
           ) : (
              <div className="bg-white p-16 flex flex-col items-center justify-center text-center rounded-3xl border-2 border-dashed border-gray-300">
-              <PiggyBank className="w-12 h-12 text-gray-200 mb-4" />
+              <PiggyBank className="w-12 h-12 text-neutral-300 mb-4" />
               <h3 className="text-xl font-black uppercase italic mb-2">Fără Capital Listat</h3>
-              <p className="font-bold text-neutral-600 uppercase tracking-widest text-[11px] mb-8">Nu ai anunțat buget pentru nicio achiziție.</p>
-              <button onClick={() => router.push('/posteaza-cerere')} className="bg-[#FFD100] text-black border-2 border-black px-8 py-4 rounded-xl font-black uppercase tracking-widest text-[11px] italic shadow-[4px_4px_0_0_rgba(0,0,0,1)] hover:-translate-y-0.5 hover:shadow-none transition-all">
-                Postează Cerere Cumpărare
+              <p className="font-bold text-neutral-700 text-sm mb-8">Nu ai cereri active momentan.</p>
+              <button onClick={() => router.push('/posteaza-cerere')} className="bg-[#FFD100] text-black border-[3px] border-black px-8 py-4 rounded-xl font-black uppercase text-xs shadow-[4px_4px_0_0_rgba(0,0,0,1)] hover:-translate-y-0.5 hover:shadow-none transition-all">
+                Publică cerere
               </button>
             </div>
           )}
@@ -373,7 +415,7 @@ function DashboardContent() {
             <Inbox className="w-8 h-8 md:w-10 md:h-10 text-[#FFD100]" />
             <div>
               <h2 className="text-2xl md:text-3xl font-black uppercase italic tracking-tighter">Cameră de <span className="text-[#FFD100]">Negociere</span></h2>
-              <p className="text-[11px] md:text-[11px] font-bold text-neutral-700 uppercase tracking-widest">Aici primești pitch-uri și contra-oferte.</p>
+              <p className="text-xs font-bold text-neutral-700">Aici primești pitch-uri și contra-oferte.</p>
             </div>
           </div>
 
@@ -392,45 +434,45 @@ function DashboardContent() {
                       return (
                         <div key={offer.id} className={`bg-white border-[3px] border-black rounded-[2rem] p-6 md:p-8 shadow-[8px_8px_0_0_rgba(0,0,0,1)] relative overflow-hidden transition-all ${offer.status === 'rejected' ? 'opacity-60 grayscale' : ''}`}>
                           
-                          <div className={`absolute top-0 right-0 px-4 py-2 text-[9px] font-black uppercase tracking-widest rounded-bl-xl border-b-[3px] border-l-[3px] border-black ${offer.status === 'new' ? 'bg-[#FFD100] text-black animate-pulse' : offer.status === 'accepted_exit_price' ? 'bg-red-600 text-white animate-pulse' : offer.status === 'accepted' ? 'bg-green-500 text-black' : 'bg-gray-200 text-gray-500'}`}>
+                          <div className={`absolute top-0 right-0 px-4 py-2 text-xs font-black uppercase rounded-bl-xl border-b-[3px] border-l-[3px] border-black ${offer.status === 'new' ? 'bg-[#FFD100] text-black animate-pulse' : offer.status === 'accepted_exit_price' ? 'bg-red-600 text-white animate-pulse' : offer.status === 'accepted' ? 'bg-green-500 text-black' : 'bg-neutral-200 text-neutral-600'}`}>
                             {offer.status === 'new' ? 'Ofertă Nouă' : offer.status === 'accepted_exit_price' ? 'A Acceptat Prețul' : offer.status === 'accepted' ? 'Ofertă Acceptată' : 'Ofertă Refuzată'}
                           </div>
 
                           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-center">
                             
                             <div className="lg:col-span-2">
-                              <p className="text-[11px] font-black uppercase tracking-widest text-neutral-600 mb-1 italic">Pentru Activul:</p>
+                              <p className="text-xs font-black uppercase text-neutral-600 mb-1">Pentru activul:</p>
                               <p className="text-xl md:text-2xl font-black uppercase italic tracking-tight mb-6">{listing?.title || "Activ Nelistat/Șters"}</p>
                               
                               <div className="flex flex-wrap items-center gap-4 md:gap-8 mb-6">
                                 <div>
-                                  <p className="text-[11px] font-black uppercase text-neutral-600 mb-1">Oferta Primită (Cash):</p>
+                                  <p className="text-xs font-black uppercase text-neutral-600 mb-1">Oferta primită:</p>
                                   <p className="text-4xl md:text-5xl font-black italic tracking-tighter text-black leading-none">
                                     €{offer.offer_price?.toLocaleString('ro-RO')}
                                   </p>
                                 </div>
                                 {listing?.exit_price && (
-                                  <div className="bg-gray-50 border-[3px] border-black px-4 py-3 rounded-xl text-center shadow-[4px_4px_0_0_rgba(0,0,0,1)]">
-                                    <p className="text-[8px] font-black uppercase text-gray-400 mb-1">Prețul tău afișat</p>
-                                    <p className="text-lg font-black italic text-gray-500 line-through">€{listing.exit_price.toLocaleString('ro-RO')}</p>
+                                  <div className="bg-[#FDFCF8] border-[3px] border-black px-4 py-3 rounded-xl text-center shadow-[4px_4px_0_0_rgba(0,0,0,1)]">
+                                    <p className="text-xs font-black uppercase text-neutral-600 mb-1">Prețul tău afișat</p>
+                                    <p className="text-lg font-black italic text-neutral-500 line-through">€{listing.exit_price.toLocaleString('ro-RO')}</p>
                                   </div>
                                 )}
                               </div>
 
-                              <div className="bg-gray-50 p-5 rounded-xl border-[3px] border-gray-100 mb-4">
-                                <p className="text-[11px] font-black uppercase text-neutral-600 mb-2">Mesajul Cumpărătorului:</p>
-                                <p className="text-sm font-bold italic text-gray-700 leading-relaxed">&quot;{offer.message || "Sunt interesat să cumpăr."}&quot;</p>
+                              <div className="bg-[#FDFCF8] p-5 rounded-xl border-[3px] border-neutral-200 mb-4">
+                                <p className="text-xs font-black uppercase text-neutral-600 mb-2">Mesajul cumpărătorului:</p>
+                                <p className="text-sm font-bold italic text-neutral-700 leading-relaxed">&quot;{offer.message || "Sunt interesat să cumpăr."}&quot;</p>
                               </div>
                             </div>
 
                             <div className="lg:col-span-1 border-t-[3px] lg:border-t-0 lg:border-l-[3px] border-gray-100 pt-6 lg:pt-0 lg:pl-6 flex flex-col h-full justify-between">
                               <div className="mb-6">
-                                <p className="text-[11px] font-black uppercase tracking-widest text-neutral-600 mb-3">Contact Direct:</p>
+                                <p className="text-xs font-black uppercase text-neutral-600 mb-3">Contact direct:</p>
                                 <a href={`tel:${offer.buyer_phone}`} className="flex items-center justify-center gap-2 bg-black text-[#FFD100] px-4 py-4 rounded-xl font-black text-sm uppercase tracking-widest shadow-[4px_4px_0_0_rgba(255,209,0,1)] hover:scale-105 active:translate-y-1 active:shadow-none transition-all mb-3 w-full border-2 border-black">
                                   📞 Sună Cumpărătorul
                                 </a>
                                 {offer.buyer_email && (
-                                  <a href={`mailto:${offer.buyer_email}`} className="block text-center text-[11px] font-bold text-neutral-700 uppercase tracking-widest hover:text-black">
+                                  <a href={`mailto:${offer.buyer_email}`} className="block text-center text-xs font-bold text-neutral-700 hover:text-black">
                                     ✉️ {offer.buyer_email}
                                   </a>
                                 )}
@@ -439,16 +481,16 @@ function DashboardContent() {
 
                               {offer.status === 'new' || offer.status === 'accepted_exit_price' ? (
                                 <div className="grid grid-cols-2 gap-3 mt-auto">
-                                  <button onClick={() => handleOfferAction(offer.id, 'accepted', 'listing')} className="bg-white border-[3px] border-black text-black py-3 rounded-xl font-black uppercase text-[11px] tracking-widest hover:bg-green-400 hover:border-green-400 transition-colors shadow-[3px_3px_0_0_rgba(0,0,0,1)] active:shadow-none active:translate-y-1">
+                                  <button onClick={() => handleOfferAction(offer.id, 'accepted', 'listing')} className="bg-white border-[3px] border-black text-black py-3 rounded-xl font-black uppercase text-xs hover:bg-green-400 hover:border-green-400 transition-colors shadow-[3px_3px_0_0_rgba(0,0,0,1)] active:shadow-none active:translate-y-1">
                                     Accept Oferta
                                   </button>
-                                  <button onClick={() => handleOfferAction(offer.id, 'rejected', 'listing')} className="bg-gray-50 border-[3px] border-transparent text-neutral-600 py-3 rounded-xl font-black uppercase text-[11px] tracking-widest hover:bg-red-500 hover:text-white transition-colors">
+                                  <button onClick={() => handleOfferAction(offer.id, 'rejected', 'listing')} className="bg-[#FDFCF8] border-[3px] border-transparent text-neutral-600 py-3 rounded-xl font-black uppercase text-xs hover:bg-red-500 hover:text-white transition-colors">
                                     Refuză
                                   </button>
                                 </div>
                               ) : (
                                 <div className="text-center mt-auto border-t-2 border-gray-100 pt-4">
-                                  <span className={`text-[11px] font-black uppercase tracking-widest ${offer.status === 'accepted' ? 'text-green-600' : 'text-neutral-600'}`}>
+                                  <span className={`text-xs font-black uppercase ${offer.status === 'accepted' ? 'text-green-600' : 'text-neutral-600'}`}>
                                     {offer.status === 'accepted' ? '✓ Ai acceptat această ofertă' : '✕ Ofertă închisă / Refuzată'}
                                   </span>
                                 </div>
@@ -471,39 +513,39 @@ function DashboardContent() {
                     {myDemandOffers.map(offer => {
                       const demand = myDemands.find(d => d.id === offer.demand_id); 
                       return (
-                        <div key={offer.id} className={`bg-gray-50 border-[3px] border-black rounded-[2rem] p-6 md:p-8 shadow-[8px_8px_0_0_rgba(0,0,0,1)] relative overflow-hidden transition-all ${offer.status === 'rejected' ? 'opacity-60 grayscale' : ''}`}>
+                        <div key={offer.id} className={`bg-[#FDFCF8] border-[3px] border-black rounded-[2rem] p-6 md:p-8 shadow-[8px_8px_0_0_rgba(0,0,0,1)] relative overflow-hidden transition-all ${offer.status === 'rejected' ? 'opacity-60 grayscale' : ''}`}>
                           
-                          <div className={`absolute top-0 right-0 px-4 py-2 text-[9px] font-black uppercase tracking-widest rounded-bl-xl border-b-[3px] border-l-[3px] border-black ${offer.status === 'new' ? 'bg-[#FFD100] text-black animate-pulse' : offer.status === 'accepted' ? 'bg-green-500 text-black' : 'bg-gray-200 text-gray-500'}`}>
+                          <div className={`absolute top-0 right-0 px-4 py-2 text-xs font-black uppercase rounded-bl-xl border-b-[3px] border-l-[3px] border-black ${offer.status === 'new' ? 'bg-[#FFD100] text-black animate-pulse' : offer.status === 'accepted' ? 'bg-green-500 text-black' : 'bg-neutral-200 text-neutral-600'}`}>
                             {offer.status === 'new' ? 'Pitch Nou' : offer.status === 'accepted' ? 'Pitch Acceptat' : 'Pitch Refuzat'}
                           </div>
 
                           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-center">
                             
                             <div className="lg:col-span-2">
-                              <p className="text-[11px] font-black uppercase tracking-widest text-neutral-600 mb-1 italic">Pentru Bugetul Tău de:</p>
-                              <p className="text-xl md:text-2xl font-black uppercase italic tracking-tight mb-6">{demand?.target_asset || "Cerere Nelistată"} <span className="text-sm font-bold text-gray-400">(Max €{demand?.budget?.toLocaleString()})</span></p>
+                              <p className="text-xs font-black uppercase text-neutral-600 mb-1">Pentru bugetul tău de:</p>
+                              <p className="text-xl md:text-2xl font-black uppercase italic tracking-tight mb-6">{demand?.target_asset || "Cerere Nelistată"} <span className="text-sm font-bold text-neutral-500">(Max €{demand?.budget?.toLocaleString()})</span></p>
                               
                               <div>
-                                <p className="text-[11px] font-black uppercase text-neutral-600 mb-1">Preț Solicitat de Vânzător:</p>
+                                <p className="text-xs font-black uppercase text-neutral-600 mb-1">Preț solicitat de vânzător:</p>
                                 <p className="text-4xl md:text-5xl font-black italic tracking-tighter text-black leading-none mb-6">
                                   €{offer.offer_price?.toLocaleString('ro-RO')}
                                 </p>
                               </div>
 
                               <div className="bg-white p-5 rounded-xl border-[3px] border-gray-200 mb-4 shadow-sm">
-                                <p className="text-[11px] font-black uppercase text-neutral-600 mb-2">Detalii Activ Vânzător:</p>
-                                <p className="text-sm font-bold italic text-gray-700 leading-relaxed">&quot;{offer.asset_description || "Sunt interesat să vă vând."}&quot;</p>
+                                <p className="text-xs font-black uppercase text-neutral-600 mb-2">Detalii activ vânzător:</p>
+                                <p className="text-sm font-bold italic text-neutral-700 leading-relaxed">&quot;{offer.asset_description || "Sunt interesat să vă vând."}&quot;</p>
                               </div>
                             </div>
 
                             <div className="lg:col-span-1 border-t-[3px] lg:border-t-0 lg:border-l-[3px] border-gray-200 pt-6 lg:pt-0 lg:pl-6 flex flex-col h-full justify-between">
                               <div className="mb-6">
-                                <p className="text-[11px] font-black uppercase tracking-widest text-neutral-600 mb-3">Contact Vânzător:</p>
+                                <p className="text-xs font-black uppercase text-neutral-600 mb-3">Contact vânzător:</p>
                                 <a href={`tel:${offer.seller_phone}`} className="flex items-center justify-center gap-2 bg-black text-[#FFD100] px-4 py-4 rounded-xl font-black text-sm uppercase tracking-widest shadow-[4px_4px_0_0_rgba(255,209,0,1)] hover:scale-105 active:translate-y-1 active:shadow-none transition-all mb-3 w-full border-2 border-black">
                                   📞 Sună Vânzătorul
                                 </a>
                                 {offer.seller_email && (
-                                  <a href={`mailto:${offer.seller_email}`} className="block text-center text-[11px] font-bold text-neutral-700 uppercase tracking-widest hover:text-black">
+                                  <a href={`mailto:${offer.seller_email}`} className="block text-center text-xs font-bold text-neutral-700 hover:text-black">
                                     ✉️ {offer.seller_email}
                                   </a>
                                 )}
@@ -512,16 +554,16 @@ function DashboardContent() {
 
                               {offer.status === 'new' ? (
                                 <div className="grid grid-cols-2 gap-3 mt-auto">
-                                  <button onClick={() => handleOfferAction(offer.id, 'accepted', 'demand')} className="bg-white border-[3px] border-black text-black py-3 rounded-xl font-black uppercase text-[11px] tracking-widest hover:bg-green-400 hover:border-green-400 transition-colors shadow-[3px_3px_0_0_rgba(0,0,0,1)] active:shadow-none active:translate-y-1">
+                                  <button onClick={() => handleOfferAction(offer.id, 'accepted', 'demand')} className="bg-white border-[3px] border-black text-black py-3 rounded-xl font-black uppercase text-xs hover:bg-green-400 hover:border-green-400 transition-colors shadow-[3px_3px_0_0_rgba(0,0,0,1)] active:shadow-none active:translate-y-1">
                                     Accept Pitch
                                   </button>
-                                  <button onClick={() => handleOfferAction(offer.id, 'rejected', 'demand')} className="bg-gray-100 border-[3px] border-transparent text-neutral-600 py-3 rounded-xl font-black uppercase text-[11px] tracking-widest hover:bg-red-500 hover:text-white transition-colors">
+                                  <button onClick={() => handleOfferAction(offer.id, 'rejected', 'demand')} className="bg-[#FDFCF8] border-[3px] border-transparent text-neutral-600 py-3 rounded-xl font-black uppercase text-xs hover:bg-red-500 hover:text-white transition-colors">
                                     Refuză
                                   </button>
                                 </div>
                               ) : (
                                 <div className="text-center mt-auto border-t-2 border-gray-100 pt-4">
-                                  <span className={`text-[11px] font-black uppercase tracking-widest ${offer.status === 'accepted' ? 'text-green-600' : 'text-neutral-600'}`}>
+                                  <span className={`text-xs font-black uppercase ${offer.status === 'accepted' ? 'text-green-600' : 'text-neutral-600'}`}>
                                     {offer.status === 'accepted' ? '✓ Ai acceptat acest pitch' : '✕ Pitch închis / Refuzat'}
                                   </span>
                                 </div>
@@ -539,10 +581,10 @@ function DashboardContent() {
             </div>
           ) : (
             <div className="bg-white p-16 flex flex-col items-center justify-center text-center rounded-[3rem] border-[4px] border-dashed border-gray-200 shadow-sm">
-               <Inbox className="w-20 h-20 text-gray-200 mb-6" />
+               <Inbox className="w-20 h-20 text-neutral-300 mb-6" />
                <h2 className="text-3xl font-black uppercase italic mb-3 tracking-tighter text-neutral-600">Nicio ofertă momentan</h2>
-               <p className="text-[11px] font-bold text-neutral-600 uppercase tracking-widest max-w-sm leading-relaxed">
-                 Ofertele primite pentru activele tale listate vor apărea aici. Rămâi pe recepție.
+               <p className="text-sm font-bold text-neutral-700 max-w-md leading-relaxed">
+                 Nu ai oferte momentan. Ofertele vor apărea aici după ce utilizatorii interacționează cu anunțurile sau cererile tale.
                </p>
             </div>
           )}
@@ -554,8 +596,8 @@ function DashboardContent() {
 
 export default function Dashboard() {
   return (
-    <div className="p-4 md:p-8 bg-gray-50 min-h-screen font-sans text-black selection:bg-[#FFD100] antialiased">
-      <Suspense fallback={<div className="text-center font-black uppercase text-[11px] tracking-widest mt-20 animate-pulse">Sincronizare Terminal Securizat...</div>}>
+    <div className="p-4 md:p-8 bg-[#F7F4EC] min-h-screen font-sans text-black selection:bg-[#FFD100] antialiased">
+      <Suspense fallback={<div className="text-center font-black uppercase text-xs mt-20 animate-pulse">Sincronizare dashboard...</div>}>
         <DashboardContent />
       </Suspense>
     </div>
