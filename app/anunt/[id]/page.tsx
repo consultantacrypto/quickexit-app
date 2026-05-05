@@ -8,6 +8,7 @@ import { supabase } from "@/lib/supabase";
 import AdCard from "../../components/AdCard";
 import { normalizeSaleType } from "@/utils/normalizeSaleType";
 import { buildSocialShareKit } from "@/lib/socialShare";
+import { trackEvent } from "@/lib/analytics";
 
 type SellerProfileRow = {
   id: string;
@@ -326,6 +327,16 @@ export default function AdDetail() {
   }, [id]);
 
   useEffect(() => {
+    if (!adData?.id) return;
+    if (adData.status !== "active") return;
+    trackEvent("view_listing", {
+      listing_id: adData.id,
+      category: adData.category || "unknown",
+      status: "active",
+    });
+  }, [adData]);
+
+  useEffect(() => {
     setCanQuickShare(typeof navigator !== "undefined" && typeof navigator.share === "function");
   }, []);
 
@@ -515,6 +526,10 @@ export default function AdDetail() {
   const copyShareText = async (label: string, text: string) => {
     setShareCopiedKey(null);
     setShareFallbackText(null);
+    trackEvent("copy_social_share", {
+      listing_id: adData?.id || id,
+      channel: label,
+    });
     try {
       if (navigator?.clipboard?.writeText) {
         await navigator.clipboard.writeText(text);
@@ -706,6 +721,10 @@ export default function AdDetail() {
                   <button
                     type="button"
                     onClick={() => {
+                      trackEvent("click_listing_offer", {
+                        listing_id: adData.id,
+                        category: adData.category || "unknown",
+                      });
                       setActiveModal("offer");
                       setOfferSuccess(false);
                     }}
