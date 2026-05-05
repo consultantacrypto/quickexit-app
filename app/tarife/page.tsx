@@ -46,7 +46,7 @@ export default function PricingPage() {
           <h1 className="text-4xl md:text-6xl font-black uppercase italic tracking-tighter leading-none mb-4">
             Prețuri <span className="text-[#FFD100] drop-shadow-[2px_2px_0_rgba(0,0,0,1)]">Lucide</span>.
           </h1>
-          <p className="text-[10px] md:text-xs font-bold text-gray-600 max-w-xl mx-auto uppercase tracking-widest italic">
+          <p className="text-[11px] md:text-xs font-bold text-gray-600 max-w-xl mx-auto uppercase tracking-widest italic">
             Alege viteza de lichidare. Fără comisioane ascunse, doar taxe tehnice fixe pentru accesul la rețeaua de investitori.
           </p>
         </div>
@@ -77,7 +77,7 @@ export default function PricingPage() {
               </div>
               <div className="border-t-2 border-gray-100/10 pt-5">
                 <p className="text-3xl font-black italic tracking-tighter mb-5">{pkg.price}</p>
-                <Link href="/pune-anunt" className={`block w-full ${pkg.btnColor} py-3 rounded-xl font-black uppercase tracking-widest text-[9px] italic text-center shadow-[3px_3px_0_0_rgba(0,0,0,0.1)] active:translate-y-1`}>
+                <Link href="/pune-anunt" className={`block w-full ${pkg.btnColor} py-3 rounded-xl font-black uppercase tracking-widest text-[11px] italic text-center shadow-[3px_3px_0_0_rgba(0,0,0,0.1)] active:translate-y-1`}>
                   Lansează Anunț
                 </Link>
               </div>
@@ -125,14 +125,14 @@ export default function PricingPage() {
             <h3 className="text-2xl font-black uppercase italic tracking-tight mb-2">Cerere Capital</h3>
             <p className="text-[11px] font-bold text-neutral-700 uppercase tracking-widest mb-6 italic">Anunță capital disponibil pentru achiziții urgente sub preț.</p>
             <p className="text-3xl font-black italic tracking-tighter mb-6">99 RON</p>
-            <Link href="/posteaza-cerere" className="block w-full border-2 border-black py-3 rounded-lg font-black uppercase tracking-widest text-[9px] italic text-center hover:bg-black hover:text-[#FFD100] transition-all">Postează Bugetul</Link>
+            <Link href="/posteaza-cerere" className="block w-full border-2 border-black py-3 rounded-lg font-black uppercase tracking-widest text-[11px] italic text-center hover:bg-black hover:text-[#FFD100] transition-all">Postează Bugetul</Link>
           </div>
 
           <div className="bg-white border-[3px] border-black p-6 rounded-[1.5rem] shadow-[6px_6px_0_0_rgba(0,0,0,1)]">
             <h3 className="text-2xl font-black uppercase italic tracking-tight mb-2">Guest Offer</h3>
             <p className="text-[11px] font-bold text-neutral-700 uppercase tracking-widest mb-6 italic">Trimite o ofertă directă fără a avea un cont verificat.</p>
             <p className="text-3xl font-black italic tracking-tighter mb-6">49 RON</p>
-            <Link href="/capital-disponibil" className="block w-full border-2 border-black py-3 rounded-lg font-black uppercase tracking-widest text-[9px] italic text-center hover:bg-black hover:text-[#FFD100] transition-all">Vinde-i Activul Tău</Link>
+            <Link href="/capital-disponibil" className="block w-full border-2 border-black py-3 rounded-lg font-black uppercase tracking-widest text-[11px] italic text-center hover:bg-black hover:text-[#FFD100] transition-all">Vinde-i Activul Tău</Link>
           </div>
         </div>
 

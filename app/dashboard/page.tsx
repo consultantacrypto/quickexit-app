@@ -246,7 +246,7 @@ function DashboardContent() {
           {isLoading && paymentStatus ? (
              <div className="bg-[#FFD100] p-4 rounded-xl border-2 border-black mb-8 animate-pulse flex items-center justify-center gap-3">
                <span className="text-xl">⚡</span>
-               <p className="font-black uppercase italic text-black text-[10px]">Așteptăm confirmarea plății de la Stripe. Te rugăm să aștepți...</p>
+               <p className="font-black uppercase italic text-black text-[11px]">Așteptăm confirmarea plății de la Stripe. Te rugăm să aștepți...</p>
             </div>
           ) : isLoading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -302,8 +302,8 @@ function DashboardContent() {
             <div className="bg-white p-16 flex flex-col items-center justify-center text-center rounded-3xl border-2 border-dashed border-gray-300">
               <Wallet className="w-12 h-12 text-gray-200 mb-4" />
               <h3 className="text-xl font-black uppercase italic mb-2">Portofoliu Inactiv</h3>
-              <p className="font-bold text-gray-400 uppercase tracking-widest text-[9px] mb-8">Nu ai adăugat niciun activ pentru lichidare.</p>
-              <button onClick={() => router.push('/pune-anunt')} className="bg-[#FFD100] text-black border-2 border-black px-8 py-4 rounded-xl font-black uppercase tracking-widest text-[10px] italic shadow-[4px_4px_0_0_rgba(0,0,0,1)] hover:-translate-y-0.5 hover:shadow-none transition-all">
+              <p className="font-bold text-neutral-600 uppercase tracking-widest text-[11px] mb-8">Nu ai adăugat niciun activ pentru lichidare.</p>
+              <button onClick={() => router.push('/pune-anunt')} className="bg-[#FFD100] text-black border-2 border-black px-8 py-4 rounded-xl font-black uppercase tracking-widest text-[11px] italic shadow-[4px_4px_0_0_rgba(0,0,0,1)] hover:-translate-y-0.5 hover:shadow-none transition-all">
                 Lichidează Primul Activ
               </button>
             </div>
@@ -317,7 +317,7 @@ function DashboardContent() {
           {isLoading && paymentStatus ? (
              <div className="bg-[#FFD100] p-4 rounded-xl border-2 border-black mb-8 animate-pulse flex items-center justify-center gap-3">
                <span className="text-xl">⚡</span>
-               <p className="font-black uppercase italic text-black text-[10px]">Așteptăm confirmarea plății de la Stripe. Te rugăm să aștepți...</p>
+               <p className="font-black uppercase italic text-black text-[11px]">Așteptăm confirmarea plății de la Stripe. Te rugăm să aștepți...</p>
             </div>
           ) : isLoading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -357,8 +357,8 @@ function DashboardContent() {
              <div className="bg-white p-16 flex flex-col items-center justify-center text-center rounded-3xl border-2 border-dashed border-gray-300">
               <PiggyBank className="w-12 h-12 text-gray-200 mb-4" />
               <h3 className="text-xl font-black uppercase italic mb-2">Fără Capital Listat</h3>
-              <p className="font-bold text-gray-400 uppercase tracking-widest text-[9px] mb-8">Nu ai anunțat buget pentru nicio achiziție.</p>
-              <button onClick={() => router.push('/posteaza-cerere')} className="bg-[#FFD100] text-black border-2 border-black px-8 py-4 rounded-xl font-black uppercase tracking-widest text-[10px] italic shadow-[4px_4px_0_0_rgba(0,0,0,1)] hover:-translate-y-0.5 hover:shadow-none transition-all">
+              <p className="font-bold text-neutral-600 uppercase tracking-widest text-[11px] mb-8">Nu ai anunțat buget pentru nicio achiziție.</p>
+              <button onClick={() => router.push('/posteaza-cerere')} className="bg-[#FFD100] text-black border-2 border-black px-8 py-4 rounded-xl font-black uppercase tracking-widest text-[11px] italic shadow-[4px_4px_0_0_rgba(0,0,0,1)] hover:-translate-y-0.5 hover:shadow-none transition-all">
                 Postează Cerere Cumpărare
               </button>
             </div>
@@ -378,14 +378,14 @@ function DashboardContent() {
           </div>
 
           {isLoading ? (
-             <div className="text-center py-20 animate-pulse font-black uppercase tracking-widest text-xs text-gray-400">Sincronizare mesaje...</div>
+             <div className="text-center py-20 animate-pulse font-black uppercase tracking-widest text-xs text-neutral-600">Sincronizare mesaje...</div>
           ) : (myOffers.length > 0 || myDemandOffers.length > 0) ? (
             <div className="space-y-12">
               
               {/* SECȚIUNE: Oferte primite pentru Activele Tale (Vânzări) */}
               {myOffers.length > 0 && (
                 <div>
-                  <h3 className="text-lg font-black uppercase italic tracking-widest text-gray-400 mb-4 border-b-2 border-black inline-block">Oferte Pentru Activele Mele</h3>
+                  <h3 className="text-lg font-black uppercase italic tracking-widest text-neutral-600 mb-4 border-b-2 border-black inline-block">Oferte Pentru Activele Mele</h3>
                   <div className="space-y-6">
                     {myOffers.map(offer => {
                       const listing = myListings.find(l => l.id === offer.listing_id); 
@@ -399,12 +399,12 @@ function DashboardContent() {
                           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-center">
                             
                             <div className="lg:col-span-2">
-                              <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1 italic">Pentru Activul:</p>
+                              <p className="text-[11px] font-black uppercase tracking-widest text-neutral-600 mb-1 italic">Pentru Activul:</p>
                               <p className="text-xl md:text-2xl font-black uppercase italic tracking-tight mb-6">{listing?.title || "Activ Nelistat/Șters"}</p>
                               
                               <div className="flex flex-wrap items-center gap-4 md:gap-8 mb-6">
                                 <div>
-                                  <p className="text-[9px] font-black uppercase text-gray-400 mb-1">Oferta Primită (Cash):</p>
+                                  <p className="text-[11px] font-black uppercase text-neutral-600 mb-1">Oferta Primită (Cash):</p>
                                   <p className="text-4xl md:text-5xl font-black italic tracking-tighter text-black leading-none">
                                     €{offer.offer_price?.toLocaleString('ro-RO')}
                                   </p>
@@ -418,19 +418,19 @@ function DashboardContent() {
                               </div>
 
                               <div className="bg-gray-50 p-5 rounded-xl border-[3px] border-gray-100 mb-4">
-                                <p className="text-[10px] font-black uppercase text-gray-400 mb-2">Mesajul Cumpărătorului:</p>
+                                <p className="text-[11px] font-black uppercase text-neutral-600 mb-2">Mesajul Cumpărătorului:</p>
                                 <p className="text-sm font-bold italic text-gray-700 leading-relaxed">&quot;{offer.message || "Sunt interesat să cumpăr."}&quot;</p>
                               </div>
                             </div>
 
                             <div className="lg:col-span-1 border-t-[3px] lg:border-t-0 lg:border-l-[3px] border-gray-100 pt-6 lg:pt-0 lg:pl-6 flex flex-col h-full justify-between">
                               <div className="mb-6">
-                                <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-3">Contact Direct:</p>
+                                <p className="text-[11px] font-black uppercase tracking-widest text-neutral-600 mb-3">Contact Direct:</p>
                                 <a href={`tel:${offer.buyer_phone}`} className="flex items-center justify-center gap-2 bg-black text-[#FFD100] px-4 py-4 rounded-xl font-black text-sm uppercase tracking-widest shadow-[4px_4px_0_0_rgba(255,209,0,1)] hover:scale-105 active:translate-y-1 active:shadow-none transition-all mb-3 w-full border-2 border-black">
                                   📞 Sună Cumpărătorul
                                 </a>
                                 {offer.buyer_email && (
-                                  <a href={`mailto:${offer.buyer_email}`} className="block text-center text-[10px] font-bold text-gray-500 uppercase tracking-widest hover:text-black">
+                                  <a href={`mailto:${offer.buyer_email}`} className="block text-center text-[11px] font-bold text-neutral-700 uppercase tracking-widest hover:text-black">
                                     ✉️ {offer.buyer_email}
                                   </a>
                                 )}
@@ -439,16 +439,16 @@ function DashboardContent() {
 
                               {offer.status === 'new' || offer.status === 'accepted_exit_price' ? (
                                 <div className="grid grid-cols-2 gap-3 mt-auto">
-                                  <button onClick={() => handleOfferAction(offer.id, 'accepted', 'listing')} className="bg-white border-[3px] border-black text-black py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-green-400 hover:border-green-400 transition-colors shadow-[3px_3px_0_0_rgba(0,0,0,1)] active:shadow-none active:translate-y-1">
+                                  <button onClick={() => handleOfferAction(offer.id, 'accepted', 'listing')} className="bg-white border-[3px] border-black text-black py-3 rounded-xl font-black uppercase text-[11px] tracking-widest hover:bg-green-400 hover:border-green-400 transition-colors shadow-[3px_3px_0_0_rgba(0,0,0,1)] active:shadow-none active:translate-y-1">
                                     Accept Oferta
                                   </button>
-                                  <button onClick={() => handleOfferAction(offer.id, 'rejected', 'listing')} className="bg-gray-50 border-[3px] border-transparent text-gray-400 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-red-500 hover:text-white transition-colors">
+                                  <button onClick={() => handleOfferAction(offer.id, 'rejected', 'listing')} className="bg-gray-50 border-[3px] border-transparent text-neutral-600 py-3 rounded-xl font-black uppercase text-[11px] tracking-widest hover:bg-red-500 hover:text-white transition-colors">
                                     Refuză
                                   </button>
                                 </div>
                               ) : (
                                 <div className="text-center mt-auto border-t-2 border-gray-100 pt-4">
-                                  <span className={`text-[10px] font-black uppercase tracking-widest ${offer.status === 'accepted' ? 'text-green-600' : 'text-gray-400'}`}>
+                                  <span className={`text-[11px] font-black uppercase tracking-widest ${offer.status === 'accepted' ? 'text-green-600' : 'text-neutral-600'}`}>
                                     {offer.status === 'accepted' ? '✓ Ai acceptat această ofertă' : '✕ Ofertă închisă / Refuzată'}
                                   </span>
                                 </div>
@@ -466,7 +466,7 @@ function DashboardContent() {
               {/* SECȚIUNE: Pitch-uri primite pentru Cererile Tale (Cumpărări) */}
               {myDemandOffers.length > 0 && (
                 <div>
-                  <h3 className="text-lg font-black uppercase italic tracking-widest text-gray-400 mb-4 border-b-2 border-black inline-block">Pitch-uri Pentru Capitalul Meu</h3>
+                  <h3 className="text-lg font-black uppercase italic tracking-widest text-neutral-600 mb-4 border-b-2 border-black inline-block">Pitch-uri Pentru Capitalul Meu</h3>
                   <div className="space-y-6">
                     {myDemandOffers.map(offer => {
                       const demand = myDemands.find(d => d.id === offer.demand_id); 
@@ -480,30 +480,30 @@ function DashboardContent() {
                           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-center">
                             
                             <div className="lg:col-span-2">
-                              <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1 italic">Pentru Bugetul Tău de:</p>
+                              <p className="text-[11px] font-black uppercase tracking-widest text-neutral-600 mb-1 italic">Pentru Bugetul Tău de:</p>
                               <p className="text-xl md:text-2xl font-black uppercase italic tracking-tight mb-6">{demand?.target_asset || "Cerere Nelistată"} <span className="text-sm font-bold text-gray-400">(Max €{demand?.budget?.toLocaleString()})</span></p>
                               
                               <div>
-                                <p className="text-[9px] font-black uppercase text-gray-400 mb-1">Preț Solicitat de Vânzător:</p>
+                                <p className="text-[11px] font-black uppercase text-neutral-600 mb-1">Preț Solicitat de Vânzător:</p>
                                 <p className="text-4xl md:text-5xl font-black italic tracking-tighter text-black leading-none mb-6">
                                   €{offer.offer_price?.toLocaleString('ro-RO')}
                                 </p>
                               </div>
 
                               <div className="bg-white p-5 rounded-xl border-[3px] border-gray-200 mb-4 shadow-sm">
-                                <p className="text-[10px] font-black uppercase text-gray-400 mb-2">Detalii Activ Vânzător:</p>
+                                <p className="text-[11px] font-black uppercase text-neutral-600 mb-2">Detalii Activ Vânzător:</p>
                                 <p className="text-sm font-bold italic text-gray-700 leading-relaxed">&quot;{offer.asset_description || "Sunt interesat să vă vând."}&quot;</p>
                               </div>
                             </div>
 
                             <div className="lg:col-span-1 border-t-[3px] lg:border-t-0 lg:border-l-[3px] border-gray-200 pt-6 lg:pt-0 lg:pl-6 flex flex-col h-full justify-between">
                               <div className="mb-6">
-                                <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-3">Contact Vânzător:</p>
+                                <p className="text-[11px] font-black uppercase tracking-widest text-neutral-600 mb-3">Contact Vânzător:</p>
                                 <a href={`tel:${offer.seller_phone}`} className="flex items-center justify-center gap-2 bg-black text-[#FFD100] px-4 py-4 rounded-xl font-black text-sm uppercase tracking-widest shadow-[4px_4px_0_0_rgba(255,209,0,1)] hover:scale-105 active:translate-y-1 active:shadow-none transition-all mb-3 w-full border-2 border-black">
                                   📞 Sună Vânzătorul
                                 </a>
                                 {offer.seller_email && (
-                                  <a href={`mailto:${offer.seller_email}`} className="block text-center text-[10px] font-bold text-gray-500 uppercase tracking-widest hover:text-black">
+                                  <a href={`mailto:${offer.seller_email}`} className="block text-center text-[11px] font-bold text-neutral-700 uppercase tracking-widest hover:text-black">
                                     ✉️ {offer.seller_email}
                                   </a>
                                 )}
@@ -512,16 +512,16 @@ function DashboardContent() {
 
                               {offer.status === 'new' ? (
                                 <div className="grid grid-cols-2 gap-3 mt-auto">
-                                  <button onClick={() => handleOfferAction(offer.id, 'accepted', 'demand')} className="bg-white border-[3px] border-black text-black py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-green-400 hover:border-green-400 transition-colors shadow-[3px_3px_0_0_rgba(0,0,0,1)] active:shadow-none active:translate-y-1">
+                                  <button onClick={() => handleOfferAction(offer.id, 'accepted', 'demand')} className="bg-white border-[3px] border-black text-black py-3 rounded-xl font-black uppercase text-[11px] tracking-widest hover:bg-green-400 hover:border-green-400 transition-colors shadow-[3px_3px_0_0_rgba(0,0,0,1)] active:shadow-none active:translate-y-1">
                                     Accept Pitch
                                   </button>
-                                  <button onClick={() => handleOfferAction(offer.id, 'rejected', 'demand')} className="bg-gray-100 border-[3px] border-transparent text-gray-400 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-red-500 hover:text-white transition-colors">
+                                  <button onClick={() => handleOfferAction(offer.id, 'rejected', 'demand')} className="bg-gray-100 border-[3px] border-transparent text-neutral-600 py-3 rounded-xl font-black uppercase text-[11px] tracking-widest hover:bg-red-500 hover:text-white transition-colors">
                                     Refuză
                                   </button>
                                 </div>
                               ) : (
                                 <div className="text-center mt-auto border-t-2 border-gray-100 pt-4">
-                                  <span className={`text-[10px] font-black uppercase tracking-widest ${offer.status === 'accepted' ? 'text-green-600' : 'text-gray-400'}`}>
+                                  <span className={`text-[11px] font-black uppercase tracking-widest ${offer.status === 'accepted' ? 'text-green-600' : 'text-neutral-600'}`}>
                                     {offer.status === 'accepted' ? '✓ Ai acceptat acest pitch' : '✕ Pitch închis / Refuzat'}
                                   </span>
                                 </div>
@@ -540,8 +540,8 @@ function DashboardContent() {
           ) : (
             <div className="bg-white p-16 flex flex-col items-center justify-center text-center rounded-[3rem] border-[4px] border-dashed border-gray-200 shadow-sm">
                <Inbox className="w-20 h-20 text-gray-200 mb-6" />
-               <h2 className="text-3xl font-black uppercase italic mb-3 tracking-tighter text-gray-400">Nicio ofertă momentan</h2>
-               <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest max-w-sm leading-relaxed">
+               <h2 className="text-3xl font-black uppercase italic mb-3 tracking-tighter text-neutral-600">Nicio ofertă momentan</h2>
+               <p className="text-[11px] font-bold text-neutral-600 uppercase tracking-widest max-w-sm leading-relaxed">
                  Ofertele primite pentru activele tale listate vor apărea aici. Rămâi pe recepție.
                </p>
             </div>
@@ -555,7 +555,7 @@ function DashboardContent() {
 export default function Dashboard() {
   return (
     <div className="p-4 md:p-8 bg-gray-50 min-h-screen font-sans text-black selection:bg-[#FFD100] antialiased">
-      <Suspense fallback={<div className="text-center font-black uppercase text-[10px] tracking-widest mt-20 animate-pulse">Sincronizare Terminal Securizat...</div>}>
+      <Suspense fallback={<div className="text-center font-black uppercase text-[11px] tracking-widest mt-20 animate-pulse">Sincronizare Terminal Securizat...</div>}>
         <DashboardContent />
       </Suspense>
     </div>

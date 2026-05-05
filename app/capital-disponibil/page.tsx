@@ -49,7 +49,7 @@ export default function CapitalDirectoryPage() {
       <div className="max-w-[1400px] mx-auto px-4 md:px-8">
         
         <div className="mb-12">
-          <Link href="/" className="text-[10px] md:text-[11px] font-black uppercase tracking-[0.3em] italic border-b-[3px] border-black pb-1 hover:text-[#FFD100] hover:border-[#FFD100] transition-all">
+          <Link href="/" className="text-[11px] md:text-[11px] font-black uppercase tracking-[0.3em] italic border-b-[3px] border-black pb-1 hover:text-[#FFD100] hover:border-[#FFD100] transition-all">
             ← Înapoi Acasă
           </Link>
           
