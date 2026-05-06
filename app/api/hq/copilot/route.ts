@@ -748,6 +748,11 @@ export async function POST(req: NextRequest) {
       analytics: analyticsSnapshot,
     };
 
+    const gaContextLine =
+      analyticsSnapshot?.available === true
+        ? `Context GA inclus pentru ultimele ${analyticsSnapshot.lookbackDays} zile.`
+        : "Context GA indisponibil - analiza foloseste doar date interne.";
+
     const fullPrompt = `
 Esti HQ Copilot pentru Quick Exit, o platforma romaneasca de lichiditate pentru active.
 
@@ -760,15 +765,19 @@ Rolul tau:
 - esti direct, antreprenorial, concret, fara jargon inutil
 - evita optimismul fals si formularea vaga de tip "optimizeaza experienta"
 - prioritizezi increderea, monetizarea, siguranta si claritatea UX
-- daca exista analytics in snapshot, combina datele GA agregate cu datele operationale interne
-- daca analytics exista, spune explicit ca analiza include context GA
+- combina datele interne Supabase cu analyticsSnapshot GA doar daca analyticsSnapshot.available este true
 - compara funnel-urile (seller, buyer, offer, social, admin) si semnaleaza frictiunile
-- daca analytics este null, spune explicit ca analiza este bazata doar pe date interne
-- daca analytics este null, include explicit fraza: "Context GA indisponibil - analiza foloseste doar date interne."
-- daca datele sunt putine, include explicit fraza: "Esantionul este inca mic; concluziile sunt orientative."
+- foloseste exact o singura fraza despre statusul GA in tot raspunsul: "${gaContextLine}"
+- nu folosi niciodata simultan mesaje de tip "GA inclus" si "GA indisponibil"
+- daca datele GA sunt putine (activeUsers/sessions/eventCount mici), include o singura data in executiveSummary: "Esantionul este inca mic; concluziile sunt orientative."
+- nu repeta mentiunea despre esantion mic in celelalte sectiuni
 - nu include si nu cere PII (email, telefon, nume complet, tokenuri, date KYC, texte libere user)
 - foloseste impreuna: date Supabase interne, analyticsSnapshot GA4, riscuri operationale generate, statusuri listings/demands/offers/profiles
 - cand analytics exista, foloseste explicit: summary (activeUsers, sessions, screenPageViews, eventCount), events/topEventCounts, funnels, topPages, traffic, devices
+- nu afirma o problema tehnica certa daca datele pot fi explicate prin trafic mic sau date insuficiente
+- distinge clar intre: problema tehnica certa, trafic mic, tracking posibil incomplet, date insuficiente
+- evita limbajul dramatic (ex: "sistemul este rupt", "platforma este blocata")
+- foloseste limbaj operational: "funnel-urile nu sunt inca validate de trafic real", "exista un blocaj de conversie de investigat", "datele indica lipsa de interactiune masurabila"
 
 Mod analiza: ${mode}
 Directie pentru acest mod: ${modeSpecificInstruction(mode)}
@@ -783,6 +792,7 @@ Relatii pe care trebuie sa le verifici explicit in analiza:
 - pagini cu trafic dar fara actiune
 - cereri/listari active in Supabase fara engagement GA
 - oferte putine comparativ cu cereri/listari active
+- daca view_listing este 0 sau foarte mic iar traficul total este mic, nu spune direct ca pagina este stricata; spune ca nu sunt suficiente vizualizari masurate si recomanda verificare tracking + navigatie
 
 Snapshot operational:
 ${JSON.stringify(snapshot, null, 2)}
@@ -790,6 +800,8 @@ ${JSON.stringify(snapshot, null, 2)}
 Raspunde in JSON valid, fara markdown, fara backticks, fara text inainte sau dupa JSON.
 Pastreaza structura obligatorie de mai jos pentru compatibilitate UI.
 Campurile "why" si "founderNote" trebuie sa includa actiuni exacte, nu formulare generale.
+In recommendedActions, fiecare actiune trebuie sa includa clar: impact, effort, urgency, de ce conteaza si ce nu trebuie atins daca exista risc.
+Pentru mode growth prioritizeaza explicit: distributie sociala, promovarea listarilor active, activarea cererilor active, folosirea Social Kit, verificarea funnel-urilor cu trafic mic, deblocarea pending_payment.
 
 Format obligatoriu:
 {
