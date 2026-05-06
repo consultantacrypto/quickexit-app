@@ -3,17 +3,50 @@ import Script from "next/script";
 import "./globals.css";
 import Header from "./components/Header";
 import Footer from "./components/Footer"; 
+import StructuredData from "./components/StructuredData";
+import { getSiteUrl } from "@/lib/siteUrl";
+
+const siteUrl = getSiteUrl();
 
 export const metadata: Metadata = {
-  title: "QuickExit | Terminal de Lichiditate Instantă",
-  description: "Singura platformă din România care conectează activele premium cu investitori verificați. Evaluează cu AI, aplică discountul de urgență și încasează cash-ul în 24 de ore. Fără agenți, fără timp pierdut.",
-  keywords: ["lichiditate", "vânzare rapidă auto", "investiții imobiliare", "cash instant", "licitații active", "evaluare AI"],
+  metadataBase: new URL(siteUrl),
+  title: {
+    default: "Quick Exit | Platforma de lichiditate rapida pentru active",
+    template: "%s | Quick Exit",
+  },
+  description:
+    "Quick Exit este platforma din Romania pentru vanzare rapida de active. Conectam vanzatori care vor lichiditate cu investitori care au capital disponibil.",
+  keywords: [
+    "lichiditate rapida",
+    "vanzare rapida active",
+    "platforma investitori Romania",
+    "capital disponibil",
+    "anunturi active",
+    "evaluare active",
+  ],
+  alternates: {
+    canonical: "/",
+  },
   openGraph: {
-    title: "QuickExit | Vinde Acum. Banii Azi.",
-    description: "Conectăm activele tale direct cu investitori care au cash pregătit. Fără negocieri infinite.",
+    title: "Quick Exit | Vinde acum. Lichiditate rapida.",
+    description:
+      "Platforma pentru vanzatori care vor sa vanda rapid si cumparatori care au capital disponibil.",
+    url: siteUrl,
+    siteName: "Quick Exit",
     type: "website",
     locale: "ro_RO",
-  }
+    images: [{ url: "/logo.png" }],
+  },
+  twitter: {
+    card: "summary",
+    title: "Quick Exit | Platforma de lichiditate rapida",
+    description:
+      "Conectam activele premium cu investitori pregatiti pentru achizitii rapide.",
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
 };
 
 export default function RootLayout({
@@ -43,6 +76,7 @@ export default function RootLayout({
         </>
       )}
       <body className="bg-white text-black antialiased min-h-screen flex flex-col">
+        <StructuredData siteUrl={siteUrl} />
         <Header />
         
         {/* pt-24 pe mobil, pt-44 pe desktop pentru a lăsa header-ul masiv să respire */}

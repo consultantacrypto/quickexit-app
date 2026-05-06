@@ -1,4 +1,13 @@
 import Link from "next/link";
+import type { Metadata } from "next";
+import { buildPageMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = buildPageMetadata({
+  title: "Cum functioneaza",
+  description:
+    "Vezi pas cu pas cum functioneaza Quick Exit pentru vanzatori si cumparatori, de la evaluare la tranzactie.",
+  path: "/cum-functioneaza",
+});
 
 function StepCard({
   index,

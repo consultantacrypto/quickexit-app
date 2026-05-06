@@ -1,5 +1,14 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { companyInfo, formatRegisteredOfficeFull } from "@/lib/company";
+import { buildPageMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = buildPageMetadata({
+  title: "Contact",
+  description:
+    "Contact Quick Exit pentru suport utilizatori, parteneriate si informatii legale ale companiei.",
+  path: "/contact",
+});
 
 export default function Contact() {
   return (

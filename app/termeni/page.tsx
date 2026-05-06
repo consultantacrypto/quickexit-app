@@ -1,5 +1,14 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { companyInfo, formatRegisteredOfficeFull } from "@/lib/company";
+import { buildPageMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = buildPageMetadata({
+  title: "Termeni si conditii",
+  description:
+    "Termenii si conditiile Quick Exit pentru utilizarea platformei, evaluari, plati si rolul serviciului.",
+  path: "/termeni",
+});
 
 export default function TermeniSiConditii() {
   return (

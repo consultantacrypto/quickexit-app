@@ -1,5 +1,14 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { companyInfo, formatRegisteredOfficeFull } from "@/lib/company";
+import { buildPageMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = buildPageMetadata({
+  title: "Confidentialitate",
+  description:
+    "Politica de confidentialitate Quick Exit: ce date sunt prelucrate, in ce scop si cum iti poti exercita drepturile.",
+  path: "/confidentialitate",
+});
 
 export default function Confidentialitate() {
   return (

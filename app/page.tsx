@@ -2,14 +2,22 @@ import { ro } from "../locales/ro";
 import AdCard from "./components/AdCard";
 import DemandCard from "./components/DemandCard"; // Am adus componenta Tanc pentru investitori
 import Link from "next/link";
+import type { Metadata } from "next";
 import TrackedLink from "./components/TrackedLink";
 import GlobalStats from "./components/GlobalStats";
 import { supabase } from "@/lib/supabase"; 
+import { buildPageMetadata } from "@/lib/seo";
 // IMPORT GLOBAL NOU
 import { normalizeSaleType } from "@/utils/normalizeSaleType";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
+export const metadata: Metadata = buildPageMetadata({
+  title: "Acasa",
+  description:
+    "Quick Exit conecteaza vanzatori care vor lichiditate rapida cu investitori care au capital disponibil in Romania.",
+  path: "/",
+});
 
 export default async function Home() {
   const { hero, types, home } = ro;

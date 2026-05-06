@@ -1,5 +1,14 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { companyInfo } from "@/lib/company";
+import { buildPageMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = buildPageMetadata({
+  title: "Politica cookies",
+  description:
+    "Politica cookies Quick Exit: ce module cookie folosim, scopul lor si cum le poti controla.",
+  path: "/cookies",
+});
 
 export default function CookiesPage() {
   return (
