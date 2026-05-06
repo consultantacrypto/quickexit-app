@@ -423,10 +423,22 @@ export async function POST(req: NextRequest) {
       const gaEnvPresent = isGaDataConfigured();
       let gaStatus: "ok" | "error" = "error";
       let gaError: string | null = null;
+      let gaSummaryTest: {
+        activeUsers: number;
+        sessions: number;
+        screenPageViews: number;
+        eventCount: number;
+      } | null = null;
+      let gaWarnings: string[] = [];
 
       try {
-        await getAnalyticsSnapshot();
-        gaStatus = "ok";
+        const gaSnapshot = await getAnalyticsSnapshot();
+        gaWarnings = gaSnapshot.warnings;
+        gaSummaryTest = gaSnapshot.summary;
+        gaStatus = gaSnapshot.available ? "ok" : "error";
+        if (!gaSnapshot.available) {
+          gaError = gaSnapshot.warnings[0] || "Toate rapoartele GA au esuat.";
+        }
       } catch (error) {
         gaError = error instanceof Error ? error.message.slice(0, 180) : "Eroare necunoscuta";
       }
@@ -466,6 +478,8 @@ export async function POST(req: NextRequest) {
               gaError,
               gaEnvPresent,
               gaPropertyIdNormalized: normalizedGaPropertyId || null,
+              gaSummaryTest,
+              gaWarnings,
             },
           },
           { status: 502 }
@@ -485,6 +499,8 @@ export async function POST(req: NextRequest) {
           gaError,
           gaEnvPresent,
           gaPropertyIdNormalized: normalizedGaPropertyId || null,
+          gaSummaryTest,
+          gaWarnings,
           text: selftestRun.text || safeBodySnippet(selftestRun.rawBody, geminiApiKey),
           attempts: selftestRun.attempts,
         },

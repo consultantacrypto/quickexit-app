@@ -27,7 +27,7 @@ const TRACKED_EVENTS = [
 type TrackedEventName = (typeof TRACKED_EVENTS)[number];
 
 type GaSnapshot = {
-  available: true;
+  available: boolean;
   lookbackDays: number;
   propertyId: string;
   generatedAt: string;
@@ -50,6 +50,8 @@ type GaSnapshot = {
   devices: Array<{ deviceCategory: string; sessions: number; activeUsers: number }>;
   warnings: string[];
 };
+
+type RunReportRequest = Parameters<BetaAnalyticsDataClient["runReport"]>[0];
 
 function toNumber(value: string | number | null | undefined): number {
   const parsed = Number(value);
@@ -77,9 +79,22 @@ function isTrackedEventName(eventName: string): eventName is TrackedEventName {
   return (TRACKED_EVENTS as readonly string[]).includes(eventName);
 }
 
-function shortError(error: unknown): string {
-  if (error instanceof Error) return error.message.slice(0, 180);
-  return "Eroare necunoscuta";
+function getGaErrorMessage(error: unknown) {
+  if (error instanceof Error) return error.message;
+  if (typeof error === "object" && error !== null) {
+    const anyError = error as Record<string, unknown>;
+    const combined = [anyError.code, anyError.status, anyError.details, anyError.message]
+      .filter(Boolean)
+      .map((part) => String(part))
+      .join(" | ");
+    if (combined) return combined;
+    try {
+      return JSON.stringify(anyError).slice(0, 500);
+    } catch {
+      return "Eroare necunoscuta";
+    }
+  }
+  return String(error);
 }
 
 export function normalizeGaPropertyId(raw: string | undefined | null): string {
@@ -110,9 +125,25 @@ function getGaClient() {
   });
 }
 
+async function runGaReport(
+  analyticsDataClient: BetaAnalyticsDataClient,
+  label: string,
+  request: RunReportRequest
+) {
+  try {
+    const [report] = await analyticsDataClient.runReport(request);
+    return { report, warning: null as string | null };
+  } catch (error) {
+    return {
+      report: null,
+      warning: `${label} indisponibil: ${getGaErrorMessage(error)}`,
+    };
+  }
+}
+
 export async function getAnalyticsSnapshot(): Promise<GaSnapshot> {
-  const propertyId = normalizeGaPropertyId(process.env.GA_PROPERTY_ID);
-  if (!propertyId) {
+  const normalizedPropertyId = normalizeGaPropertyId(process.env.GA_PROPERTY_ID);
+  if (!normalizedPropertyId) {
     throw new Error("GA_PROPERTY_ID lipseste sau este invalid.");
   }
 
@@ -123,14 +154,15 @@ export async function getAnalyticsSnapshot(): Promise<GaSnapshot> {
   const lookbackDays = getLookbackDays();
   const warnings: string[] = [];
   const events = getBaseEventsMap();
-  const client = getGaClient();
-  const property = `properties/${propertyId}`;
+  const analyticsDataClient = getGaClient();
+  const property = `properties/${normalizedPropertyId}`;
   const dateRanges = getDateRange(lookbackDays);
+  let successfulReports = 0;
 
   const snapshot: GaSnapshot = {
     available: true,
     lookbackDays,
-    propertyId,
+    propertyId: normalizedPropertyId,
     generatedAt: new Date().toISOString(),
     summary: {
       activeUsers: 0,
@@ -173,8 +205,8 @@ export async function getAnalyticsSnapshot(): Promise<GaSnapshot> {
     warnings,
   };
 
-  try {
-    const [response] = await client.runReport({
+  {
+    const { report, warning } = await runGaReport(analyticsDataClient, "summary", {
       property,
       dateRanges,
       metrics: [
@@ -185,33 +217,39 @@ export async function getAnalyticsSnapshot(): Promise<GaSnapshot> {
       ],
       limit: 1,
     });
-    const row = response.rows?.[0];
-    snapshot.summary = {
-      activeUsers: toNumber(row?.metricValues?.[0]?.value),
-      sessions: toNumber(row?.metricValues?.[1]?.value),
-      screenPageViews: toNumber(row?.metricValues?.[2]?.value),
-      eventCount: toNumber(row?.metricValues?.[3]?.value),
-    };
-  } catch (error) {
-    warnings.push(`summary indisponibil: ${shortError(error)}`);
+    if (warning) {
+      warnings.push(warning);
+    } else if (report) {
+      successfulReports += 1;
+      const row = report.rows?.[0];
+      snapshot.summary = {
+        activeUsers: Number(row?.metricValues?.[0]?.value ?? 0),
+        sessions: Number(row?.metricValues?.[1]?.value ?? 0),
+        screenPageViews: Number(row?.metricValues?.[2]?.value ?? 0),
+        eventCount: Number(row?.metricValues?.[3]?.value ?? 0),
+      };
+    }
   }
 
-  try {
-    const [response] = await client.runReport({
+  {
+    const { report, warning } = await runGaReport(analyticsDataClient, "events", {
       property,
       dateRanges,
       dimensions: [{ name: "eventName" }],
       metrics: [{ name: "eventCount" }],
       limit: 200,
     });
-    for (const row of response.rows ?? []) {
-      const eventName = String(row.dimensionValues?.[0]?.value ?? "");
-      if (isTrackedEventName(eventName)) {
-        snapshot.events[eventName] = toNumber(row.metricValues?.[0]?.value);
+    if (warning) {
+      warnings.push(warning);
+    } else if (report) {
+      successfulReports += 1;
+      for (const row of report.rows ?? []) {
+        const eventName = String(row.dimensionValues?.[0]?.value ?? "");
+        if (isTrackedEventName(eventName)) {
+          snapshot.events[eventName] = Number(row.metricValues?.[0]?.value ?? 0);
+        }
       }
     }
-  } catch (error) {
-    warnings.push(`events indisponibil: ${shortError(error)}`);
   }
 
   snapshot.funnels = {
@@ -243,8 +281,8 @@ export async function getAnalyticsSnapshot(): Promise<GaSnapshot> {
     },
   };
 
-  try {
-    const [response] = await client.runReport({
+  {
+    const { report, warning } = await runGaReport(analyticsDataClient, "topPages", {
       property,
       dateRanges,
       dimensions: [{ name: "pagePath" }],
@@ -252,17 +290,20 @@ export async function getAnalyticsSnapshot(): Promise<GaSnapshot> {
       limit: 10,
       orderBys: [{ metric: { metricName: "screenPageViews" }, desc: true }],
     });
-    snapshot.topPages = (response.rows ?? []).map((row) => ({
-      pagePath: String(row.dimensionValues?.[0]?.value ?? "/"),
-      screenPageViews: toNumber(row.metricValues?.[0]?.value),
-      activeUsers: toNumber(row.metricValues?.[1]?.value),
-    }));
-  } catch (error) {
-    warnings.push(`topPages indisponibil: ${shortError(error)}`);
+    if (warning) {
+      warnings.push(warning);
+    } else if (report) {
+      successfulReports += 1;
+      snapshot.topPages = (report.rows ?? []).map((row) => ({
+        pagePath: String(row.dimensionValues?.[0]?.value ?? ""),
+        screenPageViews: Number(row.metricValues?.[0]?.value ?? 0),
+        activeUsers: Number(row.metricValues?.[1]?.value ?? 0),
+      }));
+    }
   }
 
-  try {
-    const [response] = await client.runReport({
+  {
+    const { report, warning } = await runGaReport(analyticsDataClient, "traffic", {
       property,
       dateRanges,
       dimensions: [{ name: "sessionSource" }, { name: "sessionMedium" }],
@@ -270,32 +311,39 @@ export async function getAnalyticsSnapshot(): Promise<GaSnapshot> {
       limit: 10,
       orderBys: [{ metric: { metricName: "sessions" }, desc: true }],
     });
-    snapshot.traffic = (response.rows ?? []).map((row) => ({
-      source: String(row.dimensionValues?.[0]?.value ?? "(direct)"),
-      medium: String(row.dimensionValues?.[1]?.value ?? "(none)"),
-      sessions: toNumber(row.metricValues?.[0]?.value),
-      activeUsers: toNumber(row.metricValues?.[1]?.value),
-    }));
-  } catch (error) {
-    warnings.push(`traffic indisponibil: ${shortError(error)}`);
+    if (warning) {
+      warnings.push(warning);
+    } else if (report) {
+      successfulReports += 1;
+      snapshot.traffic = (report.rows ?? []).map((row) => ({
+        source: String(row.dimensionValues?.[0]?.value ?? ""),
+        medium: String(row.dimensionValues?.[1]?.value ?? ""),
+        sessions: Number(row.metricValues?.[0]?.value ?? 0),
+        activeUsers: Number(row.metricValues?.[1]?.value ?? 0),
+      }));
+    }
   }
 
-  try {
-    const [response] = await client.runReport({
+  {
+    const { report, warning } = await runGaReport(analyticsDataClient, "devices", {
       property,
       dateRanges,
       dimensions: [{ name: "deviceCategory" }],
       metrics: [{ name: "sessions" }, { name: "activeUsers" }],
       orderBys: [{ metric: { metricName: "sessions" }, desc: true }],
     });
-    snapshot.devices = (response.rows ?? []).map((row) => ({
-      deviceCategory: String(row.dimensionValues?.[0]?.value ?? "unknown"),
-      sessions: toNumber(row.metricValues?.[0]?.value),
-      activeUsers: toNumber(row.metricValues?.[1]?.value),
-    }));
-  } catch (error) {
-    warnings.push(`devices indisponibil: ${shortError(error)}`);
+    if (warning) {
+      warnings.push(warning);
+    } else if (report) {
+      successfulReports += 1;
+      snapshot.devices = (report.rows ?? []).map((row) => ({
+        deviceCategory: String(row.dimensionValues?.[0]?.value ?? ""),
+        sessions: Number(row.metricValues?.[0]?.value ?? 0),
+        activeUsers: Number(row.metricValues?.[1]?.value ?? 0),
+      }));
+    }
   }
 
+  snapshot.available = successfulReports > 0;
   return snapshot;
 }
