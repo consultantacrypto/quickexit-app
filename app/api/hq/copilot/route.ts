@@ -424,6 +424,18 @@ export async function POST(req: NextRequest) {
       const normalizedGaPropertyId = normalizeGaPropertyId(process.env.GA_PROPERTY_ID);
       const gaEnvPresent = isGaDataConfigured();
       const gaAuthMode = getGaAuthMode();
+      const hasGaPropertyId = Boolean(normalizedGaPropertyId);
+      const hasOauthClientId = Boolean(String(process.env.GOOGLE_OAUTH_CLIENT_ID ?? "").trim());
+      const hasOauthClientSecret = Boolean(
+        String(process.env.GOOGLE_OAUTH_CLIENT_SECRET ?? "").trim()
+      );
+      const hasOauthRefreshToken = Boolean(
+        String(process.env.GOOGLE_OAUTH_REFRESH_TOKEN ?? "").trim()
+      );
+      const hasServiceAccountEmail = Boolean(String(process.env.GOOGLE_CLIENT_EMAIL ?? "").trim());
+      const hasServiceAccountPrivateKey = Boolean(
+        String(process.env.GOOGLE_PRIVATE_KEY ?? "").trim()
+      );
       let gaStatus: "ok" | "error" = "error";
       let gaError: string | null = null;
       let gaSummaryTest: {
@@ -435,17 +447,34 @@ export async function POST(req: NextRequest) {
       let gaWarnings: string[] = [];
       let gaDebugErrors: unknown[] = [];
 
-      try {
-        const gaSnapshot = await getAnalyticsSnapshot({ includeDebugErrors: true });
-        gaWarnings = gaSnapshot.warnings;
-        gaDebugErrors = gaSnapshot.debugErrors ?? [];
-        gaSummaryTest = gaSnapshot.summary;
-        gaStatus = gaSnapshot.available ? "ok" : "error";
-        if (!gaSnapshot.available) {
-          gaError = gaSnapshot.warnings[0] || "Toate rapoartele GA au esuat.";
+      if (!gaEnvPresent) {
+        if (gaAuthMode === "oauth") {
+          const missing: string[] = [];
+          if (!hasOauthClientId) missing.push("GOOGLE_OAUTH_CLIENT_ID");
+          if (!hasOauthClientSecret) missing.push("GOOGLE_OAUTH_CLIENT_SECRET");
+          if (!hasOauthRefreshToken) missing.push("GOOGLE_OAUTH_REFRESH_TOKEN");
+          if (!hasGaPropertyId) missing.push("GA_PROPERTY_ID");
+          gaError = `OAuth GA config incomplet: lipseste ${missing.join(" / ")}`;
+        } else {
+          const missing: string[] = [];
+          if (!hasServiceAccountEmail) missing.push("GOOGLE_CLIENT_EMAIL");
+          if (!hasServiceAccountPrivateKey) missing.push("GOOGLE_PRIVATE_KEY");
+          if (!hasGaPropertyId) missing.push("GA_PROPERTY_ID");
+          gaError = `Service account GA config incomplet: lipseste ${missing.join(" / ")}`;
         }
-      } catch (error) {
-        gaError = error instanceof Error ? error.message.slice(0, 180) : "Eroare necunoscuta";
+      } else {
+        try {
+          const gaSnapshot = await getAnalyticsSnapshot({ includeDebugErrors: true });
+          gaWarnings = gaSnapshot.warnings;
+          gaDebugErrors = gaSnapshot.debugErrors ?? [];
+          gaSummaryTest = gaSnapshot.summary;
+          gaStatus = gaSnapshot.available ? "ok" : "error";
+          if (!gaSnapshot.available) {
+            gaError = gaSnapshot.warnings[0] || "Toate rapoartele GA au esuat.";
+          }
+        } catch (error) {
+          gaError = error instanceof Error ? error.message.slice(0, 180) : "Eroare necunoscuta";
+        }
       }
 
       const selftestRun = await callGeminiWithFallback({
@@ -484,6 +513,12 @@ export async function POST(req: NextRequest) {
               gaError,
               gaEnvPresent,
               gaAuthMode,
+              hasGaPropertyId,
+              hasOauthClientId,
+              hasOauthClientSecret,
+              hasOauthRefreshToken,
+              hasServiceAccountEmail,
+              hasServiceAccountPrivateKey,
               gaPropertyIdNormalized: normalizedGaPropertyId || null,
               gaSummaryTest,
               gaWarnings,
@@ -508,6 +543,12 @@ export async function POST(req: NextRequest) {
           gaError,
           gaEnvPresent,
           gaAuthMode,
+          hasGaPropertyId,
+          hasOauthClientId,
+          hasOauthClientSecret,
+          hasOauthRefreshToken,
+          hasServiceAccountEmail,
+          hasServiceAccountPrivateKey,
           gaPropertyIdNormalized: normalizedGaPropertyId || null,
           gaSummaryTest,
           gaWarnings,
