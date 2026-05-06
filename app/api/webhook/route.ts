@@ -1,26 +1,40 @@
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
+import {
+  getDemandCheckoutPrice,
+  getListingExpiryIso,
+  getListingPackageById,
+  toStripeAmountRon,
+} from '@/lib/pricing';
 
 export async function POST(req: Request) {
   try {
-    // 1. MUTAT ÎN INTERIOR + FALLBACK-URI (Ca să treacă Vercel de faza de Build)
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
-    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder_key';
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    const stripeApiKey = process.env.STRIPE_SECRET_KEY;
+    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+    if (!supabaseUrl || !serviceRoleKey) {
+      return new NextResponse('Config server incompleta (Supabase).', { status: 500 });
+    }
+    if (!stripeApiKey) {
+      return new NextResponse('Config server incompleta (Stripe key).', { status: 500 });
+    }
+    if (!webhookSecret) {
+      return new NextResponse('Config server incompleta (Stripe webhook secret).', { status: 500 });
+    }
+
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
-    const stripeApiKey = process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder_vercel';
     const stripe = new Stripe(stripeApiKey, {
       apiVersion: '2023-10-16' as any,
     });
-
-    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || '';
 
     // 2. LOGICA DE WEBHOOK
     const body = await req.text();
     const signature = req.headers.get('stripe-signature');
 
-    if (!signature || !webhookSecret) {
+    if (!signature) {
       console.error('Lipsește Semnătura Stripe sau Webhook Secret-ul.');
       return new NextResponse('Eroare securitate', { status: 400 });
     }
@@ -38,50 +52,141 @@ export async function POST(req: Request) {
     // 3. PRINDEREA EVENIMENTULUI DE PLATĂ
     if (event.type === 'checkout.session.completed') {
       const session = event.data.object as Stripe.Checkout.Session;
-      
-      // Extragem ID-urile din chitanță
-      const listingId = session.metadata?.listingId;
-      const demandId = session.metadata?.demandId;
+      const paidAmount = Number(session.amount_total ?? 0);
+      const paidCurrency = String(session.currency ?? '').toLowerCase();
+      const paymentStatus = String(session.payment_status ?? '').toLowerCase();
 
-      // --- PLATĂ PENTRU ANUNȚ (VÂNZĂTOR) ---
-      if (listingId) {
-        const { data: listing } = await supabase
-          .from('listings')
-          .select('sale_strategy')
-          .eq('id', listingId)
-          .single();
-          
-        const pachet = listing?.sale_strategy || 'economy';
-        const expiryDate = new Date();
-        
-        if (pachet === 'urgent') expiryDate.setHours(expiryDate.getHours() + 48);
-        else if (pachet === 'licitatie' || pachet === 'auction') expiryDate.setHours(expiryDate.getHours() + 24);
-        else if (pachet === 'standard') expiryDate.setDate(expiryDate.getDate() + 14);
-        else expiryDate.setDate(expiryDate.getDate() + 30);
-
-        // Actualizăm baza de date (Bypass RLS prin Service Role)
-        const { error } = await supabase
-          .from('listings')
-          .update({ 
-            status: 'active',
-            expires_at: expiryDate.toISOString()
-          })
-          .eq('id', listingId);
-
-        if (error) console.error("Eroare activare Listing:", error.message);
-        else console.log(`✅ Anunț ${listingId} activat cu succes via Stripe!`);
+      if (paymentStatus !== 'paid') {
+        console.warn('[webhook] checkout.session.completed ignorat: payment_status != paid', {
+          sessionId: session.id,
+          paymentStatus,
+        });
+        return NextResponse.json({ received: true, skipped: 'not_paid' });
+      }
+      if (!paidAmount || !Number.isFinite(paidAmount)) {
+        console.warn('[webhook] checkout.session.completed ignorat: amount_total invalid', {
+          sessionId: session.id,
+          paidAmount,
+        });
+        return NextResponse.json({ received: true, skipped: 'invalid_amount' });
+      }
+      if (paidCurrency !== 'ron') {
+        console.warn('[webhook] checkout.session.completed ignorat: currency invalida', {
+          sessionId: session.id,
+          paidCurrency,
+        });
+        return NextResponse.json({ received: true, skipped: 'invalid_currency' });
       }
 
-      // --- PLATĂ PENTRU CERERE CAPITAL (INVESTITOR) ---
-      if (demandId) {
+      const type = String(session.metadata?.type ?? '').trim();
+      const expectedFromMetadata = Number(session.metadata?.expectedAmount ?? 0);
+      const metadataCurrency = String(session.metadata?.currency ?? '').toLowerCase();
+
+      if (metadataCurrency && metadataCurrency !== 'ron') {
+        console.warn('[webhook] metadata currency mismatch', {
+          sessionId: session.id,
+          metadataCurrency,
+        });
+        return NextResponse.json({ received: true, skipped: 'metadata_currency_mismatch' });
+      }
+
+      if (type === 'listing') {
+        const listingId = String(session.metadata?.listingId ?? '').trim();
+        const packageId = String(session.metadata?.packageId ?? '').trim();
+        const pkg = getListingPackageById(packageId);
+        if (!listingId || !pkg) {
+          console.error('[webhook] listing metadata invalid', { sessionId: session.id, listingId, packageId });
+          return NextResponse.json({ received: true, skipped: 'listing_metadata_invalid' });
+        }
+        const expectedServerAmount = toStripeAmountRon(pkg.priceRon);
+        if (expectedServerAmount !== paidAmount || expectedFromMetadata !== paidAmount) {
+          console.error('[webhook] listing amount mismatch - nu activam', {
+            sessionId: session.id,
+            listingId,
+            packageId,
+            expectedServerAmount,
+            expectedFromMetadata,
+            paidAmount,
+          });
+          return NextResponse.json({ received: true, skipped: 'listing_amount_mismatch' });
+        }
+
+        const { data: listing, error: listingError } = await supabase
+          .from('listings')
+          .select('id, status')
+          .eq('id', listingId)
+          .single();
+        if (listingError || !listing) {
+          console.error('[webhook] listing not found', { sessionId: session.id, listingId, reason: listingError?.message });
+          return NextResponse.json({ received: true, skipped: 'listing_not_found' });
+        }
+        if (listing.status === 'active') {
+          console.log('[webhook] listing deja activ - idempotent', { sessionId: session.id, listingId });
+          return NextResponse.json({ received: true, idempotent: true, type: 'listing' });
+        }
+
+        const { error } = await supabase
+          .from('listings')
+          .update({
+            status: 'active',
+            expires_at: getListingExpiryIso(pkg.id),
+          })
+          .eq('id', listingId)
+          .neq('status', 'active');
+        if (error) {
+          console.error('Eroare activare Listing:', error.message);
+          return new NextResponse('Eroare activare listing', { status: 500 });
+        }
+        console.log('[webhook] listing activat', { sessionId: session.id, listingId, packageId, paidAmount });
+        return NextResponse.json({ received: true, type: 'listing' });
+      }
+
+      if (type === 'demand') {
+        const demandId = String(session.metadata?.demandId ?? '').trim();
+        const expectedServerAmount = toStripeAmountRon(getDemandCheckoutPrice());
+        if (!demandId) {
+          console.error('[webhook] demand metadata invalid', { sessionId: session.id });
+          return NextResponse.json({ received: true, skipped: 'demand_metadata_invalid' });
+        }
+        if (expectedServerAmount !== paidAmount || expectedFromMetadata !== paidAmount) {
+          console.error('[webhook] demand amount mismatch - nu activam', {
+            sessionId: session.id,
+            demandId,
+            expectedServerAmount,
+            expectedFromMetadata,
+            paidAmount,
+          });
+          return NextResponse.json({ received: true, skipped: 'demand_amount_mismatch' });
+        }
+
+        const { data: demand, error: demandError } = await supabase
+          .from('demands')
+          .select('id, status')
+          .eq('id', demandId)
+          .single();
+        if (demandError || !demand) {
+          console.error('[webhook] demand not found', { sessionId: session.id, demandId, reason: demandError?.message });
+          return NextResponse.json({ received: true, skipped: 'demand_not_found' });
+        }
+        if (demand.status === 'active') {
+          console.log('[webhook] demand deja activa - idempotent', { sessionId: session.id, demandId });
+          return NextResponse.json({ received: true, idempotent: true, type: 'demand' });
+        }
+
         const { error } = await supabase
           .from('demands')
           .update({ status: 'active' })
-          .eq('id', demandId);
-
-        if (error) console.error("Eroare activare Demand:", error.message);
-        else console.log(`✅ Cerere Capital ${demandId} activată cu succes via Stripe!`);
+          .eq('id', demandId)
+          .neq('status', 'active');
+        if (error) {
+          console.error('Eroare activare Demand:', error.message);
+          return new NextResponse('Eroare activare demand', { status: 500 });
+        }
+        console.log('[webhook] demand activata', { sessionId: session.id, demandId, paidAmount });
+        return NextResponse.json({ received: true, type: 'demand' });
       }
+
+      console.warn('[webhook] type necunoscut in metadata', { sessionId: session.id, type });
     }
 
     return NextResponse.json({ received: true });

@@ -1,27 +1,38 @@
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
+import { getListingPackageById, toStripeAmountRon } from '@/lib/pricing';
 
 export async function POST(req: Request) {
   try {
-    // AM MUTAT AICI INIȚIALIZAREA ȘI AM PUS FALLBACK
-    // Dacă Vercel nu găsește cheia la build, folosește textul de avarie și trece mai departe.
-    const stripeApiKey = process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder_vercel';
-    
+    const stripeApiKey = process.env.STRIPE_SECRET_KEY;
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+    if (!stripeApiKey) {
+      return NextResponse.json({ error: 'Config server incompleta: STRIPE_SECRET_KEY lipseste.' }, { status: 500 });
+    }
+    if (!baseUrl) {
+      return NextResponse.json({ error: 'Config server incompleta: NEXT_PUBLIC_BASE_URL lipseste.' }, { status: 500 });
+    }
+
     const stripe = new Stripe(stripeApiKey, {
       apiVersion: '2023-10-16' as any, // versiune stabilă
     });
 
     const body = await req.json();
-    const { listingId, packageId, price, title } = body;
+    const listingId = String(body?.listingId ?? '').trim();
+    const packageId = String(body?.packageId ?? '').trim();
+    const title = String(body?.title ?? 'Activ').trim();
+    if (!listingId || !packageId) {
+      return NextResponse.json({ error: 'Date invalide: listingId si packageId sunt obligatorii.' }, { status: 400 });
+    }
 
-    const packageTitlesRo: Record<string, string> = {
-      economy: 'Expunere maximă',
-      standard: 'Vânzare rapidă',
-      urgent: 'Vânzare urgentă',
-      auction: 'Licitație rapidă',
-      licitatie: 'Licitație rapidă',
-    };
-    const pachetNume = packageTitlesRo[String(packageId)] || 'Promovare anunț';
+    const pkg = getListingPackageById(packageId);
+    if (!pkg) {
+      return NextResponse.json({ error: 'Pachet invalid pentru checkout listing.' }, { status: 400 });
+    }
+    const expectedAmount = toStripeAmountRon(pkg.priceRon);
+    if (!expectedAmount) {
+      return NextResponse.json({ error: 'Config pachet invalid: amount Stripe este 0.' }, { status: 500 });
+    }
 
     // Creăm sesiunea de plată către Stripe
     const session = await stripe.checkout.sessions.create({
@@ -31,21 +42,25 @@ export async function POST(req: Request) {
           price_data: {
             currency: 'ron',
             product_data: {
-              name: `Quick Exit — ${pachetNume}`,
+              name: `Quick Exit — ${pkg.title}`,
               description: `Activare anunț: ${title}`,
             },
-            unit_amount: price * 100, // Stripe lucrează în "bani" (ex: 99 RON = 9900 bani)
+            unit_amount: expectedAmount,
           },
           quantity: 1,
         },
       ],
       mode: 'payment',
       // Unde îl trimitem după ce a plătit cu succes (îl trimitem direct în Dashboard)
-      success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/dashboard?payment=success&listing=${listingId}`,
+      success_url: `${baseUrl}/dashboard?payment=success&listing=${listingId}`,
       // Unde îl trimitem dacă dă "Înapoi" sau închide plata
-      cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/pune-anunt`,
+      cancel_url: `${baseUrl}/pune-anunt`,
       metadata: {
-        listingId: listingId, // Salvăm ID-ul anunțului pe chitanță
+        type: 'listing',
+        listingId,
+        packageId: pkg.id,
+        expectedAmount: String(expectedAmount),
+        currency: 'ron',
       }
     });
 
