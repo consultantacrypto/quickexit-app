@@ -291,6 +291,9 @@ export default function AdminHQ() {
   const [copilotGeneratedAt, setCopilotGeneratedAt] = useState<string | null>(null);
   const [copilotUsedModel, setCopilotUsedModel] = useState<string | null>(null);
   const [copilotSessionReady, setCopilotSessionReady] = useState(false);
+  const [copilotAnalyticsAvailable, setCopilotAnalyticsAvailable] = useState<boolean | null>(null);
+  const [copilotGaLookbackDays, setCopilotGaLookbackDays] = useState<number | null>(null);
+  const [copilotGaWarnings, setCopilotGaWarnings] = useState<string[]>([]);
 
   const loadAdminData = useCallback(async () => {
     setLoadNote(null);
@@ -461,6 +464,9 @@ export default function AdminHQ() {
     setCopilotMode(mode);
     setCopilotResult(null);
     setCopilotUsedModel(null);
+    setCopilotAnalyticsAvailable(null);
+    setCopilotGaLookbackDays(null);
+    setCopilotGaWarnings([]);
 
     const {
       data: { session },
@@ -495,7 +501,12 @@ export default function AdminHQ() {
           model?: string;
           table?: string;
         };
-        snapshotSummary?: { warnings?: string[] };
+        snapshotSummary?: {
+          warnings?: string[];
+          analyticsAvailable?: boolean;
+          gaLookbackDays?: number | null;
+          gaWarnings?: string[];
+        };
         warnings?: string[];
         generatedAt?: string;
         usedModel?: string;
@@ -507,6 +518,13 @@ export default function AdminHQ() {
         setCopilotLoading(false);
         const warnings = payload.snapshotSummary?.warnings || payload.warnings || [];
         setCopilotWarnings(warnings);
+        setCopilotAnalyticsAvailable(
+          typeof payload.snapshotSummary?.analyticsAvailable === "boolean"
+            ? payload.snapshotSummary.analyticsAvailable
+            : null
+        );
+        setCopilotGaLookbackDays(payload.snapshotSummary?.gaLookbackDays ?? null);
+        setCopilotGaWarnings(payload.snapshotSummary?.gaWarnings || []);
         const detailParts = [
           payload.details?.status ? `HTTP ${payload.details.status}` : null,
           payload.details?.statusText || null,
@@ -526,6 +544,13 @@ export default function AdminHQ() {
       setCopilotGeneratedAt(payload.generatedAt || null);
       setCopilotUsedModel(payload.usedModel || null);
       setCopilotWarnings(payload.snapshotSummary?.warnings || []);
+      setCopilotAnalyticsAvailable(
+        typeof payload.snapshotSummary?.analyticsAvailable === "boolean"
+          ? payload.snapshotSummary.analyticsAvailable
+          : null
+      );
+      setCopilotGaLookbackDays(payload.snapshotSummary?.gaLookbackDays ?? null);
+      setCopilotGaWarnings(payload.snapshotSummary?.gaWarnings || []);
       if (mode === "selftest") {
         setCopilotResult({
           executiveSummary: "Rezultat test conexiune Gemini",
@@ -838,7 +863,7 @@ export default function AdminHQ() {
                   disabled={copilotLoading || !copilotSessionReady}
                   className="rounded-full border border-black/40 bg-white px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-neutral-700 hover:border-black disabled:opacity-50"
                 >
-                  Test Gemini
+                  Test Gemini + GA
                 </button>
               </div>
 
@@ -859,6 +884,18 @@ export default function AdminHQ() {
                   {copilotUsedModel && (
                     <p className="text-[11px] font-medium text-neutral-600">
                       Model folosit: <span className="font-semibold">{copilotUsedModel}</span>
+                    </p>
+                  )}
+                  {copilotAnalyticsAvailable !== null && (
+                    <p className="text-[11px] font-medium text-neutral-600">
+                      {copilotAnalyticsAvailable
+                        ? `Context GA inclus${copilotGaLookbackDays ? ` (${copilotGaLookbackDays} zile)` : ""}`
+                        : "Context GA indisponibil - analiza doar pe date interne"}
+                    </p>
+                  )}
+                  {copilotGaWarnings.length > 0 && (
+                    <p className="text-[11px] font-medium text-amber-800">
+                      Avertismente GA: {copilotGaWarnings.join(" | ")}
                     </p>
                   )}
                   {copilotResult.executiveSummary && (

@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import {
+  getAnalyticsSnapshot,
+  isGaDataConfigured,
+  normalizeGaPropertyId,
+} from "@/lib/gaData";
 
 export const runtime = "nodejs";
 
@@ -52,6 +57,8 @@ type GeminiCallResult =
       kind: "all_failed";
       attempts: GeminiAttempt[];
     };
+
+type AnalyticsSnapshot = Awaited<ReturnType<typeof getAnalyticsSnapshot>>;
 
 function safeBodySnippet(bodyText: string, secret: string): string {
   let cleaned = bodyText;
@@ -412,6 +419,18 @@ export async function POST(req: NextRequest) {
     }
 
     if (mode === "selftest") {
+      const normalizedGaPropertyId = normalizeGaPropertyId(process.env.GA_PROPERTY_ID);
+      const gaEnvPresent = isGaDataConfigured();
+      let gaStatus: "ok" | "error" = "error";
+      let gaError: string | null = null;
+
+      try {
+        await getAnalyticsSnapshot();
+        gaStatus = "ok";
+      } catch (error) {
+        gaError = error instanceof Error ? error.message.slice(0, 180) : "Eroare necunoscuta";
+      }
+
       const selftestRun = await callGeminiWithFallback({
         candidateModels,
         geminiApiKey,
@@ -443,6 +462,10 @@ export async function POST(req: NextRequest) {
               geminiModel: configuredModel,
               candidateModels,
               serviceRoleKeyPresent: Boolean(serviceRoleKey),
+              gaStatus,
+              gaError,
+              gaEnvPresent,
+              gaPropertyIdNormalized: normalizedGaPropertyId || null,
             },
           },
           { status: 502 }
@@ -458,6 +481,10 @@ export async function POST(req: NextRequest) {
           geminiModel: configuredModel,
           candidateModels,
           serviceRoleKeyPresent: Boolean(serviceRoleKey),
+          gaStatus,
+          gaError,
+          gaEnvPresent,
+          gaPropertyIdNormalized: normalizedGaPropertyId || null,
           text: selftestRun.text || safeBodySnippet(selftestRun.rawBody, geminiApiKey),
           attempts: selftestRun.attempts,
         },
@@ -539,6 +566,18 @@ export async function POST(req: NextRequest) {
     const listingsActive = listings.filter((l) => l.status === "active");
     const demandsActive = demands.filter((d) => d.status === "active");
     const lowConfidenceReports = valuationReports.filter((r) => toNum(r.confidence_score) < 50);
+    let analyticsSnapshot: AnalyticsSnapshot | null = null;
+    const gaWarnings: string[] = [];
+
+    try {
+      analyticsSnapshot = await getAnalyticsSnapshot();
+      gaWarnings.push(...analyticsSnapshot.warnings);
+    } catch (error) {
+      const shortMessage = error instanceof Error ? error.message.slice(0, 180) : "Eroare necunoscuta";
+      warnings.push(`GA Data API indisponibil: ${shortMessage}`);
+      gaWarnings.push(`GA Data API indisponibil: ${shortMessage}`);
+      analyticsSnapshot = null;
+    }
 
     const snapshot = {
       generatedAt: new Date().toISOString(),
@@ -579,7 +618,6 @@ export async function POST(req: NextRequest) {
           category: d.category ?? null,
           budget: toNum(d.budget),
           status: d.status ?? null,
-          buyer_id: d.buyer_id ? String(d.buyer_id).slice(0, 8) : null,
           created_at: d.created_at ?? null,
         })),
       },
@@ -615,7 +653,6 @@ export async function POST(req: NextRequest) {
         }, {}),
         recent: profiles.slice(0, 10).map((p) => ({
           id: p.id ?? null,
-          full_name: p.full_name ?? null,
           kyc_status: p.kyc_status ?? null,
           user_type: p.user_type ?? null,
           created_at: p.created_at ?? null,
@@ -650,6 +687,7 @@ export async function POST(req: NextRequest) {
         resolved_risks_count: recentResolvedRisks.length,
         recent_resolved_risks: recentResolvedRisks,
       },
+      analytics: analyticsSnapshot,
     };
 
     const fullPrompt = `
@@ -663,6 +701,10 @@ Rolul tau:
 - raspunzi in romana
 - esti practic, structurat si orientat pe actiuni
 - prioritizezi increderea, monetizarea, siguranta si claritatea UX
+- daca exista analytics in snapshot, combina datele GA agregate cu datele operationale interne
+- compara funnel-urile (seller, buyer, offer, social, admin) si semnaleaza frictiunile
+- daca analytics este null, spune explicit ca analiza este bazata doar pe date interne
+- nu include si nu cere PII (email, telefon, nume complet, tokenuri, date KYC, texte libere user)
 
 Mod analiza: ${mode}
 Directie pentru acest mod: ${modeSpecificInstruction(mode)}
@@ -722,6 +764,15 @@ Format obligatoriu:
             profiles_total: profiles.length,
             valuation_reports_total: valuationReports.length,
             active_risks_total: generatedRisks.length,
+            analyticsAvailable: Boolean(analyticsSnapshot),
+            gaLookbackDays: analyticsSnapshot?.lookbackDays ?? null,
+            gaWarnings,
+            topEventCounts: analyticsSnapshot
+              ? Object.entries(analyticsSnapshot.events)
+                  .sort((a, b) => b[1] - a[1])
+                  .slice(0, 5)
+                  .map(([eventName, eventCount]) => ({ eventName, eventCount }))
+              : [],
             warnings,
           },
         },
@@ -748,6 +799,15 @@ Format obligatoriu:
             profiles_total: profiles.length,
             valuation_reports_total: valuationReports.length,
             active_risks_total: generatedRisks.length,
+            analyticsAvailable: Boolean(analyticsSnapshot),
+            gaLookbackDays: analyticsSnapshot?.lookbackDays ?? null,
+            gaWarnings,
+            topEventCounts: analyticsSnapshot
+              ? Object.entries(analyticsSnapshot.events)
+                  .sort((a, b) => b[1] - a[1])
+                  .slice(0, 5)
+                  .map(([eventName, eventCount]) => ({ eventName, eventCount }))
+              : [],
             warnings,
           },
         },
@@ -768,6 +828,15 @@ Format obligatoriu:
           profiles_total: profiles.length,
           valuation_reports_total: valuationReports.length,
           active_risks_total: generatedRisks.length,
+          analyticsAvailable: Boolean(analyticsSnapshot),
+          gaLookbackDays: analyticsSnapshot?.lookbackDays ?? null,
+          gaWarnings,
+          topEventCounts: analyticsSnapshot
+            ? Object.entries(analyticsSnapshot.events)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 5)
+                .map(([eventName, eventCount]) => ({ eventName, eventCount }))
+            : [],
           warnings,
         },
         result: { rawText: safeBodySnippet(geminiRun.rawBody, geminiApiKey), parseWarning: true },
@@ -787,6 +856,15 @@ Format obligatoriu:
           profiles_total: profiles.length,
           valuation_reports_total: valuationReports.length,
           active_risks_total: generatedRisks.length,
+          analyticsAvailable: Boolean(analyticsSnapshot),
+          gaLookbackDays: analyticsSnapshot?.lookbackDays ?? null,
+          gaWarnings,
+          topEventCounts: analyticsSnapshot
+            ? Object.entries(analyticsSnapshot.events)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 5)
+                .map(([eventName, eventCount]) => ({ eventName, eventCount }))
+            : [],
           warnings,
         },
         result: parsed,
@@ -803,6 +881,15 @@ Format obligatoriu:
           profiles_total: profiles.length,
           valuation_reports_total: valuationReports.length,
           active_risks_total: generatedRisks.length,
+          analyticsAvailable: Boolean(analyticsSnapshot),
+          gaLookbackDays: analyticsSnapshot?.lookbackDays ?? null,
+          gaWarnings,
+          topEventCounts: analyticsSnapshot
+            ? Object.entries(analyticsSnapshot.events)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 5)
+                .map(([eventName, eventCount]) => ({ eventName, eventCount }))
+            : [],
           warnings,
         },
         result: {
