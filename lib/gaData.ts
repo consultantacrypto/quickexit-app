@@ -217,12 +217,13 @@ export function isGaDataConfigured(): boolean {
 function getGaClient() {
   const clientEmail = String(process.env.GOOGLE_CLIENT_EMAIL ?? "").trim();
   const privateKeyRaw = String(process.env.GOOGLE_PRIVATE_KEY ?? "").trim();
-  const privateKey = privateKeyRaw.replace(/\\n/g, "\n");
+  const normalizedPrivateKey = privateKeyRaw.replace(/\\n/g, "\n");
   return new BetaAnalyticsDataClient({
     credentials: {
       client_email: clientEmail,
-      private_key: privateKey,
+      private_key: normalizedPrivateKey,
     },
+    fallback: true,
   });
 }
 
