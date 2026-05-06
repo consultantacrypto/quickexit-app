@@ -28,6 +28,7 @@ type CopilotStructuredResult = {
 const VALID_MODES: CopilotMode[] = ["daily", "risk", "priorities", "growth", "selftest"];
 const RETRYABLE_HTTP_STATUSES = new Set([429, 500, 502, 503, 504]);
 const RETRYABLE_GEMINI_STATUSES = new Set(["UNAVAILABLE", "RESOURCE_EXHAUSTED"]);
+const HQ_COPILOT_DIAGNOSTICS_VERSION = "ga-diagnostics-v2";
 
 type GeminiAttempt = {
   model: string;
@@ -470,6 +471,7 @@ export async function POST(req: NextRequest) {
                     model: selftestRun.model,
                   },
             selftest: {
+              diagnosticsVersion: HQ_COPILOT_DIAGNOSTICS_VERSION,
               geminiApiKeyPresent: Boolean(geminiApiKey),
               geminiModel: configuredModel,
               candidateModels,
@@ -491,6 +493,7 @@ export async function POST(req: NextRequest) {
         mode: "selftest",
         usedModel: selftestRun.usedModel,
         selftest: {
+          diagnosticsVersion: HQ_COPILOT_DIAGNOSTICS_VERSION,
           geminiApiKeyPresent: Boolean(geminiApiKey),
           geminiModel: configuredModel,
           candidateModels,
@@ -775,6 +778,7 @@ Format obligatoriu:
             attempts: geminiRun.attempts,
           },
           snapshotSummary: {
+            diagnosticsVersion: HQ_COPILOT_DIAGNOSTICS_VERSION,
             listings_total: listings.length,
             demands_total: demands.length,
             profiles_total: profiles.length,
@@ -810,6 +814,7 @@ Format obligatoriu:
             attempts: geminiRun.attempts,
           },
           snapshotSummary: {
+            diagnosticsVersion: HQ_COPILOT_DIAGNOSTICS_VERSION,
             listings_total: listings.length,
             demands_total: demands.length,
             profiles_total: profiles.length,
@@ -839,6 +844,7 @@ Format obligatoriu:
         generatedAt: snapshot.generatedAt,
         usedModel: geminiRun.usedModel,
         snapshotSummary: {
+          diagnosticsVersion: HQ_COPILOT_DIAGNOSTICS_VERSION,
           listings_total: listings.length,
           demands_total: demands.length,
           profiles_total: profiles.length,
@@ -867,6 +873,7 @@ Format obligatoriu:
         generatedAt: snapshot.generatedAt,
         usedModel: geminiRun.usedModel,
         snapshotSummary: {
+          diagnosticsVersion: HQ_COPILOT_DIAGNOSTICS_VERSION,
           listings_total: listings.length,
           demands_total: demands.length,
           profiles_total: profiles.length,
@@ -892,6 +899,7 @@ Format obligatoriu:
         generatedAt: snapshot.generatedAt,
         usedModel: geminiRun.usedModel,
         snapshotSummary: {
+          diagnosticsVersion: HQ_COPILOT_DIAGNOSTICS_VERSION,
           listings_total: listings.length,
           demands_total: demands.length,
           profiles_total: profiles.length,
