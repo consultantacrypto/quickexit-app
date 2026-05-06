@@ -336,15 +336,15 @@ function generateOperationalRisks(input: {
 
 function modeSpecificInstruction(mode: CopilotMode): string {
   if (mode === "daily") {
-    return "Concentreaza analiza pe sumar operational, ce merge, ce e blocat, ce s-a schimbat si ce trebuie facut azi.";
+    return "Livreaza analiza zilnica operationala: rezumat executiv in 3 puncte, ce merge bine, ce nu merge, drop-off-uri observabile, riscuri de urmarit azi si top 5 actiuni recomandate cu prioritate (High/Medium/Low) si efort (Mic/Mediu/Mare).";
   }
   if (mode === "risk") {
-    return "Concentreaza analiza pe riscuri critice, medii, mici, verificari manuale si ce nu trebuie ignorat.";
+    return "Concentreaza analiza pe riscuri: critice, comerciale, UX/funnel, operationale, ce trebuie verificat manual si actiuni recomandate.";
   }
   if (mode === "priorities") {
-    return "Returneaza top 5 actiuni recomandate; pentru fiecare include impact, efort, urgenta si motiv.";
+    return "Returneaza top 5 prioritati pentru urmatoarele 24-48h; pentru fiecare include de ce conteaza, impact, efort, ce fisier/zona ar putea fi afectata daca este evident si ce NU trebuie atins.";
   }
-  return "Concentreaza analiza pe categorii cu potential, dezechilibre cerere-oferta si ce merita promovat manual.";
+  return "Concentreaza analiza pe crestere: oportunitati de trafic, conversie, distributie sociala, categorii/listari/cereri de impins, experimente rapide si mesaje recomandate pentru distributie.";
 }
 
 export async function POST(req: NextRequest) {
@@ -757,20 +757,39 @@ Rolul tau:
 - nu inventezi date
 - folosesti doar snapshot-ul primit
 - raspunzi in romana
-- esti practic, structurat si orientat pe actiuni
+- esti direct, antreprenorial, concret, fara jargon inutil
+- evita optimismul fals si formularea vaga de tip "optimizeaza experienta"
 - prioritizezi increderea, monetizarea, siguranta si claritatea UX
 - daca exista analytics in snapshot, combina datele GA agregate cu datele operationale interne
+- daca analytics exista, spune explicit ca analiza include context GA
 - compara funnel-urile (seller, buyer, offer, social, admin) si semnaleaza frictiunile
 - daca analytics este null, spune explicit ca analiza este bazata doar pe date interne
+- daca analytics este null, include explicit fraza: "Context GA indisponibil - analiza foloseste doar date interne."
+- daca datele sunt putine, include explicit fraza: "Esantionul este inca mic; concluziile sunt orientative."
 - nu include si nu cere PII (email, telefon, nume complet, tokenuri, date KYC, texte libere user)
+- foloseste impreuna: date Supabase interne, analyticsSnapshot GA4, riscuri operationale generate, statusuri listings/demands/offers/profiles
+- cand analytics exista, foloseste explicit: summary (activeUsers, sessions, screenPageViews, eventCount), events/topEventCounts, funnels, topPages, traffic, devices
 
 Mod analiza: ${mode}
 Directie pentru acest mod: ${modeSpecificInstruction(mode)}
 
+Relatii pe care trebuie sa le verifici explicit in analiza:
+- view_listing mare dar copy_social_share mic
+- view_capital_disponibil mare dar click_send_demand_offer mic
+- click_evaluate mare dar start_evaluation mic
+- start_post_listing mare dar checkout_listing_started mic
+- start_post_demand mare dar checkout_demand_started mic
+- mobile dominant dar conversie slaba
+- pagini cu trafic dar fara actiune
+- cereri/listari active in Supabase fara engagement GA
+- oferte putine comparativ cu cereri/listari active
+
 Snapshot operational:
 ${JSON.stringify(snapshot, null, 2)}
 
-Raspunde STRICT in JSON valid, fara markdown, fara backticks, fara text inainte sau dupa JSON.
+Raspunde in JSON valid, fara markdown, fara backticks, fara text inainte sau dupa JSON.
+Pastreaza structura obligatorie de mai jos pentru compatibilitate UI.
+Campurile "why" si "founderNote" trebuie sa includa actiuni exacte, nu formulare generale.
 
 Format obligatoriu:
 {
