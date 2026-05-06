@@ -49,9 +49,28 @@ type GaSnapshot = {
   traffic: Array<{ source: string; medium: string; sessions: number; activeUsers: number }>;
   devices: Array<{ deviceCategory: string; sessions: number; activeUsers: number }>;
   warnings: string[];
+  debugErrors?: GaErrorDebugInfo[];
 };
 
 type RunReportRequest = Parameters<BetaAnalyticsDataClient["runReport"]>[0];
+type GaErrorDebugInfo = {
+  label: string;
+  message: string;
+  rawShape: {
+    constructorName: string | null;
+    ownPropertyNames: string[];
+    message: string | null;
+    code: string | number | null;
+    status: string | number | null;
+    details: string | null;
+    responseStatus: string | number | null;
+    responseStatusText: string | null;
+    responseDataErrorMessage: string | null;
+    responseDataErrorStatus: string | null;
+    responseDataErrorCode: string | number | null;
+    serializedPreview: string;
+  };
+};
 
 function toNumber(value: string | number | null | undefined): number {
   const parsed = Number(value);
@@ -79,22 +98,104 @@ function isTrackedEventName(eventName: string): eventName is TrackedEventName {
   return (TRACKED_EVENTS as readonly string[]).includes(eventName);
 }
 
-function getGaErrorMessage(error: unknown) {
-  if (error instanceof Error) return error.message;
-  if (typeof error === "object" && error !== null) {
-    const anyError = error as Record<string, unknown>;
-    const combined = [anyError.code, anyError.status, anyError.details, anyError.message]
-      .filter(Boolean)
-      .map((part) => String(part))
-      .join(" | ");
-    if (combined) return combined;
-    try {
-      return JSON.stringify(anyError).slice(0, 500);
-    } catch {
-      return "Eroare necunoscuta";
+function isUsefulMessage(value: unknown) {
+  return (
+    typeof value === "string" &&
+    value.trim().length > 0 &&
+    value.trim() !== "undefined undefined: undefined" &&
+    value.trim() !== "undefined"
+  );
+}
+
+function safeStringifyError(error: unknown) {
+  try {
+    if (error instanceof Error) {
+      const ownProps = Object.getOwnPropertyNames(error).reduce((acc, key) => {
+        acc[key] = (error as unknown as Record<string, unknown>)[key];
+        return acc;
+      }, {} as Record<string, unknown>);
+
+      return JSON.stringify(ownProps).slice(0, 1500);
     }
+
+    return JSON.stringify(error).slice(0, 1500);
+  } catch {
+    return String(error);
   }
-  return String(error);
+}
+
+function getGaErrorMessage(error: unknown) {
+  const e = error as Record<string, any>;
+
+  const candidates = [
+    e?.details,
+    e?.statusDetails,
+    e?.status,
+    e?.code,
+    e?.message,
+    e?.response?.data?.error?.message,
+    e?.response?.data?.error?.status,
+    e?.response?.data?.error?.code,
+    e?.response?.data?.error_description,
+    e?.response?.statusText,
+    e?.response?.status,
+    e?.errors?.[0]?.message,
+    e?.errors?.[0]?.reason,
+    e?.errors?.[0]?.domain,
+    e?.error?.message,
+    e?.error?.status,
+    e?.error?.code,
+  ];
+
+  const useful = candidates.filter(isUsefulMessage).map(String);
+  if (useful.length > 0) {
+    return useful.join(" | ").slice(0, 1500);
+  }
+
+  const fallback = safeStringifyError(error);
+  if (isUsefulMessage(fallback)) {
+    return fallback;
+  }
+
+  return "Eroare GA necunoscuta: obiectul de eroare nu contine mesaj util.";
+}
+
+function getGaErrorDebugShape(error: unknown) {
+  const e = error as Record<string, any>;
+  const constructorName =
+    typeof e?.constructor?.name === "string" ? (e.constructor.name as string) : null;
+  const ownPropertyNames =
+    typeof e === "object" && e !== null ? Object.getOwnPropertyNames(e) : [];
+  const serializedPreview = safeStringifyError(error);
+
+  return {
+    constructorName,
+    ownPropertyNames,
+    message: typeof e?.message === "string" ? e.message : null,
+    code: typeof e?.code === "string" || typeof e?.code === "number" ? e.code : null,
+    status: typeof e?.status === "string" || typeof e?.status === "number" ? e.status : null,
+    details: typeof e?.details === "string" ? e.details : null,
+    responseStatus:
+      typeof e?.response?.status === "string" || typeof e?.response?.status === "number"
+        ? e.response.status
+        : null,
+    responseStatusText:
+      typeof e?.response?.statusText === "string" ? e.response.statusText : null,
+    responseDataErrorMessage:
+      typeof e?.response?.data?.error?.message === "string"
+        ? e.response.data.error.message
+        : null,
+    responseDataErrorStatus:
+      typeof e?.response?.data?.error?.status === "string"
+        ? e.response.data.error.status
+        : null,
+    responseDataErrorCode:
+      typeof e?.response?.data?.error?.code === "string" ||
+      typeof e?.response?.data?.error?.code === "number"
+        ? e.response.data.error.code
+        : null,
+    serializedPreview,
+  };
 }
 
 export function normalizeGaPropertyId(raw: string | undefined | null): string {
@@ -132,16 +233,25 @@ async function runGaReport(
 ) {
   try {
     const [report] = await analyticsDataClient.runReport(request);
-    return { report, warning: null as string | null };
+    return { report, warning: null as string | null, debugError: null as GaErrorDebugInfo | null };
   } catch (error) {
+    const message = getGaErrorMessage(error);
+    const safeMessage = isUsefulMessage(message)
+      ? message
+      : "Eroare GA fara mesaj util; verifica gaDebugErrors din selftest.";
     return {
       report: null,
-      warning: `${label} indisponibil: ${getGaErrorMessage(error)}`,
+      warning: `${label} indisponibil: ${safeMessage}`,
+      debugError: {
+        label,
+        message: safeMessage,
+        rawShape: getGaErrorDebugShape(error),
+      },
     };
   }
 }
 
-export async function getAnalyticsSnapshot(): Promise<GaSnapshot> {
+export async function getAnalyticsSnapshot(options?: { includeDebugErrors?: boolean }): Promise<GaSnapshot> {
   const normalizedPropertyId = normalizeGaPropertyId(process.env.GA_PROPERTY_ID);
   if (!normalizedPropertyId) {
     throw new Error("GA_PROPERTY_ID lipseste sau este invalid.");
@@ -153,6 +263,7 @@ export async function getAnalyticsSnapshot(): Promise<GaSnapshot> {
 
   const lookbackDays = getLookbackDays();
   const warnings: string[] = [];
+  const debugErrors: GaErrorDebugInfo[] = [];
   const events = getBaseEventsMap();
   const analyticsDataClient = getGaClient();
   const property = `properties/${normalizedPropertyId}`;
@@ -206,7 +317,7 @@ export async function getAnalyticsSnapshot(): Promise<GaSnapshot> {
   };
 
   {
-    const { report, warning } = await runGaReport(analyticsDataClient, "summary", {
+    const { report, warning, debugError } = await runGaReport(analyticsDataClient, "summary", {
       property,
       dateRanges,
       metrics: [
@@ -219,6 +330,7 @@ export async function getAnalyticsSnapshot(): Promise<GaSnapshot> {
     });
     if (warning) {
       warnings.push(warning);
+      if (options?.includeDebugErrors && debugError) debugErrors.push(debugError);
     } else if (report) {
       successfulReports += 1;
       const row = report.rows?.[0];
@@ -232,7 +344,7 @@ export async function getAnalyticsSnapshot(): Promise<GaSnapshot> {
   }
 
   {
-    const { report, warning } = await runGaReport(analyticsDataClient, "events", {
+    const { report, warning, debugError } = await runGaReport(analyticsDataClient, "events", {
       property,
       dateRanges,
       dimensions: [{ name: "eventName" }],
@@ -241,6 +353,7 @@ export async function getAnalyticsSnapshot(): Promise<GaSnapshot> {
     });
     if (warning) {
       warnings.push(warning);
+      if (options?.includeDebugErrors && debugError) debugErrors.push(debugError);
     } else if (report) {
       successfulReports += 1;
       for (const row of report.rows ?? []) {
@@ -282,7 +395,7 @@ export async function getAnalyticsSnapshot(): Promise<GaSnapshot> {
   };
 
   {
-    const { report, warning } = await runGaReport(analyticsDataClient, "topPages", {
+    const { report, warning, debugError } = await runGaReport(analyticsDataClient, "topPages", {
       property,
       dateRanges,
       dimensions: [{ name: "pagePath" }],
@@ -292,6 +405,7 @@ export async function getAnalyticsSnapshot(): Promise<GaSnapshot> {
     });
     if (warning) {
       warnings.push(warning);
+      if (options?.includeDebugErrors && debugError) debugErrors.push(debugError);
     } else if (report) {
       successfulReports += 1;
       snapshot.topPages = (report.rows ?? []).map((row) => ({
@@ -303,7 +417,7 @@ export async function getAnalyticsSnapshot(): Promise<GaSnapshot> {
   }
 
   {
-    const { report, warning } = await runGaReport(analyticsDataClient, "traffic", {
+    const { report, warning, debugError } = await runGaReport(analyticsDataClient, "traffic", {
       property,
       dateRanges,
       dimensions: [{ name: "sessionSource" }, { name: "sessionMedium" }],
@@ -313,6 +427,7 @@ export async function getAnalyticsSnapshot(): Promise<GaSnapshot> {
     });
     if (warning) {
       warnings.push(warning);
+      if (options?.includeDebugErrors && debugError) debugErrors.push(debugError);
     } else if (report) {
       successfulReports += 1;
       snapshot.traffic = (report.rows ?? []).map((row) => ({
@@ -325,7 +440,7 @@ export async function getAnalyticsSnapshot(): Promise<GaSnapshot> {
   }
 
   {
-    const { report, warning } = await runGaReport(analyticsDataClient, "devices", {
+    const { report, warning, debugError } = await runGaReport(analyticsDataClient, "devices", {
       property,
       dateRanges,
       dimensions: [{ name: "deviceCategory" }],
@@ -334,6 +449,7 @@ export async function getAnalyticsSnapshot(): Promise<GaSnapshot> {
     });
     if (warning) {
       warnings.push(warning);
+      if (options?.includeDebugErrors && debugError) debugErrors.push(debugError);
     } else if (report) {
       successfulReports += 1;
       snapshot.devices = (report.rows ?? []).map((row) => ({
@@ -345,5 +461,8 @@ export async function getAnalyticsSnapshot(): Promise<GaSnapshot> {
   }
 
   snapshot.available = successfulReports > 0;
+  if (options?.includeDebugErrors) {
+    snapshot.debugErrors = debugErrors;
+  }
   return snapshot;
 }

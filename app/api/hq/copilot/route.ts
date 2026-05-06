@@ -431,10 +431,12 @@ export async function POST(req: NextRequest) {
         eventCount: number;
       } | null = null;
       let gaWarnings: string[] = [];
+      let gaDebugErrors: unknown[] = [];
 
       try {
-        const gaSnapshot = await getAnalyticsSnapshot();
+        const gaSnapshot = await getAnalyticsSnapshot({ includeDebugErrors: true });
         gaWarnings = gaSnapshot.warnings;
+        gaDebugErrors = gaSnapshot.debugErrors ?? [];
         gaSummaryTest = gaSnapshot.summary;
         gaStatus = gaSnapshot.available ? "ok" : "error";
         if (!gaSnapshot.available) {
@@ -482,6 +484,7 @@ export async function POST(req: NextRequest) {
               gaPropertyIdNormalized: normalizedGaPropertyId || null,
               gaSummaryTest,
               gaWarnings,
+              gaDebugErrors,
             },
           },
           { status: 502 }
@@ -504,6 +507,7 @@ export async function POST(req: NextRequest) {
           gaPropertyIdNormalized: normalizedGaPropertyId || null,
           gaSummaryTest,
           gaWarnings,
+          gaDebugErrors,
           text: selftestRun.text || safeBodySnippet(selftestRun.rawBody, geminiApiKey),
           attempts: selftestRun.attempts,
         },
