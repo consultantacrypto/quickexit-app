@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import {
+  getGaAuthMode,
   getAnalyticsSnapshot,
   isGaDataConfigured,
   normalizeGaPropertyId,
@@ -422,6 +423,7 @@ export async function POST(req: NextRequest) {
     if (mode === "selftest") {
       const normalizedGaPropertyId = normalizeGaPropertyId(process.env.GA_PROPERTY_ID);
       const gaEnvPresent = isGaDataConfigured();
+      const gaAuthMode = getGaAuthMode();
       let gaStatus: "ok" | "error" = "error";
       let gaError: string | null = null;
       let gaSummaryTest: {
@@ -481,6 +483,7 @@ export async function POST(req: NextRequest) {
               gaStatus,
               gaError,
               gaEnvPresent,
+              gaAuthMode,
               gaPropertyIdNormalized: normalizedGaPropertyId || null,
               gaSummaryTest,
               gaWarnings,
@@ -504,6 +507,7 @@ export async function POST(req: NextRequest) {
           gaStatus,
           gaError,
           gaEnvPresent,
+          gaAuthMode,
           gaPropertyIdNormalized: normalizedGaPropertyId || null,
           gaSummaryTest,
           gaWarnings,

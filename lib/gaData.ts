@@ -53,6 +53,8 @@ type GaSnapshot = {
 };
 
 type RunReportRequest = Parameters<BetaAnalyticsDataClient["runReport"]>[0];
+type GaAuthMode = "oauth" | "service_account";
+type GaReport = { rows?: Array<{ dimensionValues?: Array<{ value?: string }>; metricValues?: Array<{ value?: string }> }> };
 type GaErrorDebugInfo = {
   label: string;
   message: string;
@@ -207,11 +209,26 @@ export function normalizeGaPropertyId(raw: string | undefined | null): string {
   return value;
 }
 
+export function getGaAuthMode(): GaAuthMode {
+  return String(process.env.GOOGLE_AUTH_MODE ?? "").trim().toLowerCase() === "oauth"
+    ? "oauth"
+    : "service_account";
+}
+
 export function isGaDataConfigured(): boolean {
   const propertyId = normalizeGaPropertyId(process.env.GA_PROPERTY_ID);
+  if (!propertyId) return false;
+
+  if (getGaAuthMode() === "oauth") {
+    const oauthClientId = String(process.env.GOOGLE_OAUTH_CLIENT_ID ?? "").trim();
+    const oauthClientSecret = String(process.env.GOOGLE_OAUTH_CLIENT_SECRET ?? "").trim();
+    const oauthRefreshToken = String(process.env.GOOGLE_OAUTH_REFRESH_TOKEN ?? "").trim();
+    return Boolean(oauthClientId && oauthClientSecret && oauthRefreshToken);
+  }
+
   const clientEmail = String(process.env.GOOGLE_CLIENT_EMAIL ?? "").trim();
   const privateKeyRaw = String(process.env.GOOGLE_PRIVATE_KEY ?? "").trim();
-  return Boolean(propertyId && clientEmail && privateKeyRaw);
+  return Boolean(clientEmail && privateKeyRaw);
 }
 
 function getGaClient() {
@@ -227,11 +244,136 @@ function getGaClient() {
   });
 }
 
+async function getGoogleOAuthAccessToken() {
+  const clientId = String(process.env.GOOGLE_OAUTH_CLIENT_ID ?? "").trim();
+  const clientSecret = String(process.env.GOOGLE_OAUTH_CLIENT_SECRET ?? "").trim();
+  const refreshToken = String(process.env.GOOGLE_OAUTH_REFRESH_TOKEN ?? "").trim();
+
+  const missing: string[] = [];
+  if (!clientId) missing.push("GOOGLE_OAUTH_CLIENT_ID");
+  if (!clientSecret) missing.push("GOOGLE_OAUTH_CLIENT_SECRET");
+  if (!refreshToken) missing.push("GOOGLE_OAUTH_REFRESH_TOKEN");
+  if (missing.length > 0) {
+    throw new Error(`OAuth GA config incomplet: lipseste ${missing.join(" / ")}`);
+  }
+
+  const body = new URLSearchParams({
+    client_id: clientId,
+    client_secret: clientSecret,
+    refresh_token: refreshToken,
+    grant_type: "refresh_token",
+  });
+
+  const response = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: body.toString(),
+  });
+
+  const rawBody = await response.text();
+  let parsed: Record<string, unknown> | null = null;
+  try {
+    parsed = JSON.parse(rawBody) as Record<string, unknown>;
+  } catch {
+    parsed = null;
+  }
+
+  if (!response.ok) {
+    throw new Error(`OAuth token fetch failed: ${getGaErrorMessage(parsed ?? rawBody)}`);
+  }
+
+  const accessToken = parsed?.access_token;
+  if (typeof accessToken !== "string" || !accessToken.trim()) {
+    throw new Error("OAuth token fetch failed: access_token lipseste.");
+  }
+
+  return accessToken;
+}
+
+async function runGaReportWithOAuth(params: {
+  label: string;
+  propertyId: string;
+  requestBody: Record<string, unknown>;
+}): Promise<{ report: GaReport | null; warning: string | null; debugError: GaErrorDebugInfo | null }> {
+  try {
+    const accessToken = await getGoogleOAuthAccessToken();
+    const response = await fetch(
+      `https://analyticsdata.googleapis.com/v1beta/properties/${encodeURIComponent(params.propertyId)}:runReport`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(params.requestBody),
+      }
+    );
+
+    const rawBody = await response.text();
+    let parsed: Record<string, unknown> | null = null;
+    try {
+      parsed = JSON.parse(rawBody) as Record<string, unknown>;
+    } catch {
+      parsed = null;
+    }
+
+    if (!response.ok) {
+      const message = getGaErrorMessage(parsed ?? rawBody);
+      const safeMessage = isUsefulMessage(message)
+        ? message
+        : "Eroare GA fara mesaj util; verifica gaDebugErrors din selftest.";
+      return {
+        report: null,
+        warning: `${params.label} indisponibil: ${safeMessage}`,
+        debugError: {
+          label: params.label,
+          message: safeMessage,
+          rawShape: getGaErrorDebugShape(parsed ?? rawBody),
+        },
+      };
+    }
+
+    return { report: (parsed ?? {}) as GaReport, warning: null, debugError: null };
+  } catch (error) {
+    const message = getGaErrorMessage(error);
+    const safeMessage = isUsefulMessage(message)
+      ? message
+      : "Eroare GA fara mesaj util; verifica gaDebugErrors din selftest.";
+    return {
+      report: null,
+      warning: `${params.label} indisponibil: ${safeMessage}`,
+      debugError: {
+        label: params.label,
+        message: safeMessage,
+        rawShape: getGaErrorDebugShape(error),
+      },
+    };
+  }
+}
+
 async function runGaReport(
-  analyticsDataClient: BetaAnalyticsDataClient,
+  analyticsDataClient: BetaAnalyticsDataClient | null,
+  authMode: GaAuthMode,
+  propertyId: string,
   label: string,
   request: RunReportRequest
 ) {
+  if (authMode === "oauth") {
+    return runGaReportWithOAuth({
+      label,
+      propertyId,
+      requestBody: request as Record<string, unknown>,
+    });
+  }
+
+  if (!analyticsDataClient) {
+    return {
+      report: null,
+      warning: `${label} indisponibil: Clientul GA service account nu este initializat.`,
+      debugError: null as GaErrorDebugInfo | null,
+    };
+  }
+
   try {
     const [report] = await analyticsDataClient.runReport(request);
     return { report, warning: null as string | null, debugError: null as GaErrorDebugInfo | null };
@@ -262,11 +404,12 @@ export async function getAnalyticsSnapshot(options?: { includeDebugErrors?: bool
     throw new Error("Config GA Data API incompleta.");
   }
 
+  const authMode = getGaAuthMode();
   const lookbackDays = getLookbackDays();
   const warnings: string[] = [];
   const debugErrors: GaErrorDebugInfo[] = [];
   const events = getBaseEventsMap();
-  const analyticsDataClient = getGaClient();
+  const analyticsDataClient = authMode === "service_account" ? getGaClient() : null;
   const property = `properties/${normalizedPropertyId}`;
   const dateRanges = getDateRange(lookbackDays);
   let successfulReports = 0;
@@ -318,7 +461,12 @@ export async function getAnalyticsSnapshot(options?: { includeDebugErrors?: bool
   };
 
   {
-    const { report, warning, debugError } = await runGaReport(analyticsDataClient, "summary", {
+    const { report, warning, debugError } = await runGaReport(
+      analyticsDataClient,
+      authMode,
+      normalizedPropertyId,
+      "summary",
+      {
       property,
       dateRanges,
       metrics: [
@@ -328,7 +476,8 @@ export async function getAnalyticsSnapshot(options?: { includeDebugErrors?: bool
         { name: "eventCount" },
       ],
       limit: 1,
-    });
+      }
+    );
     if (warning) {
       warnings.push(warning);
       if (options?.includeDebugErrors && debugError) debugErrors.push(debugError);
@@ -345,13 +494,19 @@ export async function getAnalyticsSnapshot(options?: { includeDebugErrors?: bool
   }
 
   {
-    const { report, warning, debugError } = await runGaReport(analyticsDataClient, "events", {
+    const { report, warning, debugError } = await runGaReport(
+      analyticsDataClient,
+      authMode,
+      normalizedPropertyId,
+      "events",
+      {
       property,
       dateRanges,
       dimensions: [{ name: "eventName" }],
       metrics: [{ name: "eventCount" }],
       limit: 200,
-    });
+      }
+    );
     if (warning) {
       warnings.push(warning);
       if (options?.includeDebugErrors && debugError) debugErrors.push(debugError);
@@ -396,14 +551,20 @@ export async function getAnalyticsSnapshot(options?: { includeDebugErrors?: bool
   };
 
   {
-    const { report, warning, debugError } = await runGaReport(analyticsDataClient, "topPages", {
+    const { report, warning, debugError } = await runGaReport(
+      analyticsDataClient,
+      authMode,
+      normalizedPropertyId,
+      "topPages",
+      {
       property,
       dateRanges,
       dimensions: [{ name: "pagePath" }],
       metrics: [{ name: "screenPageViews" }, { name: "activeUsers" }],
       limit: 10,
       orderBys: [{ metric: { metricName: "screenPageViews" }, desc: true }],
-    });
+      }
+    );
     if (warning) {
       warnings.push(warning);
       if (options?.includeDebugErrors && debugError) debugErrors.push(debugError);
@@ -418,14 +579,20 @@ export async function getAnalyticsSnapshot(options?: { includeDebugErrors?: bool
   }
 
   {
-    const { report, warning, debugError } = await runGaReport(analyticsDataClient, "traffic", {
+    const { report, warning, debugError } = await runGaReport(
+      analyticsDataClient,
+      authMode,
+      normalizedPropertyId,
+      "traffic",
+      {
       property,
       dateRanges,
       dimensions: [{ name: "sessionSource" }, { name: "sessionMedium" }],
       metrics: [{ name: "sessions" }, { name: "activeUsers" }],
       limit: 10,
       orderBys: [{ metric: { metricName: "sessions" }, desc: true }],
-    });
+      }
+    );
     if (warning) {
       warnings.push(warning);
       if (options?.includeDebugErrors && debugError) debugErrors.push(debugError);
@@ -441,13 +608,19 @@ export async function getAnalyticsSnapshot(options?: { includeDebugErrors?: bool
   }
 
   {
-    const { report, warning, debugError } = await runGaReport(analyticsDataClient, "devices", {
+    const { report, warning, debugError } = await runGaReport(
+      analyticsDataClient,
+      authMode,
+      normalizedPropertyId,
+      "devices",
+      {
       property,
       dateRanges,
       dimensions: [{ name: "deviceCategory" }],
       metrics: [{ name: "sessions" }, { name: "activeUsers" }],
       orderBys: [{ metric: { metricName: "sessions" }, desc: true }],
-    });
+      }
+    );
     if (warning) {
       warnings.push(warning);
       if (options?.includeDebugErrors && debugError) debugErrors.push(debugError);
