@@ -15,6 +15,7 @@ export function buildPageMetadata({
   const siteUrl = getSiteUrl();
   const normalizedPath = path.startsWith("/") ? path : `/${path}`;
   const canonical = `${siteUrl}${normalizedPath}`;
+  const openGraphTitle = title.includes("Quick Exit") ? title : `${title} | Quick Exit`;
 
   return {
     title,
@@ -23,7 +24,7 @@ export function buildPageMetadata({
       canonical,
     },
     openGraph: {
-      title: `${title} | Quick Exit`,
+      title: openGraphTitle,
       description,
       url: canonical,
       type: "website",

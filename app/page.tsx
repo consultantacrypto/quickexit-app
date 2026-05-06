@@ -13,9 +13,9 @@ import { normalizeSaleType } from "@/utils/normalizeSaleType";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 export const metadata: Metadata = buildPageMetadata({
-  title: "Acasa",
+  title: "Quick Exit | Platformă de lichiditate rapidă pentru active",
   description:
-    "Quick Exit conecteaza vanzatori care vor lichiditate rapida cu investitori care au capital disponibil in Romania.",
+    "Quick Exit conectează vânzătorii care vor lichiditate rapidă cu cumpărători și investitori pregătiți pentru achiziții.",
   path: "/",
 });
 
