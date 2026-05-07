@@ -11,6 +11,14 @@ export default function robots(): MetadataRoute.Robots {
         allow: "/",
         disallow: ["/dashboard", "/hq-admin", "/api"],
       },
+      {
+        userAgent: "OAI-SearchBot",
+        allow: "/",
+      },
+      {
+        userAgent: "ChatGPT-User",
+        allow: "/",
+      },
     ],
     sitemap: `${siteUrl}/sitemap.xml`,
   };

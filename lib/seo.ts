@@ -15,16 +15,18 @@ export function buildPageMetadata({
   const siteUrl = getSiteUrl();
   const normalizedPath = path.startsWith("/") ? path : `/${path}`;
   const canonical = `${siteUrl}${normalizedPath}`;
-  const openGraphTitle = title.includes("Quick Exit") ? title : `${title} | Quick Exit`;
+  const finalTitle = title.includes("Quick Exit") ? title : `${title} | Quick Exit`;
 
   return {
-    title,
+    title: {
+      absolute: finalTitle,
+    },
     description,
     alternates: {
       canonical,
     },
     openGraph: {
-      title: openGraphTitle,
+      title: finalTitle,
       description,
       url: canonical,
       type: "website",
