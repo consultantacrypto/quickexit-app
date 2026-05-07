@@ -4,17 +4,11 @@ export type ListingSeoRow = {
   id: string;
   title: string | null;
   category: string | null;
-  location: string | null;
-  market_price: number | null;
   exit_price: number | null;
-  discount: number | null;
-  discount_percentage: number | null;
   images: string[] | null;
   description: string | null;
-  details: Record<string, unknown> | null;
   status: string | null;
   is_seed: boolean | null;
-  created_at: string | null;
 };
 
 function getEnv(name: string): string | null {
@@ -29,7 +23,13 @@ export async function fetchPublicListingSeoRow(id: string): Promise<ListingSeoRo
 
   const supabaseUrl = getEnv("NEXT_PUBLIC_SUPABASE_URL");
   const supabaseAnonKey = getEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY");
-  if (!supabaseUrl || !supabaseAnonKey) return null;
+  if (!supabaseUrl || !supabaseAnonKey) {
+    console.warn("listingSeo.fetchPublicListingSeoRow missing env", {
+      missingNextPublicSupabaseUrl: !supabaseUrl,
+      missingNextPublicSupabaseAnonKey: !supabaseAnonKey,
+    });
+    return null;
+  }
 
   const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
@@ -49,17 +49,11 @@ export async function fetchPublicListingSeoRow(id: string): Promise<ListingSeoRo
         "id",
         "title",
         "category",
-        "location",
-        "market_price",
         "exit_price",
-        "discount",
-        "discount_percentage",
         "images",
         "description",
-        "details",
         "status",
         "is_seed",
-        "created_at",
       ].join(",")
     )
     .eq("id", listingId)
@@ -67,7 +61,15 @@ export async function fetchPublicListingSeoRow(id: string): Promise<ListingSeoRo
     .eq("is_seed", false)
     .maybeSingle();
 
-  if (error || !data) return null;
+  if (error) {
+    console.warn("listingSeo.fetchPublicListingSeoRow failed", {
+      listingId,
+      code: error.code ?? null,
+      message: error.message ?? null,
+    });
+    return null;
+  }
+  if (!data) return null;
   return data as unknown as ListingSeoRow;
 }
 
