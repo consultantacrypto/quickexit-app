@@ -24,12 +24,22 @@ function getEnv(name: string): string | null {
 }
 
 export async function fetchPublicListingSeoRow(id: string): Promise<ListingSeoRow | null> {
+  const listingId = typeof id === "string" ? id.trim() : "";
+  if (!listingId) return null;
+
   const supabaseUrl = getEnv("NEXT_PUBLIC_SUPABASE_URL");
   const supabaseAnonKey = getEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY");
   if (!supabaseUrl || !supabaseAnonKey) return null;
 
   const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+    global: {
+      fetch: (url, options) =>
+        fetch(url, {
+          ...options,
+          cache: "no-store",
+        }),
+    },
   });
 
   const { data, error } = await supabase
@@ -52,7 +62,7 @@ export async function fetchPublicListingSeoRow(id: string): Promise<ListingSeoRo
         "created_at",
       ].join(",")
     )
-    .eq("id", id)
+    .eq("id", listingId)
     .eq("status", "active")
     .eq("is_seed", false)
     .maybeSingle();
