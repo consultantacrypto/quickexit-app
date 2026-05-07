@@ -3,8 +3,11 @@ import AnuntClient from "./AnuntClient";
 import { getSiteUrl } from "@/lib/siteUrl";
 import { fetchPublicListingSeoRow, type ListingSeoRow } from "@/lib/listingSeo";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 type PageProps = {
-  params: Promise<{ id?: string }>;
+  params: Promise<{ id: string }>;
 };
 
 function formatEurPrice(value: number | null | undefined): string | null {
@@ -60,18 +63,18 @@ function normalizeId(raw: string | undefined): string | null {
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const { id: rawId } = await params;
-  const id = normalizeId(rawId);
+  const { id } = await params;
+  const listingId = normalizeId(id);
   const siteUrl = getSiteUrl();
-  const canonicalPath = id ? `/anunt/${id}` : "/anunt";
+  const canonicalPath = listingId ? `/anunt/${listingId}` : "/anunt";
   const canonicalAbs = `${siteUrl}${canonicalPath}`;
 
-  const listing = id ? await fetchPublicListingSeoRow(id) : null;
+  const listing = listingId ? await fetchPublicListingSeoRow(listingId) : null;
   if (!listing) {
     return {
       title: { absolute: "Anunț indisponibil | Quick Exit" },
       description: "Acest anunț nu este disponibil public momentan.",
-      alternates: { canonical: canonicalPath },
+      alternates: { canonical: canonicalAbs },
       robots: { index: false, follow: false },
       openGraph: {
         title: "Anunț indisponibil | Quick Exit",
@@ -98,7 +101,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   return {
     title: { absolute: title },
     description,
-    alternates: { canonical: canonicalPath },
+    alternates: { canonical: canonicalAbs },
     robots: { index: true, follow: true },
     openGraph: {
       title,
@@ -113,13 +116,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 export default async function ListingPage({ params }: PageProps) {
-  const { id: rawId } = await params;
-  const id = normalizeId(rawId);
+  const { id } = await params;
+  const listingId = normalizeId(id);
   const siteUrl = getSiteUrl();
-  const canonicalPath = id ? `/anunt/${id}` : "/anunt";
+  const canonicalPath = listingId ? `/anunt/${listingId}` : "/anunt";
   const canonicalAbs = `${siteUrl}${canonicalPath}`;
 
-  const listing = id ? await fetchPublicListingSeoRow(id) : null;
+  const listing = listingId ? await fetchPublicListingSeoRow(listingId) : null;
 
   const hasValidExitPrice =
     typeof listing?.exit_price === "number" &&
