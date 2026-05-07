@@ -16,19 +16,6 @@ function formatEurPrice(value: number | null | undefined): string | null {
   return `€${n.toLocaleString("ro-RO")}`;
 }
 
-function pickLocation(listing: ListingSeoRow): string | null {
-  if (listing.location && listing.location.trim()) return listing.location.trim();
-  const d = listing.details;
-  if (d && typeof d === "object") {
-    const raw =
-      (d.location as string | undefined) ||
-      (d.locatie as string | undefined) ||
-      (d.zona as string | undefined);
-    if (raw && raw.trim()) return raw.trim();
-  }
-  return null;
-}
-
 function toAbsoluteUrl(siteUrl: string, pathOrUrl: string): string {
   const trimmed = String(pathOrUrl || "").trim();
   if (!trimmed) return siteUrl;
@@ -40,7 +27,6 @@ function toAbsoluteUrl(siteUrl: string, pathOrUrl: string): string {
 function buildListingDescription(listing: ListingSeoRow): string {
   const title = (listing.title || "Acest activ").trim();
   const category = listing.category?.trim();
-  const location = pickLocation(listing);
   const exitPrice = formatEurPrice(listing.exit_price);
 
   const parts: string[] = [];
@@ -51,7 +37,6 @@ function buildListingDescription(listing: ListingSeoRow): string {
   } else {
     parts.push(`${title} este listat pe Quick Exit pentru vânzare rapidă.`);
   }
-  if (location) parts.push(`Disponibil în ${location}.`);
   parts.push("Vezi prețul de exit, detalii și oportunitatea.");
   if (exitPrice) parts.push(`Preț exit: ${exitPrice}.`);
   return parts.join(" ");
