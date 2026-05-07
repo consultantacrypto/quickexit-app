@@ -116,6 +116,11 @@ export default async function ListingPage({
 
   const listing = await fetchPublicListingSeoRow(params.id);
 
+  const hasValidExitPrice =
+    typeof listing?.exit_price === "number" &&
+    Number.isFinite(listing.exit_price) &&
+    listing.exit_price > 0;
+
   const jsonLd =
     listing
       ? {
@@ -135,7 +140,7 @@ export default async function ListingPage({
                   .map((img) => toAbsoluteUrl(siteUrl, img)),
               }
             : {}),
-          ...(typeof listing.exit_price === "number" && Number.isFinite(listing.exit_price) && listing.exit_price > 0
+          ...(hasValidExitPrice
             ? {
                 offers: {
                   "@type": "Offer",
@@ -145,14 +150,7 @@ export default async function ListingPage({
                   availability: "https://schema.org/InStock",
                 },
               }
-            : {
-                offers: {
-                  "@type": "Offer",
-                  url: canonicalAbs,
-                  priceCurrency: "EUR",
-                  availability: "https://schema.org/InStock",
-                },
-              }),
+            : {}),
         }
       : null;
 
