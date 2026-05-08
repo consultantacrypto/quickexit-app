@@ -10,8 +10,60 @@ export const metadata: Metadata = buildPageMetadata({
 });
 
 export default function ActiveSubPretGuidePage() {
+  const faqJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: [
+      {
+        "@type": "Question",
+        name: "Ce înseamnă activ sub prețul pieței?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "Înseamnă un activ listat la un preț mai mic decât o estimare orientativă de piață. Diferența poate reflecta nevoia de lichiditate, starea activului sau alte condiții care trebuie verificate.",
+        },
+      },
+      {
+        "@type": "Question",
+        name: "De ce ar vinde cineva sub prețul pieței?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "Unii vânzători acceptă un discount pentru viteză, lichiditate rapidă, simplificarea procesului sau pentru a atrage mai repede cumpărători serioși.",
+        },
+      },
+      {
+        "@type": "Question",
+        name: "Este orice activ cu discount o oportunitate bună?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "Nu. Un discount poate fi atractiv, dar trebuie analizate documentele, starea activului, costurile ascunse, cererea reală și riscurile tranzacției.",
+        },
+      },
+      {
+        "@type": "Question",
+        name: "Ce ar trebui să verific înainte să cumpăr?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "Verifică proprietatea, documentele, starea tehnică sau juridică, costurile suplimentare, istoricul activului și prețuri comparabile din piață.",
+        },
+      },
+      {
+        "@type": "Question",
+        name: "Quick Exit garantează calitatea activelor?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "Nu trebuie presupusă o garanție completă. Quick Exit ajută la listare, descoperire și structurarea informației, dar cumpărătorii trebuie să facă propriul proces de verificare.",
+        },
+      },
+    ],
+  };
+
   return (
     <div className="min-h-screen bg-[#F7F4EC] px-4 pb-24 pt-20 font-sans text-black antialiased md:px-8">
+      <script
+        // eslint-disable-next-line react/no-danger
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+        type="application/ld+json"
+      />
       <div className="mx-auto max-w-7xl space-y-10">
         <section className="rounded-[2rem] border-[3px] border-black bg-black p-8 text-white shadow-[10px_10px_0_0_#FFD100] md:p-12">
           <p className="text-[10px] font-bold uppercase tracking-[0.28em] text-[#FFD100]/90 md:text-[11px]">

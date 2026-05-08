@@ -10,8 +10,60 @@ export const metadata: Metadata = buildPageMetadata({
 });
 
 export default function PentruInvestitoriPage() {
+  const faqJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: [
+      {
+        "@type": "Question",
+        name: "Pentru ce tip de cumpărători este Quick Exit?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "Quick Exit este util pentru cumpărători, investitori și antreprenori care caută active listate pentru vânzare rapidă, cu informații clare și preț de exit.",
+        },
+      },
+      {
+        "@type": "Question",
+        name: "Pot găsi active sub prețul pieței?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "Da, unele active pot fi listate cu discount față de o estimare orientativă de piață, dar discountul nu garantează profit sau calitatea activului.",
+        },
+      },
+      {
+        "@type": "Question",
+        name: "Cum trimit o ofertă?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "Poți explora anunțurile active, analiza informațiile disponibile și trimite o ofertă prin pagina anunțului sau prin fluxurile disponibile în platformă.",
+        },
+      },
+      {
+        "@type": "Question",
+        name: "Pot publica o cerere de cumpărare?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "Da. Dacă ai capital disponibil sau cauți un anumit tip de activ, poți publica o cerere de cumpărare prin pagina dedicată.",
+        },
+      },
+      {
+        "@type": "Question",
+        name: "Trebuie să fac verificări independente?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "Da. Înainte de orice tranzacție, cumpărătorii ar trebui să verifice documentele, starea activului, riscurile și costurile suplimentare.",
+        },
+      },
+    ],
+  };
+
   return (
     <div className="min-h-screen bg-[#F7F4EC] px-4 pb-24 pt-20 font-sans text-black antialiased md:px-8">
+      <script
+        // eslint-disable-next-line react/no-danger
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+        type="application/ld+json"
+      />
       <div className="mx-auto max-w-7xl space-y-10">
         <section className="rounded-[2rem] border-[3px] border-black bg-black p-8 text-white shadow-[10px_10px_0_0_#FFD100] md:p-12">
           <p className="text-[10px] font-bold uppercase tracking-[0.28em] text-[#FFD100]/90 md:text-[11px]">

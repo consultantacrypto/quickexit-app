@@ -10,8 +10,60 @@ export const metadata: Metadata = buildPageMetadata({
 });
 
 export default function ExitPriceGuidePage() {
+  const faqJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: [
+      {
+        "@type": "Question",
+        name: "Ce este prețul de exit?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "Prețul de exit este prețul la care un vânzător este dispus să listeze un activ pentru o vânzare mai rapidă. De obicei, este sub o estimare de piață, dar nu garantează vânzarea.",
+        },
+      },
+      {
+        "@type": "Question",
+        name: "Prețul de exit garantează că activul se va vinde?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "Nu. Un preț de exit poate crește interesul cumpărătorilor, dar vânzarea depinde de cerere, starea activului, documente, negociere și condițiile pieței.",
+        },
+      },
+      {
+        "@type": "Question",
+        name: "Prețul de exit garantează profit pentru cumpărător?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "Nu. Diferența față de prețul estimat de piață nu este o garanție de profit. Cumpărătorul trebuie să verifice independent activul, costurile și riscurile.",
+        },
+      },
+      {
+        "@type": "Question",
+        name: "Cum aleg un preț de exit?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "Un preț de exit se poate alege pornind de la o estimare orientativă de piață, starea activului, urgența vânzării și discountul pe care vânzătorul este dispus să îl accepte pentru lichiditate mai rapidă.",
+        },
+      },
+      {
+        "@type": "Question",
+        name: "Quick Exit stabilește prețul final?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "Nu. Quick Exit poate ajuta cu evaluare orientativă și structurarea listării, dar decizia finală privind prețul aparține vânzătorului.",
+        },
+      },
+    ],
+  };
+
   return (
     <div className="min-h-screen bg-[#F7F4EC] px-4 pb-24 pt-20 font-sans text-black antialiased md:px-8">
+      <script
+        // eslint-disable-next-line react/no-danger
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+        type="application/ld+json"
+      />
       <div className="mx-auto max-w-7xl space-y-10">
         <section className="rounded-[2rem] border-[3px] border-black bg-black p-8 text-white shadow-[10px_10px_0_0_#FFD100] md:p-12">
           <p className="text-[10px] font-bold uppercase tracking-[0.28em] text-[#FFD100]/90 md:text-[11px]">

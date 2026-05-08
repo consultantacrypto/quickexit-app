@@ -10,8 +10,60 @@ export const metadata: Metadata = buildPageMetadata({
 });
 
 export default function PentruVanzatoriPage() {
+  const faqJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: [
+      {
+        "@type": "Question",
+        name: "Pentru ce tip de vânzători este Quick Exit?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "Quick Exit este pentru proprietari care vor să listeze rapid active precum mașini, imobiliare, business-uri, bunuri de lux sau echipamente și să atragă cumpărători interesați.",
+        },
+      },
+      {
+        "@type": "Question",
+        name: "Trebuie să vând sub prețul pieței?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "Nu obligatoriu. Totuși, un preț de exit este de obicei ales pentru a crește viteza de vânzare și poate fi sub o estimare orientativă de piață.",
+        },
+      },
+      {
+        "@type": "Question",
+        name: "Quick Exit garantează că voi vinde activul?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "Nu. Platforma poate ajuta la listare, vizibilitate și structurarea informației, dar vânzarea depinde de cerere, preț, calitatea activului și negociere.",
+        },
+      },
+      {
+        "@type": "Question",
+        name: "Cum încep?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "Poți începe cu o evaluare orientativă, apoi alegi un preț de exit și publici un anunț prin fluxul de listare.",
+        },
+      },
+      {
+        "@type": "Question",
+        name: "Pot primi oferte de la cumpărători?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "Da, după publicarea și activarea anunțului, cumpărătorii interesați pot trimite oferte prin platformă.",
+        },
+      },
+    ],
+  };
+
   return (
     <div className="min-h-screen bg-[#F7F4EC] px-4 pb-24 pt-20 font-sans text-black antialiased md:px-8">
+      <script
+        // eslint-disable-next-line react/no-danger
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+        type="application/ld+json"
+      />
       <div className="mx-auto max-w-7xl space-y-10">
         <section className="rounded-[2rem] border-[3px] border-black bg-black p-8 text-white shadow-[10px_10px_0_0_#FFD100] md:p-12">
           <p className="text-[10px] font-bold uppercase tracking-[0.28em] text-[#FFD100]/90 md:text-[11px]">
