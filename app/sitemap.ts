@@ -28,6 +28,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     "/posteaza-cerere",
     "/pentru-investitori",
     "/pentru-vanzatori",
+    "/ghid/exit-price",
+    "/ghid/active-sub-pretul-pietei",
     "/capital-disponibil",
     "/tarife",
     "/cum-functioneaza",
@@ -49,8 +51,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const entries: MetadataRoute.Sitemap = [...staticRoutes, ...categoryRoutes].map((route) => ({
     url: `${siteUrl}${route}`,
     lastModified: now,
-    changeFrequency: "daily",
-    priority: route === "/" ? 1 : 0.8,
+    changeFrequency: route.startsWith("/ghid/") ? "monthly" : "daily",
+    priority: route === "/" ? 1 : route.startsWith("/ghid/") ? 0.7 : 0.8,
   }));
 
   const supabaseUrl = getEnv("NEXT_PUBLIC_SUPABASE_URL");

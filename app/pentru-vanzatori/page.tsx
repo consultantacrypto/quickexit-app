@@ -66,6 +66,16 @@ export default function PentruVanzatoriPage() {
             Prețul de exit este un preț setat pentru vânzare mai rapidă și poate fi sub estimarea de piață. Este decizia
             vânzătorului, în funcție de obiectivul de timp și lichiditate, și nu reprezintă o garanție de vânzare.
           </p>
+          <p className="mt-4 text-sm font-medium leading-relaxed text-neutral-700 md:text-base">
+            Pentru explicația completă, vezi ghidul{" "}
+            <Link
+              href="/ghid/exit-price"
+              className="font-bold text-black underline decoration-[#FFD100] decoration-2 underline-offset-2 hover:text-neutral-700"
+            >
+              Ce este prețul de exit
+            </Link>
+            .
+          </p>
         </section>
 
         <section className="rounded-[2rem] border-[3px] border-black bg-black p-8 text-white shadow-[10px_10px_0_0_#FFD100] md:p-10">

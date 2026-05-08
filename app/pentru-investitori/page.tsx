@@ -56,6 +56,16 @@ export default function PentruInvestitoriPage() {
             timp mai scurt. Nu reprezintă garanție de profit pentru cumpărător și trebuie analizat independent, în
             funcție de riscul, costurile și contextul fiecărei tranzacții.
           </p>
+          <p className="mt-4 text-sm font-medium leading-relaxed text-neutral-700 md:text-base">
+            Dacă vrei o explicație mai detaliată, vezi ghidul{" "}
+            <Link
+              href="/ghid/active-sub-pretul-pietei"
+              className="font-bold text-black underline decoration-[#FFD100] decoration-2 underline-offset-2 hover:text-neutral-700"
+            >
+              Active sub prețul pieței
+            </Link>
+            .
+          </p>
         </section>
 
         <section className="rounded-[2rem] border-[3px] border-black bg-white p-8 shadow-[8px_8px_0_0_rgba(0,0,0,1)] md:p-10">
