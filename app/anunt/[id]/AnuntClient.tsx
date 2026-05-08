@@ -448,8 +448,13 @@ export default function AnuntClient() {
     );
   }
 
-  const minOffer = adData.exit_price * 0.7;
-  const maxOffer = adData.exit_price;
+  const maxOffer = Math.max(1, Math.round(Number(adData.exit_price) || 0));
+  const minOffer = Math.max(1, Math.round(maxOffer * 0.7));
+  const offerStep = maxOffer - minOffer <= 1000 ? 100 : 1000;
+  const clampOfferPrice = (value: number) => {
+    if (!Number.isFinite(value)) return minOffer;
+    return Math.min(maxOffer, Math.max(minOffer, Math.round(value)));
+  };
   const displayImages =
     adData.images && adData.images.length > 0
       ? adData.images
@@ -1145,10 +1150,29 @@ export default function AnuntClient() {
                           type="range"
                           min={minOffer}
                           max={maxOffer}
-                          step="1000"
+                          step={offerStep}
                           value={offerPrice}
-                          onChange={(e) => setOfferPrice(Number(e.target.value))}
+                          onChange={(e) => setOfferPrice(clampOfferPrice(Number(e.target.value)))}
+                          onInput={(e) =>
+                            setOfferPrice(
+                              clampOfferPrice(Number((e.target as HTMLInputElement).value))
+                            )
+                          }
                           className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-neutral-200 accent-black"
+                        />
+                        <input
+                          type="number"
+                          min={minOffer}
+                          max={maxOffer}
+                          step={offerStep}
+                          value={offerPrice}
+                          onChange={(e) => {
+                            const raw = e.target.value;
+                            if (raw === "") return;
+                            setOfferPrice(clampOfferPrice(Number(raw)));
+                          }}
+                          className="mt-3 w-full rounded-xl border-[3px] border-black bg-white px-4 py-3 text-lg font-black italic text-black outline-none focus:border-[#FFD100]"
+                          aria-label="Suma ofertei"
                         />
                         <div className="mt-3 flex justify-between text-[9px] font-black uppercase text-neutral-500">
                           <span className="text-red-700">Min: €{minOffer.toLocaleString("ro-RO")} (−30%)</span>
