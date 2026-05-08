@@ -581,7 +581,7 @@ function DashboardContent() {
 
           {isLoading ? (
              <div className="text-center py-20 animate-pulse font-black uppercase tracking-widest text-xs text-neutral-600">Sincronizare mesaje...</div>
-          ) : (myOffers.length > 0 || myDemandOffers.length > 0) ? (
+          ) : (myOffers.length > 0 || myDemandOffers.length > 0 || mySentListingOffers.length > 0) ? (
             <div className="space-y-12">
               
               {/* SECȚIUNE: Oferte primite pentru Activele Tale (Vânzări) */}
