@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import Link from "next/link";
-import { trackEvent } from "@/lib/analytics";
+import { getAttribution, trackEvent } from "@/lib/analytics";
 
 const labelBase =
   "block text-[10px] font-black uppercase tracking-widest text-neutral-500";
@@ -110,6 +110,7 @@ export default function PosteazaCerereClient() {
           demandId: insertedData.id,
           title: targetAsset,
           price: 99,
+          attribution: getAttribution(),
         }),
       });
 

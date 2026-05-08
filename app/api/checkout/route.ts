@@ -2,6 +2,32 @@ import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { getListingPackageById, toStripeAmountRon } from '@/lib/pricing';
 
+const MAX_ATTR_FIELD_LENGTH = 120;
+const ATTR_WHITELIST = [
+  'utm_source',
+  'utm_medium',
+  'utm_campaign',
+  'utm_content',
+  'utm_term',
+  'referrer',
+  'landing_path',
+  'first_seen_at',
+] as const;
+
+function sanitizeAttribution(input: unknown): Record<string, string> {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) return {};
+  const source = input as Record<string, unknown>;
+  const sanitized: Record<string, string> = {};
+  for (const key of ATTR_WHITELIST) {
+    const value = source[key];
+    if (typeof value !== 'string') continue;
+    const trimmed = value.trim();
+    if (!trimmed) continue;
+    sanitized[`attr_${key}`] = trimmed.slice(0, MAX_ATTR_FIELD_LENGTH);
+  }
+  return sanitized;
+}
+
 export async function POST(req: Request) {
   try {
     const stripeApiKey = process.env.STRIPE_SECRET_KEY;
@@ -21,6 +47,7 @@ export async function POST(req: Request) {
     const listingId = String(body?.listingId ?? '').trim();
     const packageId = String(body?.packageId ?? '').trim();
     const title = String(body?.title ?? 'Activ').trim();
+    const attributionMetadata = sanitizeAttribution(body?.attribution);
     if (!listingId || !packageId) {
       return NextResponse.json({ error: 'Date invalide: listingId si packageId sunt obligatorii.' }, { status: 400 });
     }
@@ -61,6 +88,7 @@ export async function POST(req: Request) {
         packageId: pkg.id,
         expectedAmount: String(expectedAmount),
         currency: 'ron',
+        ...attributionMetadata,
       }
     });
 

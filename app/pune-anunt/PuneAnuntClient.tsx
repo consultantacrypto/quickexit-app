@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { Loader2, Search } from "lucide-react";
-import { trackEvent } from "@/lib/analytics";
+import { getAttribution, trackEvent } from "@/lib/analytics";
 
 export default function PuneAnuntClient() {
   const [step, setStep] = useState(1);
@@ -340,6 +340,7 @@ export default function PuneAnuntClient() {
           packageId: selectedPackage,
           price: packagePrices[selectedPackage],
           title: adTitle,
+          attribution: getAttribution(),
         }),
       });
 

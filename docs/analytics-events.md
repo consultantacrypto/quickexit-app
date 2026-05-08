@@ -95,6 +95,21 @@ Evenimentele GA4 din Quick Exit sunt folosite pentru:
 - Nu colectăm PII (fără email, telefon, nume, mesaje, user id).
 - În acest sprint nu persistăm attribution în DB și nu facem passthrough către Stripe metadata.
 
+### Stripe checkout metadata attribution
+
+- Attribution first-touch este trimis din client către checkout API pentru flow-urile:
+  - listing checkout (`/api/checkout`)
+  - demand checkout (`/api/checkout-demand`)
+- Câmpurile acceptate sunt whitelist-only: `utm_source`, `utm_medium`, `utm_campaign`, `utm_content`, `utm_term`, `referrer`, `landing_path`, `first_seen_at`.
+- Server-side se aplică sanitizare defensivă: doar stringuri, `trim()`, max 120 caractere, ignorare completă pentru câmpuri nepermise.
+- În Stripe Session metadata câmpurile sunt mapate cu prefix `attr_*`:
+  - `attr_utm_source`, `attr_utm_medium`, `attr_utm_campaign`, `attr_utm_content`, `attr_utm_term`
+  - `attr_referrer`, `attr_landing_path`, `attr_first_seen_at`
+- Nu se trimit PII în metadata Stripe.
+- Dacă attribution lipsește sau e invalid, checkout continuă normal.
+- Logica de activare webhook rămâne neschimbată și nu depinde de `attr_*`.
+- Persistența în DB pentru attribution încă nu există.
+
 ## Funnel-uri Urmărite
 
 - **Funnel vânzător:** `home` → `evaluare` → `pune-anunt` → `checkout listing`
