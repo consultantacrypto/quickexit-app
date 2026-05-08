@@ -49,6 +49,52 @@ export function generateMetadata({
   });
 }
 
-export default function CategoryPage() {
-  return <CategorieClient />;
+type PageProps = {
+  params: Promise<{ slug: string }>;
+};
+
+export default async function CategoryPage({ params }: PageProps) {
+  const { slug } = await params;
+  const category = categoryMetaMap[slug];
+  const siteUrl = getSiteUrl();
+  const breadcrumbJsonLd =
+    category
+      ? {
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          itemListElement: [
+            {
+              "@type": "ListItem",
+              position: 1,
+              name: "Quick Exit",
+              item: siteUrl,
+            },
+            {
+              "@type": "ListItem",
+              position: 2,
+              name: "Categorii",
+              item: `${siteUrl}/categorii`,
+            },
+            {
+              "@type": "ListItem",
+              position: 3,
+              name: category.label,
+              item: `${siteUrl}/categorii/${slug}`,
+            },
+          ],
+        }
+      : null;
+
+  return (
+    <>
+      {breadcrumbJsonLd && (
+        <script
+          // eslint-disable-next-line react/no-danger
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+          type="application/ld+json"
+        />
+      )}
+      <CategorieClient />
+    </>
+  );
 }

@@ -7,6 +7,7 @@ import TrackedLink from "./components/TrackedLink";
 import GlobalStats from "./components/GlobalStats";
 import { supabase } from "@/lib/supabase"; 
 import { buildPageMetadata } from "@/lib/seo";
+import { getSiteUrl } from "@/lib/siteUrl";
 // IMPORT GLOBAL NOU
 import { normalizeSaleType } from "@/utils/normalizeSaleType";
 
@@ -21,6 +22,7 @@ export const metadata: Metadata = buildPageMetadata({
 
 export default async function Home() {
   const { hero, types, home } = ro;
+  const siteUrl = getSiteUrl();
 
   // FETCH DATE REALE - FILTRARE SEED ACTIVATĂ + LIMITA 9
   const { data: realListings } = await supabase
@@ -41,6 +43,29 @@ export default async function Home() {
   // Separăm licitațiile de anunțurile normale folosind funcția globală
   const auctions = realListings?.filter(item => normalizeSaleType(item.sale_strategy) === 'auction') || [];
   const standardListings = realListings?.filter(item => normalizeSaleType(item.sale_strategy) !== 'auction') || [];
+  const itemListElements = standardListings
+    .filter((item) => {
+      const id = typeof item?.id === "string" ? item.id.trim() : "";
+      const title = typeof item?.title === "string" ? item.title.trim() : "";
+      const statusOk = item?.status == null || item.status === "active";
+      const seedOk = item?.is_seed == null || item.is_seed === false;
+      return Boolean(id) && Boolean(title) && statusOk && seedOk;
+    })
+    .slice(0, 20)
+    .map((item, index) => ({
+      "@type": "ListItem",
+      position: index + 1,
+      url: `${siteUrl}/anunt/${String(item.id).trim()}`,
+      name: String(item.title).trim(),
+    }));
+  const itemListJsonLd =
+    itemListElements.length > 0
+      ? {
+          "@context": "https://schema.org",
+          "@type": "ItemList",
+          itemListElement: itemListElements,
+        }
+      : null;
 
   const categories = [
     { 
@@ -89,6 +114,13 @@ export default async function Home() {
 
   return (
     <div className="flex flex-col w-full bg-white selection:bg-[#FFD100] selection:text-black font-sans">
+      {itemListJsonLd && (
+        <script
+          // eslint-disable-next-line react/no-danger
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListJsonLd) }}
+          type="application/ld+json"
+        />
+      )}
       
       {/* HERO SECTION */}
       <section className="relative pt-20 pb-16 overflow-hidden bg-white text-center">
