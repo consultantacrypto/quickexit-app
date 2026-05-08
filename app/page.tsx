@@ -140,6 +140,20 @@ export default async function Home() {
             <p className="mt-4 text-black font-black uppercase tracking-widest text-xs md:text-sm leading-relaxed">
               Fără agenți. Fără negocieri infinite. Fără timp pierdut.
             </p>
+            <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+              <Link
+                href="/pentru-vanzatori"
+                className="border-2 border-black px-4 py-2 text-[10px] font-black uppercase tracking-widest italic transition hover:bg-black hover:text-[#FFD100]"
+              >
+                Pentru vânzători
+              </Link>
+              <Link
+                href="/pentru-investitori"
+                className="border-2 border-black px-4 py-2 text-[10px] font-black uppercase tracking-widest italic transition hover:bg-black hover:text-[#FFD100]"
+              >
+                Pentru investitori
+              </Link>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto mb-16">

@@ -1,0 +1,97 @@
+import Link from "next/link";
+import type { Metadata } from "next";
+import { buildPageMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = buildPageMetadata({
+  title: "Pentru vânzători | Vinde rapid active pe Quick Exit",
+  description:
+    "Publică active pe Quick Exit cu preț de exit, evaluare orientativă și acces la cumpărători sau investitori interesați de oportunități rapide.",
+  path: "/pentru-vanzatori",
+});
+
+export default function PentruVanzatoriPage() {
+  return (
+    <div className="min-h-screen bg-[#F7F4EC] px-4 pb-24 pt-20 font-sans text-black antialiased md:px-8">
+      <div className="mx-auto max-w-7xl space-y-10">
+        <section className="rounded-[2rem] border-[3px] border-black bg-black p-8 text-white shadow-[10px_10px_0_0_#FFD100] md:p-12">
+          <p className="text-[10px] font-bold uppercase tracking-[0.28em] text-[#FFD100]/90 md:text-[11px]">
+            Ghid pentru vânzători
+          </p>
+          <h1 className="mt-4 text-3xl font-black uppercase italic leading-tight md:text-5xl">
+            Pentru vânzători care vor lichiditate rapidă
+          </h1>
+          <p className="mt-6 max-w-4xl text-sm font-medium leading-relaxed text-neutral-200 md:text-base">
+            Quick Exit ajută proprietarii să listeze active pentru vânzare rapidă, cu preț de exit, prezentare clară și
+            acces la cumpărători interesați.
+          </p>
+        </section>
+
+        <section className="rounded-[2rem] border-[3px] border-black bg-white p-8 shadow-[8px_8px_0_0_rgba(0,0,0,1)] md:p-10">
+          <h2 className="text-2xl font-black uppercase italic tracking-tight">Când are sens Quick Exit</h2>
+          <ul className="mt-6 list-disc space-y-3 pl-6 text-sm font-medium leading-relaxed text-neutral-700 md:text-base">
+            <li>Ai nevoie de lichiditate într-un interval de timp mai scurt.</li>
+            <li>Vrei să vinzi sub prețul pieței pentru viteză de execuție.</li>
+            <li>Ai un activ dificil de vândut pe canale clasice.</li>
+            <li>Vrei să testezi interesul cumpărătorilor în condiții reale de piață.</li>
+          </ul>
+        </section>
+
+        <section className="rounded-[2rem] border-[3px] border-black bg-white p-8 shadow-[8px_8px_0_0_rgba(0,0,0,1)] md:p-10">
+          <h2 className="text-2xl font-black uppercase italic tracking-tight">Ce poți lista</h2>
+          <ul className="mt-6 list-disc space-y-3 pl-6 text-sm font-medium leading-relaxed text-neutral-700 md:text-base">
+            <li>Mașini și alte active auto.</li>
+            <li>Imobiliare și proprietăți.</li>
+            <li>Business-uri și active comerciale.</li>
+            <li>Bunuri de lux.</li>
+            <li>Echipamente și gadgets.</li>
+            <li>Alte active cu valoare clară și interes comercial.</li>
+          </ul>
+        </section>
+
+        <section className="rounded-[2rem] border-[3px] border-black bg-white p-8 shadow-[8px_8px_0_0_rgba(0,0,0,1)] md:p-10">
+          <h2 className="text-2xl font-black uppercase italic tracking-tight">Cum funcționează pentru vânzători</h2>
+          <ol className="mt-6 list-decimal space-y-3 pl-6 text-sm font-medium leading-relaxed text-neutral-700 md:text-base">
+            <li>Obții o evaluare orientativă pentru activ.</li>
+            <li>Alegi prețul de exit potrivit obiectivului tău.</li>
+            <li>Publici anunțul cu detalii și imagini relevante.</li>
+            <li>Activezi listarea prin pachetul selectat.</li>
+            <li>Primești oferte și analizezi opțiunile.</li>
+            <li>Gestionezi discuțiile și pașii următori din dashboard.</li>
+          </ol>
+        </section>
+
+        <section className="rounded-[2rem] border-[3px] border-black bg-white p-8 shadow-[8px_8px_0_0_rgba(0,0,0,1)] md:p-10">
+          <h2 className="text-2xl font-black uppercase italic tracking-tight">Ce înseamnă preț de exit</h2>
+          <p className="mt-6 text-sm font-medium leading-relaxed text-neutral-700 md:text-base">
+            Prețul de exit este un preț setat pentru vânzare mai rapidă și poate fi sub estimarea de piață. Este decizia
+            vânzătorului, în funcție de obiectivul de timp și lichiditate, și nu reprezintă o garanție de vânzare.
+          </p>
+        </section>
+
+        <section className="rounded-[2rem] border-[3px] border-black bg-black p-8 text-white shadow-[10px_10px_0_0_#FFD100] md:p-10">
+          <h2 className="text-2xl font-black uppercase italic tracking-tight md:text-3xl">Începe acum</h2>
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+            <Link
+              href="/evaluare"
+              className="inline-flex items-center justify-center rounded-xl border-[3px] border-black bg-[#FFD100] px-6 py-3 text-xs font-black uppercase tracking-widest text-black shadow-[4px_4px_0_0_#fff] transition hover:brightness-105"
+            >
+              Evaluează un activ
+            </Link>
+            <Link
+              href="/pune-anunt"
+              className="inline-flex items-center justify-center rounded-xl border-[3px] border-white bg-transparent px-6 py-3 text-xs font-black uppercase tracking-widest text-white transition hover:bg-white hover:text-black"
+            >
+              Publică anunț
+            </Link>
+            <Link
+              href="/tarife"
+              className="inline-flex items-center justify-center rounded-xl border-[3px] border-white bg-transparent px-6 py-3 text-xs font-black uppercase tracking-widest text-white transition hover:bg-white hover:text-black"
+            >
+              Vezi tarife
+            </Link>
+          </div>
+        </section>
+      </div>
+    </div>
+  );
+}

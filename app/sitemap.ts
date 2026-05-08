@@ -26,6 +26,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     "/evaluare",
     "/pune-anunt",
     "/posteaza-cerere",
+    "/pentru-investitori",
+    "/pentru-vanzatori",
     "/capital-disponibil",
     "/tarife",
     "/cum-functioneaza",
