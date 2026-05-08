@@ -357,6 +357,14 @@ export default function AnuntClient() {
         status: "new",
       });
       if (error) throw error;
+      trackEvent("submit_listing_offer", {
+        source: "listing_detail",
+        listing_id: adData.id,
+        category: adData.category || "unknown",
+        offer_type: "custom_offer",
+        amount: Number(offerPrice),
+        status: "success",
+      });
       setOfferSuccess(true);
       setBuyerPhone("");
       setBuyerEmail("");
@@ -386,6 +394,14 @@ export default function AnuntClient() {
         status: "accepted_exit_price",
       });
       if (error) throw error;
+      trackEvent("submit_accept_exit_price", {
+        source: "listing_detail",
+        listing_id: adData.id,
+        category: adData.category || "unknown",
+        offer_type: "exit_price",
+        amount: Number(adData.exit_price),
+        status: "success",
+      });
       setAcceptSuccess(true);
     } catch (err) {
       console.error(err);

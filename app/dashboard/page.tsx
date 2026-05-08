@@ -214,6 +214,10 @@ function DashboardContent() {
 
   const handleOfferAction = async (offerId: string, action: 'accepted' | 'rejected', type: 'listing' | 'demand' = 'listing') => {
     const table = type === 'listing' ? 'listing_offers' : 'demand_offers';
+    const matchedOffer =
+      type === "listing"
+        ? myOffers.find((offer) => offer.id === offerId)
+        : myDemandOffers.find((offer) => offer.id === offerId);
     
     const { error } = await supabase
       .from(table)
@@ -226,6 +230,14 @@ function DashboardContent() {
       } else {
         setMyDemandOffers(prev => prev.map(o => o.id === offerId ? { ...o, status: action } : o));
       }
+      trackEvent(action === "accepted" ? "dashboard_offer_accept" : "dashboard_offer_reject", {
+        source: "dashboard",
+        offer_id: offerId,
+        listing_id: type === "listing" ? matchedOffer?.listing_id : undefined,
+        demand_id: type === "demand" ? matchedOffer?.demand_id : undefined,
+        offer_context: type || "unknown",
+        status: action,
+      });
     } else {
       alert("Eroare la actualizarea ofertei: " + error.message);
     }

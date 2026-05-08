@@ -68,6 +68,15 @@ Evenimentele GA4 din Quick Exit sunt folosite pentru:
 | `checkout_demand_success` | la redirect în `dashboard` după checkout demand cu `payment=success` | `source`, `checkout_type`, `status`, `demand_id`, `session_id`, `payment` | demand | tracking client-side pe redirect; webhook rămâne sursa finală pentru activare |
 | `checkout_demand_cancel` | la redirect în `dashboard` după anulare checkout demand cu `payment=cancel` | `source`, `checkout_type`, `status`, `demand_id`, `session_id`, `payment` | demand | tracking client-side pe redirect; webhook nu activează demand-ul la cancel |
 
+## Offer intent events
+
+| event_name | când se trimite | params | PII note | scop business |
+|---|---|---|---|---|
+| `submit_listing_offer` | după insert reușit în `listing_offers` din `app/anunt/[id]/AnuntClient.tsx` (ofertă custom) | `source`, `listing_id`, `category`, `offer_type`, `amount`, `status` | nu trimite `buyer_phone`, `buyer_email`, `message` | măsoară conversia de ofertare pe listing activ |
+| `submit_accept_exit_price` | după insert reușit în `listing_offers` din `app/anunt/[id]/AnuntClient.tsx` (accept preț exit) | `source`, `listing_id`, `category`, `offer_type`, `amount`, `status` | nu trimite `acceptPhone`, `acceptEmail`, text liber | măsoară intenția fermă de cumpărare la prețul afișat |
+| `dashboard_offer_accept` | după update reușit al statusului ofertei în `app/dashboard/page.tsx` | `source`, `offer_id`, `listing_id`, `demand_id`, `offer_context`, `status` | nu trimite date de contact din ofertă | măsoară deciziile de acceptare în camera de negociere |
+| `dashboard_offer_reject` | după update reușit al statusului ofertei în `app/dashboard/page.tsx` | `source`, `offer_id`, `listing_id`, `demand_id`, `offer_context`, `status` | nu trimite date de contact din ofertă | măsoară deciziile de respingere în camera de negociere |
+
 ## Funnel-uri Urmărite
 
 - **Funnel vânzător:** `home` → `evaluare` → `pune-anunt` → `checkout listing`
