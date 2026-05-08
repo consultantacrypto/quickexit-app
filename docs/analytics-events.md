@@ -77,6 +77,24 @@ Evenimentele GA4 din Quick Exit sunt folosite pentru:
 | `dashboard_offer_accept` | după update reușit al statusului ofertei în `app/dashboard/page.tsx` | `source`, `offer_id`, `listing_id`, `demand_id`, `offer_context`, `status` | nu trimite date de contact din ofertă | măsoară deciziile de acceptare în camera de negociere |
 | `dashboard_offer_reject` | după update reușit al statusului ofertei în `app/dashboard/page.tsx` | `source`, `offer_id`, `listing_id`, `demand_id`, `offer_context`, `status` | nu trimite date de contact din ofertă | măsoară deciziile de respingere în camera de negociere |
 
+## Attribution fields
+
+- Capturăm first-touch în browser pentru: `utm_source`, `utm_medium`, `utm_campaign`, `utm_content`, `utm_term`, `referrer`, `landing_path`, `first_seen_at`.
+- Persistența este în `localStorage` pe cheia `quickexit_attribution`.
+- Strategia din acest sprint este strict **first-touch only** (nu suprascriem datele existente și nu implementăm last-touch).
+- `referrer` este sanitizat la format `origin + pathname` (fără query params), iar câmpurile sunt limitate defensiv la lungime maximă.
+- Câmpurile se atașează automat în `trackEvent` cu prefix:
+  - `attribution_utm_source`
+  - `attribution_utm_medium`
+  - `attribution_utm_campaign`
+  - `attribution_utm_content`
+  - `attribution_utm_term`
+  - `attribution_referrer`
+  - `attribution_landing_path`
+  - `attribution_first_seen_at`
+- Nu colectăm PII (fără email, telefon, nume, mesaje, user id).
+- În acest sprint nu persistăm attribution în DB și nu facem passthrough către Stripe metadata.
+
 ## Funnel-uri Urmărite
 
 - **Funnel vânzător:** `home` → `evaluare` → `pune-anunt` → `checkout listing`
