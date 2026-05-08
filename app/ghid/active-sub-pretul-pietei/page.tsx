@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { buildPageMetadata } from "@/lib/seo";
+import TrackedLink from "@/app/components/TrackedLink";
 
 export const metadata: Metadata = buildPageMetadata({
   title: "Active sub prețul pieței | Ghid pentru cumpărători",
@@ -188,24 +189,30 @@ export default function ActiveSubPretGuidePage() {
         <section className="rounded-[2rem] border-[3px] border-black bg-black p-8 text-white shadow-[10px_10px_0_0_#FFD100] md:p-10">
           <h2 className="text-2xl font-black uppercase italic tracking-tight md:text-3xl">Următorii pași</h2>
           <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-            <Link
+            <TrackedLink
               href="/pentru-investitori"
+              eventName="click_guide_below_market_investors"
+              eventParams={{ source: "ghid-active-sub-pretul-pietei", destination: "/pentru-investitori" }}
               className="inline-flex items-center justify-center rounded-xl border-[3px] border-black bg-[#FFD100] px-6 py-3 text-xs font-black uppercase tracking-widest text-black shadow-[4px_4px_0_0_#fff] transition hover:brightness-105"
             >
               Pentru investitori
-            </Link>
-            <Link
+            </TrackedLink>
+            <TrackedLink
               href="/"
+              eventName="click_guide_below_market_view_assets"
+              eventParams={{ source: "ghid-active-sub-pretul-pietei", destination: "/" }}
               className="inline-flex items-center justify-center rounded-xl border-[3px] border-white bg-transparent px-6 py-3 text-xs font-black uppercase tracking-widest text-white transition hover:bg-white hover:text-black"
             >
               Vezi active disponibile
-            </Link>
-            <Link
+            </TrackedLink>
+            <TrackedLink
               href="/posteaza-cerere"
+              eventName="click_guide_below_market_post_demand"
+              eventParams={{ source: "ghid-active-sub-pretul-pietei", destination: "/posteaza-cerere" }}
               className="inline-flex items-center justify-center rounded-xl border-[3px] border-white bg-transparent px-6 py-3 text-xs font-black uppercase tracking-widest text-white transition hover:bg-white hover:text-black"
             >
               Publică o cerere de cumpărare
-            </Link>
+            </TrackedLink>
           </div>
         </section>
       </div>

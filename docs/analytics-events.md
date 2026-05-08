@@ -41,6 +41,24 @@ Evenimentele GA4 din Quick Exit sunt folosite pentru:
 | `click_pricing_package` | `app/tarife/page.tsx` | click pe CTA pachet | `package_id`, `price` | măsoară interesul pe pachete și prețuri |
 | `hq_copilot_run` | `app/hq-admin/page.tsx` | la rulare HQ Copilot | `mode` | măsoară utilizarea funcției admin/copilot |
 
+## Acquisition CTA events
+
+| event_name | pagină | destination | scop business |
+|---|---|---|---|
+| `click_investor_below_market_guide` | `app/pentru-investitori/page.tsx` | `/ghid/active-sub-pretul-pietei` | măsoară interesul buyer pentru ghidul de analiză oportunități |
+| `click_investor_view_assets` | `app/pentru-investitori/page.tsx` | `/capital-disponibil` | măsoară trecerea investitorilor în zona activelor/cererilor active |
+| `click_investor_post_demand` | `app/pentru-investitori/page.tsx` | `/posteaza-cerere` | măsoară intenția de publicare cerere cumpărare din pagina investitori |
+| `click_seller_exit_price_guide` | `app/pentru-vanzatori/page.tsx` | `/ghid/exit-price` | măsoară interesul seller pentru ghidul de pricing |
+| `click_seller_evaluate_asset` | `app/pentru-vanzatori/page.tsx` | `/evaluare` | măsoară intrarea seller în funnel-ul de evaluare din pagina dedicată |
+| `click_seller_post_listing` | `app/pentru-vanzatori/page.tsx` | `/pune-anunt` | măsoară intenția directă de publicare anunț din pagina seller |
+| `click_seller_view_pricing` | `app/pentru-vanzatori/page.tsx` | `/tarife` | măsoară interesul seller pentru pachete/tarife |
+| `click_guide_exit_price_evaluate` | `app/ghid/exit-price/page.tsx` | `/evaluare` | măsoară progresul din ghid în funnel-ul de evaluare |
+| `click_guide_exit_price_post_listing` | `app/ghid/exit-price/page.tsx` | `/pune-anunt` | măsoară progresul din ghid în funnel-ul de publicare |
+| `click_guide_exit_price_view_assets` | `app/ghid/exit-price/page.tsx` | `/` | măsoară revenirea din ghid către zona de active |
+| `click_guide_below_market_investors` | `app/ghid/active-sub-pretul-pietei/page.tsx` | `/pentru-investitori` | măsoară progresul din ghid către pagina de investitori |
+| `click_guide_below_market_view_assets` | `app/ghid/active-sub-pretul-pietei/page.tsx` | `/` | măsoară revenirea din ghid către marketplace |
+| `click_guide_below_market_post_demand` | `app/ghid/active-sub-pretul-pietei/page.tsx` | `/posteaza-cerere` | măsoară intenția buyer de a publica cerere din ghid |
+
 ## Funnel-uri Urmărite
 
 - **Funnel vânzător:** `home` → `evaluare` → `pune-anunt` → `checkout listing`

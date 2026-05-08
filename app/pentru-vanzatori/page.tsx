@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { buildPageMetadata } from "@/lib/seo";
+import TrackedLink from "@/app/components/TrackedLink";
 
 export const metadata: Metadata = buildPageMetadata({
   title: "Pentru vânzători | Vinde rapid active pe Quick Exit",
@@ -120,12 +121,14 @@ export default function PentruVanzatoriPage() {
           </p>
           <p className="mt-4 text-sm font-medium leading-relaxed text-neutral-700 md:text-base">
             Pentru explicația completă, vezi ghidul{" "}
-            <Link
+            <TrackedLink
               href="/ghid/exit-price"
+              eventName="click_seller_exit_price_guide"
+              eventParams={{ source: "pentru-vanzatori", destination: "/ghid/exit-price" }}
               className="font-bold text-black underline decoration-[#FFD100] decoration-2 underline-offset-2 hover:text-neutral-700"
             >
               Ce este prețul de exit
-            </Link>
+            </TrackedLink>
             .
           </p>
         </section>
@@ -180,24 +183,30 @@ export default function PentruVanzatoriPage() {
         <section className="rounded-[2rem] border-[3px] border-black bg-black p-8 text-white shadow-[10px_10px_0_0_#FFD100] md:p-10">
           <h2 className="text-2xl font-black uppercase italic tracking-tight md:text-3xl">Începe acum</h2>
           <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-            <Link
+            <TrackedLink
               href="/evaluare"
+              eventName="click_seller_evaluate_asset"
+              eventParams={{ source: "pentru-vanzatori", destination: "/evaluare" }}
               className="inline-flex items-center justify-center rounded-xl border-[3px] border-black bg-[#FFD100] px-6 py-3 text-xs font-black uppercase tracking-widest text-black shadow-[4px_4px_0_0_#fff] transition hover:brightness-105"
             >
               Evaluează un activ
-            </Link>
-            <Link
+            </TrackedLink>
+            <TrackedLink
               href="/pune-anunt"
+              eventName="click_seller_post_listing"
+              eventParams={{ source: "pentru-vanzatori", destination: "/pune-anunt" }}
               className="inline-flex items-center justify-center rounded-xl border-[3px] border-white bg-transparent px-6 py-3 text-xs font-black uppercase tracking-widest text-white transition hover:bg-white hover:text-black"
             >
               Publică anunț
-            </Link>
-            <Link
+            </TrackedLink>
+            <TrackedLink
               href="/tarife"
+              eventName="click_seller_view_pricing"
+              eventParams={{ source: "pentru-vanzatori", destination: "/tarife" }}
               className="inline-flex items-center justify-center rounded-xl border-[3px] border-white bg-transparent px-6 py-3 text-xs font-black uppercase tracking-widest text-white transition hover:bg-white hover:text-black"
             >
               Vezi tarife
-            </Link>
+            </TrackedLink>
           </div>
         </section>
       </div>

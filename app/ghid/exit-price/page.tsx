@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { buildPageMetadata } from "@/lib/seo";
+import TrackedLink from "@/app/components/TrackedLink";
 
 export const metadata: Metadata = buildPageMetadata({
   title: "Ce este prețul de exit | Ghid Quick Exit",
@@ -185,24 +186,30 @@ export default function ExitPriceGuidePage() {
         <section className="rounded-[2rem] border-[3px] border-black bg-black p-8 text-white shadow-[10px_10px_0_0_#FFD100] md:p-10">
           <h2 className="text-2xl font-black uppercase italic tracking-tight md:text-3xl">Următorii pași</h2>
           <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-            <Link
+            <TrackedLink
               href="/evaluare"
+              eventName="click_guide_exit_price_evaluate"
+              eventParams={{ source: "ghid-exit-price", destination: "/evaluare" }}
               className="inline-flex items-center justify-center rounded-xl border-[3px] border-black bg-[#FFD100] px-6 py-3 text-xs font-black uppercase tracking-widest text-black shadow-[4px_4px_0_0_#fff] transition hover:brightness-105"
             >
               Evaluează un activ
-            </Link>
-            <Link
+            </TrackedLink>
+            <TrackedLink
               href="/pune-anunt"
+              eventName="click_guide_exit_price_post_listing"
+              eventParams={{ source: "ghid-exit-price", destination: "/pune-anunt" }}
               className="inline-flex items-center justify-center rounded-xl border-[3px] border-white bg-transparent px-6 py-3 text-xs font-black uppercase tracking-widest text-white transition hover:bg-white hover:text-black"
             >
               Publică anunț
-            </Link>
-            <Link
+            </TrackedLink>
+            <TrackedLink
               href="/"
+              eventName="click_guide_exit_price_view_assets"
+              eventParams={{ source: "ghid-exit-price", destination: "/" }}
               className="inline-flex items-center justify-center rounded-xl border-[3px] border-white bg-transparent px-6 py-3 text-xs font-black uppercase tracking-widest text-white transition hover:bg-white hover:text-black"
             >
               Vezi active disponibile
-            </Link>
+            </TrackedLink>
           </div>
         </section>
       </div>
