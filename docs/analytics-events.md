@@ -93,7 +93,7 @@ Evenimentele GA4 din Quick Exit sunt folosite pentru:
   - `attribution_landing_path`
   - `attribution_first_seen_at`
 - Nu colectăm PII (fără email, telefon, nume, mesaje, user id).
-- În acest sprint nu persistăm attribution în DB și nu facem passthrough către Stripe metadata.
+- În acest sprint nu persistăm attribution în DB.
 
 ### Stripe checkout metadata attribution
 
