@@ -80,6 +80,56 @@ export default function ExitPriceGuidePage() {
           </p>
         </section>
 
+        <section className="rounded-[2rem] border-[3px] border-black bg-white p-8 shadow-[8px_8px_0_0_rgba(0,0,0,1)] md:p-10">
+          <h2 className="text-2xl font-black uppercase italic tracking-tight">Întrebări frecvente despre prețul de exit</h2>
+
+          <div className="mt-6 space-y-6">
+            <div>
+              <h3 className="text-base font-black tracking-tight md:text-lg">Ce este prețul de exit?</h3>
+              <p className="mt-2 text-sm font-medium leading-relaxed text-neutral-700 md:text-base">
+                Prețul de exit este prețul la care un vânzător este dispus să listeze un activ pentru o vânzare mai
+                rapidă. De obicei, este sub o estimare de piață, dar nu garantează vânzarea.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="text-base font-black tracking-tight md:text-lg">
+                Prețul de exit garantează că activul se va vinde?
+              </h3>
+              <p className="mt-2 text-sm font-medium leading-relaxed text-neutral-700 md:text-base">
+                Nu. Un preț de exit poate crește interesul cumpărătorilor, dar vânzarea depinde de cerere, starea
+                activului, documente, negociere și condițiile pieței.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="text-base font-black tracking-tight md:text-lg">
+                Prețul de exit garantează profit pentru cumpărător?
+              </h3>
+              <p className="mt-2 text-sm font-medium leading-relaxed text-neutral-700 md:text-base">
+                Nu. Diferența față de prețul estimat de piață nu este o garanție de profit. Cumpărătorul trebuie să
+                verifice independent activul, costurile și riscurile.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="text-base font-black tracking-tight md:text-lg">Cum aleg un preț de exit?</h3>
+              <p className="mt-2 text-sm font-medium leading-relaxed text-neutral-700 md:text-base">
+                Un preț de exit se poate alege pornind de la o estimare orientativă de piață, starea activului, urgența
+                vânzării și discountul pe care vânzătorul este dispus să îl accepte pentru lichiditate mai rapidă.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="text-base font-black tracking-tight md:text-lg">Quick Exit stabilește prețul final?</h3>
+              <p className="mt-2 text-sm font-medium leading-relaxed text-neutral-700 md:text-base">
+                Nu. Quick Exit poate ajuta cu evaluare orientativă și structurarea listării, dar decizia finală privind
+                prețul aparține vânzătorului.
+              </p>
+            </div>
+          </div>
+        </section>
+
         <section className="rounded-[2rem] border-[3px] border-black bg-black p-8 text-white shadow-[10px_10px_0_0_#FFD100] md:p-10">
           <h2 className="text-2xl font-black uppercase italic tracking-tight md:text-3xl">Următorii pași</h2>
           <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap">

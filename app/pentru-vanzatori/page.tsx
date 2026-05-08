@@ -78,6 +78,53 @@ export default function PentruVanzatoriPage() {
           </p>
         </section>
 
+        <section className="rounded-[2rem] border-[3px] border-black bg-white p-8 shadow-[8px_8px_0_0_rgba(0,0,0,1)] md:p-10">
+          <h2 className="text-2xl font-black uppercase italic tracking-tight">Întrebări frecvente pentru vânzători</h2>
+
+          <div className="mt-6 space-y-6">
+            <div>
+              <h3 className="text-base font-black tracking-tight md:text-lg">Pentru ce tip de vânzători este Quick Exit?</h3>
+              <p className="mt-2 text-sm font-medium leading-relaxed text-neutral-700 md:text-base">
+                Quick Exit este pentru proprietari care vor să listeze rapid active precum mașini, imobiliare,
+                business-uri, bunuri de lux sau echipamente și să atragă cumpărători interesați.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="text-base font-black tracking-tight md:text-lg">Trebuie să vând sub prețul pieței?</h3>
+              <p className="mt-2 text-sm font-medium leading-relaxed text-neutral-700 md:text-base">
+                Nu obligatoriu. Totuși, un preț de exit este de obicei ales pentru a crește viteza de vânzare și poate fi
+                sub o estimare orientativă de piață.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="text-base font-black tracking-tight md:text-lg">
+                Quick Exit garantează că voi vinde activul?
+              </h3>
+              <p className="mt-2 text-sm font-medium leading-relaxed text-neutral-700 md:text-base">
+                Nu. Platforma poate ajuta la listare, vizibilitate și structurarea informației, dar vânzarea depinde de
+                cerere, preț, calitatea activului și negociere.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="text-base font-black tracking-tight md:text-lg">Cum încep?</h3>
+              <p className="mt-2 text-sm font-medium leading-relaxed text-neutral-700 md:text-base">
+                Poți începe cu o evaluare orientativă, apoi alegi un preț de exit și publici un anunț prin fluxul de
+                listare.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="text-base font-black tracking-tight md:text-lg">Pot primi oferte de la cumpărători?</h3>
+              <p className="mt-2 text-sm font-medium leading-relaxed text-neutral-700 md:text-base">
+                Da, după publicarea și activarea anunțului, cumpărătorii interesați pot trimite oferte prin platformă.
+              </p>
+            </div>
+          </div>
+        </section>
+
         <section className="rounded-[2rem] border-[3px] border-black bg-black p-8 text-white shadow-[10px_10px_0_0_#FFD100] md:p-10">
           <h2 className="text-2xl font-black uppercase italic tracking-tight md:text-3xl">Începe acum</h2>
           <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap">

@@ -79,6 +79,56 @@ export default function PentruInvestitoriPage() {
           </ul>
         </section>
 
+        <section className="rounded-[2rem] border-[3px] border-black bg-white p-8 shadow-[8px_8px_0_0_rgba(0,0,0,1)] md:p-10">
+          <h2 className="text-2xl font-black uppercase italic tracking-tight">
+            Întrebări frecvente pentru investitori și cumpărători
+          </h2>
+
+          <div className="mt-6 space-y-6">
+            <div>
+              <h3 className="text-base font-black tracking-tight md:text-lg">
+                Pentru ce tip de cumpărători este Quick Exit?
+              </h3>
+              <p className="mt-2 text-sm font-medium leading-relaxed text-neutral-700 md:text-base">
+                Quick Exit este util pentru cumpărători, investitori și antreprenori care caută active listate pentru
+                vânzare rapidă, cu informații clare și preț de exit.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="text-base font-black tracking-tight md:text-lg">Pot găsi active sub prețul pieței?</h3>
+              <p className="mt-2 text-sm font-medium leading-relaxed text-neutral-700 md:text-base">
+                Da, unele active pot fi listate cu discount față de o estimare orientativă de piață, dar discountul nu
+                garantează profit sau calitatea activului.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="text-base font-black tracking-tight md:text-lg">Cum trimit o ofertă?</h3>
+              <p className="mt-2 text-sm font-medium leading-relaxed text-neutral-700 md:text-base">
+                Poți explora anunțurile active, analiza informațiile disponibile și trimite o ofertă prin pagina anunțului
+                sau prin fluxurile disponibile în platformă.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="text-base font-black tracking-tight md:text-lg">Pot publica o cerere de cumpărare?</h3>
+              <p className="mt-2 text-sm font-medium leading-relaxed text-neutral-700 md:text-base">
+                Da. Dacă ai capital disponibil sau cauți un anumit tip de activ, poți publica o cerere de cumpărare prin
+                pagina dedicată.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="text-base font-black tracking-tight md:text-lg">Trebuie să fac verificări independente?</h3>
+              <p className="mt-2 text-sm font-medium leading-relaxed text-neutral-700 md:text-base">
+                Da. Înainte de orice tranzacție, cumpărătorii ar trebui să verifice documentele, starea activului,
+                riscurile și costurile suplimentare.
+              </p>
+            </div>
+          </div>
+        </section>
+
         <section className="rounded-[2rem] border-[3px] border-black bg-black p-8 text-white shadow-[10px_10px_0_0_#FFD100] md:p-10">
           <h2 className="text-2xl font-black uppercase italic tracking-tight md:text-3xl">Următorii pași</h2>
           <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap">

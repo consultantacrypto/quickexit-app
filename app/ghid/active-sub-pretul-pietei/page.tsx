@@ -83,6 +83,56 @@ export default function ActiveSubPretGuidePage() {
           </ol>
         </section>
 
+        <section className="rounded-[2rem] border-[3px] border-black bg-white p-8 shadow-[8px_8px_0_0_rgba(0,0,0,1)] md:p-10">
+          <h2 className="text-2xl font-black uppercase italic tracking-tight">
+            Întrebări frecvente despre active sub prețul pieței
+          </h2>
+
+          <div className="mt-6 space-y-6">
+            <div>
+              <h3 className="text-base font-black tracking-tight md:text-lg">Ce înseamnă activ sub prețul pieței?</h3>
+              <p className="mt-2 text-sm font-medium leading-relaxed text-neutral-700 md:text-base">
+                Înseamnă un activ listat la un preț mai mic decât o estimare orientativă de piață. Diferența poate
+                reflecta nevoia de lichiditate, starea activului sau alte condiții care trebuie verificate.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="text-base font-black tracking-tight md:text-lg">De ce ar vinde cineva sub prețul pieței?</h3>
+              <p className="mt-2 text-sm font-medium leading-relaxed text-neutral-700 md:text-base">
+                Unii vânzători acceptă un discount pentru viteză, lichiditate rapidă, simplificarea procesului sau pentru
+                a atrage mai repede cumpărători serioși.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="text-base font-black tracking-tight md:text-lg">
+                Este orice activ cu discount o oportunitate bună?
+              </h3>
+              <p className="mt-2 text-sm font-medium leading-relaxed text-neutral-700 md:text-base">
+                Nu. Un discount poate fi atractiv, dar trebuie analizate documentele, starea activului, costurile
+                ascunse, cererea reală și riscurile tranzacției.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="text-base font-black tracking-tight md:text-lg">Ce ar trebui să verific înainte să cumpăr?</h3>
+              <p className="mt-2 text-sm font-medium leading-relaxed text-neutral-700 md:text-base">
+                Verifică proprietatea, documentele, starea tehnică sau juridică, costurile suplimentare, istoricul
+                activului și prețuri comparabile din piață.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="text-base font-black tracking-tight md:text-lg">Quick Exit garantează calitatea activelor?</h3>
+              <p className="mt-2 text-sm font-medium leading-relaxed text-neutral-700 md:text-base">
+                Nu trebuie presupusă o garanție completă. Quick Exit ajută la listare, descoperire și structurarea
+                informației, dar cumpărătorii trebuie să facă propriul proces de verificare.
+              </p>
+            </div>
+          </div>
+        </section>
+
         <section className="rounded-[2rem] border-[3px] border-black bg-black p-8 text-white shadow-[10px_10px_0_0_#FFD100] md:p-10">
           <h2 className="text-2xl font-black uppercase italic tracking-tight md:text-3xl">Următorii pași</h2>
           <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
