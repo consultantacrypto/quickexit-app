@@ -146,6 +146,33 @@ export default async function ListingPage({ params }: PageProps) {
             : {}),
         }
       : null;
+  const breadcrumbJsonLd =
+    listing && listingId
+      ? {
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          itemListElement: [
+            {
+              "@type": "ListItem",
+              position: 1,
+              name: "Quick Exit",
+              item: siteUrl,
+            },
+            {
+              "@type": "ListItem",
+              position: 2,
+              name: "Anunțuri",
+              item: `${siteUrl}/`,
+            },
+            {
+              "@type": "ListItem",
+              position: 3,
+              name: (listing.title || "Anunț Quick Exit").trim() || "Anunț Quick Exit",
+              item: canonicalAbs,
+            },
+          ],
+        }
+      : null;
 
   return (
     <>
@@ -153,6 +180,13 @@ export default async function ListingPage({ params }: PageProps) {
         <script
           // eslint-disable-next-line react/no-danger
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+          type="application/ld+json"
+        />
+      )}
+      {breadcrumbJsonLd && (
+        <script
+          // eslint-disable-next-line react/no-danger
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
           type="application/ld+json"
         />
       )}
