@@ -47,8 +47,8 @@ export async function POST(req: Request) {
       ],
       mode: 'payment',
       // După plată, îl întoarcem în Dashboard cu un flag special pentru "demand"
-      success_url: `${baseUrl}/dashboard?payment=success_demand&demand=${demandId}`,
-      cancel_url: `${baseUrl}/posteaza-cerere`,
+      success_url: `${baseUrl}/dashboard?payment=success&type=demand&demand=${demandId}&demandId=${demandId}&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${baseUrl}/dashboard?payment=cancel&type=demand&demand=${demandId}&demandId=${demandId}&session_id={CHECKOUT_SESSION_ID}`,
       metadata: {
         type: 'demand',
         demandId,

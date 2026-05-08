@@ -59,6 +59,15 @@ Evenimentele GA4 din Quick Exit sunt folosite pentru:
 | `click_guide_below_market_view_assets` | `app/ghid/active-sub-pretul-pietei/page.tsx` | `/` | măsoară revenirea din ghid către marketplace |
 | `click_guide_below_market_post_demand` | `app/ghid/active-sub-pretul-pietei/page.tsx` | `/posteaza-cerere` | măsoară intenția buyer de a publica cerere din ghid |
 
+## Checkout outcome events
+
+| event_name | când se trimite | params | flow | notes |
+|---|---|---|---|---|
+| `checkout_listing_success` | la redirect în `dashboard` după checkout listing cu `payment=success` | `source`, `checkout_type`, `status`, `listing_id`, `session_id`, `payment` | listing | tracking client-side pe redirect; webhook rămâne sursa finală pentru activare |
+| `checkout_listing_cancel` | la redirect în `dashboard` după anulare checkout listing cu `payment=cancel` | `source`, `checkout_type`, `status`, `listing_id`, `session_id`, `payment` | listing | tracking client-side pe redirect; webhook nu activează listing-ul la cancel |
+| `checkout_demand_success` | la redirect în `dashboard` după checkout demand cu `payment=success` | `source`, `checkout_type`, `status`, `demand_id`, `session_id`, `payment` | demand | tracking client-side pe redirect; webhook rămâne sursa finală pentru activare |
+| `checkout_demand_cancel` | la redirect în `dashboard` după anulare checkout demand cu `payment=cancel` | `source`, `checkout_type`, `status`, `demand_id`, `session_id`, `payment` | demand | tracking client-side pe redirect; webhook nu activează demand-ul la cancel |
+
 ## Funnel-uri Urmărite
 
 - **Funnel vânzător:** `home` → `evaluare` → `pune-anunt` → `checkout listing`

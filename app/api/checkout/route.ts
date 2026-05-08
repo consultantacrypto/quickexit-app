@@ -52,9 +52,9 @@ export async function POST(req: Request) {
       ],
       mode: 'payment',
       // Unde îl trimitem după ce a plătit cu succes (îl trimitem direct în Dashboard)
-      success_url: `${baseUrl}/dashboard?payment=success&listing=${listingId}`,
+      success_url: `${baseUrl}/dashboard?payment=success&type=listing&listing=${listingId}&listingId=${listingId}&session_id={CHECKOUT_SESSION_ID}`,
       // Unde îl trimitem dacă dă "Înapoi" sau închide plata
-      cancel_url: `${baseUrl}/pune-anunt`,
+      cancel_url: `${baseUrl}/dashboard?payment=cancel&type=listing&listing=${listingId}&listingId=${listingId}&session_id={CHECKOUT_SESSION_ID}`,
       metadata: {
         type: 'listing',
         listingId,

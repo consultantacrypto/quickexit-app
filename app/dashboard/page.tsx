@@ -3,6 +3,7 @@
 import { useEffect, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { trackEvent } from "@/lib/analytics";
 import AdCard from "../components/AdCard";
 import { normalizeSaleType } from "@/utils/normalizeSaleType";
 import { Wallet, Inbox, PlusCircle, Search, Settings, Power, Play, PiggyBank } from "lucide-react";
@@ -15,7 +16,11 @@ function DashboardContent() {
   
   const paymentStatus = searchParams.get("payment");
   const listingId = searchParams.get("listing");
-  const demandId = searchParams.get("demand"); 
+  const demandId = searchParams.get("demand");
+  const checkoutTypeParam = searchParams.get("type");
+  const sessionIdParam = searchParams.get("session_id");
+  const listingIdParam = searchParams.get("listingId");
+  const demandIdParam = searchParams.get("demandId");
 
   const [activeTab, setActiveTab] = useState('portofoliu');
   
@@ -43,6 +48,78 @@ function DashboardContent() {
       return () => clearTimeout(timer);
     }
   }, [paymentStatus, listingId, demandId, router]);
+
+  useEffect(() => {
+    if (!paymentStatus) return;
+
+    const normalizedType =
+      checkoutTypeParam === "listing" || checkoutTypeParam === "demand"
+        ? checkoutTypeParam
+        : paymentStatus === "success_demand" || demandId || demandIdParam
+          ? "demand"
+          : "listing";
+
+    const normalizedPayment =
+      paymentStatus === "success" || paymentStatus === "success_demand"
+        ? "success"
+        : paymentStatus === "cancel"
+          ? "cancel"
+          : null;
+    if (!normalizedPayment) return;
+
+    const effectiveListingId = listingIdParam || listingId || undefined;
+    const effectiveDemandId = demandIdParam || demandId || undefined;
+    const effectiveId = normalizedType === "listing" ? effectiveListingId : effectiveDemandId;
+    const searchSignature =
+      typeof window !== "undefined" ? window.location.search || "" : "";
+    const dedupeKey = [
+      "checkout_result",
+      normalizedType,
+      effectiveId || "no_id",
+      sessionIdParam || "no_session",
+      normalizedPayment,
+      searchSignature || "no_search",
+    ].join(":");
+
+    if (typeof window !== "undefined") {
+      if (window.sessionStorage.getItem(dedupeKey)) return;
+      window.sessionStorage.setItem(dedupeKey, "1");
+    }
+
+    const baseParams = {
+      source: "dashboard",
+      checkout_type: normalizedType,
+      status: normalizedPayment,
+      session_id: sessionIdParam || undefined,
+      payment: normalizedPayment,
+      listing_id: effectiveListingId,
+      demand_id: effectiveDemandId,
+    };
+
+    if (normalizedType === "listing" && normalizedPayment === "success") {
+      trackEvent("checkout_listing_success", baseParams);
+      return;
+    }
+    if (normalizedType === "listing" && normalizedPayment === "cancel") {
+      trackEvent("checkout_listing_cancel", baseParams);
+      return;
+    }
+    if (normalizedType === "demand" && normalizedPayment === "success") {
+      trackEvent("checkout_demand_success", baseParams);
+      return;
+    }
+    if (normalizedType === "demand" && normalizedPayment === "cancel") {
+      trackEvent("checkout_demand_cancel", baseParams);
+    }
+  }, [
+    paymentStatus,
+    checkoutTypeParam,
+    sessionIdParam,
+    listingId,
+    demandId,
+    listingIdParam,
+    demandIdParam,
+  ]);
 
   const fetchDashboardData = async () => {
     setIsLoading(true);
