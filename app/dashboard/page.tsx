@@ -30,6 +30,8 @@ function DashboardContent() {
 
   const [myListings, setMyListings] = useState<any[]>([]);
   const [myOffers, setMyOffers] = useState<any[]>([]);
+  const [mySentListingOffers, setMySentListingOffers] = useState<any[]>([]);
+  const [sentOffersListingMeta, setSentOffersListingMeta] = useState<Record<string, { title: string; category: string | null }>>({});
   
   const [myDemands, setMyDemands] = useState<any[]>([]);
   const [myDemandOffers, setMyDemandOffers] = useState<any[]>([]);
@@ -153,6 +155,8 @@ function DashboardContent() {
           .in('listing_id', listingIds)
           .order('created_at', { ascending: false });
         setMyOffers(offers || []);
+      } else {
+        setMyOffers([]);
       }
 
       // 2. Tragem Cererile de Cumpărare (Demands)
@@ -172,6 +176,58 @@ function DashboardContent() {
           .in('demand_id', demandIds)
           .order('created_at', { ascending: false });
         setMyDemandOffers(demandOffers || []);
+      } else {
+        setMyDemandOffers([]);
+      }
+
+      // 3. Tragem ofertele trimise de user către listing-urile altora (buyer-side visibility)
+      const { data: sentOffers, error: sentOffersError } = await supabase
+        .from('listing_offers')
+        .select('id, listing_id, offer_price, status, created_at')
+        .eq('buyer_user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (sentOffersError) {
+        console.error("Eroare preluare oferte trimise:", sentOffersError);
+        setMySentListingOffers([]);
+        setSentOffersListingMeta({});
+      } else {
+        const normalizedSentOffers = sentOffers || [];
+        setMySentListingOffers(normalizedSentOffers);
+
+        const sentListingIds = Array.from(
+          new Set(
+            normalizedSentOffers
+              .map((offer: any) => String(offer?.listing_id || "").trim())
+              .filter(Boolean)
+          )
+        );
+
+        if (sentListingIds.length > 0) {
+          const { data: sentListings, error: sentListingsError } = await supabase
+            .from('listings')
+            .select('id, title, category')
+            .in('id', sentListingIds);
+
+          if (sentListingsError) {
+            console.error("Eroare preluare metadata listing pentru ofertele trimise:", sentListingsError);
+            setSentOffersListingMeta({});
+          } else {
+            const meta = (sentListings || []).reduce<Record<string, { title: string; category: string | null }>>(
+              (acc, listing: any) => {
+                acc[String(listing.id)] = {
+                  title: String(listing.title || "").trim() || "Anunț Quick Exit",
+                  category: listing.category || null,
+                };
+                return acc;
+              },
+              {}
+            );
+            setSentOffersListingMeta(meta);
+          }
+        } else {
+          setSentOffersListingMeta({});
+        }
       }
 
     } catch (error) {
@@ -283,6 +339,21 @@ function DashboardContent() {
         return "Oprit";
       default:
         return "În așteptare";
+    }
+  };
+
+  const sentOfferStatusLabel = (status?: string) => {
+    switch (status) {
+      case "new":
+        return "În așteptare";
+      case "accepted":
+        return "Acceptată";
+      case "rejected":
+        return "Respinsă";
+      case "accepted_exit_price":
+        return "Preț de exit acceptat";
+      default:
+        return status || "Necunoscut";
     }
   };
 
@@ -666,6 +737,84 @@ function DashboardContent() {
                   </div>
                 </div>
               )}
+
+              {/* SECȚIUNE: Ofertele trimise de mine către anunțuri (buyer-side) */}
+              <div>
+                <h3 className="text-lg font-black uppercase italic tracking-widest text-neutral-600 mb-4 border-b-2 border-black inline-block">
+                  Ofertele mele trimise
+                </h3>
+
+                {mySentListingOffers.length > 0 ? (
+                  <div className="space-y-4">
+                    {mySentListingOffers.map((offer) => {
+                      const listingId = String(offer?.listing_id || "");
+                      const listingMeta = sentOffersListingMeta[listingId];
+                      const listingTitle = listingMeta?.title || `Listing #${listingId.slice(0, 8)}`;
+                      const listingCategory = listingMeta?.category || null;
+
+                      return (
+                        <div
+                          key={offer.id}
+                          className="bg-white border-[3px] border-black rounded-2xl p-5 shadow-[4px_4px_0_0_rgba(0,0,0,1)]"
+                        >
+                          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                            <div>
+                              <p className="text-xs font-black uppercase tracking-widest text-neutral-600 mb-1">
+                                Activ / Listing
+                              </p>
+                              <p className="text-base font-black italic text-black">{listingTitle}</p>
+                              {listingCategory && (
+                                <p className="text-[11px] font-bold uppercase tracking-wide text-neutral-500 mt-1">
+                                  {listingCategory}
+                                </p>
+                              )}
+                            </div>
+
+                            <div className="text-left md:text-right">
+                              <p className="text-xs font-black uppercase tracking-widest text-neutral-600 mb-1">
+                                Sumă ofertată
+                              </p>
+                              <p className="text-2xl font-black italic text-black">
+                                €{Number(offer.offer_price || 0).toLocaleString("ro-RO")}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between border-t-2 border-neutral-100 pt-4">
+                            <p className="text-xs font-black uppercase tracking-wider text-neutral-700">
+                              Status:{" "}
+                              <span className="text-black">{sentOfferStatusLabel(offer.status)}</span>
+                            </p>
+                            <p className="text-xs font-bold text-neutral-500">
+                              Trimisă la:{" "}
+                              {offer.created_at
+                                ? new Date(offer.created_at).toLocaleString("ro-RO")
+                                : "N/A"}
+                            </p>
+                          </div>
+
+                          {listingId && (
+                            <div className="mt-3">
+                              <button
+                                onClick={() => router.push(`/anunt/${listingId}`)}
+                                className="bg-[#FDFCF8] border-2 border-black px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest hover:bg-black hover:text-[#FFD100] transition-all shadow-[2px_2px_0_0_rgba(0,0,0,1)] active:translate-y-px active:shadow-none"
+                              >
+                                Vezi anunțul
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="bg-white border-[3px] border-dashed border-gray-300 rounded-2xl p-8 text-center">
+                    <p className="text-sm font-bold text-neutral-700">
+                      Nu ai trimis încă oferte către anunțuri.
+                    </p>
+                  </div>
+                )}
+              </div>
 
             </div>
           ) : (
