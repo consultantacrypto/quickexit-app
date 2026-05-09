@@ -646,6 +646,9 @@ function DashboardContent() {
         <div className="bg-white border-[3px] border-black p-4 rounded-xl shadow-[3px_3px_0_0_rgba(0,0,0,1)]">
           <span className="text-xs font-black uppercase text-neutral-600 block mb-1">Oferte primite</span>
           <p className="text-2xl font-black italic">{myOffers.length + myDemandOffers.length}</p>
+          <p className="mt-1 text-[10px] font-semibold normal-case leading-snug text-neutral-600 md:text-[11px]">
+            Oferte la anunțurile tale și pentru cererile tale de cumpărare
+          </p>
         </div>
         <div className="bg-[#FDFCF8] border-[3px] border-black p-4 rounded-xl shadow-[3px_3px_0_0_rgba(255,209,0,0.8)]">
           <span className="text-xs font-black uppercase text-neutral-600 block mb-1">Verificare cont</span>
@@ -659,7 +662,7 @@ function DashboardContent() {
           Activele Mele (Vânzare)
         </button>
         <button onClick={() => handleTabChange('cumparari')} className={`px-4 py-2 rounded-md font-black uppercase text-xs transition-colors border-2 border-black ${activeTab === 'cumparari' ? 'bg-black text-[#FFD100]' : 'bg-white text-neutral-700 hover:text-black'}`}>
-          Oferte Cumpărare
+          Cererile mele
         </button>
         <button onClick={() => handleTabChange('oferte')} className={`flex items-center gap-2 px-4 py-2 rounded-md font-black uppercase text-xs transition-colors border-2 border-black ${activeTab === 'oferte' ? 'bg-black text-[#FFD100]' : 'bg-white text-neutral-700 hover:text-black'}`}>
           Cameră Negociere

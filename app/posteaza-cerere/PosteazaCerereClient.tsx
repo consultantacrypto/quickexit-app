@@ -70,7 +70,7 @@ export default function PosteazaCerereClient() {
       );
 
       if (profileError) {
-        setErrorMsg(`Eroare profil: ${profileError.message}`);
+        setErrorMsg("Nu am putut actualiza profilul. Te rugăm să încerci din nou.");
         setIsSubmitting(false);
         return;
       }
@@ -93,7 +93,7 @@ export default function PosteazaCerereClient() {
 
       if (error) {
         console.error("Eroare Supabase demands insert:", error.message);
-        setErrorMsg(`Eroare Supabase: ${error.message}`);
+        setErrorMsg("Nu am putut salva cererea. Te rugăm să încerci din nou.");
         setIsSubmitting(false);
         return;
       }
@@ -120,15 +120,15 @@ export default function PosteazaCerereClient() {
         window.location.href = stripeData.url;
       } else {
         if (stripeData.error) {
-          setErrorMsg(`Eroare Stripe: ${stripeData.error}`);
+          setErrorMsg("Nu am putut porni plata. Te rugăm să încerci din nou.");
         } else {
-          throw new Error("Eroare la generarea plății.");
+          throw new Error("checkout_no_url");
         }
         setIsSubmitting(false);
       }
     } catch (error: any) {
       console.error("Eroare la inserare/plată:", error.message);
-      setErrorMsg(`A apărut o eroare: ${error.message}`);
+      setErrorMsg("A apărut o problemă. Te rugăm să încerci din nou.");
       setIsSubmitting(false);
     }
   };

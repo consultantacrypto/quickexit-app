@@ -134,8 +134,13 @@ export default async function Home() {
           <div className="mx-auto max-w-2xl mb-16 px-4">
             <p className="text-base md:text-lg lg:text-xl font-bold tracking-wide leading-relaxed">
               <span className="bg-[#FFD100] text-black px-2 py-1 box-decoration-clone">
-                Singura platformă de lichiditate din România dedicată vânzărilor rapide. Conectăm direct bunurile tale cu investitori pregătiți pentru achiziții cash.
+                Platformă pentru vânzări accelerate, evaluări orientative și contact direct între părți. Te conectăm cu
+                cumpărători și investitori interesați de tranzacții rapide, direct cu tine.
               </span>
+            </p>
+            <p className="mx-auto mt-4 max-w-xl text-xs font-semibold leading-relaxed text-neutral-700 md:text-sm">
+              Quick Exit facilitează contactul și negocierea. Plata și finalizarea tranzacției se fac direct între
+              cumpărător și vânzător.
             </p>
             <p className="mt-4 text-black font-black uppercase tracking-widest text-xs md:text-sm leading-relaxed">
               Fără agenți. Fără negocieri infinite. Fără timp pierdut.
@@ -219,7 +224,8 @@ export default async function Home() {
                 </h2>
               </div>
               <p className="text-gray-400 font-bold uppercase tracking-widest text-[10px] md:max-w-xs mt-4 md:mt-0 text-left md:text-right">
-                Active lichidate urgent. Prima ofertă la prețul de exit închide licitația.
+                Active lichidate urgent. Prima ofertă la prețul afișat poate închide licitația; finalizarea rămâne între
+                părți.
               </p>
             </div>
 
@@ -300,7 +306,10 @@ export default async function Home() {
                     Vezi toate cererile →
                   </TrackedLink>
               </div>
-              <p className="text-sm md:text-base font-bold text-gray-500 uppercase italic">Clienți cu fonduri verificate caută să cumpere urgent aceste active.</p>
+              <p className="text-sm md:text-base font-bold text-gray-500 uppercase italic">
+                Cereri publicate de cumpărători cu buget comunicat în anunț — verifică detaliile direct cu fiecare
+                ofertant.
+              </p>
             </div>
     
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 lg:gap-12">

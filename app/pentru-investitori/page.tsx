@@ -82,11 +82,11 @@ export default function PentruInvestitoriPage() {
         <section className="rounded-[2rem] border-[3px] border-black bg-white p-8 shadow-[8px_8px_0_0_rgba(0,0,0,1)] md:p-10">
           <h2 className="text-2xl font-black uppercase italic tracking-tight">Ce găsești pe Quick Exit</h2>
           <ul className="mt-6 list-disc space-y-3 pl-6 text-sm font-medium leading-relaxed text-neutral-700 md:text-base">
-            <li>Active auto listate pentru exit rapid.</li>
+            <li>Active auto listate pentru vânzare rapidă.</li>
             <li>Imobiliare și proprietăți cu vânzare accelerată.</li>
-            <li>Business-uri aflate în proces de exit.</li>
+            <li>Business-uri aflate în proces de vânzare urgentă.</li>
             <li>Bunuri de lux și active cu piață de nișă.</li>
-            <li>Gadgets și echipamente cu preț orientat spre lichiditate.</li>
+            <li>Electronice și gadgeturi cu preț orientat spre lichiditate.</li>
             <li>Oportunități unde vânzătorul caută capital într-un interval scurt.</li>
           </ul>
         </section>
@@ -134,9 +134,9 @@ export default function PentruInvestitoriPage() {
         <section className="rounded-[2rem] border-[3px] border-black bg-white p-8 shadow-[8px_8px_0_0_rgba(0,0,0,1)] md:p-10">
           <h2 className="text-2xl font-black uppercase italic tracking-tight">Pentru cine este util</h2>
           <ul className="mt-6 list-disc space-y-3 pl-6 text-sm font-medium leading-relaxed text-neutral-700 md:text-base">
-            <li>Investitori care caută deal flow relevant.</li>
+            <li>Investitori care caută un flux relevant de oportunități.</li>
             <li>Cumpărători orientați spre oportunități de preț.</li>
-            <li>Deal hunters care compară activ mai multe opțiuni.</li>
+            <li>Cumpărători care compară mai multe opțiuni.</li>
             <li>Antreprenori interesați de achiziții strategice rapide.</li>
             <li>Persoane sau companii cu capital disponibil pentru tranzacții.</li>
           </ul>

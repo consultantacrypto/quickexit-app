@@ -68,6 +68,7 @@ export default function EvaluareClient() {
   const [phase, setPhase] = useState<"form" | "loading" | "result">("form");
   const [loadingIndex, setLoadingIndex] = useState(0);
   const [result, setResult] = useState<ApiResult | null>(null);
+  const [evaluationError, setEvaluationError] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     make: "",
@@ -141,6 +142,7 @@ export default function EvaluareClient() {
 
   const runEvaluation = async () => {
     trackEvent("start_evaluation", { category });
+    setEvaluationError(null);
     setPhase("loading");
     setLoadingIndex(0);
     setResult(null);
@@ -154,7 +156,11 @@ export default function EvaluareClient() {
 
       const data = (await response.json()) as ApiResult & { message?: string };
       if (!data.success) {
-        alert(data.message || "Evaluarea nu a putut fi procesata.");
+        setEvaluationError(
+          typeof data.message === "string" && data.message.trim()
+            ? data.message
+            : "Evaluarea nu a putut fi procesată. Te rugăm să încerci din nou.",
+        );
         setPhase("form");
         return;
       }
@@ -167,7 +173,7 @@ export default function EvaluareClient() {
       });
       setPhase("result");
     } catch {
-      alert("Serviciul de evaluare este temporar indisponibil.");
+      setEvaluationError("Serviciul de evaluare este temporar indisponibil. Te rugăm să încerci mai târziu.");
       setPhase("form");
     }
   };
@@ -212,6 +218,14 @@ export default function EvaluareClient() {
         <div className="rounded-[2rem] border-[3px] border-black bg-white p-8 shadow-[12px_12px_0_0_rgba(0,0,0,0.12)] md:p-14 md:shadow-[14px_14px_0_0_#FFD100]">
           {phase !== "result" && (
             <>
+              {evaluationError && phase === "form" && (
+                <div
+                  role="alert"
+                  className="mb-8 rounded-2xl border-2 border-red-800/40 bg-red-50 px-4 py-3 text-sm font-semibold text-red-900"
+                >
+                  {evaluationError}
+                </div>
+              )}
               <section className="mb-14 md:mb-16">
                 <h2 className="mb-8 text-xl font-black uppercase italic tracking-tight text-black md:text-2xl">
                   1. Alege categoria
@@ -221,7 +235,10 @@ export default function EvaluareClient() {
                     <button
                       key={opt.id}
                       type="button"
-                      onClick={() => setCategory(opt.id)}
+                      onClick={() => {
+                        setCategory(opt.id);
+                        setEvaluationError(null);
+                      }}
                       className={`rounded-2xl border-2 border-black p-6 text-left transition-all duration-150 md:p-7 ${
                         category === opt.id
                           ? "bg-black text-[#FFD100] shadow-[6px_6px_0_0_#FFD100]"

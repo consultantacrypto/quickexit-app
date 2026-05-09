@@ -28,6 +28,7 @@ export default function PuneAnuntClient() {
   const [isSaving, setIsSaving] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [hasTrackedStart, setHasTrackedStart] = useState(false);
+  const [flowError, setFlowError] = useState<string | null>(null);
 
   // STATE NOU: Capturăm datele scrise de utilizator pentru API
   const [formData, setFormData] = useState({
@@ -175,9 +176,10 @@ export default function PuneAnuntClient() {
   const generateAiPricing = async () => {
     const missing = validatePrimaryAssetFields();
     if (missing) {
-      alert(missing);
+      setFlowError(missing);
       return;
     }
+    setFlowError(null);
     setIsAnalyzing(true);
     setStep(3);
 
@@ -228,11 +230,15 @@ export default function PuneAnuntClient() {
           setExitPrice("");
         }
       } else {
-        alert(data.message || "Date insuficiente pentru o evaluare automată.");
+        setFlowError(
+          typeof data.message === "string" && data.message.trim()
+            ? data.message
+            : "Date insuficiente pentru o estimare automată. Completează câmpurile și încearcă din nou.",
+        );
         setStep(2);
       }
     } catch (error) {
-      alert("Estimarea pe piață este momentan indisponibilă.");
+      setFlowError("Estimarea pe piață este momentan indisponibilă. Te rugăm să încerci mai târziu.");
       setStep(2);
     } finally {
       setIsAnalyzing(false);
@@ -261,14 +267,15 @@ export default function PuneAnuntClient() {
   }
 
   const handleFinalSubmit = async () => {
+    setFlowError(null);
     setIsSaving(true);
     try {
       const {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) {
-        alert(
-          "Eroare: Trebuie să fii logat pentru a posta un anunț! Folosește meniul 'Contul Meu'."
+        setFlowError(
+          "Trebuie să fii autentificat pentru a publica. Deschide „Contul meu”, autentifică-te și revino la acest pas.",
         );
         setIsSaving(false);
         return;
@@ -286,7 +293,7 @@ export default function PuneAnuntClient() {
             .upload(filePath, file);
           if (uploadError) {
             console.error("Supabase Upload Error:", uploadError);
-            throw new Error(`Eroare Supabase la urcarea pozei: ${uploadError.message}`);
+            throw new Error("upload_failed");
           }
 
           const { data: publicUrlData } = supabase.storage
@@ -321,8 +328,10 @@ export default function PuneAnuntClient() {
         .single();
 
       if (error) {
-        alert(`Eroare Supabase: ${error.message}`);
-        throw error;
+        console.error("Eroare la salvarea anunțului:", error.message);
+        setFlowError("Nu am putut salva anunțul. Te rugăm să încerci din nou.");
+        setIsSaving(false);
+        return;
       }
 
       // 2. Apelăm motorul de plăți Stripe
@@ -354,7 +363,11 @@ export default function PuneAnuntClient() {
       }
     } catch (error: any) {
       console.error("Eroare salvare anunț / plată:", error);
-      alert(error.message || "A apărut o problemă la generarea plății.");
+      const msg =
+        typeof error?.message === "string" && error.message === "upload_failed"
+          ? "Nu am putut încărca imaginile. Verifică fișierele și încearcă din nou."
+          : "Nu am putut finaliza solicitarea sau pornirea plății. Te rugăm să încerci din nou.";
+      setFlowError(msg);
       setIsSaving(false);
     }
   };
@@ -997,18 +1010,27 @@ export default function PuneAnuntClient() {
               </div>
 
               <div className="mt-10 border-t-2 border-neutral-200/80 pt-8">
+                {flowError && step === 1 && (
+                  <div
+                    role="alert"
+                    className="mb-6 rounded-2xl border-2 border-red-800/40 bg-red-50 px-4 py-3 text-sm font-semibold text-red-900"
+                  >
+                    {flowError}
+                  </div>
+                )}
                 <button
                   type="button"
                   onClick={() => {
                     const err = validatePrimaryAssetFields();
                     if (err) {
-                      alert(err);
+                      setFlowError(err);
                       return;
                     }
                     if (!adTitle.trim()) {
-                      alert("Completează titlul anunțului.");
+                      setFlowError("Completează titlul anunțului.");
                       return;
                     }
+                    setFlowError(null);
                     if (!hasTrackedStart) {
                       trackEvent("start_post_listing", { category });
                       setHasTrackedStart(true);
@@ -1119,6 +1141,14 @@ export default function PuneAnuntClient() {
                 </div>
               ) : (
                 <div className="animate-in fade-in slide-in-from-bottom-8 space-y-8 duration-500">
+                  {flowError && (
+                    <div
+                      role="alert"
+                      className="rounded-2xl border-2 border-red-800/40 bg-red-50 px-4 py-3 text-sm font-semibold text-red-900"
+                    >
+                      {flowError}
+                    </div>
+                  )}
                   <div>
                     <h2 className="text-xl font-black uppercase italic tracking-tight text-black md:text-2xl">
                       3. Preț de vânzare
@@ -1225,14 +1255,20 @@ export default function PuneAnuntClient() {
                   <div className="flex flex-col gap-3 border-t border-neutral-200 pt-6 sm:flex-row sm:gap-4">
                     <button
                       type="button"
-                      onClick={() => setStep(2)}
+                      onClick={() => {
+                        setFlowError(null);
+                        setStep(2);
+                      }}
                       className="w-full rounded-2xl border-[3px] border-black bg-white py-4 text-xs font-black uppercase tracking-widest text-black shadow-[4px_4px_0_0_rgba(0,0,0,1)] transition hover:bg-neutral-50 sm:w-1/3"
                     >
                       Înapoi
                     </button>
                     <button
                       type="button"
-                      onClick={() => setStep(4)}
+                      onClick={() => {
+                        setFlowError(null);
+                        setStep(4);
+                      }}
                       disabled={!exitPrice}
                       className="w-full flex-1 rounded-2xl border-[3px] border-black bg-black py-4 text-xs font-black uppercase tracking-widest text-[#FFD100] shadow-[6px_6px_0_0_#000] transition hover:bg-neutral-900 disabled:cursor-not-allowed disabled:opacity-40"
                     >
@@ -1246,6 +1282,14 @@ export default function PuneAnuntClient() {
 
           {step === 4 && (
             <div className="space-y-8 animate-in slide-in-from-right-4 duration-500">
+              {flowError && (
+                <div
+                  role="alert"
+                  className="rounded-2xl border-2 border-red-800/40 bg-red-50 px-4 py-3 text-sm font-semibold text-red-900"
+                >
+                  {flowError}
+                </div>
+              )}
               <div>
                 <h2 className="text-2xl font-black uppercase italic tracking-tight text-black md:text-3xl">
                   Alege viteza de vânzare
@@ -1311,7 +1355,10 @@ export default function PuneAnuntClient() {
 
               <button
                 type="button"
-                onClick={() => setStep(3)}
+                onClick={() => {
+                  setFlowError(null);
+                  setStep(3);
+                }}
                 className="mx-auto block w-fit border-b-2 border-transparent pb-1 text-center text-[10px] font-black uppercase italic text-neutral-500 transition-colors hover:border-black hover:text-black"
               >
                 ← Înapoi la preț
