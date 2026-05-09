@@ -44,6 +44,8 @@ function DashboardContent() {
   
   const [myDemands, setMyDemands] = useState<any[]>([]);
   const [myDemandOffers, setMyDemandOffers] = useState<any[]>([]);
+  const [confirmSoldOfferId, setConfirmSoldOfferId] = useState<string | null>(null);
+  const [soldActionMessage, setSoldActionMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   
   const [isLoading, setIsLoading] = useState(true);
 
@@ -295,9 +297,6 @@ function DashboardContent() {
   }
 
   const markListingAsSold = async (item: any) => {
-    const confirmed = window.confirm("Ești sigur? Anunțul va fi scos din marketplace-ul public.");
-    if (!confirmed) return;
-
     const { data, error } = await supabase
       .from('listings')
       .update({ status: 'sold' })
@@ -310,7 +309,10 @@ function DashboardContent() {
         listingId: item.id,
         errorMessage: error?.message || null,
       });
-      alert("Nu am putut marca anunțul ca vândut. Încearcă din nou.");
+      setSoldActionMessage({
+        type: "error",
+        text: "Nu am putut marca anunțul ca vândut. Te rugăm să reîncerci.",
+      });
       return;
     }
 
@@ -319,6 +321,10 @@ function DashboardContent() {
         listing.id === item.id ? { ...listing, status: data.status } : listing
       )
     );
+    setSoldActionMessage({
+      type: "success",
+      text: "Anunțul a fost marcat ca vândut.",
+    });
   };
 
   const handleOfferAction = async (offerId: string, action: 'accepted' | 'rejected' | 'cancelled', type: 'listing' | 'demand' = 'listing') => {
@@ -664,6 +670,11 @@ function DashboardContent() {
               <p className="text-xs font-bold text-neutral-700">Aici primești pitch-uri și contra-oferte.</p>
             </div>
           </div>
+          {soldActionMessage && (
+            <div className={`mb-6 rounded-xl border-2 px-4 py-3 text-sm font-black ${soldActionMessage.type === "success" ? "border-green-700 bg-green-100 text-green-900" : "border-red-700 bg-red-100 text-red-900"}`}>
+              {soldActionMessage.text}
+            </div>
+          )}
 
           {isLoading ? (
              <div className="text-center py-20 animate-pulse font-black uppercase tracking-widest text-xs text-neutral-600">Sincronizare mesaje...</div>
@@ -676,7 +687,9 @@ function DashboardContent() {
                   <h3 className="text-lg font-black uppercase italic tracking-widest text-neutral-600 mb-4 border-b-2 border-black inline-block">Oferte Pentru Activele Mele</h3>
                   <div className="space-y-6">
                     {myOffers.map(offer => {
-                      const listing = myListings.find(l => l.id === offer.listing_id); 
+                      const listing = myListings.find(l => l.id === offer.listing_id);
+                      const isListingSold = listing?.status === "sold";
+                      const isConfirmingSold = confirmSoldOfferId === offer.id;
                       return (
                         <div key={offer.id} className={`bg-white border-[3px] border-black rounded-[2rem] p-6 md:p-8 shadow-[8px_8px_0_0_rgba(0,0,0,1)] relative overflow-hidden transition-all ${offer.status === 'rejected' ? 'opacity-60 grayscale' : ''}`}>
                           
@@ -756,30 +769,64 @@ function DashboardContent() {
                                   <p className="text-xs font-bold text-neutral-600 mb-3 leading-relaxed">
                                     Acceptarea unei oferte nu marchează automat activul ca vândut. Contactează cumpărătorul direct și marchează activul ca vândut doar după finalizarea tranzacției.
                                   </p>
-                                  <div className="grid grid-cols-1 gap-3">
-                                    <button
-                                      onClick={() => {
-                                        if (!listing) {
-                                          alert("Nu am găsit anunțul asociat acestei oferte.");
-                                          return;
-                                        }
-                                        markListingAsSold(listing);
-                                      }}
-                                      className="w-full bg-white border-[3px] border-black text-black py-3 rounded-xl font-black uppercase text-xs hover:bg-black hover:text-[#FFD100] transition-colors shadow-[3px_3px_0_0_rgba(0,0,0,1)] active:shadow-none active:translate-y-1"
-                                    >
-                                      Marchează ca vândut
-                                    </button>
-                                    <button
-                                      onClick={() => {
-                                        const confirmed = window.confirm("Oferta va fi marcată ca nefinalizată, iar anunțul va rămâne activ.");
-                                        if (!confirmed) return;
-                                        handleOfferAction(offer.id, 'cancelled', 'listing');
-                                      }}
-                                      className="w-full bg-[#FDFCF8] border-[3px] border-black text-black py-3 rounded-xl font-black uppercase text-xs hover:bg-black hover:text-[#FFD100] transition-colors shadow-[3px_3px_0_0_rgba(0,0,0,1)] active:shadow-none active:translate-y-1"
-                                    >
-                                      Marchează ca nefinalizată
-                                    </button>
-                                  </div>
+                                  {isListingSold ? (
+                                    <div className="rounded-xl border-2 border-black bg-[#FDFCF8] px-4 py-3">
+                                      <p className="text-xs font-black uppercase tracking-wider text-black">
+                                        Anunț vândut
+                                      </p>
+                                    </div>
+                                  ) : isConfirmingSold ? (
+                                    <div className="rounded-xl border-2 border-black bg-[#FDFCF8] p-4">
+                                      <p className="text-sm font-black text-black">Confirmi că activul a fost vândut?</p>
+                                      <p className="mt-2 text-xs font-bold text-neutral-700 leading-relaxed">
+                                        Anunțul va fi scos din marketplace-ul public. Folosește această acțiune doar după ce tranzacția este finalizată între părți.
+                                      </p>
+                                      <div className="mt-4 grid grid-cols-1 gap-2">
+                                        <button
+                                          onClick={() => {
+                                            if (!listing) {
+                                              setSoldActionMessage({
+                                                type: "error",
+                                                text: "Nu am putut identifica anunțul asociat ofertei.",
+                                              });
+                                              setConfirmSoldOfferId(null);
+                                              return;
+                                            }
+                                            markListingAsSold(listing);
+                                            setConfirmSoldOfferId(null);
+                                          }}
+                                          className="w-full bg-white border-[3px] border-black text-black py-2.5 rounded-xl font-black uppercase text-xs hover:bg-black hover:text-[#FFD100] transition-colors shadow-[3px_3px_0_0_rgba(0,0,0,1)] active:shadow-none active:translate-y-1"
+                                        >
+                                          Da, marchează ca vândut
+                                        </button>
+                                        <button
+                                          onClick={() => setConfirmSoldOfferId(null)}
+                                          className="w-full bg-[#FDFCF8] border-[3px] border-black text-black py-2.5 rounded-xl font-black uppercase text-xs hover:bg-black hover:text-[#FFD100] transition-colors shadow-[3px_3px_0_0_rgba(0,0,0,1)] active:shadow-none active:translate-y-1"
+                                        >
+                                          Renunță
+                                        </button>
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <div className="grid grid-cols-1 gap-3">
+                                      <button
+                                        onClick={() => setConfirmSoldOfferId(offer.id)}
+                                        className="w-full bg-white border-[3px] border-black text-black py-3 rounded-xl font-black uppercase text-xs hover:bg-black hover:text-[#FFD100] transition-colors shadow-[3px_3px_0_0_rgba(0,0,0,1)] active:shadow-none active:translate-y-1"
+                                      >
+                                        Marchează ca vândut
+                                      </button>
+                                      <button
+                                        onClick={() => {
+                                          const confirmed = window.confirm("Oferta va fi marcată ca nefinalizată, iar anunțul va rămâne activ.");
+                                          if (!confirmed) return;
+                                          handleOfferAction(offer.id, 'cancelled', 'listing');
+                                        }}
+                                        className="w-full bg-[#FDFCF8] border-[3px] border-black text-black py-3 rounded-xl font-black uppercase text-xs hover:bg-black hover:text-[#FFD100] transition-colors shadow-[3px_3px_0_0_rgba(0,0,0,1)] active:shadow-none active:translate-y-1"
+                                      >
+                                        Marchează ca nefinalizată
+                                      </button>
+                                    </div>
+                                  )}
                                 </div>
                               ) : (
                                 <div className="text-center mt-auto border-t-2 border-gray-100 pt-4">
