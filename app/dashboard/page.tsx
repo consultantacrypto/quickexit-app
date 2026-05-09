@@ -202,7 +202,7 @@ function DashboardContent() {
         const demandIds = demands.map(d => d.id);
         const { data: demandOffers } = await supabase
           .from('demand_offers')
-          .select('*')
+          .select('id, demand_id, offer_price, asset_description, seller_phone, seller_email, status, created_at, images')
           .in('demand_id', demandIds)
           .order('created_at', { ascending: false });
         setMyDemandOffers(demandOffers || []);
@@ -947,6 +947,28 @@ function DashboardContent() {
                                 <p className="text-xs font-black uppercase text-neutral-600 mb-2">Detalii activ vânzător:</p>
                                 <p className="text-sm font-bold italic text-neutral-700 leading-relaxed">&quot;{offer.asset_description || "Sunt interesat să vă vând."}&quot;</p>
                               </div>
+                              {Array.isArray(offer.images) && offer.images.length > 0 && (
+                                <div className="mb-4">
+                                  <p className="text-xs font-black uppercase text-neutral-600 mb-2">Poze atașate</p>
+                                  <div className="grid grid-cols-3 gap-2">
+                                    {offer.images.map((imageUrl: string, idx: number) => (
+                                      <a
+                                        key={`${offer.id}-img-${idx}`}
+                                        href={imageUrl}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="block overflow-hidden rounded-lg border-2 border-black bg-white"
+                                      >
+                                        <img
+                                          src={imageUrl}
+                                          alt={`Poză ofertă ${idx + 1}`}
+                                          className="h-20 w-full object-cover"
+                                        />
+                                      </a>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
                             </div>
 
                             <div className="lg:col-span-1 border-t-[3px] lg:border-t-0 lg:border-l-[3px] border-gray-200 pt-6 lg:pt-0 lg:pl-6 flex flex-col h-full justify-between">
