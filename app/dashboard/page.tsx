@@ -756,16 +756,30 @@ function DashboardContent() {
                                   <p className="text-xs font-bold text-neutral-600 mb-3 leading-relaxed">
                                     Acceptarea unei oferte nu marchează automat activul ca vândut. Contactează cumpărătorul direct și marchează activul ca vândut doar după finalizarea tranzacției.
                                   </p>
-                                  <button
-                                    onClick={() => {
-                                      const confirmed = window.confirm("Oferta va fi marcată ca nefinalizată, iar anunțul va rămâne activ.");
-                                      if (!confirmed) return;
-                                      handleOfferAction(offer.id, 'cancelled', 'listing');
-                                    }}
-                                    className="w-full bg-[#FDFCF8] border-[3px] border-black text-black py-3 rounded-xl font-black uppercase text-xs hover:bg-black hover:text-[#FFD100] transition-colors shadow-[3px_3px_0_0_rgba(0,0,0,1)] active:shadow-none active:translate-y-1"
-                                  >
-                                    Marchează ca nefinalizată
-                                  </button>
+                                  <div className="grid grid-cols-1 gap-3">
+                                    <button
+                                      onClick={() => {
+                                        if (!listing) {
+                                          alert("Nu am găsit anunțul asociat acestei oferte.");
+                                          return;
+                                        }
+                                        markListingAsSold(listing);
+                                      }}
+                                      className="w-full bg-white border-[3px] border-black text-black py-3 rounded-xl font-black uppercase text-xs hover:bg-black hover:text-[#FFD100] transition-colors shadow-[3px_3px_0_0_rgba(0,0,0,1)] active:shadow-none active:translate-y-1"
+                                    >
+                                      Marchează ca vândut
+                                    </button>
+                                    <button
+                                      onClick={() => {
+                                        const confirmed = window.confirm("Oferta va fi marcată ca nefinalizată, iar anunțul va rămâne activ.");
+                                        if (!confirmed) return;
+                                        handleOfferAction(offer.id, 'cancelled', 'listing');
+                                      }}
+                                      className="w-full bg-[#FDFCF8] border-[3px] border-black text-black py-3 rounded-xl font-black uppercase text-xs hover:bg-black hover:text-[#FFD100] transition-colors shadow-[3px_3px_0_0_rgba(0,0,0,1)] active:shadow-none active:translate-y-1"
+                                    >
+                                      Marchează ca nefinalizată
+                                    </button>
+                                  </div>
                                 </div>
                               ) : (
                                 <div className="text-center mt-auto border-t-2 border-gray-100 pt-4">
