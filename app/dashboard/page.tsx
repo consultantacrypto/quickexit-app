@@ -46,6 +46,8 @@ function DashboardContent() {
   const [myDemandOffers, setMyDemandOffers] = useState<any[]>([]);
   const [mySentDemandOffers, setMySentDemandOffers] = useState<any[]>([]);
   const [sentDemandMeta, setSentDemandMeta] = useState<Record<string, { targetAsset: string; category: string | null; status: string | null }>>({});
+  const [confirmResolvedDemandId, setConfirmResolvedDemandId] = useState<string | null>(null);
+  const [demandResolveMessage, setDemandResolveMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [confirmSoldOfferId, setConfirmSoldOfferId] = useState<string | null>(null);
   const [soldActionMessage, setSoldActionMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [demandOfferActionMessage, setDemandOfferActionMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
@@ -350,6 +352,37 @@ function DashboardContent() {
     else alert("Eroare status: " + error.message);
   }
 
+  const markDemandAsResolved = async (demandId: string) => {
+    const { data, error } = await supabase
+      .from('demands')
+      .update({ status: 'resolved' })
+      .eq('id', demandId)
+      .select('id,status')
+      .single();
+
+    if (error || !data?.id || !data?.status) {
+      console.error("Eroare marcare cerere ca rezolvată:", {
+        demandId,
+        errorMessage: error?.message || null,
+      });
+      setDemandResolveMessage({
+        type: "error",
+        text: "Nu am putut marca cererea ca rezolvată. Te rugăm să reîncerci.",
+      });
+      return;
+    }
+
+    setMyDemands((prev) =>
+      prev.map((demand) =>
+        demand.id === demandId ? { ...demand, status: data.status } : demand
+      )
+    );
+    setDemandResolveMessage({
+      type: "success",
+      text: "Cererea a fost marcată ca rezolvată.",
+    });
+  };
+
   const markListingAsSold = async (item: any) => {
     const { data, error } = await supabase
       .from('listings')
@@ -475,6 +508,8 @@ function DashboardContent() {
         return "Oprit";
       case "sold":
         return "Vândut";
+      case "resolved":
+        return "Rezolvată";
       default:
         return "În așteptare";
     }
@@ -688,6 +723,11 @@ function DashboardContent() {
       {/* TAB CUMPĂRĂRI (Cereri de Capital) */}
       {activeTab === 'cumparari' && (
         <div className="animate-in fade-in duration-500">
+          {demandResolveMessage && (
+            <div className={`mb-4 rounded-xl border-2 px-4 py-3 text-sm font-black ${demandResolveMessage.type === "success" ? "border-green-700 bg-green-100 text-green-900" : "border-red-700 bg-red-100 text-red-900"}`}>
+              {demandResolveMessage.text}
+            </div>
+          )}
           {isLoading && paymentStatus ? (
              <div className="bg-[#FFD100] p-4 rounded-xl border-2 border-black mb-8 animate-pulse flex items-center justify-center gap-3">
                <span className="text-xl">⚡</span>
@@ -715,6 +755,10 @@ function DashboardContent() {
                       <button className="w-full bg-[#FDFCF8] border-2 border-neutral-300 py-3 rounded-lg text-xs font-black uppercase text-neutral-500 cursor-not-allowed">
                         Așteaptă Plata
                       </button>
+                    ) : demand.status === 'resolved' ? (
+                      <button className="w-full bg-[#FDFCF8] border-2 border-neutral-300 py-3 rounded-lg text-xs font-black uppercase text-neutral-500 cursor-not-allowed">
+                        Cerere rezolvată
+                      </button>
                     ) : (
                       <button 
                         onClick={() => toggleDemandStatus(demand)}
@@ -722,6 +766,45 @@ function DashboardContent() {
                       >
                         {demand.status === 'active' ? <><Power size={12}/> Oprește Căutarea</> : <><Play size={12}/> Reia Căutarea</>}
                       </button>
+                    )}
+                    {demand.status !== 'pending_payment' && demand.status !== 'resolved' && (
+                      <div className="mt-3">
+                        <p className="mb-2 text-[11px] font-bold text-neutral-600 leading-relaxed">
+                          Acceptarea unei oferte nu marchează automat cererea ca rezolvată. Marchează cererea ca rezolvată doar când nu mai cauți sau când tranzacția a fost finalizată direct între părți.
+                        </p>
+                        {confirmResolvedDemandId === demand.id ? (
+                          <div className="rounded-xl border-2 border-black bg-[#FDFCF8] p-3">
+                            <p className="text-xs font-black text-black">Confirmi că această cerere este rezolvată?</p>
+                            <p className="mt-2 text-[11px] font-bold text-neutral-700 leading-relaxed">
+                              Cererea va fi scoasă din lista publică de cereri active. Folosește această acțiune doar după ce nu mai cauți acest activ sau după ce ai finalizat cumpărarea direct cu ofertantul.
+                            </p>
+                            <div className="mt-3 grid grid-cols-1 gap-2">
+                              <button
+                                onClick={() => {
+                                  markDemandAsResolved(demand.id);
+                                  setConfirmResolvedDemandId(null);
+                                }}
+                                className="w-full rounded-lg border-[3px] border-black bg-white py-2 text-[11px] font-black uppercase tracking-widest hover:bg-black hover:text-[#FFD100] transition-all"
+                              >
+                                Da, marchează ca rezolvată
+                              </button>
+                              <button
+                                onClick={() => setConfirmResolvedDemandId(null)}
+                                className="w-full rounded-lg border-[3px] border-black bg-[#FDFCF8] py-2 text-[11px] font-black uppercase tracking-widest hover:bg-black hover:text-[#FFD100] transition-all"
+                              >
+                                Renunță
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => setConfirmResolvedDemandId(demand.id)}
+                            className="w-full rounded-lg border-[3px] border-black bg-white py-2.5 text-xs font-black uppercase tracking-widest hover:bg-black hover:text-[#FFD100] transition-all shadow-[2px_2px_0_0_rgba(0,0,0,1)] active:translate-y-px active:shadow-none"
+                          >
+                            Marchează ca rezolvată
+                          </button>
+                        )}
+                      </div>
                     )}
                   </div>
                 </div>
@@ -939,7 +1022,8 @@ function DashboardContent() {
                   </p>
                   <div className="space-y-6">
                     {myDemandOffers.map(offer => {
-                      const demand = myDemands.find(d => d.id === offer.demand_id); 
+                      const demand = myDemands.find(d => d.id === offer.demand_id);
+                      const isDemandResolved = demand?.status === "resolved";
                       return (
                         <div key={offer.id} className={`bg-[#FDFCF8] border-[3px] border-black rounded-[2rem] p-6 md:p-8 shadow-[8px_8px_0_0_rgba(0,0,0,1)] relative overflow-hidden transition-all ${offer.status === 'rejected' ? 'opacity-60 grayscale' : ''}`}>
                           
@@ -950,6 +1034,13 @@ function DashboardContent() {
                           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-center">
                             
                             <div className="lg:col-span-2">
+                              {isDemandResolved && (
+                                <div className="mb-4 inline-block rounded-lg border-2 border-black bg-black px-3 py-1">
+                                  <p className="text-[10px] font-black uppercase tracking-wider text-[#FFD100]">
+                                    Cerere rezolvată
+                                  </p>
+                                </div>
+                              )}
                               <p className="text-xs font-black uppercase text-neutral-600 mb-1">Pentru bugetul tău de:</p>
                               <p className="text-xl md:text-2xl font-black uppercase italic tracking-tight mb-6">{demand?.target_asset || "Cerere Nelistată"} <span className="text-sm font-bold text-neutral-500">(Max €{demand?.budget?.toLocaleString()})</span></p>
                               
@@ -1002,7 +1093,7 @@ function DashboardContent() {
                                 <p className="text-center font-black text-xl italic mt-3">{offer.seller_phone}</p>
                               </div>
 
-                              {offer.status === 'new' ? (
+                              {offer.status === 'new' && !isDemandResolved ? (
                                 <div className="grid grid-cols-2 gap-3 mt-auto">
                                   <button onClick={() => handleOfferAction(offer.id, 'accepted', 'demand')} className="bg-white border-[3px] border-black text-black py-3 rounded-xl font-black uppercase text-xs hover:bg-green-400 hover:border-green-400 transition-colors shadow-[3px_3px_0_0_rgba(0,0,0,1)] active:shadow-none active:translate-y-1">
                                     Acceptă oferta
