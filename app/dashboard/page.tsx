@@ -49,8 +49,10 @@ function DashboardContent() {
   const [confirmResolvedDemandId, setConfirmResolvedDemandId] = useState<string | null>(null);
   const [demandResolveMessage, setDemandResolveMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [confirmSoldOfferId, setConfirmSoldOfferId] = useState<string | null>(null);
+  const [confirmCancelledOfferId, setConfirmCancelledOfferId] = useState<string | null>(null);
   const [soldActionMessage, setSoldActionMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [demandOfferActionMessage, setDemandOfferActionMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [statusActionMessage, setStatusActionMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   
   const [isLoading, setIsLoading] = useState(true);
 
@@ -326,7 +328,10 @@ function DashboardContent() {
     
     if (newStatus === 'active') {
       if (item.expires_at && new Date() > new Date(item.expires_at)) {
-        alert("⚠️ Perioada plătită a expirat! Trebuie să reînnoiești pachetul pentru a reactiva acest anunț.");
+        setStatusActionMessage({
+          type: "error",
+          text: "Perioada plătită a expirat. Reînnoiește pachetul pentru a reactiva acest anunț.",
+        });
         return;
       }
     }
@@ -336,8 +341,18 @@ function DashboardContent() {
       .update({ status: newStatus })
       .eq('id', item.id);
 
-    if (!error) fetchDashboardData(); 
-    else alert("Eroare status: " + error.message);
+    if (!error) {
+      setStatusActionMessage({
+        type: "success",
+        text: "Statusul anunțului a fost actualizat.",
+      });
+      fetchDashboardData();
+    } else {
+      setStatusActionMessage({
+        type: "error",
+        text: "Nu am putut actualiza statusul anunțului. Te rugăm să reîncerci.",
+      });
+    }
   };
 
   // Oprim/Pornim Cereri de capital
@@ -348,8 +363,18 @@ function DashboardContent() {
       .update({ status: newStatus })
       .eq('id', item.id);
 
-    if (!error) fetchDashboardData(); 
-    else alert("Eroare status: " + error.message);
+    if (!error) {
+      setStatusActionMessage({
+        type: "success",
+        text: "Statusul cererii a fost actualizat.",
+      });
+      fetchDashboardData();
+    } else {
+      setStatusActionMessage({
+        type: "error",
+        text: "Nu am putut actualiza statusul cererii. Te rugăm să reîncerci.",
+      });
+    }
   }
 
   const markDemandAsResolved = async (demandId: string) => {
@@ -441,7 +466,13 @@ function DashboardContent() {
           text: "Nu am putut actualiza oferta. Te rugăm să reîncerci.",
         });
       }
-      return;
+      if (type === "listing" && action === "cancelled") {
+        setSoldActionMessage({
+          type: "error",
+          text: "Nu am putut actualiza oferta. Te rugăm să reîncerci.",
+        });
+      }
+      return false;
     }
 
     if (type === 'listing') {
@@ -466,6 +497,7 @@ function DashboardContent() {
         status: updatedOffer.status,
       });
     }
+    return true;
   };
 
   const newOffersCount = myOffers.filter(o => o.status === 'new' || o.status === 'accepted_exit_price').length;
@@ -496,16 +528,16 @@ function DashboardContent() {
       case "pending_payment":
         return "Așteaptă plata";
       case "seed":
-        return "Market Index";
+        return "Index piață";
       case "hidden":
       case "admin_removed":
         return "Ascuns";
       case "new":
-        return "Nou";
+        return "În așteptare";
       case "pending":
         return "În așteptare";
       case "suspended":
-        return "Oprit";
+        return "Suspendat";
       case "sold":
         return "Vândut";
       case "resolved":
@@ -553,6 +585,11 @@ function DashboardContent() {
 
   return (
     <div className="max-w-7xl mx-auto min-h-screen pb-20 overflow-x-hidden">
+      {statusActionMessage && (
+        <div className={`mb-4 rounded-xl border-2 px-4 py-3 text-sm font-black ${statusActionMessage.type === "success" ? "border-green-700 bg-green-100 text-green-900" : "border-red-700 bg-red-100 text-red-900"}`}>
+          {statusActionMessage.text}
+        </div>
+      )}
       <section className="mb-8 border-[3px] border-black bg-black text-white rounded-[2rem] px-5 md:px-8 py-6 md:py-8 shadow-[8px_8px_0_0_rgba(255,209,0,1)]">
         <p className="text-xs font-black uppercase tracking-[0.2em] text-[#FFD100] mb-3">Dashboard</p>
         <div className="flex flex-col md:flex-row justify-between md:items-end gap-4">
@@ -830,7 +867,7 @@ function DashboardContent() {
             <Inbox className="w-8 h-8 md:w-10 md:h-10 text-[#FFD100]" />
             <div>
               <h2 className="text-2xl md:text-3xl font-black uppercase italic tracking-tighter">Cameră de <span className="text-[#FFD100]">Negociere</span></h2>
-              <p className="text-xs font-bold text-neutral-700">Aici primești pitch-uri și contra-oferte.</p>
+              <p className="text-xs font-bold text-neutral-700">Aici primești oferte și contraoferte.</p>
             </div>
           </div>
           {soldActionMessage && (
@@ -921,7 +958,7 @@ function DashboardContent() {
                               {offer.status === 'new' || offer.status === 'accepted_exit_price' ? (
                                 <div className="grid grid-cols-2 gap-3 mt-auto">
                                   <button onClick={() => handleOfferAction(offer.id, 'accepted', 'listing')} className="bg-white border-[3px] border-black text-black py-3 rounded-xl font-black uppercase text-xs hover:bg-green-400 hover:border-green-400 transition-colors shadow-[3px_3px_0_0_rgba(0,0,0,1)] active:shadow-none active:translate-y-1">
-                                    Accept Oferta
+                                    Acceptă oferta
                                   </button>
                                   <button onClick={() => handleOfferAction(offer.id, 'rejected', 'listing')} className="bg-[#FDFCF8] border-[3px] border-transparent text-neutral-600 py-3 rounded-xl font-black uppercase text-xs hover:bg-red-500 hover:text-white transition-colors">
                                     Refuză
@@ -978,16 +1015,44 @@ function DashboardContent() {
                                       >
                                         Marchează ca vândut
                                       </button>
-                                      <button
-                                        onClick={() => {
-                                          const confirmed = window.confirm("Oferta va fi marcată ca nefinalizată, iar anunțul va rămâne activ.");
-                                          if (!confirmed) return;
-                                          handleOfferAction(offer.id, 'cancelled', 'listing');
-                                        }}
-                                        className="w-full bg-[#FDFCF8] border-[3px] border-black text-black py-3 rounded-xl font-black uppercase text-xs hover:bg-black hover:text-[#FFD100] transition-colors shadow-[3px_3px_0_0_rgba(0,0,0,1)] active:shadow-none active:translate-y-1"
-                                      >
-                                        Marchează ca nefinalizată
-                                      </button>
+                                      {confirmCancelledOfferId === offer.id ? (
+                                        <div className="rounded-xl border-2 border-black bg-[#FDFCF8] p-4">
+                                          <p className="text-sm font-black text-black">Confirmi că oferta nu s-a finalizat?</p>
+                                          <p className="mt-2 text-xs font-bold text-neutral-700 leading-relaxed">
+                                            Oferta va fi marcată ca nefinalizată, iar anunțul va rămâne activ.
+                                          </p>
+                                          <div className="mt-4 grid grid-cols-1 gap-2">
+                                            <button
+                                              onClick={async () => {
+                                                const updated = await handleOfferAction(offer.id, 'cancelled', 'listing');
+                                                setConfirmCancelledOfferId(null);
+                                                if (updated) {
+                                                  setSoldActionMessage({
+                                                    type: "success",
+                                                    text: "Oferta a fost marcată ca nefinalizată.",
+                                                  });
+                                                }
+                                              }}
+                                              className="w-full bg-white border-[3px] border-black text-black py-2.5 rounded-xl font-black uppercase text-xs hover:bg-black hover:text-[#FFD100] transition-colors shadow-[3px_3px_0_0_rgba(0,0,0,1)] active:shadow-none active:translate-y-1"
+                                            >
+                                              Da, marchează ca nefinalizată
+                                            </button>
+                                            <button
+                                              onClick={() => setConfirmCancelledOfferId(null)}
+                                              className="w-full bg-[#FDFCF8] border-[3px] border-black text-black py-2.5 rounded-xl font-black uppercase text-xs hover:bg-black hover:text-[#FFD100] transition-colors shadow-[3px_3px_0_0_rgba(0,0,0,1)] active:shadow-none active:translate-y-1"
+                                            >
+                                              Renunță
+                                            </button>
+                                          </div>
+                                        </div>
+                                      ) : (
+                                        <button
+                                          onClick={() => setConfirmCancelledOfferId(offer.id)}
+                                          className="w-full bg-[#FDFCF8] border-[3px] border-black text-black py-3 rounded-xl font-black uppercase text-xs hover:bg-black hover:text-[#FFD100] transition-colors shadow-[3px_3px_0_0_rgba(0,0,0,1)] active:shadow-none active:translate-y-1"
+                                        >
+                                          Marchează ca nefinalizată
+                                        </button>
+                                      )}
                                     </div>
                                   )}
                                 </div>
@@ -1219,7 +1284,7 @@ function DashboardContent() {
                       const listingId = String(offer?.listing_id || "");
                       const offerIdShort = String(offer?.id || "").slice(0, 6) || "N/A";
                       const listingMeta = sentOffersListingMeta[listingId];
-                      const listingTitle = listingMeta?.title || `Listing #${listingId.slice(0, 8)}`;
+                      const listingTitle = listingMeta?.title || `Anunț #${listingId.slice(0, 8)}`;
                       const listingCategory = listingMeta?.category || null;
 
                       return (
@@ -1230,7 +1295,7 @@ function DashboardContent() {
                           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                             <div>
                               <p className="text-xs font-black uppercase tracking-widest text-neutral-600 mb-1">
-                                Activ / Listing
+                                Anunț
                               </p>
                               <p className="text-base font-black italic text-black">{listingTitle}</p>
                               <p className="text-[11px] font-black uppercase tracking-wider text-neutral-500 mt-1">

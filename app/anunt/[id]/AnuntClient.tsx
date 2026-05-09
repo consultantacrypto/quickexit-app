@@ -230,11 +230,13 @@ export default function AnuntClient() {
   const [offerMessage, setOfferMessage] = useState("");
   const [isSubmittingOffer, setIsSubmittingOffer] = useState(false);
   const [offerSuccess, setOfferSuccess] = useState(false);
+  const [offerActionMessage, setOfferActionMessage] = useState<{ type: "error"; text: string } | null>(null);
 
   const [acceptPhone, setAcceptPhone] = useState("");
   const [acceptEmail, setAcceptEmail] = useState("");
   const [isAccepting, setIsAccepting] = useState(false);
   const [acceptSuccess, setAcceptSuccess] = useState(false);
+  const [acceptActionMessage, setAcceptActionMessage] = useState<{ type: "error"; text: string } | null>(null);
 
   useEffect(() => {
     async function fetchAd() {
@@ -343,6 +345,7 @@ export default function AnuntClient() {
   const submitListingOffer = async () => {
     if (!buyerPhone || !offerPrice) return;
     setIsSubmittingOffer(true);
+    setOfferActionMessage(null);
     try {
       const {
         data: { user },
@@ -371,7 +374,10 @@ export default function AnuntClient() {
       setOfferMessage("");
     } catch (err) {
       console.error(err);
-      alert("Eroare la trimiterea ofertei.");
+      setOfferActionMessage({
+        type: "error",
+        text: "Nu am putut trimite oferta. Te rugăm să reîncerci.",
+      });
     } finally {
       setIsSubmittingOffer(false);
     }
@@ -380,6 +386,7 @@ export default function AnuntClient() {
   const submitAcceptExitPrice = async () => {
     if (!acceptPhone) return;
     setIsAccepting(true);
+    setAcceptActionMessage(null);
     try {
       const {
         data: { user },
@@ -405,7 +412,10 @@ export default function AnuntClient() {
       setAcceptSuccess(true);
     } catch (err) {
       console.error(err);
-      alert("Eroare la confirmare.");
+      setAcceptActionMessage({
+        type: "error",
+        text: "Nu am putut trimite confirmarea. Te rugăm să reîncerci.",
+      });
     } finally {
       setIsAccepting(false);
     }
@@ -734,6 +744,7 @@ export default function AnuntClient() {
                     onClick={() => {
                       setActiveModal("accept");
                       setAcceptSuccess(false);
+                      setAcceptActionMessage(null);
                     }}
                     className="w-full rounded-2xl border-[3px] border-black bg-black py-4 font-black uppercase tracking-wider text-[#FFD100] shadow-[6px_6px_0_0_#000] transition hover:brightness-110 md:py-5 md:text-sm"
                   >
@@ -748,6 +759,7 @@ export default function AnuntClient() {
                       });
                       setActiveModal("offer");
                       setOfferSuccess(false);
+                      setOfferActionMessage(null);
                     }}
                     className="w-full rounded-2xl border-[3px] border-black bg-white py-4 font-black uppercase tracking-wider text-black shadow-[4px_4px_0_0_#000] transition hover:bg-neutral-50 md:text-xs"
                   >
@@ -1074,6 +1086,11 @@ export default function AnuntClient() {
                     </div>
                   ) : (
                     <>
+                      {acceptActionMessage && (
+                        <div className="rounded-xl border-2 border-red-700 bg-red-100 px-4 py-3 text-sm font-bold text-red-900">
+                          {acceptActionMessage.text}
+                        </div>
+                      )}
                       <p className="text-left text-base font-medium text-neutral-800">
                         Confirmi achiziția la{" "}
                         <span className="font-black">€{adData.exit_price.toLocaleString("ro-RO")}</span> (preț de vânzare
@@ -1141,6 +1158,11 @@ export default function AnuntClient() {
                     </div>
                   ) : (
                     <>
+                      {offerActionMessage && (
+                        <div className="rounded-xl border-2 border-red-700 bg-red-100 px-4 py-3 text-sm font-bold text-red-900">
+                          {offerActionMessage.text}
+                        </div>
+                      )}
                       <div className="rounded-2xl border-[3px] border-black bg-[#F7F4EC] p-6">
                         <p className={labelBase}>Oferta ta (EUR)</p>
                         <p className="mb-4 font-black italic tracking-tighter text-black [font-size:clamp(2rem,5vw,2.5rem)]">
