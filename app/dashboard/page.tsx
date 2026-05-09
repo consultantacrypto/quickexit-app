@@ -637,6 +637,17 @@ function DashboardContent() {
                           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-center">
                             
                             <div className="lg:col-span-2">
+                              {(() => {
+                                const buyerMessage = String(offer.message || "").trim();
+                                return (
+                                  <div className="bg-[#FDFCF8] p-5 rounded-xl border-[3px] border-neutral-200 mb-4">
+                                    <p className="text-xs font-black uppercase text-neutral-600 mb-2">Mesajul cumpărătorului:</p>
+                                    <p className="text-sm font-bold italic text-neutral-700 leading-relaxed">
+                                      {buyerMessage ? `"${buyerMessage}"` : "Nu a fost furnizat"}
+                                    </p>
+                                  </div>
+                                );
+                              })()}
                               <p className="text-xs font-black uppercase text-neutral-600 mb-1">Pentru activul:</p>
                               <p className="text-xl md:text-2xl font-black uppercase italic tracking-tight mb-6">{listing?.title || "Activ Nelistat/Șters"}</p>
                               
@@ -654,25 +665,31 @@ function DashboardContent() {
                                   </div>
                                 )}
                               </div>
-
-                              <div className="bg-[#FDFCF8] p-5 rounded-xl border-[3px] border-neutral-200 mb-4">
-                                <p className="text-xs font-black uppercase text-neutral-600 mb-2">Mesajul cumpărătorului:</p>
-                                <p className="text-sm font-bold italic text-neutral-700 leading-relaxed">&quot;{offer.message || "Sunt interesat să cumpăr."}&quot;</p>
-                              </div>
                             </div>
 
                             <div className="lg:col-span-1 border-t-[3px] lg:border-t-0 lg:border-l-[3px] border-gray-100 pt-6 lg:pt-0 lg:pl-6 flex flex-col h-full justify-between">
                               <div className="mb-6">
                                 <p className="text-xs font-black uppercase text-neutral-600 mb-3">Contact direct:</p>
-                                <a href={`tel:${offer.buyer_phone}`} className="flex items-center justify-center gap-2 bg-black text-[#FFD100] px-4 py-4 rounded-xl font-black text-sm uppercase tracking-widest shadow-[4px_4px_0_0_rgba(255,209,0,1)] hover:scale-105 active:translate-y-1 active:shadow-none transition-all mb-3 w-full border-2 border-black">
-                                  📞 Sună Cumpărătorul
-                                </a>
-                                {offer.buyer_email && (
-                                  <a href={`mailto:${offer.buyer_email}`} className="block text-center text-xs font-bold text-neutral-700 hover:text-black">
+                                {String(offer.buyer_phone || "").trim() ? (
+                                  <>
+                                    <a href={`tel:${offer.buyer_phone}`} className="flex items-center justify-center gap-2 bg-black text-[#FFD100] px-4 py-4 rounded-xl font-black text-sm uppercase tracking-widest shadow-[4px_4px_0_0_rgba(255,209,0,1)] hover:scale-105 active:translate-y-1 active:shadow-none transition-all mb-3 w-full border-2 border-black">
+                                      📞 Sună Cumpărătorul
+                                    </a>
+                                    <p className="text-center font-black text-xl italic mt-3">{offer.buyer_phone}</p>
+                                  </>
+                                ) : (
+                                  <p className="text-sm font-bold text-neutral-700">Telefon: Nu a fost furnizat</p>
+                                )}
+                                {String(offer.buyer_email || "").trim() ? (
+                                  <a href={`mailto:${offer.buyer_email}`} className="block text-center text-xs font-bold text-neutral-700 hover:text-black mt-2">
                                     ✉️ {offer.buyer_email}
                                   </a>
+                                ) : (
+                                  <p className="text-sm font-bold text-neutral-700 mt-2">Email: Nu a fost furnizat</p>
                                 )}
-                                <p className="text-center font-black text-xl italic mt-3">{offer.buyer_phone}</p>
+                                <p className="text-[11px] font-bold text-neutral-600 mt-4 leading-relaxed">
+                                  Contactează cumpărătorul direct pentru pașii următori. Quick Exit nu intermediază plata și nu ține fonduri în custodie.
+                                </p>
                               </div>
 
                               {offer.status === 'new' || offer.status === 'accepted_exit_price' ? (
