@@ -48,6 +48,7 @@ function DashboardContent() {
   const [sentDemandMeta, setSentDemandMeta] = useState<Record<string, { targetAsset: string; category: string | null; status: string | null }>>({});
   const [confirmSoldOfferId, setConfirmSoldOfferId] = useState<string | null>(null);
   const [soldActionMessage, setSoldActionMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [demandOfferActionMessage, setDemandOfferActionMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   
   const [isLoading, setIsLoading] = useState(true);
 
@@ -401,7 +402,13 @@ function DashboardContent() {
         action,
         errorMessage: error?.message || null,
       });
-      alert("Eroare la actualizarea ofertei: " + (error?.message || "niciun rând actualizat"));
+      if (type === "demand" && (action === "accepted" || action === "rejected")) {
+        setDemandOfferActionMessage({
+          type: "error",
+          text: "Nu am putut actualiza oferta. Te rugăm să reîncerci.",
+        });
+      }
+      alert("Nu am putut actualiza oferta. Te rugăm să reîncerci.");
       return;
     }
 
@@ -412,6 +419,12 @@ function DashboardContent() {
     }
 
     if (action === "accepted" || action === "rejected") {
+      if (type === "demand") {
+        setDemandOfferActionMessage({
+          type: "success",
+          text: action === "accepted" ? "Oferta a fost acceptată." : "Oferta a fost respinsă.",
+        });
+      }
       trackEvent(action === "accepted" ? "dashboard_offer_accept" : "dashboard_offer_reject", {
         source: "dashboard",
         offer_id: offerId,
@@ -913,10 +926,15 @@ function DashboardContent() {
                 </div>
               )}
 
-              {/* SECȚIUNE: Pitch-uri primite pentru Cererile Tale (Cumpărări) */}
+              {/* SECȚIUNE: Oferte primite pentru cererile mele */}
               {myDemandOffers.length > 0 && (
                 <div>
-                  <h3 className="text-lg font-black uppercase italic tracking-widest text-neutral-600 mb-4 border-b-2 border-black inline-block">Pitch-uri Pentru Capitalul Meu</h3>
+                  <h3 className="text-lg font-black uppercase italic tracking-widest text-neutral-600 mb-4 border-b-2 border-black inline-block">Oferte primite pentru cererile mele</h3>
+                  {demandOfferActionMessage && (
+                    <div className={`mb-4 rounded-xl border-2 px-4 py-3 text-sm font-black ${demandOfferActionMessage.type === "success" ? "border-green-700 bg-green-100 text-green-900" : "border-red-700 bg-red-100 text-red-900"}`}>
+                      {demandOfferActionMessage.text}
+                    </div>
+                  )}
                   <p className="mb-4 text-xs font-bold text-neutral-700 leading-relaxed">
                     Acceptarea unei oferte nu finalizează automat tranzacția. Contactul și plata se realizează direct între părți. Quick Exit nu intermediază plata și nu ține fonduri în custodie.
                   </p>
@@ -927,7 +945,7 @@ function DashboardContent() {
                         <div key={offer.id} className={`bg-[#FDFCF8] border-[3px] border-black rounded-[2rem] p-6 md:p-8 shadow-[8px_8px_0_0_rgba(0,0,0,1)] relative overflow-hidden transition-all ${offer.status === 'rejected' ? 'opacity-60 grayscale' : ''}`}>
                           
                           <div className={`absolute top-0 right-0 px-4 py-2 text-xs font-black uppercase rounded-bl-xl border-b-[3px] border-l-[3px] border-black ${offer.status === 'new' ? 'bg-[#FFD100] text-black animate-pulse' : offer.status === 'accepted' ? 'bg-green-500 text-black' : 'bg-neutral-200 text-neutral-600'}`}>
-                            {offer.status === 'new' ? 'Pitch Nou' : offer.status === 'accepted' ? 'Pitch Acceptat' : 'Pitch Refuzat'}
+                            {offer.status === 'new' ? 'Ofertă nouă' : offer.status === 'accepted' ? 'Ofertă acceptată' : 'Ofertă respinsă'}
                           </div>
 
                           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-center">
@@ -988,16 +1006,16 @@ function DashboardContent() {
                               {offer.status === 'new' ? (
                                 <div className="grid grid-cols-2 gap-3 mt-auto">
                                   <button onClick={() => handleOfferAction(offer.id, 'accepted', 'demand')} className="bg-white border-[3px] border-black text-black py-3 rounded-xl font-black uppercase text-xs hover:bg-green-400 hover:border-green-400 transition-colors shadow-[3px_3px_0_0_rgba(0,0,0,1)] active:shadow-none active:translate-y-1">
-                                    Accept Pitch
+                                    Acceptă oferta
                                   </button>
                                   <button onClick={() => handleOfferAction(offer.id, 'rejected', 'demand')} className="bg-[#FDFCF8] border-[3px] border-transparent text-neutral-600 py-3 rounded-xl font-black uppercase text-xs hover:bg-red-500 hover:text-white transition-colors">
-                                    Refuză
+                                    Refuză oferta
                                   </button>
                                 </div>
                               ) : (
                                 <div className="text-center mt-auto border-t-2 border-gray-100 pt-4">
                                   <span className={`text-xs font-black uppercase ${offer.status === 'accepted' ? 'text-green-600' : 'text-neutral-600'}`}>
-                                    {offer.status === 'accepted' ? '✓ Ai acceptat acest pitch' : '✕ Pitch închis / Refuzat'}
+                                    {offer.status === 'accepted' ? '✓ Ofertă acceptată' : '✕ Ofertă respinsă'}
                                   </span>
                                 </div>
                               )}
