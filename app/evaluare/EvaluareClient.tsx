@@ -29,26 +29,33 @@ type CategoryOption = {
 };
 
 const CATEGORY_OPTIONS: CategoryOption[] = [
-  { id: "auto", title: "Auto & Moto", hint: "estimare dupa marca, model, an, km" },
-  { id: "imobiliare", title: "Imobiliare", hint: "estimare dupa zona, suprafata, camere" },
-  { id: "lux", title: "Lux & Ceasuri", hint: "estimare dupa brand, model, acte/stare" },
-  { id: "business", title: "Afaceri de vanzare", hint: "estimare dupa domeniu, venit, locatie" },
-  { id: "gadgets", title: "Gadgets", hint: "estimare dupa brand, model, stare" },
-  { id: "foto", title: "Foto & Audio", hint: "estimare dupa brand, model, stare" },
+  { id: "auto", title: "Auto & Moto", hint: "estimare după marcă, model, an, km" },
+  { id: "imobiliare", title: "Imobiliare", hint: "estimare după zonă, suprafață, camere" },
+  { id: "lux", title: "Lux & Ceasuri", hint: "estimare după brand, model, acte/stare" },
+  { id: "business", title: "Afaceri de vânzare", hint: "estimare după domeniu, venit, locație" },
+  { id: "gadgets", title: "Gadgets", hint: "estimare după brand, model, stare" },
+  { id: "foto", title: "Foto & Audio", hint: "estimare după brand, model, stare" },
 ];
 
 const LOADING_MESSAGES = [
-  "Scanam piata din Romania...",
-  "Eliminam semnalele false: leasing, rate, piese...",
-  "Calculam preturile de exit...",
+  "Scanăm piața din România...",
+  "Eliminăm semnalele false: leasing, rate, piese...",
+  "Calculăm prețurile de exit...",
 ];
 
 const LABEL_MAP: Record<string, string> = {
-  external_search_strong: "Incredere buna",
-  external_search: "Incredere moderata",
+  external_search_strong: "Încredere bună",
+  external_search: "Încredere medie",
   low_data: "Date insuficiente",
-  vip_asset: "Evaluare speciala necesara",
+  vip_asset: "Evaluare specială necesară",
 };
+
+function getPublicEvaluationDisclaimer(dataQuality?: string): string {
+  if (dataQuality === "external_search_strong") {
+    return "Estimare bazată pe surse publice și anunțuri similare disponibile la momentul evaluării.";
+  }
+  return "Estimare orientativă calculată pe baza rezultatelor disponibile și a anunțurilor similare. Prețurile nu garantează vânzarea și trebuie validate de vânzător.";
+}
 
 function formatPrice(price: unknown) {
   const n = Number(price);
@@ -90,8 +97,13 @@ export default function EvaluareClient() {
 
   const qualityLabel = useMemo(() => {
     if (!result?.data_quality_label) return "";
-    return LABEL_MAP[result.data_quality_label] || "Evaluare disponibila";
+    return LABEL_MAP[result.data_quality_label] || "Evaluare disponibilă";
   }, [result]);
+
+  const publicExplanation = useMemo(
+    () => getPublicEvaluationDisclaimer(result?.data_quality_label),
+    [result?.data_quality_label],
+  );
 
   const analyzedSources = Number(result?.google_result_count ?? result?.comparable_count ?? 0);
 
@@ -190,8 +202,8 @@ export default function EvaluareClient() {
           </div>
           <div className="mx-auto mt-10 flex flex-wrap justify-center gap-2 md:gap-3">
             <StepPill index={1} title="Alege categoria" />
-            <StepPill index={2} title="Completeaza detaliile" />
-            <StepPill index={3} title="Scanare piata" />
+            <StepPill index={2} title="Completează detaliile" />
+            <StepPill index={3} title="Scanare piață" />
             <StepPill index={4} title="Rezultat + actiune" />
           </div>
         </div>
@@ -231,7 +243,7 @@ export default function EvaluareClient() {
 
               <section className="rounded-3xl border border-black/[0.08] bg-[#F7F4EC]/80 p-6 md:border-2 md:border-black/[0.06] md:p-10 lg:p-12">
                 <h2 className="mb-8 text-xl font-black uppercase italic tracking-tight text-black md:text-2xl">
-                  2. Completeaza detaliile
+                  2. Completează detaliile
                 </h2>
                 <div className="grid gap-4 md:grid-cols-2 md:gap-5">
                   {category === "auto" && (
@@ -271,7 +283,7 @@ export default function EvaluareClient() {
                 </div>
 
                 <p className="mt-6 text-[11px] font-bold uppercase tracking-wider text-neutral-500 md:text-xs">
-                  Cu cat datele sunt mai exacte, cu atat raportul va fi mai precis.
+                  Cu cât datele sunt mai exacte, cu atât raportul va fi mai precis.
                 </p>
 
                 <button
@@ -280,7 +292,7 @@ export default function EvaluareClient() {
                   disabled={phase === "loading"}
                   className="mt-10 w-full rounded-2xl border-[3px] border-black bg-[#FFD100] px-6 py-4 text-sm font-black uppercase tracking-[0.2em] text-black shadow-[6px_6px_0_0_#000] transition hover:bg-[#f5e008] hover:shadow-[8px_8px_0_0_#000] disabled:pointer-events-none disabled:opacity-50 active:translate-y-0.5 active:shadow-[4px_4px_0_0_#000]"
                 >
-                  3. Scanare piata
+                  3. Scanare piață
                 </button>
               </section>
             </>
@@ -294,7 +306,7 @@ export default function EvaluareClient() {
                   {LOADING_MESSAGES[loadingIndex]}
                 </p>
                 <p className="mt-4 text-[10px] font-semibold uppercase tracking-[0.2em] text-neutral-400 md:text-[11px]">
-                  Analiza ruleaza in timp real
+                  Analiza rulează în timp real
                 </p>
               </div>
             </section>
@@ -308,14 +320,14 @@ export default function EvaluareClient() {
                     Activ exclusivist detectat
                   </h3>
                   <p className="mx-auto mt-6 max-w-2xl text-sm font-medium leading-relaxed text-neutral-300 md:text-[15px]">
-                    Acest activ depaseste zona de evaluare automata standard. Poti seta manual pretul de referinta sau poti solicita evaluare asistata.
+                    Acest activ depășește zona de evaluare automată standard. Poți stabili manual prețul de referință sau poți solicita evaluare asistată.
                   </p>
                   <div className="mt-10 flex flex-col gap-3 sm:flex-row sm:justify-center">
                     <Link
                       href="/pune-anunt"
                       className="rounded-xl border-2 border-white bg-transparent px-8 py-3.5 text-center text-[11px] font-black uppercase tracking-widest text-white transition hover:bg-white hover:text-black"
                     >
-                      Setez manual pretul
+                      Stabilesc manual prețul
                     </Link>
                     <Link
                       href="/posteaza-cerere"
@@ -330,14 +342,14 @@ export default function EvaluareClient() {
                   <div className="mx-auto mb-6 h-px max-w-[120px] bg-[#FFD100]" aria-hidden />
                   <h3 className="text-2xl font-black uppercase italic text-white md:text-4xl">Piata subtire pentru acest activ</h3>
                   <p className="mx-auto mt-6 max-w-2xl text-sm font-medium leading-relaxed text-neutral-300 md:text-[15px]">
-                    Nu avem suficiente semnale curate pentru o estimare de precizie ridicata. Poti continua cu un pret manual, iar Quick Exit iti va calcula strategia de lichidare.
+                    Nu avem suficiente semnale curate pentru o estimare de precizie ridicată. Poți continua cu un preț manual, iar Quick Exit îți va calcula strategia de lichidare.
                   </p>
                   <div className="mt-10">
                     <Link
                       href="/pune-anunt"
                       className="inline-block rounded-xl border-[3px] border-black bg-[#FFD100] px-10 py-3.5 text-[11px] font-black uppercase tracking-widest text-black shadow-[5px_5px_0_0_rgba(0,0,0,0.9)] transition hover:brightness-105"
                     >
-                      Continui cu pret manual
+                      Continuu cu preț manual
                     </Link>
                   </div>
                 </div>
@@ -359,32 +371,36 @@ export default function EvaluareClient() {
                   <div className="mb-8 grid gap-4 md:grid-cols-2 md:gap-5">
                     <div className="rounded-2xl border-2 border-black bg-white p-6 md:p-7 shadow-[6px_6px_0_0_rgba(0,0,0,0.12)]">
                       <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-500">
-                        Pret piata estimat
+                        Preț piață estimat
                       </p>
                       <p className="mt-3 text-2xl font-black tabular-nums text-black md:text-3xl">
                         {formatPrice(result.estimated_market_price)}
                       </p>
                     </div>
                     <div className="rounded-2xl border-[3px] border-black bg-[#FFD100] p-6 md:p-7 shadow-[6px_6px_0_0_#000]">
-                      <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-black/75">Quick Exit Price</p>
+                      <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-black/75">
+                        Preț recomandat Quick Exit
+                      </p>
                       <p className="mt-2 text-[10px] font-semibold uppercase leading-snug tracking-wide text-black/65">
-                        recomandat pentru vanzare accelerata
+                        recomandat pentru vânzare accelerată
                       </p>
                       <p className="mt-4 text-2xl font-black tabular-nums text-black md:text-3xl">
                         {formatPrice(result.quick_exit_price)}
                       </p>
                     </div>
                     <div className="rounded-2xl border-2 border-black bg-white p-6 md:p-7 shadow-[4px_4px_0_0_rgba(0,0,0,0.08)]">
-                      <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-500">Strong Exit Price</p>
+                      <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-500">
+                        Preț pentru vânzare foarte rapidă
+                      </p>
                       <p className="mt-2 text-[10px] font-semibold uppercase leading-snug tracking-wide text-neutral-500">
-                        vanzare rapida cu discount controlat
+                        vânzare rapidă cu discount controlat
                       </p>
                       <p className="mt-4 text-2xl font-black tabular-nums text-black md:text-3xl">{formatPrice(result.strong_exit_price)}</p>
                     </div>
                     <div className="rounded-2xl border-2 border-red-700/55 bg-neutral-950 p-6 md:p-7 shadow-[6px_6px_0_0_rgba(220,38,38,0.25)]">
-                      <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-red-400">Liquidation Price</p>
+                      <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-red-400">Preț de lichidare</p>
                       <p className="mt-2 text-[10px] font-semibold uppercase leading-snug tracking-wide text-neutral-400">
-                        cash rapid / lichidare agresiva
+                        încasare rapidă / lichidare agresivă
                       </p>
                       <p className="mt-4 text-2xl font-black tabular-nums text-white md:text-3xl">{formatPrice(result.liquidation_price)}</p>
                     </div>
@@ -395,7 +411,7 @@ export default function EvaluareClient() {
                       <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-[#FFD100]" aria-hidden />
                       <div>
                         <p className="text-sm font-medium leading-relaxed text-neutral-200 md:text-[15px]">
-                          {typeof result.explanation === "string" ? result.explanation : "Estimare disponibila."}
+                          {publicExplanation}
                         </p>
                         <p className="mt-3 text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-500">
                           {result.cache_hit ? "Rezultat recalculat recent" : "Evaluare generata acum"}
@@ -409,13 +425,13 @@ export default function EvaluareClient() {
                       href="/pune-anunt"
                       className="flex-1 min-w-[200px] rounded-xl border-[3px] border-black bg-[#FFD100] px-6 py-4 text-center text-[11px] font-black uppercase tracking-widest text-black shadow-[5px_5px_0_0_#000] transition hover:brightness-105"
                     >
-                      Publica anunt cu pretul Quick Exit
+                      Publică anunț cu prețul Quick Exit
                     </Link>
                     <Link
                       href="/pune-anunt"
                       className="flex-1 min-w-[200px] rounded-xl border-2 border-white bg-transparent px-6 py-4 text-center text-[11px] font-black uppercase tracking-widest text-white transition hover:bg-white hover:text-black"
                     >
-                      Aleg alta strategie
+                      Aleg altă strategie
                     </Link>
                     <button
                       type="button"
@@ -429,7 +445,7 @@ export default function EvaluareClient() {
               )}
 
               <p className="mx-auto max-w-xl text-center text-[10px] font-semibold uppercase leading-relaxed tracking-wider text-neutral-500 md:text-[11px]">
-                Estimare orientativa, nu evaluare autorizata sau garantie de vanzare.
+                Estimare orientativă, nu evaluare autorizată sau garanție de vânzare.
               </p>
             </section>
           )}
