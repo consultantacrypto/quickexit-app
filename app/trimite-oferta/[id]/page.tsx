@@ -25,6 +25,7 @@ export default function PitchOfferPage() {
   const [isUploadingImages, setIsUploadingImages] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [sessionUser, setSessionUser] = useState<{ id: string } | null>(null);
 
   // Extragem cererea reală din baza de date
   useEffect(() => {
@@ -48,12 +49,34 @@ export default function PitchOfferPage() {
     fetchDemand();
   }, [id]);
 
+  useEffect(() => {
+    let cancelled = false;
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!cancelled) {
+        setSessionUser(session?.user?.id ? { id: session.user.id } : null);
+      }
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSessionUser(session?.user?.id ? { id: session.user.id } : null);
+    });
+    return () => {
+      cancelled = true;
+      subscription.unsubscribe();
+    };
+  }, []);
+
   // Funcția MAGICĂ: Trimiterea ofertei către Investitor
   const submitOffer = async () => {
     setIsSubmitting(true);
     setErrorMessage("");
     try {
       const { data: { user } } = await supabase.auth.getUser();
+      if (!user?.id) {
+        setErrorMessage(
+          "Pentru a trimite o ofertă și a-i urmări statusul, trebuie să fii autentificat."
+        );
+        return;
+      }
       const uploadedImageUrls: string[] = [];
 
       if (offerImages.length > 0) {
@@ -61,8 +84,7 @@ export default function PitchOfferPage() {
         for (const file of offerImages) {
           const fileExt = file.name.split(".").pop() || "jpg";
           const safeName = `${Math.random().toString(36).slice(2)}.${fileExt}`;
-          const baseFolder = user?.id || "guest";
-          const filePath = `${baseFolder}/demand-offers/${id}/${safeName}`;
+          const filePath = `${user.id}/demand-offers/${id}/${safeName}`;
 
           const { error: uploadError } = await supabase.storage
             .from("listings")
@@ -88,7 +110,7 @@ export default function PitchOfferPage() {
         .from('demand_offers')
         .insert({
           demand_id: id,
-          seller_user_id: user ? user.id : null,
+          seller_user_id: user.id,
           offer_price: Number(offerPrice),
           asset_description: assetDescription,
           seller_phone: sellerPhone,
@@ -232,6 +254,15 @@ export default function PitchOfferPage() {
                   {errorMessage}
                 </div>
               )}
+
+              {!sessionUser && (
+                <div className="mb-6 rounded-xl border-2 border-amber-600 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-950">
+                  <p>Pentru a trimite o ofertă și a-i urmări statusul, trebuie să fii autentificat.</p>
+                  <p className="mt-2 text-xs font-semibold text-amber-900 leading-relaxed">
+                    Deschide antetul site-ului și apasă pe „Contul Meu”, apoi revino la formular pentru a continua.
+                  </p>
+                </div>
+              )}
               
               {step === 1 && (
                 <div className="space-y-6">
@@ -249,7 +280,9 @@ export default function PitchOfferPage() {
                         className="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0"
                       />
                       <span className="text-2xl mb-2">📸</span>
-                      <span className="text-xs font-black uppercase text-neutral-700">Click pentru upload</span>
+                      <span className="text-xs font-black uppercase text-neutral-700">
+                        Apasă aici pentru a încărca imaginile
+                      </span>
                     </div>
                     <p className="mt-2 text-xs font-bold text-neutral-600">
                       Pozele ajută cumpărătorul să evalueze oferta.
@@ -317,12 +350,12 @@ export default function PitchOfferPage() {
                       />
                     </div>
                     <div>
-                      <label className="text-xs font-black uppercase tracking-widest text-neutral-700 block mb-2">Email contact</label>
+                      <label className="text-xs font-black uppercase tracking-widest text-neutral-700 block mb-2">E-mail contact</label>
                       <input 
                         type="email" 
                         value={sellerEmail}
                         onChange={(e) => setSellerEmail(e.target.value)}
-                        placeholder="contact@email.com" 
+                        placeholder="exemple@mail.ro" 
                         className="w-full p-4 border-[3px] border-black rounded-xl text-sm font-semibold focus:outline-none focus:border-[#FFD100] focus:ring-2 focus:ring-[#FFD100]/30" 
                       />
                     </div>
@@ -330,7 +363,12 @@ export default function PitchOfferPage() {
 
                   <button 
                     onClick={() => setStep(2)} 
-                    disabled={Number(offerPrice) > buyer.budget || !offerPrice || !sellerPhone}
+                    disabled={
+                      Number(offerPrice) > buyer.budget ||
+                      !offerPrice ||
+                      !sellerPhone ||
+                      !sessionUser
+                    }
                     className="w-full mt-6 bg-[#FFD100] text-black border-[3px] border-black py-5 rounded-2xl font-black uppercase tracking-widest text-sm hover:brightness-95 transition-colors shadow-[4px_4px_0_0_rgba(0,0,0,1)] disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed active:translate-y-1 active:shadow-none"
                   >
                     Pasul Următor →
@@ -341,39 +379,47 @@ export default function PitchOfferPage() {
                 </div>
               )}
 
-              {step === 2 && (
+              {step === 2 && sessionUser && (
                 <div className="space-y-8 text-center">
                   <h2 className="text-2xl font-black uppercase italic mb-2">Confirmă trimiterea ofertei</h2>
-                  <p className="text-sm font-semibold text-neutral-700 px-4">Alege modul în care trimiți oferta către cumpărător.</p>
+                  <p className="text-sm font-semibold text-neutral-700 px-4">
+                    Verifică datele și trimite oferta către cumpărătorul care a publicat cererea.
+                  </p>
                   
                   <div className="grid grid-cols-1 gap-4 pt-4 text-left">
-                    <div onClick={submitOffer} className="p-6 border-[3px] border-black bg-white rounded-2xl relative overflow-hidden group hover:bg-[#FDFCF8] cursor-pointer transition-colors">
-                      <div className="flex justify-between items-center mb-2">
-                        <p className="font-black uppercase italic text-lg text-black">Sunt utilizator logat</p>
-                        <p className="font-black text-xl text-neutral-800 text-right">GRATUIT</p>
-                      </div>
-                      <p className="text-sm font-semibold text-neutral-700 mt-1">Sistemul detectează automat contul tău activ.</p>
-                      <button disabled={isSubmitting || isUploadingImages} className="mt-4 w-full border-[3px] border-black text-black py-3 rounded-xl font-black uppercase text-xs tracking-widest group-hover:bg-black group-hover:text-[#FFD100] transition-colors disabled:opacity-60 disabled:cursor-not-allowed">
+                    <div className="p-6 border-[3px] border-black bg-white rounded-2xl relative overflow-hidden shadow-[4px_4px_0_0_rgba(0,0,0,1)]">
+                      <p className="text-sm font-semibold text-neutral-700 mb-4">
+                        Oferta va fi atașată contului tău pentru a putea vedea mai departe actualizările în panoul Quick Exit (Cameră negociere).
+                      </p>
+                      <button
+                        type="button"
+                        disabled={isSubmitting || isUploadingImages}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          void submitOffer();
+                        }}
+                        className="mt-4 w-full border-[3px] border-black bg-[#FFD100] text-black py-3 rounded-xl font-black uppercase text-xs tracking-widest hover:bg-black hover:text-[#FFD100] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                      >
                         {isUploadingImages ? "Se încarcă imaginile..." : isSubmitting ? "Se trimite oferta..." : "Trimite oferta"}
-                      </button>
-                    </div>
-
-                    <div className="text-center font-black text-neutral-600 uppercase tracking-widest text-xs my-2">SAU</div>
-
-                    <div onClick={submitOffer} className="p-6 border-[3px] border-black bg-black text-white rounded-2xl relative shadow-[6px_6px_0_0_rgba(255,209,0,1)] cursor-pointer hover:bg-black/90 transition-colors">
-                      <div className="flex justify-between items-center mb-2">
-                        <p className="font-black uppercase italic text-lg text-[#FFD100]">Trimite ca Guest</p>
-                        <p className="font-black text-2xl text-[#FFD100]">49 RON</p>
-                      </div>
-                      <p className="text-sm font-semibold text-neutral-200 mt-1">Taxă unică de procesare a ofertei. Ajunge garantat la investitor.</p>
-                      <button disabled={isSubmitting || isUploadingImages} className="mt-6 w-full bg-[#FFD100] text-black border-[3px] border-black py-4 rounded-xl font-black uppercase text-xs tracking-widest hover:scale-[1.02] transition-transform disabled:opacity-60 disabled:cursor-not-allowed">
-                        {isUploadingImages ? "Se încarcă imaginile..." : isSubmitting ? "Se trimite oferta..." : "Plătește și trimite oferta"}
                       </button>
                     </div>
                   </div>
 
-                  <button onClick={() => setStep(1)} className="text-xs font-black uppercase tracking-widest text-neutral-600 hover:text-black transition-colors border-b-2 border-transparent hover:border-black mt-4">
+                  <button type="button" onClick={() => setStep(1)} className="text-xs font-black uppercase tracking-widest text-neutral-600 hover:text-black transition-colors border-b-2 border-transparent hover:border-black mt-4">
                     ← Editează detaliile ofertei
+                  </button>
+                </div>
+              )}
+
+              {step === 2 && !sessionUser && (
+                <div className="rounded-xl border-2 border-amber-600 bg-amber-50 px-4 py-4 text-center text-sm font-bold text-amber-950">
+                  Nu poți trimite oferta până nu ești autentificat. Folosește „Contul Meu” în antet, apoi revino la această pagină.
+                  <button
+                    type="button"
+                    onClick={() => setStep(1)}
+                    className="mt-4 block w-full rounded-xl border-2 border-black bg-white px-4 py-3 font-black uppercase text-xs tracking-widest text-black hover:bg-black hover:text-[#FFD100] transition-colors"
+                  >
+                    Înapoi la formular
                   </button>
                 </div>
               )}
