@@ -44,6 +44,8 @@ function DashboardContent() {
   
   const [myDemands, setMyDemands] = useState<any[]>([]);
   const [myDemandOffers, setMyDemandOffers] = useState<any[]>([]);
+  const [mySentDemandOffers, setMySentDemandOffers] = useState<any[]>([]);
+  const [sentDemandMeta, setSentDemandMeta] = useState<Record<string, { targetAsset: string; category: string | null; status: string | null }>>({});
   const [confirmSoldOfferId, setConfirmSoldOfferId] = useState<string | null>(null);
   const [soldActionMessage, setSoldActionMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   
@@ -208,7 +210,58 @@ function DashboardContent() {
         setMyDemandOffers([]);
       }
 
-      // 3. Tragem ofertele trimise de user către listing-urile altora (buyer-side visibility)
+      // 3. Tragem ofertele trimise de user către cereri (seller-side visibility pentru demand offers)
+      const { data: sentDemandOffers, error: sentDemandOffersError } = await supabase
+        .from('demand_offers')
+        .select('id, demand_id, offer_price, status, created_at')
+        .eq('seller_user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (sentDemandOffersError) {
+        console.error("Eroare preluare oferte trimise către cereri:", sentDemandOffersError);
+        setMySentDemandOffers([]);
+        setSentDemandMeta({});
+      } else {
+        const normalizedSentDemandOffers = sentDemandOffers || [];
+        setMySentDemandOffers(normalizedSentDemandOffers);
+
+        const demandIdsFromSent = Array.from(
+          new Set(
+            normalizedSentDemandOffers
+              .map((offer: any) => String(offer?.demand_id || "").trim())
+              .filter(Boolean)
+          )
+        );
+
+        if (demandIdsFromSent.length > 0) {
+          const { data: sentDemands, error: sentDemandsError } = await supabase
+            .from('demands')
+            .select('id, target_asset, category, status')
+            .in('id', demandIdsFromSent);
+
+          if (sentDemandsError) {
+            console.error("Eroare preluare metadata cereri pentru ofertele trimise:", sentDemandsError);
+            setSentDemandMeta({});
+          } else {
+            const meta = (sentDemands || []).reduce<Record<string, { targetAsset: string; category: string | null; status: string | null }>>(
+              (acc, demand: any) => {
+                acc[String(demand.id)] = {
+                  targetAsset: String(demand.target_asset || "").trim() || "Cerere de cumpărare",
+                  category: demand.category || null,
+                  status: demand.status || null,
+                };
+                return acc;
+              },
+              {}
+            );
+            setSentDemandMeta(meta);
+          }
+        } else {
+          setSentDemandMeta({});
+        }
+      }
+
+      // 4. Tragem ofertele trimise de user către listing-urile altora (buyer-side visibility)
       const { data: sentOffers, error: sentOffersError } = await supabase
         .from('listing_offers')
         .select('id, listing_id, offer_price, status, created_at')
@@ -425,6 +478,21 @@ function DashboardContent() {
         return "Respinsă";
       case "accepted_exit_price":
         return "Preț de exit acceptat";
+      case "cancelled":
+        return "Nefinalizată";
+      default:
+        return status || "Necunoscut";
+    }
+  };
+
+  const sentDemandOfferStatusLabel = (status?: string) => {
+    switch (status) {
+      case "new":
+        return "În așteptare";
+      case "accepted":
+        return "Acceptată";
+      case "rejected":
+        return "Respinsă";
       case "cancelled":
         return "Nefinalizată";
       default:
@@ -678,7 +746,7 @@ function DashboardContent() {
 
           {isLoading ? (
              <div className="text-center py-20 animate-pulse font-black uppercase tracking-widest text-xs text-neutral-600">Sincronizare mesaje...</div>
-          ) : (myOffers.length > 0 || myDemandOffers.length > 0 || mySentListingOffers.length > 0) ? (
+          ) : (myOffers.length > 0 || myDemandOffers.length > 0 || mySentListingOffers.length > 0 || mySentDemandOffers.length > 0) ? (
             <div className="space-y-12">
               
               {/* SECȚIUNE: Oferte primite pentru Activele Tale (Vânzări) */}
@@ -849,6 +917,9 @@ function DashboardContent() {
               {myDemandOffers.length > 0 && (
                 <div>
                   <h3 className="text-lg font-black uppercase italic tracking-widest text-neutral-600 mb-4 border-b-2 border-black inline-block">Pitch-uri Pentru Capitalul Meu</h3>
+                  <p className="mb-4 text-xs font-bold text-neutral-700 leading-relaxed">
+                    Acceptarea unei oferte nu finalizează automat tranzacția. Contactul și plata se realizează direct între părți. Quick Exit nu intermediază plata și nu ține fonduri în custodie.
+                  </p>
                   <div className="space-y-6">
                     {myDemandOffers.map(offer => {
                       const demand = myDemands.find(d => d.id === offer.demand_id); 
@@ -917,6 +988,94 @@ function DashboardContent() {
                   </div>
                 </div>
               )}
+
+              {/* SECȚIUNE: Ofertele trimise de mine către cereri de cumpărare */}
+              <div>
+                <h3 className="text-lg font-black uppercase italic tracking-widest text-neutral-600 mb-4 border-b-2 border-black inline-block">
+                  Ofertele mele trimise către cereri
+                </h3>
+
+                {mySentDemandOffers.length > 0 ? (
+                  <div className="space-y-4">
+                    {mySentDemandOffers.map((offer) => {
+                      const demandId = String(offer?.demand_id || "");
+                      const offerIdShort = String(offer?.id || "").slice(0, 6) || "N/A";
+                      const demandMeta = sentDemandMeta[demandId];
+                      const demandTitle = demandMeta?.targetAsset || `Cerere #${demandId.slice(0, 8)}`;
+                      const demandCategory = demandMeta?.category || null;
+                      const demandStatus = demandMeta?.status || null;
+
+                      return (
+                        <div
+                          key={offer.id}
+                          className="bg-white border-[3px] border-black rounded-2xl p-5 shadow-[4px_4px_0_0_rgba(0,0,0,1)]"
+                        >
+                          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                            <div>
+                              <p className="text-xs font-black uppercase tracking-widest text-neutral-600 mb-1">
+                                Cerere de cumpărare
+                              </p>
+                              <p className="text-base font-black italic text-black">{demandTitle}</p>
+                              <p className="text-[11px] font-black uppercase tracking-wider text-neutral-500 mt-1">
+                                Oferta #{offerIdShort}
+                              </p>
+                              {demandCategory && (
+                                <p className="text-[11px] font-bold uppercase tracking-wide text-neutral-500 mt-1">
+                                  {demandCategory}
+                                </p>
+                              )}
+                              {demandStatus && (
+                                <p className="text-[11px] font-bold uppercase tracking-wide text-neutral-500 mt-1">
+                                  Status cerere: {statusLabel(demandStatus)}
+                                </p>
+                              )}
+                            </div>
+
+                            <div className="text-left md:text-right">
+                              <p className="text-xs font-black uppercase tracking-widest text-neutral-600 mb-1">
+                                Sumă ofertată
+                              </p>
+                              <p className="text-2xl font-black italic text-black">
+                                €{Number(offer.offer_price || 0).toLocaleString("ro-RO")}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between border-t-2 border-neutral-100 pt-4">
+                            <p className="text-xs font-black uppercase tracking-wider text-neutral-700">
+                              Status:{" "}
+                              <span className="text-black">{sentDemandOfferStatusLabel(offer.status)}</span>
+                            </p>
+                            <p className="text-xs font-bold text-neutral-500">
+                              Trimisă la:{" "}
+                              {offer.created_at
+                                ? new Date(offer.created_at).toLocaleString("ro-RO")
+                                : "N/A"}
+                            </p>
+                          </div>
+
+                          {demandId && (
+                            <div className="mt-3">
+                              <button
+                                onClick={() => router.push("/capital-disponibil")}
+                                className="bg-[#FDFCF8] border-2 border-black px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest hover:bg-black hover:text-[#FFD100] transition-all shadow-[2px_2px_0_0_rgba(0,0,0,1)] active:translate-y-px active:shadow-none"
+                              >
+                                Vezi cererile active
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="bg-white border-[3px] border-dashed border-gray-300 rounded-2xl p-8 text-center">
+                    <p className="text-sm font-bold text-neutral-700">
+                      Nu ai trimis încă oferte către cereri de cumpărare.
+                    </p>
+                  </div>
+                )}
+              </div>
 
               {/* SECȚIUNE: Ofertele trimise de mine către anunțuri (buyer-side) */}
               <div>
