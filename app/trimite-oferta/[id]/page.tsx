@@ -2,12 +2,13 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { trackEvent } from "@/lib/analytics";
 
 export default function PitchOfferPage() {
   const params = useParams();
+  const router = useRouter();
   const id = params.id as string;
 
   const [step, setStep] = useState(1);
@@ -102,6 +103,9 @@ export default function PitchOfferPage() {
         category: buyer?.category || "unknown",
       });
       setIsSuccess(true);
+      setTimeout(() => {
+        router.push("/dashboard?tab=oferte");
+      }, 900);
     } catch (error) {
       console.error("Eroare trimitere ofertă:", error);
       const message =
