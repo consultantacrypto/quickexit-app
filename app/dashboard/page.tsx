@@ -10,6 +10,8 @@ import { Wallet, Inbox, PlusCircle, Search, Settings, Power, Play, PiggyBank } f
 // Importul corectat cu calea relativă
 import KycBanner from "../components/KycBanner"; 
 
+type DashboardTab = "portofoliu" | "cumparari" | "oferte";
+
 function DashboardContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -21,8 +23,15 @@ function DashboardContent() {
   const sessionIdParam = searchParams.get("session_id");
   const listingIdParam = searchParams.get("listingId");
   const demandIdParam = searchParams.get("demandId");
+  const tabParam = searchParams.get("tab");
+  const getValidTab = (value: string | null): DashboardTab => {
+    if (value === "portofoliu" || value === "cumparari" || value === "oferte") {
+      return value;
+    }
+    return "portofoliu";
+  };
 
-  const [activeTab, setActiveTab] = useState('portofoliu');
+  const [activeTab, setActiveTab] = useState<DashboardTab>(getValidTab(tabParam));
   
   // Stare pentru profilul utilizatorului (pentru KYC)
   const [userProfile, setUserProfile] = useState<any>(null);
@@ -37,6 +46,23 @@ function DashboardContent() {
   const [myDemandOffers, setMyDemandOffers] = useState<any[]>([]);
   
   const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const normalizedTab = getValidTab(tabParam);
+    setActiveTab((prev) => (prev === normalizedTab ? prev : normalizedTab));
+  }, [tabParam]);
+
+  const handleTabChange = (tab: DashboardTab) => {
+    setActiveTab(tab);
+    const params = new URLSearchParams(searchParams.toString());
+    if (tab === "portofoliu") {
+      params.delete("tab");
+    } else {
+      params.set("tab", tab);
+    }
+    const query = params.toString();
+    router.replace(query ? `/dashboard?${query}` : "/dashboard", { scroll: false });
+  };
 
   useEffect(() => {
     fetchDashboardData();
@@ -275,28 +301,38 @@ function DashboardContent() {
         ? myOffers.find((offer) => offer.id === offerId)
         : myDemandOffers.find((offer) => offer.id === offerId);
     
-    const { error } = await supabase
+    const { data: updatedOffer, error } = await supabase
       .from(table)
       .update({ status: action })
-      .eq('id', offerId);
+      .eq('id', offerId)
+      .select('id,status')
+      .single();
 
-    if (!error) {
-      if (type === 'listing') {
-        setMyOffers(prev => prev.map(o => o.id === offerId ? { ...o, status: action } : o));
-      } else {
-        setMyDemandOffers(prev => prev.map(o => o.id === offerId ? { ...o, status: action } : o));
-      }
-      trackEvent(action === "accepted" ? "dashboard_offer_accept" : "dashboard_offer_reject", {
-        source: "dashboard",
-        offer_id: offerId,
-        listing_id: type === "listing" ? matchedOffer?.listing_id : undefined,
-        demand_id: type === "demand" ? matchedOffer?.demand_id : undefined,
-        offer_context: type || "unknown",
-        status: action,
+    if (error || !updatedOffer?.id || !updatedOffer?.status) {
+      console.error("Offer status update failed or no row updated", {
+        table,
+        offerId,
+        action,
+        errorMessage: error?.message || null,
       });
-    } else {
-      alert("Eroare la actualizarea ofertei: " + error.message);
+      alert("Eroare la actualizarea ofertei: " + (error?.message || "niciun rând actualizat"));
+      return;
     }
+
+    if (type === 'listing') {
+      setMyOffers(prev => prev.map(o => o.id === offerId ? { ...o, status: updatedOffer.status } : o));
+    } else {
+      setMyDemandOffers(prev => prev.map(o => o.id === offerId ? { ...o, status: updatedOffer.status } : o));
+    }
+
+    trackEvent(action === "accepted" ? "dashboard_offer_accept" : "dashboard_offer_reject", {
+      source: "dashboard",
+      offer_id: offerId,
+      listing_id: type === "listing" ? matchedOffer?.listing_id : undefined,
+      demand_id: type === "demand" ? matchedOffer?.demand_id : undefined,
+      offer_context: type || "unknown",
+      status: updatedOffer.status,
+    });
   };
 
   const newOffersCount = myOffers.filter(o => o.status === 'new' || o.status === 'accepted_exit_price').length;
@@ -428,13 +464,13 @@ function DashboardContent() {
 
       {/* TAB-URI NAVIGARE */}
       <div className="flex flex-wrap gap-2 mb-8 border-b-2 border-black/20 pb-3">
-        <button onClick={() => setActiveTab('portofoliu')} className={`px-4 py-2 rounded-md font-black uppercase text-xs transition-colors border-2 border-black ${activeTab === 'portofoliu' ? 'bg-black text-[#FFD100]' : 'bg-white text-neutral-700 hover:text-black'}`}>
+        <button onClick={() => handleTabChange('portofoliu')} className={`px-4 py-2 rounded-md font-black uppercase text-xs transition-colors border-2 border-black ${activeTab === 'portofoliu' ? 'bg-black text-[#FFD100]' : 'bg-white text-neutral-700 hover:text-black'}`}>
           Activele Mele (Vânzare)
         </button>
-        <button onClick={() => setActiveTab('cumparari')} className={`px-4 py-2 rounded-md font-black uppercase text-xs transition-colors border-2 border-black ${activeTab === 'cumparari' ? 'bg-black text-[#FFD100]' : 'bg-white text-neutral-700 hover:text-black'}`}>
+        <button onClick={() => handleTabChange('cumparari')} className={`px-4 py-2 rounded-md font-black uppercase text-xs transition-colors border-2 border-black ${activeTab === 'cumparari' ? 'bg-black text-[#FFD100]' : 'bg-white text-neutral-700 hover:text-black'}`}>
           Oferte Cumpărare
         </button>
-        <button onClick={() => setActiveTab('oferte')} className={`flex items-center gap-2 px-4 py-2 rounded-md font-black uppercase text-xs transition-colors border-2 border-black ${activeTab === 'oferte' ? 'bg-black text-[#FFD100]' : 'bg-white text-neutral-700 hover:text-black'}`}>
+        <button onClick={() => handleTabChange('oferte')} className={`flex items-center gap-2 px-4 py-2 rounded-md font-black uppercase text-xs transition-colors border-2 border-black ${activeTab === 'oferte' ? 'bg-black text-[#FFD100]' : 'bg-white text-neutral-700 hover:text-black'}`}>
           Cameră Negociere
           {totalNotifications > 0 && (
             <span className="bg-red-600 text-white px-2 py-0.5 rounded text-xs animate-pulse">{totalNotifications} Noi</span>
@@ -748,6 +784,7 @@ function DashboardContent() {
                   <div className="space-y-4">
                     {mySentListingOffers.map((offer) => {
                       const listingId = String(offer?.listing_id || "");
+                      const offerIdShort = String(offer?.id || "").slice(0, 6) || "N/A";
                       const listingMeta = sentOffersListingMeta[listingId];
                       const listingTitle = listingMeta?.title || `Listing #${listingId.slice(0, 8)}`;
                       const listingCategory = listingMeta?.category || null;
@@ -763,6 +800,9 @@ function DashboardContent() {
                                 Activ / Listing
                               </p>
                               <p className="text-base font-black italic text-black">{listingTitle}</p>
+                              <p className="text-[11px] font-black uppercase tracking-wider text-neutral-500 mt-1">
+                                Oferta #{offerIdShort}
+                              </p>
                               {listingCategory && (
                                 <p className="text-[11px] font-bold uppercase tracking-wide text-neutral-500 mt-1">
                                   {listingCategory}
