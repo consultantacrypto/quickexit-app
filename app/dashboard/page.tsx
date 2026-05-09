@@ -408,7 +408,6 @@ function DashboardContent() {
           text: "Nu am putut actualiza oferta. Te rugăm să reîncerci.",
         });
       }
-      alert("Nu am putut actualiza oferta. Te rugăm să reîncerci.");
       return;
     }
 
