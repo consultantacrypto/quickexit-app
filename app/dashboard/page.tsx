@@ -294,7 +294,34 @@ function DashboardContent() {
     else alert("Eroare status: " + error.message);
   }
 
-  const handleOfferAction = async (offerId: string, action: 'accepted' | 'rejected', type: 'listing' | 'demand' = 'listing') => {
+  const markListingAsSold = async (item: any) => {
+    const confirmed = window.confirm("Ești sigur? Anunțul va fi scos din marketplace-ul public.");
+    if (!confirmed) return;
+
+    const { data, error } = await supabase
+      .from('listings')
+      .update({ status: 'sold' })
+      .eq('id', item.id)
+      .select('id,status')
+      .single();
+
+    if (error || !data?.id || !data?.status) {
+      console.error("Eroare marcare anunț ca vândut:", {
+        listingId: item.id,
+        errorMessage: error?.message || null,
+      });
+      alert("Nu am putut marca anunțul ca vândut. Încearcă din nou.");
+      return;
+    }
+
+    setMyListings((prev) =>
+      prev.map((listing) =>
+        listing.id === item.id ? { ...listing, status: data.status } : listing
+      )
+    );
+  };
+
+  const handleOfferAction = async (offerId: string, action: 'accepted' | 'rejected' | 'cancelled', type: 'listing' | 'demand' = 'listing') => {
     const table = type === 'listing' ? 'listing_offers' : 'demand_offers';
     const matchedOffer =
       type === "listing"
@@ -325,14 +352,16 @@ function DashboardContent() {
       setMyDemandOffers(prev => prev.map(o => o.id === offerId ? { ...o, status: updatedOffer.status } : o));
     }
 
-    trackEvent(action === "accepted" ? "dashboard_offer_accept" : "dashboard_offer_reject", {
-      source: "dashboard",
-      offer_id: offerId,
-      listing_id: type === "listing" ? matchedOffer?.listing_id : undefined,
-      demand_id: type === "demand" ? matchedOffer?.demand_id : undefined,
-      offer_context: type || "unknown",
-      status: updatedOffer.status,
-    });
+    if (action === "accepted" || action === "rejected") {
+      trackEvent(action === "accepted" ? "dashboard_offer_accept" : "dashboard_offer_reject", {
+        source: "dashboard",
+        offer_id: offerId,
+        listing_id: type === "listing" ? matchedOffer?.listing_id : undefined,
+        demand_id: type === "demand" ? matchedOffer?.demand_id : undefined,
+        offer_context: type || "unknown",
+        status: updatedOffer.status,
+      });
+    }
   };
 
   const newOffersCount = myOffers.filter(o => o.status === 'new' || o.status === 'accepted_exit_price').length;
@@ -373,6 +402,8 @@ function DashboardContent() {
         return "În așteptare";
       case "suspended":
         return "Oprit";
+      case "sold":
+        return "Vândut";
       default:
         return "În așteptare";
     }
@@ -388,6 +419,8 @@ function DashboardContent() {
         return "Respinsă";
       case "accepted_exit_price":
         return "Preț de exit acceptat";
+      case "cancelled":
+        return "Nefinalizată";
       default:
         return status || "Necunoscut";
     }
@@ -495,7 +528,7 @@ function DashboardContent() {
               {myListings.map(item => (
                 <div key={item.id} className="relative group flex flex-col">
                   {/* Badge Dinamic de Status */}
-                  <div className={`absolute -top-3 -right-3 z-20 px-3 py-1.5 font-black uppercase text-xs shadow-[3px_3px_0_0_rgba(0,0,0,1)] border-2 border-black ${item.status === 'active' ? 'bg-green-500 text-black' : item.status === 'suspended' ? 'bg-neutral-400 text-white' : 'bg-red-600 text-white'}`}>
+                  <div className={`absolute -top-3 -right-3 z-20 px-3 py-1.5 font-black uppercase text-xs shadow-[3px_3px_0_0_rgba(0,0,0,1)] border-2 border-black ${item.status === 'active' ? 'bg-green-500 text-black' : item.status === 'suspended' ? 'bg-neutral-400 text-white' : item.status === 'sold' ? 'bg-black text-[#FFD100]' : 'bg-red-600 text-white'}`}>
                     {statusLabel(item.status)}
                   </div>
 
@@ -524,6 +557,10 @@ function DashboardContent() {
                       <button className="bg-[#FDFCF8] border-2 border-neutral-300 py-2.5 rounded-lg text-xs font-black uppercase text-neutral-500 cursor-not-allowed">
                         Așteaptă Plata
                       </button>
+                    ) : item.status === 'sold' ? (
+                      <button className="bg-[#FDFCF8] border-2 border-neutral-300 py-2.5 rounded-lg text-xs font-black uppercase text-neutral-500 cursor-not-allowed">
+                        Anunț vândut
+                      </button>
                     ) : (
                       <button 
                         onClick={() => toggleStatus(item)}
@@ -533,6 +570,19 @@ function DashboardContent() {
                       </button>
                     )}
                   </div>
+                  {item.status !== 'pending_payment' && item.status !== 'sold' && (
+                    <div className="mt-3">
+                      <button
+                        onClick={() => markListingAsSold(item)}
+                        className="w-full bg-[#FDFCF8] border-2 border-black py-2.5 rounded-lg text-xs font-black uppercase hover:bg-black hover:text-[#FFD100] transition-all shadow-[2px_2px_0_0_rgba(0,0,0,1)] active:translate-y-px active:shadow-none"
+                      >
+                        Marchează ca vândut
+                      </button>
+                      <p className="mt-2 text-[11px] font-bold text-neutral-600">
+                        Folosește această acțiune doar după ce tranzacția este finalizată între părți.
+                      </p>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -630,8 +680,8 @@ function DashboardContent() {
                       return (
                         <div key={offer.id} className={`bg-white border-[3px] border-black rounded-[2rem] p-6 md:p-8 shadow-[8px_8px_0_0_rgba(0,0,0,1)] relative overflow-hidden transition-all ${offer.status === 'rejected' ? 'opacity-60 grayscale' : ''}`}>
                           
-                          <div className={`absolute top-0 right-0 px-4 py-2 text-xs font-black uppercase rounded-bl-xl border-b-[3px] border-l-[3px] border-black ${offer.status === 'new' ? 'bg-[#FFD100] text-black animate-pulse' : offer.status === 'accepted_exit_price' ? 'bg-red-600 text-white animate-pulse' : offer.status === 'accepted' ? 'bg-green-500 text-black' : 'bg-neutral-200 text-neutral-600'}`}>
-                            {offer.status === 'new' ? 'Ofertă Nouă' : offer.status === 'accepted_exit_price' ? 'A Acceptat Prețul' : offer.status === 'accepted' ? 'Ofertă Acceptată' : 'Ofertă Refuzată'}
+                          <div className={`absolute top-0 right-0 px-4 py-2 text-xs font-black uppercase rounded-bl-xl border-b-[3px] border-l-[3px] border-black ${offer.status === 'new' ? 'bg-[#FFD100] text-black animate-pulse' : offer.status === 'accepted_exit_price' ? 'bg-red-600 text-white animate-pulse' : offer.status === 'accepted' ? 'bg-green-500 text-black' : offer.status === 'cancelled' ? 'bg-neutral-800 text-white' : 'bg-neutral-200 text-neutral-600'}`}>
+                            {offer.status === 'new' ? 'Ofertă Nouă' : offer.status === 'accepted_exit_price' ? 'A Acceptat Prețul' : offer.status === 'accepted' ? 'Ofertă Acceptată' : offer.status === 'cancelled' ? 'Ofertă Nefinalizată' : 'Ofertă Refuzată'}
                           </div>
 
                           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-center">
@@ -701,10 +751,26 @@ function DashboardContent() {
                                     Refuză
                                   </button>
                                 </div>
+                              ) : offer.status === 'accepted' ? (
+                                <div className="mt-auto">
+                                  <p className="text-xs font-bold text-neutral-600 mb-3 leading-relaxed">
+                                    Acceptarea unei oferte nu marchează automat activul ca vândut. Contactează cumpărătorul direct și marchează activul ca vândut doar după finalizarea tranzacției.
+                                  </p>
+                                  <button
+                                    onClick={() => {
+                                      const confirmed = window.confirm("Oferta va fi marcată ca nefinalizată, iar anunțul va rămâne activ.");
+                                      if (!confirmed) return;
+                                      handleOfferAction(offer.id, 'cancelled', 'listing');
+                                    }}
+                                    className="w-full bg-[#FDFCF8] border-[3px] border-black text-black py-3 rounded-xl font-black uppercase text-xs hover:bg-black hover:text-[#FFD100] transition-colors shadow-[3px_3px_0_0_rgba(0,0,0,1)] active:shadow-none active:translate-y-1"
+                                  >
+                                    Marchează ca nefinalizată
+                                  </button>
+                                </div>
                               ) : (
                                 <div className="text-center mt-auto border-t-2 border-gray-100 pt-4">
-                                  <span className={`text-xs font-black uppercase ${offer.status === 'accepted' ? 'text-green-600' : 'text-neutral-600'}`}>
-                                    {offer.status === 'accepted' ? '✓ Ai acceptat această ofertă' : '✕ Ofertă închisă / Refuzată'}
+                                  <span className={`text-xs font-black uppercase ${offer.status === 'cancelled' ? 'text-neutral-800' : 'text-neutral-600'}`}>
+                                    {offer.status === 'cancelled' ? '↺ Ofertă marcată ca nefinalizată' : '✕ Ofertă închisă / Refuzată'}
                                   </span>
                                 </div>
                               )}
