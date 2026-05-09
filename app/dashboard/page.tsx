@@ -807,7 +807,7 @@ function DashboardContent() {
                     {demand.status !== 'pending_payment' && demand.status !== 'resolved' && (
                       <div className="mt-3">
                         <p className="mb-2 text-[11px] font-bold text-neutral-600 leading-relaxed">
-                          Acceptarea unei oferte nu marchează automat cererea ca rezolvată. Marchează cererea ca rezolvată doar când nu mai cauți sau când tranzacția a fost finalizată direct între părți.
+                          Acceptarea unei oferte nu marchează automat cererea ca rezolvată. Marchează cererea ca rezolvată doar după ce tranzacția este finalizată între părți sau dacă nu mai cauți acest tip de achiziție.
                         </p>
                         {confirmResolvedDemandId === demand.id ? (
                           <div className="rounded-xl border-2 border-black bg-[#FDFCF8] p-3">
@@ -868,6 +868,24 @@ function DashboardContent() {
             <div>
               <h2 className="text-2xl md:text-3xl font-black uppercase italic tracking-tighter">Cameră de <span className="text-[#FFD100]">Negociere</span></h2>
               <p className="text-xs font-bold text-neutral-700">Aici primești oferte și contraoferte.</p>
+            </div>
+          </div>
+          <div className="mb-6 rounded-2xl border-2 border-amber-900/30 bg-[#FFF8E7] px-3 py-3 sm:px-4 sm:py-4 md:px-5 md:py-5">
+            <div className="max-w-3xl space-y-2">
+              <p className="text-[11px] font-black uppercase tracking-widest text-amber-950">
+                Siguranță la tranzacții directe
+              </p>
+              <p className="text-xs font-semibold leading-relaxed text-neutral-900 sm:text-sm">
+                Quick Exit nu intermediază plata și nu ține fonduri în custodie. Nu introduce datele cardului în linkuri
+                primite de la alți utilizatori.
+              </p>
+              <p className="text-xs font-semibold leading-relaxed text-neutral-900 sm:text-sm">
+                Marchează o tranzacție ca finalizată doar după ce ai verificat direct cu cealaltă parte.
+              </p>
+              <p className="text-[11px] font-medium leading-relaxed text-neutral-800 sm:text-xs">
+                Quick Exit facilitează contactul și negocierea directă între părți. Plata și finalizarea tranzacției se fac
+                direct între cumpărător și vânzător.
+              </p>
             </div>
           </div>
           {soldActionMessage && (
@@ -951,7 +969,11 @@ function DashboardContent() {
                                   <p className="text-sm font-bold text-neutral-700 mt-2">Email: Nu a fost furnizat</p>
                                 )}
                                 <p className="text-[11px] font-bold text-neutral-600 mt-4 leading-relaxed">
-                                  Contactează cumpărătorul direct pentru pașii următori. Quick Exit nu intermediază plata și nu ține fonduri în custodie.
+                                  Contactează cumpărătorul doar pentru pașii necesari tranzacției și verifică toate detaliile înainte de plată sau predare.
+                                </p>
+                                <p className="text-[11px] font-semibold text-neutral-700 mt-2 leading-relaxed">
+                                  Nu introduce datele cardului în linkuri primite de la alți utilizatori. Quick Exit nu
+                                  îți va cere niciodată datele cardului pentru a primi bani.
                                 </p>
                               </div>
 
@@ -967,7 +989,7 @@ function DashboardContent() {
                               ) : offer.status === 'accepted' ? (
                                 <div className="mt-auto">
                                   <p className="text-xs font-bold text-neutral-600 mb-3 leading-relaxed">
-                                    Acceptarea unei oferte nu marchează automat activul ca vândut. Contactează cumpărătorul direct și marchează activul ca vândut doar după finalizarea tranzacției.
+                                    Acceptarea unei oferte nu marchează automat activul ca vândut. Marchează activul ca vândut doar după ce tranzacția este finalizată între părți.
                                   </p>
                                   {isListingSold ? (
                                     <div className="rounded-xl border-2 border-black bg-[#FDFCF8] px-4 py-3">
@@ -1083,7 +1105,7 @@ function DashboardContent() {
                     </div>
                   )}
                   <p className="mb-4 text-xs font-bold text-neutral-700 leading-relaxed">
-                    Acceptarea unei oferte nu finalizează automat tranzacția. Contactul și plata se realizează direct între părți. Quick Exit nu intermediază plata și nu ține fonduri în custodie.
+                    Acceptarea unei oferte nu marchează automat cererea ca rezolvată. Marchează cererea ca rezolvată sau finalizează tranzacția doar după ce ai verificat direct cu cealaltă parte.
                   </p>
                   <div className="space-y-6">
                     {myDemandOffers.map(offer => {
@@ -1156,6 +1178,9 @@ function DashboardContent() {
                                   </a>
                                 )}
                                 <p className="text-center font-black text-xl italic mt-3">{offer.seller_phone}</p>
+                                <p className="mt-4 text-[11px] font-bold text-neutral-600 leading-relaxed text-left">
+                                  Contactează vânzătorul doar pentru pașii necesari tranzacției și verifică detaliile înainte de plată sau predare. Nu introduce datele cardului în linkuri primite de la alți utilizatori.
+                                </p>
                               </div>
 
                               {offer.status === 'new' && !isDemandResolved ? (

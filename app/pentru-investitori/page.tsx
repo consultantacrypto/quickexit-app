@@ -102,6 +102,14 @@ export default function PentruInvestitoriPage() {
           </ol>
         </section>
 
+        <section className="rounded-[2rem] border-[3px] border-black bg-[#FFF8E7] p-8 shadow-[6px_6px_0_0_rgba(0,0,0,0.85)] md:p-10">
+          <h2 className="text-2xl font-black uppercase italic tracking-tight">Tranzacții între părți</h2>
+          <p className="mt-4 max-w-3xl text-sm font-medium leading-relaxed text-neutral-900 md:text-base">
+            Quick Exit te ajută să descoperi active și cereri relevante. Verificarea finală și plata se stabilesc
+            direct între părți; platforma nu reține sume între utilizatori pentru finalizarea tranzacției.
+          </p>
+        </section>
+
         <section className="rounded-[2rem] border-[3px] border-black bg-white p-8 shadow-[8px_8px_0_0_rgba(0,0,0,1)] md:p-10">
           <h2 className="text-2xl font-black uppercase italic tracking-tight">Ce înseamnă preț de exit</h2>
           <p className="mt-6 text-sm font-medium leading-relaxed text-neutral-700 md:text-base">

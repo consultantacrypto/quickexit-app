@@ -125,6 +125,11 @@ export default function CapitalDisponibilClient() {
           </div>
         </div>
 
+        <p className="mb-6 max-w-3xl text-xs font-semibold leading-relaxed text-neutral-800 md:text-sm">
+          Cererile publicate indică interes de cumpărare. Verifică detaliile direct cu cealaltă parte și nu accesa
+          linkuri de plată primite în afara platformei.
+        </p>
+
         {/* LOADING STATE */}
         {isLoading ? (
           <div className="py-24 text-center bg-white border-[3px] border-dashed border-black/30 rounded-[2rem]">

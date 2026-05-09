@@ -263,6 +263,16 @@ export default function PitchOfferPage() {
                   </p>
                 </div>
               )}
+
+              <div className="mb-4 max-w-2xl rounded-xl border border-neutral-200 bg-[#F7F4EC] px-3 py-2.5 text-xs font-semibold leading-relaxed text-neutral-900 sm:mb-6 sm:px-4 sm:py-3">
+                <p>
+                  Oferta ta va fi trimisă către proprietarul cererii. Dacă oferta este acceptată, pașii următori se
+                  stabilesc direct între părți.
+                </p>
+                <p className="mt-1.5 border-t border-neutral-200/80 pt-1.5 text-[11px] font-semibold leading-relaxed sm:text-xs">
+                  Quick Exit nu procesează plata dintre utilizatori.
+                </p>
+              </div>
               
               {step === 1 && (
                 <div className="space-y-6">
@@ -382,8 +392,9 @@ export default function PitchOfferPage() {
               {step === 2 && sessionUser && (
                 <div className="space-y-8 text-center">
                   <h2 className="text-2xl font-black uppercase italic mb-2">Confirmă trimiterea ofertei</h2>
-                  <p className="text-sm font-semibold text-neutral-700 px-4">
-                    Verifică datele și trimite oferta către cumpărătorul care a publicat cererea.
+                  <p className="mx-auto max-w-xl px-2 text-sm font-semibold leading-relaxed text-neutral-700 sm:px-4">
+                    Verifică datele înainte de trimitere. Pașii următori rămân direct între tine și cumpărătorul care a
+                    publicat cererea.
                   </p>
                   
                   <div className="grid grid-cols-1 gap-4 pt-4 text-left">

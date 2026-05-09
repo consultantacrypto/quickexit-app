@@ -767,6 +767,11 @@ export default function AnuntClient() {
                   </button>
                 </div>
 
+                <p className="mt-3 max-w-none rounded-xl border border-neutral-200 bg-[#F7F4EC] px-3 py-2.5 text-left text-[11px] font-semibold leading-relaxed text-neutral-800 sm:mt-4 sm:px-4 sm:py-3 sm:text-xs">
+                  Nu trimite bani în avans și nu introduce datele cardului în linkuri primite de la alți utilizatori.
+                  Verifică activul și detaliile direct cu vânzătorul.
+                </p>
+
                 <p className="mt-6 text-center text-[10px] font-medium leading-relaxed text-neutral-500">
                   În curând: poți salva criterii și primi notificări pentru anunțuri noi.
                 </p>
