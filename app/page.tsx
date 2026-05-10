@@ -124,108 +124,99 @@ export default async function Home() {
         />
       )}
       
-      {/* HERO SECTION */}
-      <section className="relative overflow-hidden bg-white pb-12 pt-16 text-center md:pb-14 md:pt-20">
-        <div className="mx-auto max-w-3xl px-4">
-          <h1 className="mb-8 text-6xl font-black uppercase italic leading-[0.85] tracking-tighter text-black sm:text-7xl md:mb-10 md:text-8xl md:leading-[0.8] lg:text-9xl">
-            Vinde <span className="text-[#FFD100]">Acum</span>.<br />
-            Banii <span className="text-gray-200">Azi</span>.
-          </h1>
-
-          <p className="mx-auto mb-3 text-sm font-semibold leading-snug text-neutral-900 md:mb-4 md:text-base lg:text-lg">
-            Evaluează rapid un activ, publică anunțul și primește oferte de la cumpărători interesați.
-          </p>
-          <p className="mx-auto mb-4 max-w-2xl text-xs font-medium leading-relaxed text-neutral-600 md:mb-4 md:text-sm">
-            Quick Exit facilitează contactul direct. Plata și finalizarea se fac între cumpărător și vânzător.
-          </p>
-          <p className="mb-8 text-[10px] font-black uppercase leading-relaxed tracking-widest text-black md:mb-9 md:text-xs">
-            Fără agenți. Fără negocieri infinite. Fără timp pierdut.
-          </p>
-
-          <div className="mx-auto mb-6 flex max-w-lg flex-col gap-3 sm:mx-auto sm:max-w-none sm:flex-row sm:flex-wrap sm:justify-center">
-            <TrackedLink
-              href="/evaluare"
-              eventName="click_evaluate"
-              eventParams={{ source: "home_hero" }}
-              className="inline-flex flex-1 sm:flex-none"
-            >
-              <span className="flex w-full min-h-[52px] items-center justify-center rounded-2xl border-[3px] border-black bg-black px-8 py-3 text-center text-xs font-black uppercase tracking-wider text-[#FFD100] shadow-[4px_4px_0_0_rgba(255,209,0,0.95)] transition hover:brightness-110 active:translate-y-0.5 sm:min-h-0 md:px-10 md:text-sm">
-                Evaluează un activ
-              </span>
-            </TrackedLink>
-            <TrackedLink
-              href="/capital-disponibil"
-              eventName="click_capital_available"
-              eventParams={{ source: "home_hero" }}
-              className="inline-flex flex-1 sm:flex-none"
-            >
-              <span className="flex w-full min-h-[52px] items-center justify-center rounded-2xl border-[3px] border-black bg-white px-8 py-3 text-center text-xs font-black uppercase tracking-wider text-black transition hover:bg-[#FFD100] sm:min-h-0 md:px-10 md:text-sm">
-                Vezi oportunități
-              </span>
-            </TrackedLink>
-          </div>
-
-          <div className="flex flex-wrap items-center justify-center gap-2 md:gap-3">
-            <Link
-              href="/pentru-vanzatori"
-              className="border-2 border-black px-3 py-1.5 text-[10px] font-black uppercase tracking-widest italic transition hover:bg-black hover:text-[#FFD100] md:px-4 md:py-2"
-            >
-              Pentru vânzători
-            </Link>
-            <Link
-              href="/pentru-investitori"
-              className="border-2 border-black px-3 py-1.5 text-[10px] font-black uppercase tracking-widest italic transition hover:bg-black hover:text-[#FFD100] md:px-4 md:py-2"
-            >
-              Pentru cumpărători
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      <section className="border-t border-gray-100 bg-white py-12 md:py-14">
+      {/* HERO + pachete (primul ecran) */}
+      <section className="relative overflow-hidden bg-white pb-10 pt-16 text-center md:pb-14 md:pt-20">
         <div className="mx-auto max-w-7xl px-4">
-          <div className="mb-8 text-center md:mb-10">
-            <h2 className="text-xl font-black uppercase italic tracking-tight text-black md:text-2xl">
-              Alege ritmul de vânzare
-            </h2>
-            <p className="mx-auto mt-3 max-w-2xl text-xs font-semibold uppercase leading-relaxed tracking-wide text-neutral-600 md:text-[11px]">
-              Publici anunțul în funcție de urgență: expunere extinsă, vânzare rapidă, urgență sau licitație
-              deschisă.
+          <div className="mx-auto max-w-4xl">
+            <h1 className="mb-8 font-black uppercase italic tracking-tighter text-black md:mb-10">
+              <span className="block text-6xl leading-[0.9] sm:text-7xl md:text-8xl md:leading-[0.85] lg:text-9xl">
+                Vinde <span className="text-[#FFD100]">Acum</span>.
+              </span>
+              <span className="mt-1 block text-6xl leading-[0.9] sm:mt-0 sm:text-7xl md:text-8xl md:leading-[0.85] lg:text-9xl">
+                Banii <span className="text-gray-200">Azi</span>.
+              </span>
+            </h1>
+
+            <div className="mx-auto mb-8 max-w-2xl px-1 md:mb-10">
+              <p className="text-sm font-bold leading-relaxed md:text-base lg:text-lg">
+                <span className="bg-[#FFD100] px-2 py-1 text-black box-decoration-clone">
+                  Evaluezi rapid ce vinzi, alegi ritmul de vânzare și primești oferte de la cumpărători interesați.
+                </span>
+              </p>
+              <p className="mx-auto mt-4 max-w-xl text-xs font-semibold leading-relaxed text-neutral-800 md:text-sm">
+                Quick Exit facilitează contactul direct. Plata și finalizarea se fac între cumpărător și vânzător.
+              </p>
+            </div>
+
+            <div className="mb-6 flex flex-col items-center group md:mb-8">
+              <TrackedLink href="/evaluare" eventName="click_evaluate" eventParams={{ source: "home_hero" }}>
+                <button
+                  type="button"
+                  className="relative bg-black px-10 py-8 text-[#FFD100] rounded-[2.5rem] font-black uppercase tracking-widest transition-all border-b-8 border-yellow-700 active:border-b-0 active:translate-y-2 hover:scale-[1.02] shadow-[0_15px_40px_rgba(255,209,0,0.2)] hover:shadow-[0_25px_50px_rgba(255,209,0,0.35)] overflow-hidden md:px-16 md:py-10 max-w-[min(100vw-2rem,36rem)]"
+                >
+                  <div className="absolute top-0 -left-[100%] w-1/2 h-full bg-white/10 skew-x-[-25deg] group-hover:left-[150%] transition-all duration-1000 ease-in-out" />
+                  <span className="relative z-10 block text-2xl md:text-3xl lg:text-4xl italic uppercase leading-none">
+                    Cât valorează ce vinzi?
+                  </span>
+                </button>
+              </TrackedLink>
+              <TrackedLink
+                href="/capital-disponibil"
+                eventName="click_capital_available"
+                eventParams={{ source: "home_hero" }}
+                className="mt-4 inline-block border-b-2 border-transparent text-[10px] font-black uppercase tracking-widest text-neutral-600 underline-offset-4 transition hover:border-black hover:text-black md:text-[11px]"
+              >
+                Vezi cereri de cumpărare
+              </TrackedLink>
+            </div>
+          </div>
+
+          <div className="mt-2 md:mt-4">
+            <div className="mb-6 text-center md:mb-8">
+              <h2 className="text-lg font-black uppercase italic tracking-tight text-black md:text-2xl">
+                Alege ritmul de vânzare
+              </h2>
+              <p className="mx-auto mt-3 max-w-2xl text-[10px] font-semibold uppercase leading-relaxed tracking-wide text-neutral-600 md:text-[11px]">
+                Publici anunțul în funcție de urgență: expunere extinsă, vânzare rapidă, urgență sau licitație
+                deschisă.
+              </p>
+            </div>
+
+            <div className="mx-auto grid max-w-6xl grid-cols-2 gap-3 md:grid-cols-4 md:gap-4 lg:gap-5">
+              {[
+                { label: "Expunere maximă", desc: "Mai mult timp pentru oferte", time: "30 zile", price: "99 RON" },
+                { label: "Vânzare rapidă", desc: "Echilibru viteză / preț", time: "14 zile", price: "79 RON" },
+                { label: "Vânzare urgentă", desc: "Cumpărători în termen scurt", time: "48 ore", price: "48 RON" },
+                {
+                  label: "Licitație deschisă 30 zile",
+                  desc: "Primești oferte până la 30 zile; tu alegi manual.",
+                  time: "30 zile",
+                  price: "111 RON",
+                },
+              ].map((item) => (
+                <div
+                  key={item.label}
+                  className="rounded-2xl border-[3px] border-black bg-white p-4 shadow-[3px_3px_0_0_rgba(0,0,0,1)] transition hover:-translate-y-0.5 md:p-5"
+                >
+                  <p className="mb-1 text-[9px] font-black uppercase tracking-widest text-gray-500 md:text-[10px]">
+                    {item.label}
+                  </p>
+                  <p className="text-base font-black uppercase italic leading-none md:text-lg lg:text-xl">
+                    {item.time}
+                  </p>
+                  <p className="mt-2 inline-block rounded bg-black px-2 py-0.5 text-[10px] font-black uppercase tracking-tighter text-[#FFD100] md:text-[11px]">
+                    {item.price}
+                  </p>
+                  <p className="mt-2 block text-[8px] font-bold uppercase tracking-tighter text-neutral-500 opacity-90 md:text-[9px]">
+                    {item.desc}
+                  </p>
+                </div>
+              ))}
+            </div>
+            <p className="mx-auto mt-5 max-w-2xl text-center text-[9px] font-bold uppercase tracking-widest leading-relaxed text-neutral-700 md:mt-6 md:text-[10px]">
+              Nu există câștigător automat. Plata și predarea se stabilesc direct între părți.
             </p>
           </div>
-
-          <div className="mx-auto grid max-w-5xl grid-cols-2 gap-3 md:grid-cols-4 md:gap-4 lg:gap-5">
-            {[
-              { label: "Expunere maximă", desc: "Mai mult timp pentru oferte", time: "30 zile", price: "99 RON" },
-              { label: "Vânzare rapidă", desc: "Echilibru viteză / preț", time: "14 zile", price: "79 RON" },
-              { label: "Vânzare urgentă", desc: "Cumpărători în termen scurt", time: "48 ore", price: "48 RON" },
-              {
-                label: "Licitație deschisă 30 zile",
-                desc: "Primești oferte până la 30 zile; tu alegi manual.",
-                time: "30 zile",
-                price: "111 RON",
-              },
-            ].map((item) => (
-              <div
-                key={item.label}
-                className="rounded-2xl border-[3px] border-black bg-white p-4 shadow-[3px_3px_0_0_rgba(0,0,0,1)] transition hover:-translate-y-0.5 md:p-6"
-              >
-                <p className="mb-1 text-[9px] font-black uppercase tracking-widest text-gray-500 md:text-[10px]">
-                  {item.label}
-                </p>
-                <p className="text-lg font-black uppercase italic leading-none md:text-xl">{item.time}</p>
-                <p className="mt-2 inline-block rounded bg-black px-2 py-0.5 text-[10px] font-black uppercase tracking-tighter text-[#FFD100] md:text-[11px]">
-                  {item.price}
-                </p>
-                <p className="mt-2 block text-[8px] font-bold uppercase tracking-tighter text-neutral-500 opacity-90 md:text-[9px]">
-                  {item.desc}
-                </p>
-              </div>
-            ))}
-          </div>
-          <p className="mx-auto mt-6 max-w-2xl text-center text-[9px] font-bold uppercase tracking-widest leading-relaxed text-neutral-700 md:mt-8 md:text-[10px]">
-            Nu există câștigător automat. Plata și predarea se stabilesc direct între părți.
-          </p>
         </div>
       </section>
 
