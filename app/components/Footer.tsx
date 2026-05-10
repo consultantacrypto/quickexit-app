@@ -14,8 +14,8 @@ export default function Footer() {
           <div className="space-y-6 lg:col-span-1">
             <div className="text-3xl font-black italic tracking-tighter text-[#FFD100]">QUICK EXIT</div>
             <p className="text-sm font-bold italic leading-relaxed text-neutral-400">
-              Prima platformă de lichiditate ultra-rapidă din România. Transformăm activele complexe în capital imediat
-              prin tehnologie și rețele de investitori verificați.
+              Platformă pentru vânzări accelerate și contact direct în România. Conectăm active cu cumpărători și
+              investitori interesați prin tehnologie; disponibilitatea fondurilor nu este verificată de platformă.
             </p>
             <p className="text-[10px] font-semibold uppercase tracking-wider text-neutral-500">{companyInfo.legalName}</p>
             <div className="flex w-fit items-center gap-2 rounded-lg border border-neutral-800 px-4 py-2 text-[10px] font-black uppercase tracking-widest">

@@ -148,17 +148,17 @@ export default async function Home() {
               </p>
             </div>
 
-            <div className="mb-6 flex flex-col items-center group md:mb-8">
-              <TrackedLink href="/evaluare" eventName="click_evaluate" eventParams={{ source: "home_hero" }}>
-                <button
-                  type="button"
-                  className="relative bg-black px-10 py-8 text-[#FFD100] rounded-[2.5rem] font-black uppercase tracking-widest transition-all border-b-8 border-yellow-700 active:border-b-0 active:translate-y-2 hover:scale-[1.02] shadow-[0_15px_40px_rgba(255,209,0,0.2)] hover:shadow-[0_25px_50px_rgba(255,209,0,0.35)] overflow-hidden md:px-16 md:py-10 max-w-[min(100vw-2rem,36rem)]"
-                >
-                  <div className="absolute top-0 -left-[100%] w-1/2 h-full bg-white/10 skew-x-[-25deg] group-hover:left-[150%] transition-all duration-1000 ease-in-out" />
-                  <span className="relative z-10 block text-2xl md:text-3xl lg:text-4xl italic uppercase leading-none">
-                    Cât valorează ce vinzi?
-                  </span>
-                </button>
+            <div className="mb-6 flex flex-col items-center md:mb-8">
+              <TrackedLink
+                href="/evaluare"
+                eventName="click_evaluate"
+                eventParams={{ source: "home_hero" }}
+                className="group relative bg-black px-10 py-8 text-[#FFD100] rounded-[2.5rem] font-black uppercase tracking-widest transition-all border-b-8 border-yellow-700 active:border-b-0 active:translate-y-2 hover:scale-[1.02] shadow-[0_15px_40px_rgba(255,209,0,0.2)] hover:shadow-[0_25px_50px_rgba(255,209,0,0.35)] overflow-hidden md:px-16 md:py-10 max-w-[min(100vw-2rem,36rem)] inline-flex flex-col items-center justify-center focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#FFD100]"
+              >
+                <div className="absolute top-0 -left-[100%] w-1/2 h-full bg-white/10 skew-x-[-25deg] group-hover:left-[150%] transition-all duration-1000 ease-in-out" />
+                <span className="relative z-10 block text-center text-2xl md:text-3xl lg:text-4xl italic uppercase leading-none">
+                  Cât valorează ce vinzi?
+                </span>
               </TrackedLink>
               <TrackedLink
                 href="/capital-disponibil"
@@ -176,7 +176,7 @@ export default async function Home() {
               <h2 className="text-lg font-black uppercase italic tracking-tight text-black md:text-2xl">
                 Alege ritmul de vânzare
               </h2>
-              <p className="mx-auto mt-3 max-w-2xl text-[10px] font-semibold uppercase leading-relaxed tracking-wide text-neutral-600 md:text-[11px]">
+              <p className="mx-auto mt-3 max-w-2xl text-[11px] font-semibold uppercase leading-relaxed tracking-wide text-neutral-600 md:text-[11px]">
                 Publici anunțul în funcție de urgență: expunere extinsă, vânzare rapidă, urgență sau licitație
                 deschisă.
               </p>
@@ -198,22 +198,22 @@ export default async function Home() {
                   key={item.label}
                   className="rounded-2xl border-[3px] border-black bg-white p-4 shadow-[3px_3px_0_0_rgba(0,0,0,1)] transition hover:-translate-y-0.5 md:p-5"
                 >
-                  <p className="mb-1 text-[9px] font-black uppercase tracking-widest text-gray-500 md:text-[10px]">
+                  <p className="mb-1 text-[10px] font-black uppercase tracking-widest text-gray-500 md:text-[11px]">
                     {item.label}
                   </p>
                   <p className="text-base font-black uppercase italic leading-none md:text-lg lg:text-xl">
                     {item.time}
                   </p>
-                  <p className="mt-2 inline-block rounded bg-black px-2 py-0.5 text-[10px] font-black uppercase tracking-tighter text-[#FFD100] md:text-[11px]">
+                  <p className="mt-2 inline-block rounded bg-black px-2 py-0.5 text-[11px] font-black uppercase tracking-tighter text-[#FFD100] md:text-[11px]">
                     {item.price}
                   </p>
-                  <p className="mt-2 block text-[8px] font-bold uppercase tracking-tighter text-neutral-500 opacity-90 md:text-[9px]">
+                  <p className="mt-2 block text-[10px] font-bold uppercase tracking-tighter text-neutral-500 opacity-90 md:text-[11px]">
                     {item.desc}
                   </p>
                 </div>
               ))}
             </div>
-            <p className="mx-auto mt-5 max-w-2xl text-center text-[9px] font-bold uppercase tracking-widest leading-relaxed text-neutral-700 md:mt-6 md:text-[10px]">
+            <p className="mx-auto mt-5 max-w-2xl text-center text-[10px] font-bold uppercase tracking-widest leading-relaxed text-neutral-700 md:mt-6 md:text-[11px]">
               Nu există câștigător automat. Plata și predarea se stabilesc direct între părți.
             </p>
           </div>

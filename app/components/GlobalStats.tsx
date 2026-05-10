@@ -17,7 +17,8 @@ export default function GlobalStats() {
         const { data: listings } = await supabase
           .from('listings')
           .select('exit_price')
-          .eq('status', 'active');
+          .eq('status', 'active')
+          .eq('is_seed', false);
           
         const { data: demands } = await supabase
           .from('demands')
@@ -53,22 +54,36 @@ export default function GlobalStats() {
         {/* Structură clară, pe înțelesul tuturor */}
         <div className="flex flex-col md:flex-row justify-between items-center gap-8 md:gap-0 divide-y-2 md:divide-y-0 md:divide-x-2 divide-gray-800">
           
-          {/* 1. Valoare Totală */}
+          {/* 1. Valoare declarată (sumă comunicată, nu disponibilitate verificată) */}
           <div className="flex-1 w-full text-center md:px-6 pt-4 md:pt-0">
-            <p className="text-[10px] md:text-xs font-black uppercase tracking-[0.2em] text-gray-500 mb-1 md:mb-2 italic">Valoare Totală Platformă</p>
-            <p className="text-4xl md:text-5xl font-black italic text-[#FFD100] tracking-tighter">
-              €{stats.totalValue > 0 ? stats.totalValue.toLocaleString('ro-RO') : "..."}
+            <p className="text-[10px] md:text-xs font-black uppercase tracking-[0.2em] text-gray-500 mb-1 md:mb-2 italic">
+              Valoare declarată în anunțuri și cereri
             </p>
-            <p className="text-[9px] font-bold text-gray-600 uppercase mt-2 tracking-widest">Bani pregătiți + Bunuri la vânzare</p>
+            <p className="text-4xl md:text-5xl font-black italic text-[#FFD100] tracking-tighter">
+              {stats.totalValue > 0 ? `€${stats.totalValue.toLocaleString('ro-RO')}` : '—'}
+            </p>
+            {stats.totalValue > 0 ? (
+              <p className="text-[9px] font-bold text-gray-600 uppercase mt-2 tracking-widest">
+                Sume comunicate în anunțuri și cereri
+              </p>
+            ) : (
+              <p className="text-[8px] font-semibold text-gray-500 normal-case mt-2 max-w-[14rem] mx-auto leading-snug md:text-[9px] md:max-w-xs">
+                În acest moment nu există sume declarate cumulate în anunțuri și cereri active, sau valorile lipsesc.
+              </p>
+            )}
           </div>
 
-          {/* 2. Cumpărători Activi (Demands) */}
+          {/* 2. Cereri active de cumpărare */}
           <div className="flex-1 w-full text-center md:px-6 pt-6 md:pt-0">
-            <p className="text-[10px] md:text-xs font-black uppercase tracking-[0.2em] text-gray-500 mb-1 md:mb-2 italic">Cumpărători Activi</p>
+            <p className="text-[10px] md:text-xs font-black uppercase tracking-[0.2em] text-gray-500 mb-1 md:mb-2 italic">
+              Cereri active de cumpărare
+            </p>
             <p className="text-3xl md:text-4xl font-black italic text-white tracking-tighter">
               {stats.activeDemands}
             </p>
-            <p className="text-[9px] font-bold text-gray-600 uppercase mt-2 tracking-widest">Așteaptă să cumpere cu cash</p>
+            <p className="text-[9px] font-bold text-gray-600 uppercase mt-2 tracking-widest">
+              Publicate pe platformă; bugetul se verifică direct între părți
+            </p>
           </div>
 
           {/* 3. Anunțuri (Listings) */}

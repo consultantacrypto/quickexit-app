@@ -16,21 +16,25 @@ export default function DemandCard({ id, targetAsset, category, budget, descript
       <div>
         <div className="flex justify-between items-start mb-6">
           <span className="bg-[#FFD100] text-black px-4 py-2 rounded-lg text-[9px] md:text-[10px] font-black uppercase tracking-widest italic border-2 border-black">
-            CASH PREGĂTIT
+            BUGET DECLARAT
           </span>
           <span className="text-2xl grayscale opacity-50 group-hover:grayscale-0 group-hover:opacity-100 transition-all">💰</span>
         </div>
-        
+
         <h3 className="text-2xl font-black uppercase italic tracking-tight leading-none mb-3 text-black">
           {targetAsset}
         </h3>
-        
-        <div className="flex items-center gap-2 mb-6">
+
+        <div className="flex items-center gap-2 mb-3">
           <span className="text-[10px] font-black uppercase tracking-widest bg-gray-100 px-2 py-1 rounded border border-gray-200">
             {category || "General"}
           </span>
         </div>
-        
+
+        <p className="text-[9px] font-semibold text-neutral-600 leading-snug normal-case mb-6 md:text-[10px]">
+          Bugetul este declarat de cumpărător și trebuie verificat direct între părți.
+        </p>
+
         <p className="text-sm font-bold text-gray-600 italic line-clamp-3 leading-relaxed">
           &quot;{description}&quot;
         </p>
