@@ -140,11 +140,12 @@ export default async function Home() {
             <div className="mx-auto mb-8 max-w-2xl px-1 md:mb-10">
               <p className="text-sm font-bold leading-relaxed md:text-base lg:text-lg">
                 <span className="bg-[#FFD100] px-2 py-1 text-black box-decoration-clone">
-                  Evaluezi rapid ce vinzi, alegi ritmul de vânzare și primești oferte de la cumpărători interesați.
+                  Quick Exit conectează vânzători care vor să vândă rapid cu cumpărători care au buget și caută
+                  oportunități sub prețul pieței.
                 </span>
               </p>
               <p className="mx-auto mt-4 max-w-xl text-xs font-semibold leading-relaxed text-neutral-800 md:text-sm">
-                Quick Exit facilitează contactul direct. Plata și finalizarea se fac între cumpărător și vânzător.
+                Plata și finalizarea tranzacției se fac direct între cumpărător și vânzător.
               </p>
             </div>
 
