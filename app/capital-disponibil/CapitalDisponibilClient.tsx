@@ -146,15 +146,20 @@ export default function CapitalDisponibilClient() {
                 className="bg-white border-[3px] border-black rounded-[2rem] p-6 md:p-7 shadow-[6px_6px_0_0_rgba(255,209,0,1)] hover:-translate-y-1 transition-all flex flex-col justify-between group"
               >
                 <div>
-                  <div className="flex justify-between items-start mb-6">
-                    <span className="bg-[#FFD100] text-black px-3 py-2 rounded-lg text-[11px] font-black uppercase tracking-widest italic border-2 border-black">
-                      {buyer.budget >= 100000
-                        ? "Capital verificat"
-                        : "Capital disponibil"}
-                    </span>
-                    <span className="text-2xl opacity-70 group-hover:opacity-100 transition-all">
-                      💰
-                    </span>
+                  <div className="mb-6">
+                    <div className="flex justify-between items-start">
+                      <span className="bg-[#FFD100] text-black px-3 py-2 rounded-lg text-[11px] font-black uppercase tracking-widest italic border-2 border-black">
+                        {buyer.budget >= 100000
+                          ? "Buget comunicat"
+                          : "Buget declarat"}
+                      </span>
+                      <span className="text-2xl opacity-70 group-hover:opacity-100 transition-all">
+                        💰
+                      </span>
+                    </div>
+                    <p className="mt-2 text-[10px] font-semibold leading-snug text-neutral-600">
+                      Bugetul este declarat de cumpărător și trebuie verificat direct între părți.
+                    </p>
                   </div>
 
                   <h3 className="text-2xl md:text-3xl font-black uppercase italic tracking-tight leading-none mb-3 text-black">
