@@ -40,7 +40,7 @@ export default async function Home() {
     .order('created_at', { ascending: false })
     .limit(9);
 
-  // Anunțuri cu strategie auction (ofertare rapidă) vs. celelalte
+  // Anunțuri cu strategie auction (licitație deschisă) vs. celelalte
   const auctions = realListings?.filter(item => normalizeSaleType(item.sale_strategy) === 'auction') || [];
   const standardListings = realListings?.filter(item => normalizeSaleType(item.sale_strategy) !== 'auction') || [];
   const itemListElements = standardListings
@@ -167,9 +167,9 @@ export default async function Home() {
               { label: 'Vânzare rapidă', desc: 'Echilibru viteză / preț', time: '14 zile', price: '79 RON' },
               { label: 'Vânzare urgentă', desc: 'Cumpărători în termen scurt', time: '48 ore', price: '48 RON' },
               {
-                label: 'Ofertare rapidă 24h',
-                desc: 'Primești oferte într-o fereastră scurtă de timp. Acceptarea unei oferte nu finalizează automat tranzacția.',
-                time: '24h',
+                label: 'Licitație deschisă 30 zile',
+                desc: 'Oferte până la 30 zile; tu alegi manual.',
+                time: '30 zile',
                 price: '111 RON',
               }
             ].map((item) => (
@@ -181,6 +181,9 @@ export default async function Home() {
               </div>
             ))}
           </div>
+          <p className="mx-auto mb-16 max-w-2xl text-center text-[10px] font-bold uppercase tracking-widest leading-relaxed text-neutral-700">
+            Pentru Licitație deschisă: nu există câștigător automat. Plata și predarea se stabilesc direct între părți.
+          </p>
 
           <div className="flex flex-col items-center mb-24 group">
             <TrackedLink href="/evaluare" eventName="click_evaluate" eventParams={{ source: "home_hero" }}>
@@ -212,7 +215,7 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* Secțiune oferte rapide (strategie auction) */}
+      {/* Licitație deschisă (strategie auction) */}
       {auctions.length > 0 && (
         <section className="py-20 bg-black border-y-[8px] border-black relative overflow-hidden shadow-[0_0_50px_rgba(255,0,0,0.15)]">
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] bg-red-600/20 blur-[100px] rounded-full pointer-events-none"></div>
@@ -222,18 +225,17 @@ export default async function Home() {
               <div>
                 <div className="flex items-center gap-3 mb-3">
                   <div className="w-3 h-3 bg-red-600 rounded-full animate-ping"></div>
-                  <span className="text-red-500 font-black uppercase tracking-widest text-[10px]">
-                    Ofertare activă 24h
-                  </span>
+                  <span className="text-red-500 font-black uppercase tracking-widest text-[10px]">Licitație deschisă</span>
                 </div>
                 <h2 className="text-4xl md:text-5xl font-black uppercase italic tracking-tighter leading-none text-white">
-                  Oferte <span className="text-[#FFD100]">rapide</span>
+                  Licitație deschisă{" "}
+                  <span className="text-[#FFD100]">30 zile</span>
                 </h2>
               </div>
-              <p className="text-gray-400 font-bold uppercase tracking-widest text-[10px] md:max-w-xs mt-4 md:mt-0 text-left md:text-right">
-                Cumpărătorii pot trimite oferte rapid. Tu alegi manual dacă accepți, refuzi sau marchezi activul ca vândut
-                după finalizarea tranzacției. Nu există câștigător automat; plata și predarea se stabilesc direct între
-                părți.
+              <p className="text-gray-400 font-bold uppercase tracking-widest text-[10px] md:max-w-md mt-4 md:mt-0 text-left md:text-right">
+                Primești oferte timp de până la 30 de zile. Tu alegi manual oferta potrivită. Nu există câștigător
+                automat — plata și predarea sunt direct între părți. Acceptarea unei oferte nu închide tranzacția în
+                platformă.
               </p>
             </div>
 

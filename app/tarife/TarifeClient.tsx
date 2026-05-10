@@ -176,7 +176,7 @@ export default function TarifeClient() {
 
         <div className="mb-8 border-b-2 border-black pb-2">
           <h2 className="text-xl font-black uppercase italic tracking-tight text-neutral-700">
-            Ofertare rapidă 24h
+            Licitație deschisă 30 zile
           </h2>
         </div>
 
@@ -184,37 +184,42 @@ export default function TarifeClient() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
             <div>
               <span className="bg-black text-[#FFD100] px-3 py-1 rounded text-xs font-black uppercase tracking-widest italic mb-4 inline-block">
-                Lichiditate imediată
+                Vizibilitate extinsă
               </span>
               <h2 className="text-4xl md:text-6xl font-black uppercase italic tracking-tighter leading-[0.85] mb-4 text-black">
-                Ofertare <br />{" "}
+                Licitație <br />{" "}
                 <span className="text-white drop-shadow-[2px_2px_0_rgba(0,0,0,1)]">
-                  rapidă 24h
+                  deschisă 30 zile
                 </span>
               </h2>
-              <p className="text-sm font-bold text-black leading-relaxed mb-6">
-                Tu alegi durata expunerii în interfața de publicare:{" "}
-                <span className="underline decoration-white">24h, 48h sau 72h</span>.
-                Primești oferte într-o fereastră scurtă de timp. Nu există câștigător automat; vânzătorul alege manual oferta potrivită.
+              <p className="text-sm font-bold text-black leading-relaxed mb-4">
+                Vizibilitate extinsă până la{" "}
+                <span className="underline decoration-white">30 zile</span> și fereastră de ofertare pe întreaga
+                perioadă. Comparativ cu urgentă (48 ore), ai mai mult timp să strângi și să compari oferte, fără escrow
+                sau plată între părți prin platformă.
+              </p>
+              <p className="text-sm font-bold text-black leading-relaxed mb-4">
+                Nu există câștigător automat. Tu alegi manual dacă accepți o ofertă.
               </p>
               <p className="text-xs font-bold text-black leading-relaxed mb-4">
-                Acceptarea unei oferte nu finalizează automat tranzacția. Plata și predarea se stabilesc direct între părți.
+                Acceptarea unei oferte nu finalizează automat tranzacția. Plata și predarea se stabilesc direct între
+                părți.
               </p>
               <ul className="space-y-3 mb-4">
                 <li className="flex items-center gap-2 font-black uppercase italic text-xs text-black">
-                  Oferte de la investitori în timpul ferestrei de expunere
+                  Oferte în timpul celor 30 de zile de listare eligibilă
                 </li>
                 <li className="flex items-center gap-2 font-black uppercase italic text-xs text-black">
-                  Expunere accelerată către cumpărători pregătiți
+                  Expunere susținută către cumpărători și investitori
                 </li>
                 <li className="flex items-center gap-2 font-black uppercase italic text-xs text-black">
-                  Cronometru vizual pe pagina activului
+                  Dată clară de expirare vizibilă pe anunț
                 </li>
               </ul>
             </div>
             <div className="text-center lg:border-l-2 lg:border-black/20 lg:pl-10">
               <p className="text-xs font-black uppercase tracking-widest text-black/60 mb-1">
-                Taxă sesiune
+                Taxă listare licitație
               </p>
               <p className="text-6xl md:text-7xl font-black italic tracking-tighter mb-4 text-black uppercase">
                 111 RON
@@ -232,7 +237,7 @@ export default function TarifeClient() {
                 Publică cu acest pachet
               </Link>
               <p className="text-xs font-semibold mt-4 text-black/70">
-                Potrivit pentru active cu nevoie de viteză maximă.
+                Când vrei mai mult timp pentru oferte și alegerea manuală, nu doar sprint 48h.
               </p>
             </div>
           </div>
@@ -301,7 +306,7 @@ export default function TarifeClient() {
               <span className="font-black text-black">
                 Dacă ai nevoie de lichiditate imediată:
               </span>{" "}
-              Vânzare Urgentă sau Ofertare rapidă 24h.
+              Vânzare Urgentă (48h) sau Licitație deschisă 30 zile.
             </p>
           </div>
         </section>

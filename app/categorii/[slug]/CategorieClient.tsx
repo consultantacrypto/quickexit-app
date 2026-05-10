@@ -165,16 +165,18 @@ function CategoryContent() {
         </div>
       ) : (
         <div className="space-y-20">
-          {/* 1. SECȚIUNEA OFERTE RAPIDE (strategie auction) */}
+          {/* 1. Licitație deschisă (strategie auction) */}
           {filteredListings.some((l) => normalizeSaleType(l.sale_strategy) === "auction") && (
             <section className="bg-[#FDFCF8] border-[3px] border-black rounded-[2rem] p-5 md:p-8 shadow-[6px_6px_0_0_rgba(255,209,0,0.8)]">
               <div className="mb-8 md:mb-10">
                 <div className="flex items-center gap-4 mb-2">
                   <div className="w-4 h-10 bg-red-600 border-2 border-black animate-pulse"></div>
-                  <h2 className="text-3xl font-black uppercase italic tracking-tighter text-red-600">Oferte rapide</h2>
+                  <h2 className="text-3xl font-black uppercase italic tracking-tighter text-red-600">
+                    Licitație deschisă 30 zile
+                  </h2>
                 </div>
                 <p className="ml-[3.25rem] max-w-xl text-[10px] font-bold uppercase tracking-widest text-neutral-700">
-                  Nu există câștigător automat. Vânzătorul alege manual oferta potrivită.
+                  Nu există câștigător automat. Plata și predarea se stabilesc direct între părți.
                 </p>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-10">
@@ -183,7 +185,7 @@ function CategoryContent() {
                   .map((item) => (
                     <div key={item.id} className="relative">
                       <div className="absolute -top-4 -right-4 z-20 bg-red-600 text-white px-4 py-2 font-black uppercase italic text-[10px] shadow-[4px_4px_0_0_rgba(0,0,0,1)] border-2 border-black animate-bounce">
-                        Live 24H
+                        30 ZILE
                       </div>
                       <AdCard
                         id={item.id}

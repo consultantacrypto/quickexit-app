@@ -28,9 +28,9 @@ const LISTING_PACKAGES: Record<ListingPackageId, ListingPackage> = {
   },
   auction: {
     id: "auction",
-    title: "Ofertare rapidă 24h",
+    title: "Licitație deschisă 30 zile",
     priceRon: 111,
-    activeDuration: { kind: "hours", value: 24 },
+    activeDuration: { kind: "days", value: 30 },
   },
 };
 

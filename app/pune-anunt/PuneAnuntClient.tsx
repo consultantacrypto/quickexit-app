@@ -112,10 +112,10 @@ export default function PuneAnuntClient() {
     },
     {
       id: "auction",
-      title: "Ofertare rapidă 24h",
-      durationLabel: "24h",
+      title: "Licitație deschisă 30 zile",
+      durationLabel: "30 zile",
       description:
-        "Primești oferte într-o fereastră scurtă de timp. Acceptarea unei oferte nu finalizează automat tranzacția. Nu există câștigător automat — tu alegi manual ce urmează.",
+        "Potrivită când vrei să strângi mai multe oferte și să alegi manual cea mai bună variantă. Nu garantează vânzarea.",
     },
   ];
 
@@ -1332,6 +1332,11 @@ export default function PuneAnuntClient() {
                       <p className="mt-3 text-[11px] font-semibold leading-snug text-neutral-700">
                         {pkg.description}
                       </p>
+                      {pkg.id === "auction" && (
+                        <p className="mt-2 text-[10px] font-bold uppercase tracking-wide text-neutral-600">
+                          Nu există câștigător automat. Plata și predarea se stabilesc direct între părți.
+                        </p>
+                      )}
                       <p className="mt-5 font-black tabular-nums text-2xl text-black">
                         {price} RON
                       </p>
