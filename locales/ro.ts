@@ -28,7 +28,7 @@ export const ro = {
       tag: "Panic Sell"
     },
     auction: {
-      label: "Licitație Deschisă",
+      label: "Oferte rapide",
       tag: "Preț de Pornire"
     }
   },

@@ -40,7 +40,7 @@ export default async function Home() {
     .order('created_at', { ascending: false })
     .limit(9);
 
-  // Separăm licitațiile de anunțurile normale folosind funcția globală
+  // Anunțuri cu strategie auction (ofertare rapidă) vs. celelalte
   const auctions = realListings?.filter(item => normalizeSaleType(item.sale_strategy) === 'auction') || [];
   const standardListings = realListings?.filter(item => normalizeSaleType(item.sale_strategy) !== 'auction') || [];
   const itemListElements = standardListings
@@ -166,7 +166,12 @@ export default async function Home() {
               { label: 'Expunere maximă', desc: 'Mai mult timp pentru oferte', time: '30 zile', price: '99 RON' },
               { label: 'Vânzare rapidă', desc: 'Echilibru viteză / preț', time: '14 zile', price: '79 RON' },
               { label: 'Vânzare urgentă', desc: 'Cumpărători în termen scurt', time: '48 ore', price: '48 RON' },
-              { label: 'Licitație rapidă', desc: 'Oferte competitive', time: 'Licitație', price: '111 RON' }
+              {
+                label: 'Ofertare rapidă 24h',
+                desc: 'Primești oferte într-o fereastră scurtă de timp. Acceptarea unei oferte nu finalizează automat tranzacția.',
+                time: '24h',
+                price: '111 RON',
+              }
             ].map((item) => (
               <div key={item.label} className="p-6 border-[3px] border-black rounded-2xl bg-white shadow-[4px_4px_0_0_rgba(0,0,0,1)] hover:-translate-y-1 transition-all">
                 <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1">{item.label}</p>
@@ -207,7 +212,7 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* INTEGRARE LICITAȚII */}
+      {/* Secțiune oferte rapide (strategie auction) */}
       {auctions.length > 0 && (
         <section className="py-20 bg-black border-y-[8px] border-black relative overflow-hidden shadow-[0_0_50px_rgba(255,0,0,0.15)]">
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] bg-red-600/20 blur-[100px] rounded-full pointer-events-none"></div>
@@ -217,14 +222,17 @@ export default async function Home() {
               <div>
                 <div className="flex items-center gap-3 mb-3">
                   <div className="w-3 h-3 bg-red-600 rounded-full animate-ping"></div>
-                  <span className="text-red-500 font-black uppercase tracking-widest text-[10px]">Competiție Live</span>
+                  <span className="text-red-500 font-black uppercase tracking-widest text-[10px]">
+                    Ofertare activă 24h
+                  </span>
                 </div>
                 <h2 className="text-4xl md:text-5xl font-black uppercase italic tracking-tighter leading-none text-white">
-                  Licitații <span className="text-[#FFD100]">rapide</span>
+                  Oferte <span className="text-[#FFD100]">rapide</span>
                 </h2>
               </div>
               <p className="text-gray-400 font-bold uppercase tracking-widest text-[10px] md:max-w-xs mt-4 md:mt-0 text-left md:text-right">
-                Active lichidate urgent. Prima ofertă la prețul afișat poate închide licitația; finalizarea rămâne între
+                Cumpărătorii pot trimite oferte rapid. Tu alegi manual dacă accepți, refuzi sau marchezi activul ca vândut
+                după finalizarea tranzacției. Nu există câștigător automat; plata și predarea se stabilesc direct între
                 părți.
               </p>
             </div>

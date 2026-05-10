@@ -25,7 +25,7 @@ export default function AdCard({ id, title, image, marketPrice, exitPrice, disco
     standard: { bg: "bg-white text-black border-2 border-black", label: "LICHIDITATE" },
     urgent: { bg: "bg-red-600 text-white border-2 border-black", label: "URGENȚĂ EXTREMĂ" },
     extreme: { bg: "bg-[#FFD100] text-black border-2 border-black", label: "OPORTUNITATE MAXIMĂ" },
-    auction: { bg: "bg-black text-[#FFD100] border-2 border-[#FFD100]", label: "LICITAȚIE" },
+    auction: { bg: "bg-black text-[#FFD100] border-2 border-[#FFD100]", label: "OFERTE RAPIDE" },
   };
 
   const toggleFavorite = (e: React.MouseEvent) => {

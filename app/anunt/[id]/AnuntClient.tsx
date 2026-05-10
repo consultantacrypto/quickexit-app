@@ -27,7 +27,7 @@ function strategyBadgeRo(strategy?: string | null): string {
   const n = normalizeSaleType(strategy);
   switch (n) {
     case "auction":
-      return "Licitație";
+      return "Oferte rapide";
     case "urgent":
       return "Urgență";
     case "extreme":

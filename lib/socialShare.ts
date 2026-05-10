@@ -61,7 +61,7 @@ export function getUrgencyLabel(saleStrategy?: string | null): string {
   const s = (saleStrategy || "").toLowerCase();
   if (s === "extreme") return "Oportunitate mare";
   if (s === "urgent") return "Urgent";
-  if (s === "auction") return "Licitație";
+  if (s === "auction") return "Oferte rapide";
   return "Vânzare rapidă";
 }
 

@@ -176,7 +176,7 @@ export default function TarifeClient() {
 
         <div className="mb-8 border-b-2 border-black pb-2">
           <h2 className="text-xl font-black uppercase italic tracking-tight text-neutral-700">
-            Licitație rapidă
+            Ofertare rapidă 24h
           </h2>
         </div>
 
@@ -187,20 +187,22 @@ export default function TarifeClient() {
                 Lichiditate imediată
               </span>
               <h2 className="text-4xl md:text-6xl font-black uppercase italic tracking-tighter leading-[0.85] mb-4 text-black">
-                Licitație <br />{" "}
+                Ofertare <br />{" "}
                 <span className="text-white drop-shadow-[2px_2px_0_rgba(0,0,0,1)]">
-                  Rapidă
+                  rapidă 24h
                 </span>
               </h2>
               <p className="text-sm font-bold text-black leading-relaxed mb-6">
-                Tu alegi durata:{" "}
+                Tu alegi durata expunerii în interfața de publicare:{" "}
                 <span className="underline decoration-white">24h, 48h sau 72h</span>.
-                Activul tău devine centrul atenției în terminal, generând
-                competiție directă între investitori sub presiunea timpului.
+                Primești oferte într-o fereastră scurtă de timp. Nu există câștigător automat; vânzătorul alege manual oferta potrivită.
+              </p>
+              <p className="text-xs font-bold text-black leading-relaxed mb-4">
+                Acceptarea unei oferte nu finalizează automat tranzacția. Plata și predarea se stabilesc direct între părți.
               </p>
               <ul className="space-y-3 mb-4">
                 <li className="flex items-center gap-2 font-black uppercase italic text-xs text-black">
-                  Competiție în timp real între investitori
+                  Oferte de la investitori în timpul ferestrei de expunere
                 </li>
                 <li className="flex items-center gap-2 font-black uppercase italic text-xs text-black">
                   Expunere accelerată către cumpărători pregătiți
@@ -299,7 +301,7 @@ export default function TarifeClient() {
               <span className="font-black text-black">
                 Dacă ai nevoie de lichiditate imediată:
               </span>{" "}
-              Vânzare Urgentă sau Licitație Rapidă.
+              Vânzare Urgentă sau Ofertare rapidă 24h.
             </p>
           </div>
         </section>

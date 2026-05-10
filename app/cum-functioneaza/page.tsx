@@ -88,7 +88,7 @@ export default function HowItWorksPage() {
             <StepCard
               index={2}
               title="Alegi viteza de vânzare"
-              body="Selectezi pachetul potrivit: expunere, vânzare rapidă, urgență sau licitație rapidă."
+              body="Selectezi pachetul potrivit: expunere, vânzare rapidă, urgență sau ofertare rapidă 24h."
             />
             <StepCard
               index={3}

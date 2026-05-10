@@ -112,9 +112,10 @@ export default function PuneAnuntClient() {
     },
     {
       id: "auction",
-      title: "Licitație Rapidă",
-      durationLabel: "Licitație",
-      description: "Cumpărătorii pot concura prin oferte pentru activul tău.",
+      title: "Ofertare rapidă 24h",
+      durationLabel: "24h",
+      description:
+        "Primești oferte într-o fereastră scurtă de timp. Acceptarea unei oferte nu finalizează automat tranzacția. Nu există câștigător automat — tu alegi manual ce urmează.",
     },
   ];
 

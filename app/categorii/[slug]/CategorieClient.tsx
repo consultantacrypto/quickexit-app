@@ -165,14 +165,17 @@ function CategoryContent() {
         </div>
       ) : (
         <div className="space-y-20">
-          {/* 1. SECȚIUNEA LICITAȚII */}
+          {/* 1. SECȚIUNEA OFERTE RAPIDE (strategie auction) */}
           {filteredListings.some((l) => normalizeSaleType(l.sale_strategy) === "auction") && (
             <section className="bg-[#FDFCF8] border-[3px] border-black rounded-[2rem] p-5 md:p-8 shadow-[6px_6px_0_0_rgba(255,209,0,0.8)]">
-              <div className="flex items-center gap-4 mb-8 md:mb-10">
-                <div className="w-4 h-10 bg-red-600 border-2 border-black animate-pulse"></div>
-                <h2 className="text-3xl font-black uppercase italic tracking-tighter text-red-600">
-                  Licitații rapide
-                </h2>
+              <div className="mb-8 md:mb-10">
+                <div className="flex items-center gap-4 mb-2">
+                  <div className="w-4 h-10 bg-red-600 border-2 border-black animate-pulse"></div>
+                  <h2 className="text-3xl font-black uppercase italic tracking-tighter text-red-600">Oferte rapide</h2>
+                </div>
+                <p className="ml-[3.25rem] max-w-xl text-[10px] font-bold uppercase tracking-widest text-neutral-700">
+                  Nu există câștigător automat. Vânzătorul alege manual oferta potrivită.
+                </p>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-10">
                 {filteredListings
