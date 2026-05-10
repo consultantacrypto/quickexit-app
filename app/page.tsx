@@ -29,9 +29,9 @@ export default async function Home() {
     .from('listings')
     .select('*')
     .eq('status', 'active')
-    .eq('is_seed', false) // Asigurăm izolarea datelor de index de interfața publică
+    .eq('is_seed', false)
     .order('created_at', { ascending: false })
-    .limit(9); // Modificat la 9
+    .limit(48);
 
   const { data: realDemands } = await supabase
     .from('demands')
@@ -41,8 +41,12 @@ export default async function Home() {
     .limit(9);
 
   // Anunțuri cu strategie auction (licitație deschisă) vs. celelalte
-  const auctions = realListings?.filter(item => normalizeSaleType(item.sale_strategy) === 'auction') || [];
-  const standardListings = realListings?.filter(item => normalizeSaleType(item.sale_strategy) !== 'auction') || [];
+  const auctionsHome = (
+    realListings?.filter((item) => normalizeSaleType(item.sale_strategy) === "auction") ?? []
+  ).slice(0, 4);
+  const standardListings = (
+    realListings?.filter((item) => normalizeSaleType(item.sale_strategy) !== "auction") ?? []
+  ).slice(0, 9);
   const itemListElements = standardListings
     .filter((item) => {
       const id = typeof item?.id === "string" ? item.id.trim() : "";
@@ -215,53 +219,6 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* Licitație deschisă (strategie auction) */}
-      {auctions.length > 0 && (
-        <section className="py-20 bg-black border-y-[8px] border-black relative overflow-hidden shadow-[0_0_50px_rgba(255,0,0,0.15)]">
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] bg-red-600/20 blur-[100px] rounded-full pointer-events-none"></div>
-          
-          <div className="mx-auto max-w-7xl px-4 relative z-10">
-            <div className="flex flex-col md:flex-row justify-between items-end mb-12 border-b border-gray-800 pb-8">
-              <div>
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-3 h-3 bg-red-600 rounded-full animate-ping"></div>
-                  <span className="text-red-500 font-black uppercase tracking-widest text-[10px]">Licitație deschisă</span>
-                </div>
-                <h2 className="text-4xl md:text-5xl font-black uppercase italic tracking-tighter leading-none text-white">
-                  Licitație deschisă{" "}
-                  <span className="text-[#FFD100]">30 zile</span>
-                </h2>
-              </div>
-              <p className="text-gray-400 font-bold uppercase tracking-widest text-[10px] md:max-w-md mt-4 md:mt-0 text-left md:text-right">
-                Primești oferte timp de până la 30 de zile. Tu alegi manual oferta potrivită. Nu există câștigător
-                automat — plata și predarea sunt direct între părți. Acceptarea unei oferte nu închide tranzacția în
-                platformă.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 lg:gap-12">
-              {auctions.map((item) => (
-                <div key={item.id} className="relative group">
-                  <div className="absolute -inset-2 bg-gradient-to-r from-red-600 to-[#FFD100] rounded-[2.5rem] blur opacity-30 group-hover:opacity-100 transition duration-500"></div>
-                  <div className="relative h-full">
-                    <AdCard 
-                      id={item.id}
-                      title={item.title}
-                      image={item.images?.[0] || "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=800&q=80"}
-                      marketPrice={`€${item.market_price.toLocaleString('ro-RO')}`}
-                      exitPrice={`€${item.exit_price.toLocaleString('ro-RO')}`}
-                      discount={item.discount?.toString() || "0"}
-                      score={item.deal_score ? item.deal_score / 10 : 9.5} 
-                      type="auction"
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
-
       {/* ANUNȚURI VÂNZĂRI ACTIVE */}
       <section className="pt-24 pb-16 bg-gray-50">
         <div className="mx-auto max-w-7xl px-4">
@@ -342,6 +299,45 @@ export default async function Home() {
             </div>
         </div>
       </section>
+
+      {auctionsHome.length > 0 && (
+        <section className="border-t-[3px] border-black bg-[#fafafa] py-16">
+          <div className="mx-auto max-w-7xl px-4">
+            <div className="mb-10 border-b-[3px] border-black pb-8">
+              <h2 className="text-3xl font-black uppercase italic tracking-tighter md:text-4xl">
+                Licitații <span className="text-[#FFD100] underline decoration-black decoration-[5px]">deschise</span>
+              </h2>
+              <p className="mt-3 max-w-2xl text-xs font-semibold uppercase tracking-widest text-neutral-700 md:text-[11px]">
+                Active cu fereastră de ofertare până la 30 de zile. Vânzătorul alege manual oferta potrivită.
+              </p>
+              <p className="mt-2 max-w-2xl text-[10px] font-bold uppercase tracking-wide text-neutral-500 md:text-[10px]">
+                Nu există câștigător automat. Plata și predarea se stabilesc direct între părți.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
+              {auctionsHome.map((item) => (
+                <AdCard
+                  key={item.id}
+                  id={item.id}
+                  title={item.title}
+                  image={
+                    item.images?.[0] ||
+                    "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=800&q=80"
+                  }
+                  marketPrice={`€${item.market_price.toLocaleString("ro-RO")}`}
+                  exitPrice={`€${item.exit_price.toLocaleString("ro-RO")}`}
+                  discount={item.discount?.toString() || "0"}
+                  score={item.deal_score ? item.deal_score / 10 : 9.5}
+                  type="auction"
+                  offerCount={item.offer_count}
+                  highestOffer={item.highest_offer}
+                  expiresAt={item.expires_at}
+                />
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       <GlobalStats />
 

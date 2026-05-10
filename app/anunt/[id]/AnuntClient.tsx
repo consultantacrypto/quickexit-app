@@ -7,6 +7,12 @@ import { useParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import AdCard from "../../components/AdCard";
 import { normalizeSaleType } from "@/utils/normalizeSaleType";
+import {
+  auctionOffersReceivedLineDetail,
+  detailHighestOfferLine,
+  formatFereastraOfertariiRo,
+  parseListingOfferCount,
+} from "@/utils/auctionListingUi";
 import { buildSocialShareKit } from "@/lib/socialShare";
 import { trackEvent } from "@/lib/analytics";
 
@@ -22,20 +28,6 @@ const labelBase =
   "block text-[10px] font-black uppercase tracking-widest text-neutral-500";
 const inputBase =
   "w-full rounded-xl border-[3px] border-black bg-white p-4 font-semibold text-black outline-none transition focus:border-[#FFD100] focus:ring-4 focus:ring-[#FFD100]/30 placeholder:text-neutral-500";
-
-function formatAuctionExpiresRo(expiresAt: unknown): string | null {
-  if (expiresAt === null || expiresAt === undefined) return null;
-  const d = new Date(String(expiresAt));
-  if (Number.isNaN(d.getTime())) return null;
-  const formatted = new Intl.DateTimeFormat("ro-RO", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(d);
-  return `Licitație deschisă până la: ${formatted}`;
-}
 
 function strategyBadgeRo(strategy?: string | null): string {
   const n = normalizeSaleType(strategy);
@@ -486,15 +478,18 @@ export default function AnuntClient() {
           "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1200&q=80",
         ];
 
-  const auctionExpiresLine =
-    normalizeSaleType(adData.sale_strategy) === "auction"
-      ? formatAuctionExpiresRo(adData.expires_at)
-      : null;
-
   const sellerDisplayName =
     sellerProfile?.full_name?.trim() || "Vânzător Quick Exit";
   const displayedActiveListingCount =
     sellerActiveCount !== null ? sellerActiveCount : sellerOtherListings.length + 1;
+
+  const isAuctionDetail = normalizeSaleType(adData.sale_strategy) === "auction";
+  const auctionOfferTotalForUi = isAuctionDetail ? parseListingOfferCount(adData.offer_count) : 0;
+  const auctionOffersReceivedRo = isAuctionDetail
+    ? auctionOffersReceivedLineDetail(auctionOfferTotalForUi)
+    : null;
+  const auctionHighestRo = isAuctionDetail ? detailHighestOfferLine(adData.highest_offer) : null;
+  const auctionFereastraRo = isAuctionDetail ? formatFereastraOfertariiRo(adData.expires_at) : null;
 
   const renderTitle = (title: string) => {
     if (!title) return null;
@@ -678,17 +673,29 @@ export default function AnuntClient() {
                 {renderTitle(adData.title)}
               </h1>
 
-              {normalizeSaleType(adData.sale_strategy) === "auction" && (
+              {isAuctionDetail && (
                 <div className="mt-5 space-y-2 rounded-xl border-[3px] border-black bg-[#FFFEF6] p-4">
-                  {auctionExpiresLine ? (
-                    <p className="text-[10px] font-black uppercase tracking-widest text-black">{auctionExpiresLine}</p>
+                  <h2 className="text-[11px] font-black uppercase tracking-widest text-black border-b border-black/15 pb-2">
+                    Licitație deschisă
+                  </h2>
+                  {auctionOffersReceivedRo ? (
+                    <p className="text-xs font-semibold leading-snug text-neutral-900">{auctionOffersReceivedRo}</p>
+                  ) : (
+                    <p className="text-xs font-semibold leading-snug text-neutral-900">
+                      Fii primul care trimite o ofertă.
+                    </p>
+                  )}
+                  {auctionHighestRo ? (
+                    <p className="text-xs font-semibold leading-snug text-neutral-900">{auctionHighestRo}</p>
                   ) : null}
-                  <p className="text-xs font-semibold leading-relaxed text-neutral-800">
-                    Vânzătorul alege manual oferta potrivită. Acceptarea unei oferte nu finalizează automat
-                    tranzacția.
-                  </p>
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-neutral-600">
-                    Nu există câștigător automat. Plata și predarea se stabilesc direct între părți.
+                  {auctionFereastraRo ? (
+                    <p className="text-[10px] font-bold uppercase tracking-wide text-neutral-800">
+                      {auctionFereastraRo}
+                    </p>
+                  ) : null}
+                  <p className="border-t border-black/15 pt-2 text-[11px] font-medium leading-relaxed text-neutral-700">
+                    Cea mai mare ofertă nu este câștigătoare automat. Vânzătorul alege manual oferta potrivită,
+                    iar tranzacția se finalizează direct între părți.
                   </p>
                 </div>
               )}
@@ -942,7 +949,9 @@ export default function AnuntClient() {
             </h2>
             {sellerOtherListings.length > 0 ? (
               <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
-                {sellerOtherListings.map((item) => (
+                {sellerOtherListings.map((item) => {
+                  const st = normalizeSaleType(item.sale_strategy);
+                  return (
                   <AdCard
                     key={item.id}
                     id={item.id}
@@ -955,9 +964,17 @@ export default function AnuntClient() {
                     exitPrice={`€${item.exit_price.toLocaleString("ro-RO")}`}
                     discount={item.discount?.toString() || "0"}
                     score={item.deal_score ? item.deal_score / 10 : 9.0}
-                    type={normalizeSaleType(item.sale_strategy)}
+                    type={st}
+                    {...(st === "auction"
+                      ? {
+                          offerCount: item.offer_count,
+                          highestOffer: item.highest_offer,
+                          expiresAt: item.expires_at,
+                        }
+                      : {})}
                   />
-                ))}
+                );
+                })}
               </div>
             ) : (
               <p className="text-sm font-medium text-neutral-600">
@@ -974,7 +991,9 @@ export default function AnuntClient() {
 
           {similarAds.length > 0 ? (
             <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
-              {similarAds.map((item) => (
+              {similarAds.map((item) => {
+                const st = normalizeSaleType(item.sale_strategy);
+                return (
                 <AdCard
                   key={item.id}
                   id={item.id}
@@ -987,9 +1006,17 @@ export default function AnuntClient() {
                   exitPrice={`€${item.exit_price.toLocaleString("ro-RO")}`}
                   discount={item.discount?.toString() || "0"}
                   score={item.deal_score ? item.deal_score / 10 : 9.0}
-                  type={normalizeSaleType(item.sale_strategy)}
+                  type={st}
+                  {...(st === "auction"
+                    ? {
+                        offerCount: item.offer_count,
+                        highestOffer: item.highest_offer,
+                        expiresAt: item.expires_at,
+                      }
+                    : {})}
                 />
-              ))}
+              );
+              })}
             </div>
           ) : (
             <div className="rounded-[2rem] border-[3px] border-dashed border-black/35 bg-white p-10 text-center">

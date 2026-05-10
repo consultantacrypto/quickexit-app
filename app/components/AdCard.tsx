@@ -4,6 +4,12 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import { ro } from "../../locales/ro";
+import {
+  auctionOfferLineForCard,
+  formatAuctionCardTimeLeft,
+  formatHighestOfferEURLabel,
+  parseListingOfferCount,
+} from "@/utils/auctionListingUi";
 
 interface AdCardProps {
   id: string;
@@ -15,9 +21,25 @@ interface AdCardProps {
   score: number;
   type: 'urgent' | 'extreme' | 'standard' | 'auction';
   priority?: boolean; // Adăugat pentru optimizarea primei imagini (LCP)
+  offerCount?: number | null;
+  highestOffer?: number | string | null;
+  expiresAt?: string | null;
 }
 
-export default function AdCard({ id, title, image, marketPrice, exitPrice, discount, score, type, priority = false }: AdCardProps) {
+export default function AdCard({
+  id,
+  title,
+  image,
+  marketPrice,
+  exitPrice,
+  discount,
+  score,
+  type,
+  priority = false,
+  offerCount,
+  highestOffer,
+  expiresAt,
+}: AdCardProps) {
   const { cards } = ro;
   const [isFavorite, setIsFavorite] = useState(false);
 
@@ -32,6 +54,10 @@ export default function AdCard({ id, title, image, marketPrice, exitPrice, disco
     e.preventDefault();
     setIsFavorite(!isFavorite);
   };
+
+  const nOffers = parseListingOfferCount(offerCount ?? null);
+  const highestLabel = formatHighestOfferEURLabel(highestOffer ?? null);
+  const timeLeft = formatAuctionCardTimeLeft(expiresAt ?? null);
 
   return (
     <Link 
@@ -76,6 +102,14 @@ export default function AdCard({ id, title, image, marketPrice, exitPrice, disco
             </svg>
           </button>
         </div>
+
+        {type === "auction" && (
+          <div className="mb-4 space-y-0.5 text-[9px] font-black uppercase tracking-wide leading-tight text-neutral-800">
+            <p>{auctionOfferLineForCard(nOffers)}</p>
+            {highestLabel ? <p>Cea mai mare ofertă: {highestLabel}</p> : null}
+            {timeLeft ? <p>{timeLeft}</p> : null}
+          </div>
+        )}
 
         <div className="flex items-center justify-between mt-auto">
           <div className="flex flex-col">

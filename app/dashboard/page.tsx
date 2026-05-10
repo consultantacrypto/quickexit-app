@@ -703,6 +703,13 @@ function DashboardContent() {
                       discount={item.discount?.toString() || "0"}
                       score={item.deal_score ? item.deal_score / 10 : 9.0}
                       type={normalizeSaleType(item.sale_strategy)}
+                      {...(normalizeSaleType(item.sale_strategy) === "auction"
+                        ? {
+                            offerCount: item.offer_count,
+                            highestOffer: item.highest_offer,
+                            expiresAt: item.expires_at,
+                          }
+                        : {})}
                     />
                   </div>
 
