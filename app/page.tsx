@@ -300,20 +300,21 @@ export default async function Home() {
         </div>
       </section>
 
-      {auctionsHome.length > 0 && (
-        <section className="border-t-[3px] border-black bg-[#fafafa] py-16">
-          <div className="mx-auto max-w-7xl px-4">
-            <div className="mb-10 border-b-[3px] border-black pb-8">
-              <h2 className="text-3xl font-black uppercase italic tracking-tighter md:text-4xl">
-                Licitații <span className="text-[#FFD100] underline decoration-black decoration-[5px]">deschise</span>
-              </h2>
-              <p className="mt-3 max-w-2xl text-xs font-semibold uppercase tracking-widest text-neutral-700 md:text-[11px]">
-                Active cu fereastră de ofertare până la 30 de zile. Vânzătorul alege manual oferta potrivită.
-              </p>
-              <p className="mt-2 max-w-2xl text-[10px] font-bold uppercase tracking-wide text-neutral-500 md:text-[10px]">
-                Nu există câștigător automat. Plata și predarea se stabilesc direct între părți.
-              </p>
-            </div>
+      <section className="border-t-[3px] border-black bg-[#fafafa] py-12 md:py-16">
+        <div className="mx-auto max-w-7xl px-4">
+          <div className="mb-8 border-b-[3px] border-black pb-6 md:mb-10 md:pb-8">
+            <h2 className="text-3xl font-black uppercase italic tracking-tighter md:text-4xl">
+              Licitații <span className="text-[#FFD100] underline decoration-black decoration-[5px]">deschise</span>
+            </h2>
+            <p className="mt-3 max-w-2xl text-xs font-semibold uppercase tracking-widest text-neutral-700 md:text-[11px]">
+              Active cu fereastră de ofertare până la 30 de zile. Vânzătorul alege manual oferta potrivită.
+            </p>
+            <p className="mt-2 max-w-2xl text-[10px] font-bold uppercase tracking-wide text-neutral-500 md:text-[10px]">
+              Nu există câștigător automat. Plata și predarea se stabilesc direct între părți.
+            </p>
+          </div>
+
+          {auctionsHome.length > 0 ? (
             <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
               {auctionsHome.map((item) => (
                 <AdCard
@@ -335,9 +336,28 @@ export default async function Home() {
                 />
               ))}
             </div>
-          </div>
-        </section>
-      )}
+          ) : (
+            <div className="mx-auto max-w-xl rounded-2xl border-[3px] border-black bg-white p-5 shadow-[6px_6px_0_0_rgba(0,0,0,1)] md:p-6">
+              <h3 className="text-base font-black uppercase italic tracking-tight text-black md:text-lg">
+                Momentan nu există licitații active
+              </h3>
+              <p className="mt-3 text-xs font-medium leading-relaxed text-neutral-700 md:text-sm">
+                Licitațiile deschise permit vânzătorilor să primească oferte timp de până la 30 de zile și să aleagă
+                manual oferta potrivită.
+              </p>
+              <p className="mt-2 text-[10px] font-bold uppercase tracking-wide text-neutral-600">
+                Nu există câștigător automat. Plata și predarea se stabilesc direct între părți.
+              </p>
+              <Link
+                href="/pune-anunt"
+                className="mt-4 inline-flex items-center justify-center border-[3px] border-black bg-[#FFD100] px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-black transition hover:bg-black hover:text-[#FFD100] md:text-xs"
+              >
+                Publică o licitație
+              </Link>
+            </div>
+          )}
+        </div>
+      </section>
 
       <GlobalStats />
 
