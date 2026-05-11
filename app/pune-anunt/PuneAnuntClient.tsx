@@ -95,27 +95,27 @@ export default function PuneAnuntClient() {
       id: "economy",
       title: "Expunere Maximă",
       durationLabel: "30 zile",
-      description: "Pentru vânzători care vor mai mult timp pentru a primi oferte.",
+      description: "Pentru anunțuri care au nevoie de mai mult timp la vedere.",
     },
     {
       id: "standard",
       title: "Vânzare Rapidă",
       durationLabel: "14 zile",
-      description: "Pentru cei care vor să vândă repede, dar fără presiune extremă.",
+      description: "Pentru listări echilibrate între timp, cost și vizibilitate.",
       badge: "Recomandat",
     },
     {
       id: "urgent",
       title: "Vânzare Urgentă",
       durationLabel: "48 ore",
-      description: "Pentru situații în care ai nevoie de cumpărători rapid.",
+      description: "Pentru situații în care vrei răspuns rapid.",
     },
     {
       id: "auction",
       title: "Licitație deschisă 30 zile",
       durationLabel: "30 zile",
       description:
-        "Potrivită când vrei să strângi mai multe oferte și să alegi manual cea mai bună variantă. Nu garantează vânzarea.",
+        "Pentru active unde vrei să strângi mai multe oferte și să alegi manual varianta potrivită. Include afișare ca licitație, fereastră de ofertare 30 zile și semnale publice de interes: număr oferte, cea mai mare ofertă și timp rămas. Nu garantează vânzarea.",
     },
   ];
 
@@ -438,8 +438,11 @@ export default function PuneAnuntClient() {
                 <h2 className="mb-6 text-xl font-black uppercase italic tracking-tight text-black md:text-2xl">
                   1. Date despre activ
                 </h2>
-                <p className="mb-6 text-sm font-medium text-neutral-600">
-                  Alege categoria și completează detaliile tehnice.
+                <p className="mb-2 text-sm font-medium text-neutral-600">
+                  Alege o categorie pentru a continua. Câmpurile următoare se adaptează în funcție de tipul activului.
+                </p>
+                <p className="mb-6 text-xs font-medium text-neutral-500">
+                  După ce selectezi categoria, completează detaliile tehnice mai jos.
                 </p>
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:gap-6">
                   {categoriesList.map((cat) => (

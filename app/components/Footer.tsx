@@ -17,6 +17,10 @@ export default function Footer() {
               Platformă pentru vânzări accelerate și contact direct în România. Conectăm active cu cumpărători și
               investitori interesați prin tehnologie; disponibilitatea fondurilor nu este verificată de platformă.
             </p>
+            <p className="text-[11px] font-semibold leading-relaxed text-neutral-500">
+              Poți naviga fără cont. Pentru publicare, trimitere oferte și Camera de Negociere ai nevoie de un cont
+              simplu.
+            </p>
             <p className="text-[10px] font-semibold uppercase tracking-wider text-neutral-500">{companyInfo.legalName}</p>
             <div className="flex w-fit items-center gap-2 rounded-lg border border-neutral-800 px-4 py-2 text-[10px] font-black uppercase tracking-widest">
               <span>Made in Romania</span>
@@ -86,6 +90,14 @@ export default function Footer() {
                 <Link href="/contact" className={footerLink}>
                   Contact
                 </Link>
+              </li>
+              <li>
+                <a
+                  href={`mailto:${companyInfo.publicEmail}?subject=${encodeURIComponent("Feedback Quick Exit")}`}
+                  className={footerLink}
+                >
+                  Trimite feedback
+                </a>
               </li>
             </ul>
           </div>

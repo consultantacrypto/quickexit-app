@@ -9,8 +9,8 @@ export default function TarifeClient() {
       id: "economy",
       name: "Economy",
       publicName: "Expunere Maximă",
-      bestFor: "Potrivit dacă nu te grăbești și vrei expunere extinsă.",
-      benefit: "Mai mult timp în piață pentru negocieri bune.",
+      bestFor: "Pentru anunțuri care au nevoie de mai mult timp la vedere.",
+      benefit: "Listare vizibilă 30 zile, timp pentru oferte și mesaje.",
       duration: "30 ZILE",
       price: "99 RON",
       tag: "EXPUNERE MAXIMĂ",
@@ -28,8 +28,8 @@ export default function TarifeClient() {
       id: "standard",
       name: "Standard",
       publicName: "Vânzare Rapidă",
-      bestFor: "Potrivit dacă vrei echilibru între preț și viteză.",
-      benefit: "Prioritate mai bună pentru vizibilitate imediată.",
+      bestFor: "Pentru listări echilibrate între timp, cost și vizibilitate.",
+      benefit: "14 zile de expunere cu accent pe vizibilitate în listă.",
       duration: "14 ZILE",
       price: "79 RON",
       tag: "VÂNZARE RAPIDĂ",
@@ -47,8 +47,8 @@ export default function TarifeClient() {
       id: "urgent",
       name: "Urgent",
       publicName: "Vânzare Urgentă",
-      bestFor: "Potrivit dacă ai nevoie de lichiditate imediată.",
-      benefit: "Expunere accelerată pentru decizii rapide.",
+      bestFor: "Pentru situații în care vrei răspuns rapid.",
+      benefit: "Fereastră scurtă (48 ore) pentru mesaje și oferte rapide.",
       duration: "48 ORE",
       price: "48 RON",
       tag: "LICHIDARE",
@@ -198,6 +198,11 @@ export default function TarifeClient() {
                 perioadă. Comparativ cu urgentă (48 ore), ai mai mult timp să strângi și să compari oferte, fără escrow
                 sau plată între părți prin platformă.
               </p>
+              <p className="text-xs font-bold text-black leading-relaxed mb-4">
+                Pentru active unde vrei să strângi mai multe oferte și să alegi manual varianta potrivită. Include
+                afișare ca licitație, fereastră de ofertare 30 zile și semnale publice de interes: număr oferte, cea mai
+                mare ofertă și timp rămas.
+              </p>
               <p className="text-sm font-bold text-black leading-relaxed mb-4">
                 Nu există câștigător automat. Tu alegi manual dacă accepți o ofertă.
               </p>
@@ -309,6 +314,21 @@ export default function TarifeClient() {
               Vânzare Urgentă (48h) sau Licitație deschisă 30 zile.
             </p>
           </div>
+        </section>
+
+        <section className="mb-8 rounded-[1.5rem] border-[3px] border-black bg-white p-5 md:p-7 shadow-[4px_4px_0_0_rgba(0,0,0,0.12)]">
+          <h2 className="text-lg font-black uppercase italic tracking-tight text-black md:text-xl">
+            Tranzacții directe, cu atenție
+          </h2>
+          <p className="mt-3 text-xs font-medium leading-relaxed text-neutral-800 md:text-sm">
+            Quick Exit nu procesează plata dintre părți și nu ține fonduri în custodie. Verifică activul, actele și
+            identitatea celeilalte părți înainte de plată sau predare.
+          </p>
+          <ul className="mt-3 list-disc space-y-1.5 pl-5 text-xs font-medium leading-relaxed text-neutral-800 md:text-sm">
+            <li>Nu trimite bani în avans fără verificări.</li>
+            <li>Pentru sume mari, folosește contract și consultanță de specialitate.</li>
+            <li>Nu introduce datele cardului în linkuri primite de la alți utilizatori.</li>
+          </ul>
         </section>
 
         <p className="text-xs text-neutral-600 mb-4">
