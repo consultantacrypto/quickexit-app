@@ -125,10 +125,10 @@ export default async function Home() {
       )}
       
       {/* HERO + pachete (primul ecran) */}
-      <section className="relative overflow-hidden bg-white pb-10 pt-16 text-center md:pb-14 md:pt-20">
+      <section className="relative overflow-hidden bg-white pb-9 pt-14 text-center md:pb-11 md:pt-16 lg:pb-12 lg:pt-20">
         <div className="mx-auto max-w-7xl px-4">
           <div className="mx-auto max-w-4xl">
-            <h1 className="mb-8 font-black uppercase italic tracking-tighter text-black md:mb-10">
+            <h1 className="mb-6 font-black uppercase italic tracking-tighter text-black md:mb-8 lg:mb-9">
               <span className="block text-6xl leading-[0.9] sm:text-7xl md:text-8xl md:leading-[0.85] lg:text-9xl">
                 Vinde <span className="text-[#FFD100]">Acum</span>.
               </span>
@@ -141,24 +141,24 @@ export default async function Home() {
               </span>
             </h1>
 
-            <div className="mx-auto mb-8 max-w-2xl px-1 md:mb-10">
-              <p className="text-sm font-bold leading-relaxed md:text-base lg:text-lg">
-                <span className="bg-[#FFD100] px-2 py-1 text-black box-decoration-clone">
+            <div className="mx-auto mb-6 max-w-3xl px-2 md:mb-7 lg:mb-8">
+              <p className="text-[15px] font-bold leading-[1.55] md:text-[17px] lg:text-[19px] lg:leading-[1.6]">
+                <span className="bg-[#FFD100] px-3 py-1.5 text-black box-decoration-clone">
                   Quick Exit conectează vânzători care vor să vândă rapid cu cumpărători care au buget și caută
                   oportunități sub prețul pieței.
                 </span>
               </p>
             </div>
 
-            <div className="mb-6 flex flex-col items-center md:mb-8">
+            <div className="mb-4 flex flex-col items-center md:mb-5 lg:mb-6">
               <TrackedLink
                 href="/evaluare"
                 eventName="click_evaluate"
                 eventParams={{ source: "home_hero" }}
-                className="group relative bg-black px-10 py-8 text-[#FFD100] rounded-[2.5rem] font-black uppercase tracking-widest transition-all border-b-8 border-yellow-700 active:border-b-0 active:translate-y-2 hover:scale-[1.02] shadow-[0_15px_40px_rgba(255,209,0,0.2)] hover:shadow-[0_25px_50px_rgba(255,209,0,0.35)] overflow-hidden md:px-16 md:py-10 max-w-[min(100vw-2rem,36rem)] inline-flex flex-col items-center justify-center focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#FFD100]"
+                className="group relative bg-black px-8 py-6 text-[#FFD100] rounded-[2.25rem] font-black uppercase tracking-widest transition-all border-b-8 border-yellow-700 active:border-b-0 active:translate-y-2 hover:scale-[1.015] shadow-[0_12px_32px_rgba(255,209,0,0.2)] hover:shadow-[0_20px_42px_rgba(255,209,0,0.3)] overflow-hidden md:px-12 md:py-8 lg:px-14 lg:py-8 max-w-[min(100vw-2rem,30rem)] inline-flex flex-col items-center justify-center focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#FFD100]"
               >
                 <div className="absolute top-0 -left-[100%] w-1/2 h-full bg-white/10 skew-x-[-25deg] group-hover:left-[150%] transition-all duration-1000 ease-in-out" />
-                <span className="relative z-10 block text-center text-2xl md:text-3xl lg:text-4xl italic uppercase leading-none">
+                <span className="relative z-10 block text-center text-[22px] md:text-[30px] lg:text-[34px] italic uppercase leading-none">
                   Cât valorează ce vinzi
                   <span className="quickexit-question-pulse inline-block">?</span>
                 </span>
@@ -174,8 +174,8 @@ export default async function Home() {
             </div>
           </div>
 
-          <div className="mt-2 md:mt-4">
-            <div className="mb-6 text-center md:mb-8">
+          <div className="mt-1 md:mt-2">
+            <div className="mb-4 text-center md:mb-5 lg:mb-6">
               <h2 className="text-lg font-black uppercase italic tracking-tight text-black md:text-2xl">
                 Alege ritmul de vânzare
               </h2>
