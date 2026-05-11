@@ -231,9 +231,6 @@ export default async function Home() {
                 </div>
               ))}
             </div>
-            <p className="mx-auto mt-5 max-w-2xl text-center text-[10px] font-bold uppercase tracking-widest leading-relaxed text-neutral-700 md:mt-6 md:text-[11px]">
-              Nu există câștigător automat. Plata și predarea se stabilesc direct între părți.
-            </p>
           </div>
         </div>
       </section>
@@ -407,20 +404,26 @@ export default async function Home() {
 
       <GlobalStats />
 
-      <section className="bg-white py-8 md:py-10">
+      <section className="bg-black pb-8 pt-2 md:pb-10 md:pt-3">
         <div className="mx-auto max-w-6xl px-4">
-          <div className="mx-auto max-w-4xl rounded-2xl border border-black/20 bg-neutral-50 px-4 py-4 text-left md:px-6 md:py-5">
-            <h3 className="text-[11px] font-black uppercase tracking-wide text-black md:text-xs">
+          <div className="mx-auto max-w-5xl rounded-2xl border border-[#FFD100]/35 bg-neutral-950 px-4 py-4 text-left shadow-[0_0_0_1px_rgba(255,209,0,0.08)] md:px-6 md:py-5">
+            <h3 className="text-[11px] font-black uppercase tracking-wide text-[#FFD100] md:text-xs">
               Tranzacții directe, cu atenție
             </h3>
-            <p className="mt-2 text-[10px] font-medium leading-relaxed text-neutral-800 md:text-[11px]">
+            <p className="mt-2 text-[10px] font-medium leading-relaxed text-neutral-200 md:text-[11px]">
               Quick Exit nu procesează plata dintre părți și nu ține fonduri în custodie. Verifică activul, actele și
               identitatea celeilalte părți înainte de plată sau predare.
             </p>
-            <ul className="mt-3 list-disc space-y-1 pl-4 text-[10px] font-medium leading-relaxed text-neutral-800 md:text-[11px]">
-              <li>Nu trimite bani în avans fără verificări.</li>
-              <li>Pentru sume mari, folosește contract și consultanță de specialitate.</li>
-              <li>Nu introduce datele cardului în linkuri primite de la alți utilizatori.</li>
+            <ul className="mt-3 grid gap-2 text-[10px] font-medium leading-relaxed text-neutral-300 md:grid-cols-3 md:gap-3 md:text-[11px]">
+              <li className="rounded-lg border border-white/10 bg-white/[0.02] px-3 py-2">
+                Nu trimite bani în avans fără verificări.
+              </li>
+              <li className="rounded-lg border border-white/10 bg-white/[0.02] px-3 py-2">
+                Pentru sume mari, folosește contract și consultanță de specialitate.
+              </li>
+              <li className="rounded-lg border border-white/10 bg-white/[0.02] px-3 py-2">
+                Nu introduce datele cardului în linkuri primite de la alți utilizatori.
+              </li>
             </ul>
           </div>
         </div>
