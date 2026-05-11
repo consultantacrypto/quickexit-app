@@ -177,15 +177,17 @@ export default async function Home() {
               <h2 className="text-lg font-black uppercase italic tracking-tight text-black md:text-2xl">
                 Alege ritmul de vânzare
               </h2>
-              <p className="mx-auto mt-3 max-w-2xl text-[11px] font-semibold uppercase leading-relaxed tracking-wide text-neutral-600 md:text-[11px]">
-                Publici anunțul în funcție de urgență: expunere extinsă, vânzare rapidă, urgență sau licitație
-                deschisă.
-              </p>
             </div>
 
             <div className="mx-auto grid max-w-6xl grid-cols-2 gap-3 md:grid-cols-4 md:gap-4 lg:gap-5">
               {(
                 [
+                  {
+                    label: "Licitație deschisă 30 zile",
+                    desc: "Pentru vânzări unde vrei să strângi mai multe oferte și să alegi manual varianta potrivită.",
+                    time: "30 zile",
+                    price: "111 RON",
+                  },
                   {
                     label: "Expunere maximă",
                     desc: "Pentru anunțuri care au nevoie de mai mult timp la vedere.",
@@ -203,12 +205,6 @@ export default async function Home() {
                     desc: "Pentru situații în care vrei răspuns rapid.",
                     time: "48 ore",
                     price: "48 RON",
-                  },
-                  {
-                    label: "Licitație deschisă 30 zile",
-                    desc: "Pentru vânzări unde vrei să strângi mai multe oferte și să alegi manual varianta potrivită.",
-                    time: "30 zile",
-                    price: "111 RON",
                   },
                 ] as const
               ).map((item) => (
