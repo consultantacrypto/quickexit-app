@@ -638,9 +638,6 @@ function DashboardContent() {
             <p className="text-lg font-black italic">{kycStatusLabel(userProfile?.kyc_status)}</p>
             <p className="text-sm text-neutral-700 mt-1">Verificarea identității ajută la protejarea cumpărătorilor și vânzătorilor.</p>
           </div>
-          <button onClick={() => router.push('/profil')} className="bg-white border-[3px] border-black px-4 py-3 rounded-xl font-black uppercase text-xs shadow-[3px_3px_0_0_rgba(0,0,0,1)] hover:bg-black hover:text-[#FFD100] transition-all inline-flex items-center justify-center gap-2">
-            <Settings size={16} /> Setări cont
-          </button>
         </div>
       </div>
 
