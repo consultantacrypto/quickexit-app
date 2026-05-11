@@ -69,7 +69,7 @@ Checklist manual recomandat la fiecare deploy.
 ## 9. Analytics / privacy
 - [ ] Evenimentele nu contin email/telefon/mesaj.
 - [ ] `click_evaluate` se trimite corect.
-- [ ] `submit_offer` se trimite corect.
+- [ ] `submit_demand_offer` (oferta catre cerere) se trimite corect.
 - [ ] Checkout start/success/cancel se trimit corect.
 
 ## 10. BMK Lab owner-only
