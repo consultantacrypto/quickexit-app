@@ -125,12 +125,12 @@ export default async function Home() {
       )}
       
       {/* HERO + pachete (primul ecran) */}
-      <section className="relative overflow-hidden bg-white pb-8 pt-12 text-center md:pb-10 md:pt-14 lg:pb-11 lg:pt-16">
+      <section className="relative overflow-hidden bg-white pb-8 pt-12 text-center md:pb-10 md:pt-14 lg:pb-11 lg:pt-14 xl:pt-12">
         <div className="mx-auto max-w-7xl px-4">
           <div className="mx-auto max-w-4xl">
             <h1 className="mb-5 font-black uppercase italic tracking-tighter text-black md:mb-6 lg:mb-7">
               <span className="block text-6xl leading-[0.9] sm:text-7xl md:text-8xl md:leading-[0.85] lg:text-9xl">
-                Vinde <span className="text-[#FFD100]">Acum</span>.
+                Vinde <span className="quickexit-acum-pulse text-[#FFD100]">Acum</span>.
               </span>
               <span className="mt-1 block text-6xl leading-[0.9] sm:mt-0 sm:text-7xl md:text-8xl md:leading-[0.85] lg:text-9xl">
                 Banii{" "}
@@ -141,24 +141,24 @@ export default async function Home() {
               </span>
             </h1>
 
-            <div className="mx-auto mb-5 max-w-3xl px-2 md:mb-6 lg:mb-7 lg:max-w-[54rem]">
-              <p className="text-[14px] font-bold leading-[1.6] md:text-[17px] md:leading-[1.62] lg:text-[20px] lg:leading-[1.65]">
-                <span className="bg-[#FFD100] px-3 py-1.5 text-black box-decoration-clone md:px-3.5 md:py-2">
+            <div className="mx-auto mb-5 max-w-[23rem] px-1.5 sm:max-w-3xl sm:px-2 md:mb-6 lg:mb-6 lg:max-w-[54rem]">
+              <p className="text-[13px] font-bold leading-[1.56] sm:text-[14px] sm:leading-[1.6] md:text-[17px] md:leading-[1.62] lg:text-[20px] lg:leading-[1.65]">
+                <span className="bg-[#FFD100] px-2.5 py-1.5 text-black box-decoration-clone sm:px-3 md:px-3.5 md:py-2">
                   Quick Exit conectează vânzători care vor să vândă rapid cu cumpărători care au buget și caută
                   oportunități sub prețul pieței.
                 </span>
               </p>
             </div>
 
-            <div className="mb-3 flex flex-col items-center md:mb-4 lg:mb-5">
+            <div className="mb-3 flex flex-col items-center md:mb-4 lg:mb-4">
               <TrackedLink
                 href="/evaluare"
                 eventName="click_evaluate"
                 eventParams={{ source: "home_hero" }}
-                className="group relative bg-black px-7 py-5 text-[#FFD100] rounded-[2.125rem] font-black uppercase tracking-widest transition-all border-b-8 border-yellow-700 active:border-b-0 active:translate-y-2 hover:scale-[1.015] shadow-[0_10px_28px_rgba(255,209,0,0.18)] hover:shadow-[0_18px_36px_rgba(255,209,0,0.28)] overflow-hidden md:px-10 md:py-6 lg:px-12 lg:py-7 max-w-[min(100vw-2rem,28rem)] inline-flex flex-col items-center justify-center focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#FFD100]"
+                className="group relative bg-black px-7 py-[18px] text-[#FFD100] rounded-[2.125rem] font-black uppercase tracking-widest transition-all border-b-8 border-yellow-700 active:border-b-0 active:translate-y-2 hover:scale-[1.015] shadow-[0_10px_28px_rgba(255,209,0,0.18)] hover:shadow-[0_18px_36px_rgba(255,209,0,0.28)] overflow-hidden md:px-10 md:py-[22px] lg:px-11 lg:py-6 max-w-[min(100vw-2rem,27rem)] inline-flex flex-col items-center justify-center focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#FFD100]"
               >
                 <div className="absolute top-0 -left-[100%] w-1/2 h-full bg-white/10 skew-x-[-25deg] group-hover:left-[150%] transition-all duration-1000 ease-in-out" />
-                <span className="relative z-10 block text-center text-[21px] md:text-[27px] lg:text-[31px] italic uppercase leading-none">
+                <span className="relative z-10 block text-center text-[21px] md:text-[26px] lg:text-[30px] italic uppercase leading-none">
                   Cât valorează ce vinzi
                   <span className="quickexit-question-pulse inline-block">?</span>
                 </span>
@@ -167,7 +167,7 @@ export default async function Home() {
                 href="/capital-disponibil"
                 eventName="click_capital_available"
                 eventParams={{ source: "home_hero" }}
-                className="mt-3 inline-block border-b-2 border-transparent text-[10px] font-black uppercase tracking-widest text-neutral-600 underline-offset-4 transition hover:border-black hover:text-black md:mt-3.5 md:text-[11px]"
+                className="mt-2.5 inline-block border-b-2 border-transparent text-[10px] font-black uppercase tracking-widest text-neutral-600 underline-offset-4 transition hover:border-black hover:text-black md:mt-3 md:text-[11px]"
               >
                 Vezi cereri de cumpărare
               </TrackedLink>
@@ -175,7 +175,7 @@ export default async function Home() {
           </div>
 
           <div className="mt-0.5 md:mt-1">
-            <div className="mb-3 text-center md:mb-4 lg:mb-5">
+            <div className="mb-2.5 text-center md:mb-3 lg:mb-4">
               <h2 className="text-lg font-black uppercase italic tracking-tight text-black md:text-2xl">
                 Alege ritmul de vânzare
               </h2>
@@ -212,7 +212,7 @@ export default async function Home() {
               ).map((item) => (
                 <div
                   key={item.label}
-                  className="rounded-2xl border-[3px] border-black bg-white p-3.5 shadow-[3px_3px_0_0_rgba(0,0,0,1)] transition hover:-translate-y-0.5 md:p-4 lg:p-4"
+                  className="rounded-2xl border-[3px] border-black bg-white p-3 shadow-[3px_3px_0_0_rgba(0,0,0,1)] transition hover:-translate-y-0.5 md:p-3.5 lg:p-4"
                 >
                   <p className="mb-1 text-[10px] font-black uppercase tracking-widest text-gray-500 md:text-[11px]">
                     {item.label}
@@ -447,6 +447,25 @@ export default async function Home() {
           animation: quickexit-hero-sweep 7.5s ease-in-out infinite;
         }
 
+        @keyframes quickexit-acum-pulse {
+          0%,
+          100% {
+            color: #ffd100;
+            text-shadow: 0 0 0 rgba(255, 209, 0, 0);
+            filter: brightness(1);
+          }
+          50% {
+            color: #ffd100;
+            text-shadow: 0 0 10px rgba(255, 209, 0, 0.26);
+            filter: brightness(1.05);
+          }
+        }
+
+        .quickexit-acum-pulse {
+          animation: quickexit-acum-pulse 6.4s ease-in-out infinite;
+          will-change: text-shadow, filter;
+        }
+
         @keyframes quickexit-question-pulse {
           0%,
           70%,
@@ -482,6 +501,11 @@ export default async function Home() {
             color: #ffd100;
             text-shadow: none;
             transform: none;
+          }
+          .quickexit-acum-pulse {
+            animation: none;
+            text-shadow: none;
+            filter: none;
           }
         }
       `}</style>
