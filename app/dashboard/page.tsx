@@ -604,13 +604,22 @@ function DashboardContent() {
           </div>
           <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
             {currentUserId === OWNER_USER_ID && (
-              <button
-                onClick={() => router.push('/hq-admin/bmk-lab')}
-                className="bg-[#FDFCF8] text-black px-4 py-3 rounded-lg font-black uppercase text-xs border-[3px] border-black shadow-[3px_3px_0_0_rgba(0,0,0,1)] hover:bg-black hover:text-[#FFD100] transition-all flex items-center justify-center gap-2"
-                title="Acces owner"
-              >
-                <Wallet size={14} /> BMK Lab
-              </button>
+              <>
+                <button
+                  onClick={() => router.push('/hq-admin')}
+                  className="bg-[#FDFCF8] text-black px-4 py-3 rounded-lg font-black uppercase text-xs border-[3px] border-black shadow-[3px_3px_0_0_rgba(0,0,0,1)] hover:bg-black hover:text-[#FFD100] transition-all flex items-center justify-center gap-2"
+                  title="Panou intern"
+                >
+                  <Settings size={14} /> HQ Admin
+                </button>
+                <button
+                  onClick={() => router.push('/hq-admin/bmk-lab')}
+                  className="bg-[#FDFCF8] text-black px-4 py-3 rounded-lg font-black uppercase text-xs border-[3px] border-black shadow-[3px_3px_0_0_rgba(0,0,0,1)] hover:bg-black hover:text-[#FFD100] transition-all flex items-center justify-center gap-2"
+                  title="Acces owner"
+                >
+                  <Wallet size={14} /> BMK Lab
+                </button>
+              </>
             )}
             <button onClick={() => router.push('/pune-anunt')} className="bg-[#FFD100] text-black px-4 py-3 rounded-lg font-black uppercase text-xs border-[3px] border-black shadow-[3px_3px_0_0_rgba(0,0,0,1)] hover:-translate-y-px hover:shadow-none transition-all flex items-center justify-center gap-2">
               <PlusCircle size={14} /> Publică anunț
