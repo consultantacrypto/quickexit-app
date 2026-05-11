@@ -169,10 +169,6 @@ export default async function Home() {
               >
                 Vezi cereri de cumpărare
               </TrackedLink>
-              <p className="mx-auto mt-5 max-w-xl text-[10px] font-semibold leading-relaxed text-neutral-600 md:text-[11px]">
-                Poți naviga fără cont. Pentru publicare, trimitere oferte și Camera de Negociere ai nevoie de un cont
-                simplu.
-              </p>
             </div>
           </div>
 
@@ -210,9 +206,7 @@ export default async function Home() {
                   },
                   {
                     label: "Licitație deschisă 30 zile",
-                    desc: "Pentru active unde vrei să strângi mai multe oferte și să alegi manual varianta potrivită.",
-                    detail:
-                      "Include afișare ca licitație, fereastră de ofertare 30 zile și semnale publice de interes: număr oferte, cea mai mare ofertă și timp rămas.",
+                    desc: "Pentru vânzări unde vrei să strângi mai multe oferte și să alegi manual varianta potrivită.",
                     time: "30 zile",
                     price: "111 RON",
                   },
@@ -234,32 +228,12 @@ export default async function Home() {
                   <p className="mt-2 block text-[10px] font-bold uppercase tracking-tighter text-neutral-500 opacity-90 md:text-[11px]">
                     {item.desc}
                   </p>
-                  {"detail" in item && item.detail ? (
-                    <p className="mt-1.5 block text-[9px] font-semibold normal-case leading-snug text-neutral-600 md:text-[10px]">
-                      {item.detail}
-                    </p>
-                  ) : null}
                 </div>
               ))}
             </div>
             <p className="mx-auto mt-5 max-w-2xl text-center text-[10px] font-bold uppercase tracking-widest leading-relaxed text-neutral-700 md:mt-6 md:text-[11px]">
               Nu există câștigător automat. Plata și predarea se stabilesc direct între părți.
             </p>
-
-            <div className="mx-auto mt-8 max-w-3xl rounded-2xl border-2 border-black bg-neutral-50 px-4 py-4 text-left shadow-[3px_3px_0_0_rgba(0,0,0,1)] md:px-6 md:py-5">
-              <h3 className="text-[11px] font-black uppercase tracking-wide text-black md:text-xs">
-                Tranzacții directe, cu atenție
-              </h3>
-              <p className="mt-2 text-[10px] font-medium leading-relaxed text-neutral-800 md:text-[11px]">
-                Quick Exit nu procesează plata dintre părți și nu ține fonduri în custodie. Verifică activul, actele și
-                identitatea celeilalte părți înainte de plată sau predare.
-              </p>
-              <ul className="mt-3 list-disc space-y-1 pl-4 text-[10px] font-medium leading-relaxed text-neutral-800 md:text-[11px]">
-                <li>Nu trimite bani în avans fără verificări.</li>
-                <li>Pentru sume mari, folosește contract și consultanță de specialitate.</li>
-                <li>Nu introduce datele cardului în linkuri primite de la alți utilizatori.</li>
-              </ul>
-            </div>
           </div>
         </div>
       </section>
@@ -303,6 +277,10 @@ export default async function Home() {
                   </Link>
                 </div>
             </div>
+            <p className="-mt-10 mb-10 max-w-2xl text-[10px] font-semibold leading-relaxed text-neutral-600 md:-mt-12 md:mb-12 md:text-[11px]">
+              Poți naviga fără cont. Pentru publicare, trimitere oferte și Camera de Negociere ai nevoie de un cont
+              simplu.
+            </p>
     
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 lg:gap-12">
                 {standardListings && standardListings.length > 0 ? (
@@ -428,6 +406,25 @@ export default async function Home() {
       </section>
 
       <GlobalStats />
+
+      <section className="bg-white py-8 md:py-10">
+        <div className="mx-auto max-w-6xl px-4">
+          <div className="mx-auto max-w-4xl rounded-2xl border border-black/20 bg-neutral-50 px-4 py-4 text-left md:px-6 md:py-5">
+            <h3 className="text-[11px] font-black uppercase tracking-wide text-black md:text-xs">
+              Tranzacții directe, cu atenție
+            </h3>
+            <p className="mt-2 text-[10px] font-medium leading-relaxed text-neutral-800 md:text-[11px]">
+              Quick Exit nu procesează plata dintre părți și nu ține fonduri în custodie. Verifică activul, actele și
+              identitatea celeilalte părți înainte de plată sau predare.
+            </p>
+            <ul className="mt-3 list-disc space-y-1 pl-4 text-[10px] font-medium leading-relaxed text-neutral-800 md:text-[11px]">
+              <li>Nu trimite bani în avans fără verificări.</li>
+              <li>Pentru sume mari, folosește contract și consultanță de specialitate.</li>
+              <li>Nu introduce datele cardului în linkuri primite de la alți utilizatori.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
 
     </div>
   );
