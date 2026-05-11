@@ -125,7 +125,7 @@ export default async function Home() {
       )}
       
       {/* HERO + pachete (primul ecran) */}
-      <section className="relative overflow-hidden bg-white pb-8 pt-12 text-center md:pb-10 md:pt-14 lg:pb-11 lg:pt-14 xl:pt-12">
+      <section className="relative overflow-hidden bg-white pb-8 pt-12 text-center md:pb-10 md:pt-14 lg:pb-11 lg:pt-12 xl:pt-10 2xl:pt-9">
         <div className="mx-auto max-w-7xl px-4">
           <div className="mx-auto max-w-4xl">
             <h1 className="mb-5 font-black uppercase italic tracking-tighter text-black md:mb-6 lg:mb-7">
@@ -456,13 +456,13 @@ export default async function Home() {
           }
           50% {
             color: #ffd100;
-            text-shadow: 0 0 10px rgba(255, 209, 0, 0.26);
-            filter: brightness(1.05);
+            text-shadow: 0 0 14px rgba(255, 209, 0, 0.34);
+            filter: brightness(1.08) saturate(1.04);
           }
         }
 
         .quickexit-acum-pulse {
-          animation: quickexit-acum-pulse 6.4s ease-in-out infinite;
+          animation: quickexit-acum-pulse 6s ease-in-out infinite;
           will-change: text-shadow, filter;
         }
 
