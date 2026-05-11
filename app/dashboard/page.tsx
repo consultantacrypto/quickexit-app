@@ -11,6 +11,7 @@ import { Wallet, Inbox, PlusCircle, Search, Settings, Power, Play, PiggyBank } f
 import KycBanner from "../components/KycBanner"; 
 
 type DashboardTab = "portofoliu" | "cumparari" | "oferte";
+const OWNER_USER_ID = "83da9725-68f3-4ded-9605-714b9094bf0e";
 
 function DashboardContent() {
   const searchParams = useSearchParams();
@@ -602,6 +603,15 @@ function DashboardContent() {
             </p>
           </div>
           <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
+            {currentUserId === OWNER_USER_ID && (
+              <button
+                onClick={() => router.push('/hq-admin/bmk-lab')}
+                className="bg-[#FDFCF8] text-black px-4 py-3 rounded-lg font-black uppercase text-xs border-[3px] border-black shadow-[3px_3px_0_0_rgba(0,0,0,1)] hover:bg-black hover:text-[#FFD100] transition-all flex items-center justify-center gap-2"
+                title="Acces owner"
+              >
+                <Wallet size={14} /> BMK Lab
+              </button>
+            )}
             <button onClick={() => router.push('/pune-anunt')} className="bg-[#FFD100] text-black px-4 py-3 rounded-lg font-black uppercase text-xs border-[3px] border-black shadow-[3px_3px_0_0_rgba(0,0,0,1)] hover:-translate-y-px hover:shadow-none transition-all flex items-center justify-center gap-2">
               <PlusCircle size={14} /> Publică anunț
             </button>
