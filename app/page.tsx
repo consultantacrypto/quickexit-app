@@ -133,7 +133,11 @@ export default async function Home() {
                 Vinde <span className="text-[#FFD100]">Acum</span>.
               </span>
               <span className="mt-1 block text-6xl leading-[0.9] sm:mt-0 sm:text-7xl md:text-8xl md:leading-[0.85] lg:text-9xl">
-                Banii <span className="text-gray-200">Azi</span>.
+                Banii{" "}
+                <span className="quickexit-hero-sweep inline-block bg-[length:240%_100%] bg-clip-text text-transparent [background-image:linear-gradient(110deg,#E5E7EB_0%,#E5E7EB_42%,#FFF3A3_47%,#FFD100_50%,#FFF3A3_53%,#E5E7EB_58%,#E5E7EB_100%)]">
+                  Azi
+                </span>
+                .
               </span>
             </h1>
 
@@ -421,6 +425,34 @@ export default async function Home() {
           </div>
         </div>
       </section>
+
+      <style>{`
+        @keyframes quickexit-hero-sweep {
+          0% {
+            background-position: 160% 50%;
+          }
+          45% {
+            background-position: 160% 50%;
+          }
+          70% {
+            background-position: -60% 50%;
+          }
+          100% {
+            background-position: -60% 50%;
+          }
+        }
+
+        .quickexit-hero-sweep {
+          animation: quickexit-hero-sweep 7.5s ease-in-out infinite;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .quickexit-hero-sweep {
+            animation: none;
+            background-position: 50% 50%;
+          }
+        }
+      `}</style>
 
     </div>
   );
