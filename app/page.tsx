@@ -144,9 +144,6 @@ export default async function Home() {
                   oportunități sub prețul pieței.
                 </span>
               </p>
-              <p className="mx-auto mt-4 max-w-xl text-xs font-semibold leading-relaxed text-neutral-800 md:text-sm">
-                Plata și finalizarea tranzacției se fac direct între cumpărător și vânzător.
-              </p>
             </div>
 
             <div className="mb-6 flex flex-col items-center md:mb-8">
@@ -404,15 +401,15 @@ export default async function Home() {
         <div className="mx-auto max-w-6xl px-4">
           <div className="mx-auto max-w-5xl rounded-2xl border border-[#FFD100]/35 bg-neutral-950 px-4 py-4 text-left shadow-[0_0_0_1px_rgba(255,209,0,0.08)] md:px-6 md:py-5">
             <h3 className="text-[11px] font-black uppercase tracking-wide text-[#FFD100] md:text-xs">
-              Tranzacții directe, cu atenție
+              Recomandări pentru tranzacții sigure
             </h3>
             <p className="mt-2 text-[10px] font-medium leading-relaxed text-neutral-200 md:text-[11px]">
-              Quick Exit nu procesează plata dintre părți și nu ține fonduri în custodie. Verifică activul, actele și
-              identitatea celeilalte părți înainte de plată sau predare.
+              Quick Exit nu procesează plata și nu ține fonduri în custodie. Înainte de plată sau predare, verifică
+              activul, actele și identitatea celeilalte părți.
             </p>
             <ul className="mt-3 grid gap-2 text-[10px] font-medium leading-relaxed text-neutral-300 md:grid-cols-3 md:gap-3 md:text-[11px]">
               <li className="rounded-lg border border-white/10 bg-white/[0.02] px-3 py-2">
-                Nu trimite bani în avans fără verificări.
+                Nu plăti avans fără verificări.
               </li>
               <li className="rounded-lg border border-white/10 bg-white/[0.02] px-3 py-2">
                 Pentru sume mari, folosește contract și consultanță de specialitate.
