@@ -159,7 +159,8 @@ export default async function Home() {
               >
                 <div className="absolute top-0 -left-[100%] w-1/2 h-full bg-white/10 skew-x-[-25deg] group-hover:left-[150%] transition-all duration-1000 ease-in-out" />
                 <span className="relative z-10 block text-center text-2xl md:text-3xl lg:text-4xl italic uppercase leading-none">
-                  Cât valorează ce vinzi?
+                  Cât valorează ce vinzi
+                  <span className="quickexit-question-pulse inline-block">?</span>
                 </span>
               </TrackedLink>
               <TrackedLink
@@ -446,10 +447,41 @@ export default async function Home() {
           animation: quickexit-hero-sweep 7.5s ease-in-out infinite;
         }
 
+        @keyframes quickexit-question-pulse {
+          0%,
+          70%,
+          100% {
+            color: #ffd100;
+            text-shadow: 0 0 0 rgba(255, 209, 0, 0);
+            transform: translateY(0);
+          }
+          78% {
+            color: #f3f4f6;
+            text-shadow: 0 0 8px rgba(255, 243, 163, 0.28);
+            transform: translateY(-0.5px);
+          }
+          85% {
+            color: #ffd100;
+            text-shadow: 0 0 4px rgba(255, 209, 0, 0.2);
+            transform: translateY(0);
+          }
+        }
+
+        .quickexit-question-pulse {
+          animation: quickexit-question-pulse 5.2s ease-in-out infinite;
+          will-change: color, text-shadow, transform;
+        }
+
         @media (prefers-reduced-motion: reduce) {
           .quickexit-hero-sweep {
             animation: none;
             background-position: 50% 50%;
+          }
+          .quickexit-question-pulse {
+            animation: none;
+            color: #ffd100;
+            text-shadow: none;
+            transform: none;
           }
         }
       `}</style>
