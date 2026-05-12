@@ -1,32 +1,31 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { ShieldAlert, ShieldCheck, Loader2, ArrowRight } from 'lucide-react';
+import { useState } from "react";
+import { Shield, Loader2, ArrowRight } from "lucide-react";
 
 interface KycBannerProps {
   userId: string;
-  kycStatus: 'unverified' | 'pending' | 'verified';
+  /** Status din profiles (Stripe Identity webhook); ascundem banner-ul doar la verified */
+  kycStatus: string;
 }
 
 export default function KycBanner({ userId, kycStatus }: KycBannerProps) {
   const [isLoading, setIsLoading] = useState(false);
 
-  // Dacă e deja verificat, ascundem componenta complet. Nu-l mai deranjăm.
-  if (kycStatus === 'verified') return null;
+  if (kycStatus === "verified") return null;
 
   const handleStartKyc = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch('/api/create-verification-session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("/api/create-verification-session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId }),
       });
-      
+
       const data = await res.json();
-      
+
       if (data.url) {
-        // Îl trimitem la Stripe să facă pozele
         window.location.href = data.url;
       } else {
         console.error("Eroare la generarea sesiunii KYC:", data.error);
@@ -39,38 +38,43 @@ export default function KycBanner({ userId, kycStatus }: KycBannerProps) {
   };
 
   return (
-    <div className="bg-[#0a0f1e] border border-red-500/30 rounded-2xl p-6 mb-8 shadow-[0_0_30px_rgba(239,68,68,0.1)] relative overflow-hidden">
-      {/* Decor */}
-      <div className="absolute top-0 right-0 w-64 h-64 bg-red-500/5 blur-[80px] pointer-events-none"></div>
+    <div className="relative mb-6 overflow-hidden rounded-2xl border-[3px] border-black bg-neutral-950 p-5 shadow-[6px_6px_0_0_#FFD100] md:mb-8 md:p-6">
+      <div className="pointer-events-none absolute -right-8 -top-8 h-32 w-32 rounded-full bg-[#FFD100]/10 blur-2xl" />
 
-      <div className="flex flex-col md:flex-row items-center justify-between gap-6 relative z-10">
-        
-        <div className="flex items-start gap-4">
-          <div className="w-12 h-12 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center shrink-0">
-            <ShieldAlert className="text-red-400" size={24} />
+      <div className="relative z-10 flex flex-col items-stretch gap-5 md:flex-row md:items-center md:justify-between md:gap-6">
+        <div className="flex min-w-0 items-start gap-3 md:gap-4">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border-2 border-[#FFD100] bg-[#FFD100]/15">
+            <Shield className="text-[#FFD100]" size={22} aria-hidden />
           </div>
-          <div>
-            <h3 className="text-xl font-bold text-white mb-1">
-              Verificarea Identității (KYC) Necesară
+          <div className="min-w-0">
+            <h3 className="text-base font-black uppercase tracking-tight text-white md:text-lg">
+              Verificare cont recomandată
             </h3>
-            <p className="text-sm text-gray-400">
-              Pentru a menține standardul de securitate QuickExit, trebuie să îți verificăm identitatea înainte ca anunțul tău să devină public pentru investitori.
+            <p className="mt-2 text-sm font-medium leading-relaxed text-neutral-300">
+              Ai deja activitate plătită pe Quick Exit. Pentru a continua cu încredere și pentru a crește credibilitatea
+              în fața cumpărătorilor, finalizează verificarea contului.
             </p>
           </div>
         </div>
 
-        <button 
+        <button
+          type="button"
           onClick={handleStartKyc}
           disabled={isLoading}
-          className="w-full md:w-auto whitespace-nowrap bg-red-600 hover:bg-red-500 text-white px-8 py-3 rounded-xl font-bold transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+          className="flex w-full shrink-0 items-center justify-center gap-2 rounded-xl border-2 border-black bg-[#FFD100] px-6 py-3.5 text-xs font-black uppercase tracking-widest text-black shadow-[4px_4px_0_0_rgba(0,0,0,1)] transition hover:brightness-105 disabled:opacity-50 md:w-auto md:min-w-[12rem]"
         >
           {isLoading ? (
-            <><Loader2 className="animate-spin" size={20} /> Se pregătește portalul...</>
+            <>
+              <Loader2 className="animate-spin" size={18} aria-hidden />
+              Se pregătește...
+            </>
           ) : (
-            <>Începe Verificarea <ArrowRight size={20} /></>
+            <>
+              Finalizează verificarea
+              <ArrowRight size={18} aria-hidden />
+            </>
           )}
         </button>
-
       </div>
     </div>
   );

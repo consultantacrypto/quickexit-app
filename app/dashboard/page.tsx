@@ -585,9 +585,17 @@ function DashboardContent() {
     }
   };
 
-  // Logica de afișare a banner-ului KYC
+  // KYC soft prompt: după activitate plătită (listing sau cerere activă), fără hard gate
   const hasItemsInPortfolio = myListings.length > 0 || myDemands.length > 0;
-  const needsKyc = userProfile && userProfile.kyc_status !== 'verified' && hasItemsInPortfolio;
+  const hasPaidActivity =
+    myListings.some((l) => l.status === "active") || myDemands.some((d) => d.status === "active");
+  const showKycRecommendationBanner =
+    Boolean(userProfile) && userProfile.kyc_status !== "verified" && hasPaidActivity;
+  const showKycSoftHint =
+    Boolean(userProfile) &&
+    userProfile.kyc_status !== "verified" &&
+    hasItemsInPortfolio &&
+    !hasPaidActivity;
 
   return (
     <div className="max-w-7xl mx-auto min-h-screen pb-20 overflow-x-hidden">
@@ -648,15 +656,21 @@ function DashboardContent() {
             <p className="text-xs font-black uppercase tracking-widest text-neutral-600 mb-1">Status cont</p>
             <p className="text-lg font-black italic">{kycStatusLabel(userProfile?.kyc_status)}</p>
             <p className="text-sm text-neutral-700 mt-1">Verificarea identității ajută la protejarea cumpărătorilor și vânzătorilor.</p>
+            {showKycSoftHint ? (
+              <p className="mt-3 text-xs font-semibold leading-relaxed text-neutral-600">
+                După ce finalizezi plata și ai prima activitate activă pe platformă, îți recomandăm verificarea contului
+                pentru mai multă încredere — fără obligație înainte de plată.
+              </p>
+            ) : null}
           </div>
         </div>
       </div>
 
-      {/* Randăm Banner-ul KYC DOAR dacă are elemente în portofoliu și nu e verificat */}
-      {!isLoading && needsKyc && (
-        <KycBanner 
-          userId={currentUserId} 
-          kycStatus={userProfile.kyc_status || 'unverified'} 
+      {/* Banner KYC: după plată reușită (listing/cerere activă), mesaj aliniat cu politica reală — fără blocare */}
+      {!isLoading && showKycRecommendationBanner && (
+        <KycBanner
+          userId={currentUserId}
+          kycStatus={userProfile.kyc_status || "unverified"}
         />
       )}
 
