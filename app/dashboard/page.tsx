@@ -37,6 +37,7 @@ function DashboardContent() {
   // Stare pentru profilul utilizatorului (pentru KYC)
   const [userProfile, setUserProfile] = useState<any>(null);
   const [currentUserId, setCurrentUserId] = useState<string>("");
+  const [sessionEmail, setSessionEmail] = useState<string | null>(null);
 
   const [myListings, setMyListings] = useState<any[]>([]);
   const [myOffers, setMyOffers] = useState<any[]>([]);
@@ -163,10 +164,14 @@ function DashboardContent() {
     setIsLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      
+      if (!user) {
+        setSessionEmail(null);
+        return;
+      }
+
       // Salvăm ID-ul și tragem profilul pentru KYC
       setCurrentUserId(user.id);
+      setSessionEmail(typeof user.email === "string" && user.email.trim() ? user.email.trim() : null);
       const { data: profile } = await supabase
         .from('profiles') 
         .select('*')
@@ -601,6 +606,12 @@ function DashboardContent() {
             <p className="text-sm md:text-base text-neutral-200 mt-3">
               Urmărește anunțurile, cererile, ofertele și verificarea contului tău.
             </p>
+            {sessionEmail ? (
+              <p className="mt-3 text-xs font-semibold text-neutral-400">
+                Ești logat în contul:{" "}
+                <span className="break-all text-[#FFD100]">{sessionEmail}</span>
+              </p>
+            ) : null}
           </div>
           <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
             {currentUserId === OWNER_USER_ID && (

@@ -93,7 +93,8 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
             Bine ai <span className="text-[#FFD100] drop-shadow-[3px_3px_0_rgba(0,0,0,1)]">venit</span>
           </h2>
           <p className="text-[11px] md:text-[12px] font-bold text-gray-500 uppercase tracking-widest px-4 leading-relaxed">
-            Intră în cont pentru a vedea ofertele cash sau pentru a vinde rapid.
+            Folosește mai jos adresa de e-mail (primești un link de acces) sau butonul Google. Același cont îl folosești
+            pentru anunțuri, oferte și Camera de negociere.
           </p>
         </div>
 

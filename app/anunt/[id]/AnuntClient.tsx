@@ -218,6 +218,7 @@ export default function AnuntClient() {
   const [isFavorite, setIsFavorite] = useState(false);
   const [activeModal, setActiveModal] = useState<string | null>(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [imageLightboxOpen, setImageLightboxOpen] = useState(false);
 
   const [adData, setAdData] = useState<any>(null);
   const [similarAds, setSimilarAds] = useState<any[]>([]);
@@ -243,6 +244,42 @@ export default function AnuntClient() {
   const [isAccepting, setIsAccepting] = useState(false);
   const [acceptSuccess, setAcceptSuccess] = useState(false);
   const [acceptActionMessage, setAcceptActionMessage] = useState<{ type: "error"; text: string } | null>(null);
+
+  useEffect(() => {
+    if (!imageLightboxOpen) return;
+    if (!adData) {
+      setImageLightboxOpen(false);
+      return;
+    }
+    const urls =
+      Array.isArray(adData.images) && adData.images.length > 0
+        ? adData.images
+        : [
+            "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1200&q=80",
+          ];
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setImageLightboxOpen(false);
+        return;
+      }
+      if (urls.length <= 1) return;
+      if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        setCurrentImageIndex((i) => (i - 1 + urls.length) % urls.length);
+      }
+      if (e.key === "ArrowRight") {
+        e.preventDefault();
+        setCurrentImageIndex((i) => (i + 1) % urls.length);
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [imageLightboxOpen, adData]);
 
   useEffect(() => {
     async function fetchAd() {
@@ -610,7 +647,7 @@ export default function AnuntClient() {
             className="group inline-flex items-center gap-2 rounded-xl border-[3px] border-black bg-white px-4 py-2 shadow-[4px_4px_0_0_#000] transition hover:-translate-x-px hover:border-[#FFD100]"
           >
             <span className="text-[10px] font-black uppercase tracking-[0.2em] text-black md:text-[11px]">
-              ← Explorează active
+              ← Acasă
             </span>
           </Link>
           <button
@@ -627,7 +664,12 @@ export default function AnuntClient() {
         <div className="mb-14 grid grid-cols-1 gap-10 lg:grid-cols-12 lg:gap-12">
           <div className="space-y-8 lg:col-span-8">
             <div className="space-y-4">
-              <div className="group relative h-[300px] w-full cursor-pointer overflow-hidden rounded-[2rem] border-[3px] border-black bg-neutral-100 shadow-[10px_10px_0_0_#FFD100] md:h-[400px] lg:h-[450px]">
+              <button
+                type="button"
+                onClick={() => setImageLightboxOpen(true)}
+                className="group relative h-[300px] w-full cursor-pointer overflow-hidden rounded-[2rem] border-[3px] border-black bg-neutral-100 text-left shadow-[10px_10px_0_0_#FFD100] transition hover:border-[#FFD100] md:h-[400px] lg:h-[450px]"
+                aria-label="Deschide imaginea mărită"
+              >
                 <Image
                   src={displayImages[currentImageIndex]}
                   alt={adData.title}
@@ -635,10 +677,13 @@ export default function AnuntClient() {
                   className="object-cover transition-transform duration-500 group-hover:scale-[1.02]"
                   priority
                 />
-                <div className="absolute left-4 top-4 rounded-lg border-2 border-black bg-black px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-[#FFD100]">
+                <div className="pointer-events-none absolute left-4 top-4 rounded-lg border-2 border-black bg-black px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-[#FFD100]">
                   {strategyBadgeRo(adData.sale_strategy)}
                 </div>
-              </div>
+                <div className="pointer-events-none absolute bottom-3 left-1/2 max-w-[90%] -translate-x-1/2 rounded-lg bg-black/65 px-3 py-1.5 text-center text-[9px] font-bold uppercase tracking-wide text-white">
+                  Apasă pentru a mări
+                </div>
+              </button>
 
               {displayImages.length > 1 && (
                 <div className="grid grid-cols-4 gap-3 md:gap-4">
@@ -1308,6 +1353,73 @@ export default function AnuntClient() {
           </div>
         )}
       </div>
+
+      {imageLightboxOpen ? (
+        <div
+          className="fixed inset-0 z-[200] flex items-center justify-center bg-black/92 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Imagine mărită"
+          onClick={() => setImageLightboxOpen(false)}
+        >
+          <button
+            type="button"
+            className="absolute left-3 top-3 z-[210] flex h-11 w-11 items-center justify-center rounded-full border-2 border-white bg-black text-xl font-black text-white transition hover:bg-[#FFD100] hover:text-black"
+            onClick={(e) => {
+              e.stopPropagation();
+              setImageLightboxOpen(false);
+            }}
+            aria-label="Închide"
+          >
+            ✕
+          </button>
+
+          {displayImages.length > 1 ? (
+            <>
+              <button
+                type="button"
+                className="absolute left-1 top-1/2 z-[210] -translate-y-1/2 rounded-full border-2 border-white bg-black/85 px-3 py-2 text-sm font-black text-white transition hover:bg-[#FFD100] hover:text-black md:left-4"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setCurrentImageIndex((i) => (i - 1 + displayImages.length) % displayImages.length);
+                }}
+                aria-label="Imaginea anterioară"
+              >
+                ←
+              </button>
+              <button
+                type="button"
+                className="absolute right-1 top-1/2 z-[210] -translate-y-1/2 rounded-full border-2 border-white bg-black/85 px-3 py-2 text-sm font-black text-white transition hover:bg-[#FFD100] hover:text-black md:right-4"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setCurrentImageIndex((i) => (i + 1) % displayImages.length);
+                }}
+                aria-label="Imaginea următoare"
+              >
+                →
+              </button>
+            </>
+          ) : null}
+
+          <div
+            className="relative h-[min(85vh,920px)] w-full max-w-6xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Image
+              src={displayImages[currentImageIndex]}
+              alt={adData.title || "Imagine anunț"}
+              fill
+              className="object-contain"
+              sizes="100vw"
+              priority
+            />
+          </div>
+
+          <p className="pointer-events-none absolute bottom-3 left-0 right-0 px-4 text-center text-[10px] font-semibold uppercase tracking-wide text-white/75">
+            Apasă în afara imaginii sau tasta Esc pentru a închide
+          </p>
+        </div>
+      ) : null}
     </div>
   );
 }

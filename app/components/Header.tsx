@@ -59,7 +59,13 @@ export default function Header() {
 
           {/* DESKTOP NAV */}
           <div className="hidden lg:flex items-center gap-4 xl:gap-7">
-            
+            <Link
+              href="/"
+              className="rounded-xl border-2 border-black bg-white px-3 py-2 text-[10px] font-black uppercase tracking-widest text-black shadow-[3px_3px_0_0_rgba(0,0,0,1)] transition hover:-translate-y-px hover:border-[#FFD100] xl:px-4 xl:py-2.5"
+            >
+              Acasă
+            </Link>
+
             <Link href="/cum-functioneaza" className="text-[10px] font-black uppercase tracking-widest text-gray-500 hover:text-black transition-colors italic">
               Cum Funcționează
             </Link>
@@ -76,24 +82,39 @@ export default function Header() {
 
             {/* LOGICĂ DINAMICĂ CONT/DASHBOARD (DESKTOP) */}
             {user ? (
-              <div className="flex items-center gap-4 mx-2 bg-gray-50 px-4 py-2 rounded-xl border-2 border-gray-100 shadow-[2px_2px_0_0_rgba(0,0,0,0.1)]">
-                <Link href="/dashboard" className="text-[10px] font-black uppercase tracking-widest text-black hover:text-[#FFD100] transition-colors italic flex items-center gap-1">
-                  <span className="text-sm">⚡</span> Dashboard
-                </Link>
-                <div className="h-4 w-[2px] bg-gray-200"></div>
-                <button 
+              <div className="flex max-w-[min(100%,22rem)] flex-col gap-1.5 rounded-xl border-2 border-gray-100 bg-gray-50 px-4 py-2 shadow-[2px_2px_0_0_rgba(0,0,0,0.1)] sm:max-w-none sm:flex-row sm:items-center sm:gap-4">
+                <div className="flex min-w-0 flex-1 flex-col gap-0.5 sm:flex-row sm:items-center sm:gap-3">
+                  <Link href="/dashboard" className="flex shrink-0 items-center gap-1 text-[10px] font-black uppercase tracking-widest text-black italic transition-colors hover:text-[#FFD100]">
+                    <span className="text-sm" aria-hidden>
+                      ⚡
+                    </span>
+                    Contul meu
+                  </Link>
+                  {user.email ? (
+                    <span
+                      className="truncate text-[9px] font-semibold normal-case tracking-normal text-neutral-600"
+                      title={user.email}
+                    >
+                      {user.email}
+                    </span>
+                  ) : null}
+                </div>
+                <div className="hidden h-4 w-[2px] bg-gray-200 sm:block" aria-hidden />
+                <button
+                  type="button"
                   onClick={handleLogout}
-                  className="text-[9px] font-black uppercase tracking-widest text-gray-400 hover:text-red-500 transition-colors italic"
+                  className="shrink-0 text-left text-[9px] font-black uppercase tracking-widest text-gray-500 italic transition-colors hover:text-red-600 sm:text-right"
                 >
-                  Ieși
+                  Ieși din cont
                 </button>
               </div>
             ) : (
-              <button 
+              <button
+                type="button"
                 onClick={() => setIsAuthOpen(true)}
-                className="text-[10px] font-black uppercase tracking-widest text-black hover:text-[#FFD100] transition-colors italic mx-2"
+                className="mx-2 rounded-xl border-2 border-black bg-[#FFD100] px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-black shadow-[3px_3px_0_0_rgba(0,0,0,1)] transition hover:-translate-y-px hover:brightness-105"
               >
-                🔒 Contul Meu
+                Intră în cont
               </button>
             )}
 
@@ -137,26 +158,53 @@ export default function Header() {
           </div>
 
           <div className="flex flex-col items-center justify-center flex-grow gap-6 px-6 overflow-y-auto py-8">
-            
+            <Link
+              href="/"
+              onClick={() => setIsOpen(false)}
+              className="w-full rounded-[2rem] border-4 border-black bg-white py-4 text-center text-lg font-black uppercase tracking-widest italic shadow-[6px_6px_0_0_rgba(0,0,0,1)]"
+            >
+              Acasă
+            </Link>
+
             {/* LOGICĂ DINAMICĂ CONT/DASHBOARD (MOBIL) */}
             {user ? (
-              <div className="flex flex-col items-center gap-4 bg-gray-50 w-full p-4 rounded-[2rem] border-2 border-gray-100">
-                <Link href="/dashboard" onClick={() => setIsOpen(false)} className="text-2xl font-black uppercase tracking-widest italic text-black flex items-center gap-2">
-                  <span className="text-2xl">⚡</span> Dashboard
+              <div className="flex w-full flex-col items-center gap-3 rounded-[2rem] border-2 border-gray-100 bg-gray-50 p-5">
+                <Link
+                  href="/dashboard"
+                  onClick={() => setIsOpen(false)}
+                  className="flex items-center gap-2 text-xl font-black uppercase tracking-widest italic text-black"
+                >
+                  <span className="text-2xl" aria-hidden>
+                    ⚡
+                  </span>
+                  Contul meu
                 </Link>
-                <button 
-                  onClick={() => { handleLogout(); setIsOpen(false); }}
-                  className="text-sm font-black uppercase tracking-widest text-red-500 hover:text-red-700 transition-colors italic mt-2"
+                {user.email ? (
+                  <p className="max-w-full truncate px-2 text-center text-xs font-semibold normal-case text-neutral-600" title={user.email}>
+                    {user.email}
+                  </p>
+                ) : null}
+                <button
+                  type="button"
+                  onClick={() => {
+                    void handleLogout();
+                    setIsOpen(false);
+                  }}
+                  className="mt-1 text-sm font-black uppercase tracking-widest text-red-600 transition-colors hover:text-red-800 italic"
                 >
                   Ieși din cont
                 </button>
               </div>
             ) : (
-              <button 
-                onClick={() => { setIsOpen(false); setIsAuthOpen(true); }}
-                className="text-2xl font-black uppercase tracking-widest italic text-black underline decoration-[#FFD100] decoration-4 underline-offset-4"
+              <button
+                type="button"
+                onClick={() => {
+                  setIsOpen(false);
+                  setIsAuthOpen(true);
+                }}
+                className="w-full rounded-[2rem] border-4 border-black bg-[#FFD100] py-5 text-lg font-black uppercase tracking-widest italic shadow-[6px_6px_0_0_rgba(0,0,0,1)]"
               >
-                🔒 Contul Meu
+                Intră în cont
               </button>
             )}
 
