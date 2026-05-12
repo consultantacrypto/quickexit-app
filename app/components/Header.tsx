@@ -65,14 +65,16 @@ export default function Header() {
             </Link>
 
             <Link
-              href="/categorii/auto"
-              className="text-[10px] font-black uppercase tracking-widest text-black italic transition-colors hover:text-[#FFD100]"
+              href="/capital-disponibil"
+              className="group flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-black italic transition-colors hover:text-[#FFD100]"
             >
-              Anunțuri auto
-            </Link>
-
-            <Link href="/capital-disponibil" className="text-[10px] font-black uppercase tracking-widest text-black italic transition-colors hover:text-[#FFD100]">
-              Capital disponibil
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#FFD100] opacity-75"></span>
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-yellow-500"></span>
+              </span>
+              <span className="border-b-[3px] border-transparent pb-0.5 transition-colors group-hover:border-[#FFD100]">
+                Oferte Cumpărători
+              </span>
             </Link>
 
             <Link href="/cum-functioneaza" className="text-[10px] font-black uppercase tracking-widest text-gray-500 hover:text-black transition-colors italic">
@@ -117,19 +119,12 @@ export default function Header() {
               </button>
             )}
 
-            <Link
-              href="/evaluare"
-              className="text-[10px] font-black uppercase tracking-widest text-neutral-600 underline decoration-[#FFD100] decoration-2 underline-offset-4 transition hover:text-black"
-            >
-              Evaluare rapidă
-            </Link>
-
             <Link href="/posteaza-cerere">
               <button
                 type="button"
                 className="rounded-2xl border-2 border-black bg-[#FFD100] px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-black italic shadow-[3px_3px_0_0_rgba(0,0,0,1)] transition hover:bg-black hover:text-[#FFD100] xl:px-5 xl:py-3"
               >
-                Publică cerere
+                Cumpăr cu Cash
               </button>
             </Link>
 
@@ -137,7 +132,7 @@ export default function Header() {
               href="/pune-anunt"
               className="rounded-2xl border-2 border-black bg-white px-5 py-2.5 text-[10px] font-black uppercase tracking-widest text-black italic shadow-[3px_3px_0_0_rgba(0,0,0,1)] transition hover:bg-neutral-50 xl:px-6 xl:py-3"
             >
-              Pune anunț
+              Pune anunț vânzare
             </Link>
           </div>
 
@@ -214,19 +209,15 @@ export default function Header() {
             )}
 
             <Link
-              href="/categorii/auto"
-              onClick={() => setIsOpen(false)}
-              className="w-full rounded-2xl border-2 border-black bg-white py-4 text-center text-sm font-black uppercase tracking-widest italic shadow-[4px_4px_0_0_rgba(0,0,0,1)]"
-            >
-              Anunțuri auto
-            </Link>
-
-            <Link
               href="/capital-disponibil"
               onClick={() => setIsOpen(false)}
-              className="w-full rounded-2xl border-2 border-black bg-[#FDFCF8] py-4 text-center text-sm font-black uppercase tracking-widest italic shadow-[4px_4px_0_0_rgba(0,0,0,1)]"
+              className="flex w-full items-center justify-center gap-3 rounded-[2rem] border-4 border-black bg-[#FDFCF8] py-5 text-center text-lg font-black uppercase tracking-widest italic shadow-[6px_6px_0_0_rgba(0,0,0,1)]"
             >
-              Capital disponibil
+              <span className="relative flex h-3 w-3">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#FFD100] opacity-75"></span>
+                <span className="relative inline-flex h-3 w-3 rounded-full bg-yellow-500"></span>
+              </span>
+              Oferte Cumpărători
             </Link>
 
             <Link href="/cum-functioneaza" onClick={() => setIsOpen(false)} className="text-base font-black uppercase tracking-widest italic text-gray-500">
@@ -234,19 +225,11 @@ export default function Header() {
             </Link>
 
             <Link
-              href="/evaluare"
-              onClick={() => setIsOpen(false)}
-              className="w-full rounded-2xl border-2 border-neutral-300 bg-white py-4 text-center text-sm font-black uppercase tracking-widest text-neutral-700"
-            >
-              Evaluare rapidă
-            </Link>
-
-            <Link
               href="/posteaza-cerere"
               onClick={() => setIsOpen(false)}
               className="w-full rounded-[2rem] border-4 border-black bg-[#FFD100] py-5 text-center text-lg font-black uppercase tracking-widest italic shadow-[6px_6px_0_0_rgba(0,0,0,1)]"
             >
-              Publică cerere
+              Cumpăr cu Cash
             </Link>
 
             <Link
@@ -254,7 +237,7 @@ export default function Header() {
               onClick={() => setIsOpen(false)}
               className="w-full rounded-[2rem] border-4 border-black bg-white py-5 text-center text-lg font-black uppercase tracking-widest italic shadow-[6px_6px_0_0_rgba(0,0,0,1)]"
             >
-              Pune anunț
+              Pune anunț vânzare
             </Link>
           </div>
         </div>
