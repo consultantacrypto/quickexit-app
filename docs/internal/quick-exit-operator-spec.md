@@ -72,6 +72,7 @@ Orice abatere (ex.: „agentul salvează singur” sau „trimite mesaj”) este
 - **Recomandat pentru v0.**
 - **Risc:** mic — operatorul lucrează pe fișiere scoase manual din surse autorizate.
 - **Control:** mare — owner decide exact ce exportă și când.
+- **Structură data pack, coloane permise și checklist validare:** vezi **`docs/internal/operator-manual-export-format.md`**.
 
 ### B. Daily Brief generat intern
 
