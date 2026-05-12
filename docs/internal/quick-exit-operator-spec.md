@@ -164,6 +164,7 @@ Măsuri complementare recomandate:
 - **Fără** acțiuni automate.
 - **Fără** write în DB.
 - **Fără** mesaje trimise către utilizatori.
+- **Procedură data pack validat → Daily Brief (checklist, prompt, arhivare):** vezi **`docs/internal/operator-brief-procedure.md`**.
 
 ### Structură recomandată a raportului
 
