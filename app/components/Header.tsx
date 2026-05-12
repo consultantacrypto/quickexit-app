@@ -65,20 +65,10 @@ export default function Header() {
             </Link>
 
             <Link
-              href="/capital-disponibil"
-              className="group flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-black italic transition-colors hover:text-[#FFD100]"
+              href="/cum-functioneaza"
+              className="rounded-xl border-2 border-black bg-white px-3 py-2 text-[10px] font-black uppercase tracking-widest text-black shadow-[3px_3px_0_0_rgba(0,0,0,1)] transition hover:-translate-y-px hover:border-[#FFD100] xl:px-4 xl:py-2.5"
             >
-              <span className="relative flex h-2 w-2">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#FFD100] opacity-75"></span>
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-yellow-500"></span>
-              </span>
-              <span className="border-b-[3px] border-transparent pb-0.5 transition-colors group-hover:border-[#FFD100]">
-                Oferte Cumpărători
-              </span>
-            </Link>
-
-            <Link href="/cum-functioneaza" className="text-[10px] font-black uppercase tracking-widest text-gray-500 hover:text-black transition-colors italic">
-              Cum funcționează
+              Cum funcționează?
             </Link>
 
             {/* LOGICĂ DINAMICĂ CONT/DASHBOARD (DESKTOP) */}
@@ -119,6 +109,19 @@ export default function Header() {
               </button>
             )}
 
+            <Link
+              href="/capital-disponibil"
+              className="group flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-black italic transition-colors hover:text-[#FFD100]"
+            >
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#FFD100] opacity-75"></span>
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-yellow-500"></span>
+              </span>
+              <span className="border-b-[3px] border-transparent pb-0.5 transition-colors group-hover:border-[#FFD100]">
+                Oferte Cumpărători
+              </span>
+            </Link>
+
             <Link href="/posteaza-cerere">
               <button
                 type="button"
@@ -130,7 +133,7 @@ export default function Header() {
 
             <Link
               href="/pune-anunt"
-              className="rounded-2xl border-2 border-black bg-white px-5 py-2.5 text-[10px] font-black uppercase tracking-widest text-black italic shadow-[3px_3px_0_0_rgba(0,0,0,1)] transition hover:bg-neutral-50 xl:px-6 xl:py-3"
+              className="rounded-xl border-2 border-black bg-white px-3 py-2 text-[10px] font-black uppercase tracking-widest text-black shadow-[3px_3px_0_0_rgba(0,0,0,1)] transition hover:-translate-y-px hover:border-[#FFD100] xl:px-4 xl:py-2.5"
             >
               Pune anunț vânzare
             </Link>
@@ -164,6 +167,14 @@ export default function Header() {
               className="w-full rounded-[2rem] border-4 border-black bg-white py-4 text-center text-lg font-black uppercase tracking-widest italic shadow-[6px_6px_0_0_rgba(0,0,0,1)]"
             >
               Acasă
+            </Link>
+
+            <Link
+              href="/cum-functioneaza"
+              onClick={() => setIsOpen(false)}
+              className="w-full rounded-[2rem] border-4 border-black bg-white py-4 text-center text-lg font-black uppercase tracking-widest italic shadow-[6px_6px_0_0_rgba(0,0,0,1)]"
+            >
+              Cum funcționează?
             </Link>
 
             {/* LOGICĂ DINAMICĂ CONT/DASHBOARD (MOBIL) */}
@@ -220,10 +231,6 @@ export default function Header() {
               Oferte Cumpărători
             </Link>
 
-            <Link href="/cum-functioneaza" onClick={() => setIsOpen(false)} className="text-base font-black uppercase tracking-widest italic text-gray-500">
-              Cum funcționează
-            </Link>
-
             <Link
               href="/posteaza-cerere"
               onClick={() => setIsOpen(false)}
@@ -235,7 +242,7 @@ export default function Header() {
             <Link
               href="/pune-anunt"
               onClick={() => setIsOpen(false)}
-              className="w-full rounded-[2rem] border-4 border-black bg-white py-5 text-center text-lg font-black uppercase tracking-widest italic shadow-[6px_6px_0_0_rgba(0,0,0,1)]"
+              className="w-full rounded-[2rem] border-4 border-black bg-white py-4 text-center text-lg font-black uppercase tracking-widest italic shadow-[6px_6px_0_0_rgba(0,0,0,1)]"
             >
               Pune anunț vânzare
             </Link>
