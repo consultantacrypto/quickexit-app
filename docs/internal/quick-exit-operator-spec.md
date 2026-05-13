@@ -15,6 +15,8 @@ Document intern. Nu este destinat publicului. Versiune orientativă pentru beta 
 
 Rolul este de sprijin pentru owner/admin: claritate, sinteză, propuneri — cu execuție mereu umană.
 
+**Delimitare față de HQ Copilot (Gemini în `/hq-admin`):** cele două sisteme AI interne au roluri diferite (insight live vs. brief operațional pe data pack). Vezi **`docs/internal/ai-roles-boundary.md`**.
+
 ---
 
 ## 2. Principiu de bază
