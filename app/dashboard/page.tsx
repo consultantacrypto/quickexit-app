@@ -6,7 +6,7 @@ import { supabase } from "@/lib/supabase";
 import { trackEvent } from "@/lib/analytics";
 import AdCard from "../components/AdCard";
 import { normalizeSaleType } from "@/utils/normalizeSaleType";
-import { Wallet, Inbox, PlusCircle, Search, Settings, Power, Play, PiggyBank } from "lucide-react";
+import { Wallet, Inbox, PlusCircle, Search, Settings, Power, Play, PiggyBank, ClipboardList } from "lucide-react";
 // Importul corectat cu calea relativă
 import KycBanner from "../components/KycBanner"; 
 
@@ -637,6 +637,13 @@ function DashboardContent() {
                   title="Acces owner"
                 >
                   <Wallet size={14} /> BMK Lab
+                </button>
+                <button
+                  onClick={() => router.push('/hq-admin/operator-brief')}
+                  className="bg-[#FDFCF8] text-black px-4 py-3 rounded-lg font-black uppercase text-xs border-[3px] border-black shadow-[3px_3px_0_0_rgba(0,0,0,1)] hover:bg-black hover:text-[#FFD100] transition-all inline-flex items-center justify-center gap-2"
+                  title="Operator Brief — read-only, demo fictiv"
+                >
+                  <ClipboardList size={14} /> Operator Brief
                 </button>
               </div>
             )}
