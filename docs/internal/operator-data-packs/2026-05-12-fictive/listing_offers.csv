@@ -1,0 +1,4 @@
+offer_ref,listing_ref,created_date,offer_price_eur,status,buyer_ref,buyer_kyc_status,has_message,message_quality_score,is_highest_offer,risk_notes_safe
+offer_98ab76cd,listing_1523c382,2026-05-12,900,new,user_buyer334,verified,true,8,true,"mesaj clar, fara risc evident"
+offer_44fa9921,listing_a81b24ff,2026-05-12,11800,new,user_buyer772,unverified,true,6,true,"buyer neverificat; recomandare verificare inainte de tranzactie"
+offer_bbb12000,listing_1523c382,2026-05-12,850,new,user_buyer991,pending,true,5,false,"oferta sub highest; monitorizare"

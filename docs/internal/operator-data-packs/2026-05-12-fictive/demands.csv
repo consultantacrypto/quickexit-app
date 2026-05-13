@@ -1,0 +1,4 @@
+demand_ref,created_date,category,title_short,status,budget_eur,location_safe,buyer_ref,buyer_kyc_status,offer_count,resolved_status,risk_notes_safe
+demand_ab12cd34,2026-05-12,Business,Caut laptop business,active,1700,Bucuresti,user_buyer991,pending,1,open,"buget apropiat de listing_77cd11aa"
+demand_c98ef210,2026-05-12,Auto,Caut auto familie,active,13000,Cluj,user_buyer772,unverified,1,open,"posibil match cu listing_a81b24ff"
+demand_ff88aa10,2026-05-11,Electronice,Caut telefon premium,active,900,Iasi,user_buyer334,verified,0,open,"posibil interes pentru licitatie telefon"

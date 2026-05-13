@@ -1,0 +1,5 @@
+listing_ref,created_date,category,title_short,status,sale_strategy,market_price_eur,exit_price_eur,discount_percent,offer_count,highest_offer_eur,expires_date,seller_ref,seller_kyc_status,image_count,has_description,risk_notes_safe
+listing_1523c382,2026-05-12,Electronice,Telefon premium sigilat,active,auction,1500,1000,33,2,900,2026-06-11,user_83da9725,unverified,4,true,"activitate platita si KYC nefinalizat"
+listing_a81b24ff,2026-05-12,Auto,Autoturism urgent,active,urgent,18000,12500,31,1,11800,2026-05-14,user_a12bc334,unverified,6,true,"activ mare; verificare manuala recomandata"
+listing_77cd11aa,2026-05-12,Business,Echipament business,active,standard,2200,1600,27,0,,2026-05-26,user_c88f102a,verified,2,true,"posibil match cu cerere laptop business"
+listing_4422ddaa,2026-05-11,Home,Mobilier premium,active,standard,3000,2100,30,0,,2026-06-10,user_f22aa991,verified,3,true,"fara oferte; monitorizare"

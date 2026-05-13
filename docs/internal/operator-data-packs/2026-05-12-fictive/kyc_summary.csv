@@ -1,0 +1,5 @@
+user_ref,kyc_status,has_paid_activity,active_listing_count,active_demand_count,high_value_activity,recommended_action
+user_83da9725,unverified,true,1,0,false,prompt_kyc
+user_a12bc334,unverified,true,1,0,true,priority_review
+user_c88f102a,verified,true,1,0,false,none
+user_buyer772,unverified,false,0,1,true,manual_check

@@ -1,0 +1,3 @@
+offer_ref,demand_ref,created_date,proposed_price_eur,status,seller_ref,seller_kyc_status,image_count,has_message,message_quality_score,risk_notes_safe
+offer_5cc901ee,demand_ab12cd34,2026-05-12,1600,new,user_c88f102a,verified,2,true,7,"oferta relevanta pentru cerere business"
+offer_d11aa402,demand_c98ef210,2026-05-12,12500,new,user_a12bc334,unverified,4,true,6,"seller neverificat cu activ de valoare mare"
