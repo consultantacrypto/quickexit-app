@@ -745,7 +745,10 @@ function DashboardContent() {
                     <AdCard
                       id={item.id}
                       title={item.title}
-                      image={item.images?.[0] || "/placeholder-exit.jpg"}
+                      image={
+                        item.images?.[0] ||
+                        "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=800&q=80"
+                      }
                       marketPrice={`€${item.market_price?.toLocaleString('ro-RO')}`}
                       exitPrice={`€${item.exit_price?.toLocaleString('ro-RO')}`}
                       discount={item.discount?.toString() || "0"}

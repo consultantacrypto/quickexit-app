@@ -60,10 +60,9 @@ function CategoryContent() {
 
         const { data: demandData } = await supabase
           .from("demands")
-          .select("id,target_asset,description,budget,category,status,is_seed,created_at")
+          .select("id,target_asset,description,budget,category,status,created_at")
           .eq("category", categoryName)
           .eq("status", "active")
-          .eq("is_seed", false) // Protecție menținută
           .order("created_at", { ascending: false });
 
         setListings(listData || []);
@@ -192,7 +191,10 @@ function CategoryContent() {
                       <AdCard
                         id={item.id}
                         title={item.title}
-                        image={item.images?.[0] || "/placeholder-exit.jpg"}
+                        image={
+                          item.images?.[0] ||
+                          "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=800&q=80"
+                        }
                         marketPrice={`€${item.market_price.toLocaleString("ro-RO")}`}
                         exitPrice={`€${item.exit_price.toLocaleString("ro-RO")}`}
                         discount={item.discount?.toString() || "0"}
@@ -235,7 +237,10 @@ function CategoryContent() {
                     key={item.id}
                     id={item.id}
                     title={item.title}
-                    image={item.images?.[0] || "/placeholder-exit.jpg"}
+                    image={
+                      item.images?.[0] ||
+                      "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=800&q=80"
+                    }
                     marketPrice={`€${item.market_price.toLocaleString("ro-RO")}`}
                     exitPrice={`€${item.exit_price.toLocaleString("ro-RO")}`}
                     discount={item.discount?.toString() || "0"}
