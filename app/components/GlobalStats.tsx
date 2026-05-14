@@ -27,7 +27,7 @@ export default function GlobalStats() {
 
         const { count: soldCount } = await supabase
           .from('listings')
-          .select('*', { count: 'exact', head: true })
+          .select('id', { count: 'exact', head: true })
           .eq('status', 'sold');
 
         const valoareVanzari = listings ? listings.reduce((acc, curr) => acc + (Number(curr.exit_price) || 0), 0) : 0;

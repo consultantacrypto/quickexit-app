@@ -25,7 +25,9 @@ export default async function Home() {
   // FETCH DATE REALE - FILTRARE SEED ACTIVATĂ + LIMITA 9
   const { data: realListings } = await supabase
     .from('listings')
-    .select('*')
+    .select(
+      'id,title,images,market_price,exit_price,discount,deal_score,sale_strategy,offer_count,highest_offer,expires_at,status,is_seed,created_at'
+    )
     .eq('status', 'active')
     .eq('is_seed', false)
     .order('created_at', { ascending: false })
@@ -33,7 +35,7 @@ export default async function Home() {
 
   const { data: realDemands } = await supabase
     .from('demands')
-    .select('*')
+    .select('id,target_asset,category,budget,description,status,created_at')
     .eq('status', 'active')
     .order('created_at', { ascending: false })
     .limit(9);

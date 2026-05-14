@@ -50,7 +50,9 @@ function CategoryContent() {
       try {
         const { data: listData } = await supabase
           .from("listings")
-          .select("*")
+          .select(
+            "id,title,images,market_price,exit_price,discount,deal_score,sale_strategy,offer_count,highest_offer,expires_at,status,is_seed,category,details,created_at"
+          )
           .eq("category", categoryName)
           .eq("status", "active")
           .eq("is_seed", false) // Protecție menținută
@@ -58,7 +60,7 @@ function CategoryContent() {
 
         const { data: demandData } = await supabase
           .from("demands")
-          .select("*")
+          .select("id,target_asset,description,budget,category,status,is_seed,created_at")
           .eq("category", categoryName)
           .eq("status", "active")
           .eq("is_seed", false) // Protecție menținută

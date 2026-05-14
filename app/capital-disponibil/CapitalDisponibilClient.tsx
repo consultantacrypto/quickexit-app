@@ -23,7 +23,7 @@ export default function CapitalDisponibilClient() {
       try {
         const { data, error } = await supabase
           .from("demands")
-          .select("*")
+          .select("id,target_asset,category,budget,description,status,created_at")
           .eq("status", "active")
           .order("created_at", { ascending: false });
 
