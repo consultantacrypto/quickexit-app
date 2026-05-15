@@ -674,6 +674,7 @@ export default function AnuntClient() {
                   src={displayImages[currentImageIndex]}
                   alt={adData.title}
                   fill
+                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 70vw, 900px"
                   className="object-cover transition-transform duration-500 group-hover:scale-[1.02]"
                   priority
                 />
