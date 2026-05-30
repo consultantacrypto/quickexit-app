@@ -106,7 +106,15 @@ export async function POST(req: Request) {
 
       const updateError = await activateRow(supabase, table, objectId, expiresAt);
       if (updateError) {
-        console.error(`[stripe/webhook] Eroare activare ${table}:`, updateError.message);
+        // Plata a reușit deja; activarea a eșuat → log detaliat pentru RECUPERARE MANUALĂ.
+        console.error("[stripe/webhook] Eroare activare — RECUPERARE MANUALĂ:", {
+          sessionId: session.id,
+          type,
+          table,
+          objectId,
+          priceId,
+          error: updateError.message,
+        });
         return new NextResponse(`Eroare activare ${table}.`, { status: 500 });
       }
 
