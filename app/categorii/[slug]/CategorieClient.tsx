@@ -323,6 +323,7 @@ function CategoryContent() {
 
                       <Link
                         href={`/trimite-oferta/${demand.id}`}
+                        aria-label={`Vinde-i activul tău pentru cererea: ${demand.target_asset}`}
                         className="w-full bg-[#FFD100] border-[3px] border-black text-black py-5 rounded-xl font-black uppercase tracking-widest text-[11px] italic hover:bg-black hover:text-[#FFD100] transition-colors shadow-[5px_5px_0_0_rgba(0,0,0,1)] active:shadow-none active:translate-y-1 block text-center"
                       >
                         Vinde-i Activul Tău

@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
-import { useParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import AdCard from "../../components/AdCard";
 import { normalizeSaleType } from "@/utils/normalizeSaleType";
@@ -15,19 +15,20 @@ import {
 } from "@/utils/auctionListingUi";
 import { buildSocialShareKit } from "@/lib/socialShare";
 import { trackEvent } from "@/lib/analytics";
+import type {
+  ListingSellerContext,
+  PublicListingRow,
+} from "@/lib/listingSeo";
+import {
+  labelBase,
+  kycStatusRo,
+  type ListingModalId,
+} from "./listingModalShared";
 
-type SellerProfileRow = {
-  id: string;
-  full_name: string | null;
-  kyc_status: string | null;
-  user_type: string | null;
-  created_at: string | null;
-};
-
-const labelBase =
-  "block text-[10px] font-black uppercase tracking-widest text-neutral-500";
-const inputBase =
-  "w-full rounded-xl border-[3px] border-black bg-white p-4 font-semibold text-black outline-none transition focus:border-[#FFD100] focus:ring-4 focus:ring-[#FFD100]/30 placeholder:text-neutral-500";
+const ListingModals = dynamic(() => import("./ListingModals"), {
+  ssr: false,
+  loading: () => null,
+});
 
 function strategyBadgeRo(strategy?: string | null): string {
   const n = normalizeSaleType(strategy);
@@ -49,13 +50,6 @@ function formatMemberSinceRo(createdAt: string | null | undefined): string | nul
   if (Number.isNaN(d.getTime())) return null;
   const s = new Intl.DateTimeFormat("ro-RO", { month: "long", year: "numeric" }).format(d);
   return s.charAt(0).toUpperCase() + s.slice(1);
-}
-
-function kycStatusRo(status: string | null | undefined): string {
-  if (status === "verified") return "Identitate verificată";
-  if (status === "processing") return "Verificare în procesare";
-  if (status === "requires_input") return "Verificare necesară";
-  return "Verificare în așteptare";
 }
 
 function userTypeRo(t: string | null | undefined): string {
@@ -211,23 +205,29 @@ function formatDetailField(raw: unknown, format: DetailFormat): string {
   }
 }
 
-export default function AnuntClient() {
-  const params = useParams();
-  const id = params.id as string;
+type AnuntClientProps = {
+  initialListing: PublicListingRow;
+  initialSeller: ListingSellerContext;
+  initialSimilar: PublicListingRow[];
+};
 
+export default function AnuntClient({
+  initialListing,
+  initialSeller,
+  initialSimilar,
+}: AnuntClientProps) {
   const [isFavorite, setIsFavorite] = useState(false);
-  const [activeModal, setActiveModal] = useState<string | null>(null);
+  const [activeModal, setActiveModal] = useState<ListingModalId | null>(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [imageLightboxOpen, setImageLightboxOpen] = useState(false);
 
-  const [adData, setAdData] = useState<any>(null);
-  const [similarAds, setSimilarAds] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [offerPrice, setOfferPrice] = useState(0);
+  const [adData] = useState<PublicListingRow>(initialListing);
+  const [similarAds] = useState<PublicListingRow[]>(initialSimilar);
+  const [offerPrice, setOfferPrice] = useState(Number(initialListing.exit_price) || 0);
 
-  const [sellerProfile, setSellerProfile] = useState<SellerProfileRow | null>(null);
-  const [sellerOtherListings, setSellerOtherListings] = useState<any[]>([]);
-  const [sellerActiveCount, setSellerActiveCount] = useState<number | null>(null);
+  const [sellerProfile] = useState(initialSeller.profile);
+  const [sellerOtherListings] = useState<PublicListingRow[]>(initialSeller.otherListings);
+  const [sellerActiveCount] = useState<number | null>(initialSeller.activeCount);
   const [shareCopiedKey, setShareCopiedKey] = useState<string | null>(null);
   const [shareFallbackText, setShareFallbackText] = useState<string | null>(null);
   const [canQuickShare, setCanQuickShare] = useState(false);
@@ -280,96 +280,6 @@ export default function AnuntClient() {
       document.body.style.overflow = prevOverflow;
     };
   }, [imageLightboxOpen, adData]);
-
-  useEffect(() => {
-    async function fetchAd() {
-      if (!id) return;
-      setAdData(null);
-      setSimilarAds([]);
-      setSellerProfile(null);
-      setSellerOtherListings([]);
-      setSellerActiveCount(null);
-      try {
-        const { data, error } = await supabase
-          .from("listings")
-          .select("*")
-          .eq("id", id)
-          .eq("status", "active")
-          .eq("is_seed", false)
-          .maybeSingle();
-
-        if (error) {
-          console.error("Eroare la extragerea anunțului:", error);
-          setAdData(null);
-          return;
-        }
-
-        if (
-          !data ||
-          data.status !== "active" ||
-          data.is_seed !== false
-        ) {
-          setAdData(null);
-          return;
-        }
-
-        setAdData(data);
-        setOfferPrice(data.exit_price);
-
-        if (data.user_id) {
-          const [profileRes, othersRes, countRes] = await Promise.all([
-            supabase
-              .from("profiles")
-              .select("id, full_name, kyc_status, user_type, created_at")
-              .eq("id", data.user_id)
-              .maybeSingle(),
-            supabase
-              .from("listings")
-              .select("*")
-              .eq("user_id", data.user_id)
-              .eq("status", "active")
-              .eq("is_seed", false)
-              .neq("id", data.id)
-              .order("created_at", { ascending: false })
-              .limit(3),
-            supabase
-              .from("listings")
-              .select("id", { count: "exact", head: true })
-              .eq("user_id", data.user_id)
-              .eq("status", "active")
-              .eq("is_seed", false),
-          ]);
-
-          setSellerProfile((profileRes.data as SellerProfileRow) ?? null);
-          setSellerOtherListings(othersRes.data ?? []);
-          setSellerActiveCount(countRes.count ?? null);
-        } else {
-          setSellerProfile(null);
-          setSellerOtherListings([]);
-          setSellerActiveCount(null);
-        }
-
-        if (data.category) {
-          const { data: similarData } = await supabase
-            .from("listings")
-            .select("*")
-            .eq("category", data.category)
-            .eq("status", "active")
-            .eq("is_seed", false)
-            .neq("id", data.id)
-            .limit(3);
-
-          if (similarData) setSimilarAds(similarData);
-        }
-      } catch (error) {
-        console.error("Eroare la extragerea anunțului:", error);
-        setAdData(null);
-      } finally {
-        setIsLoading(false);
-      }
-    }
-    fetchAd();
-  }, [id]);
 
   useEffect(() => {
     if (!adData?.id) return;
@@ -463,19 +373,6 @@ export default function AnuntClient() {
       setIsAccepting(false);
     }
   };
-
-  if (isLoading) {
-    return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-[#F7F4EC] px-6 font-sans antialiased">
-        <div className="w-full max-w-md rounded-[2rem] border-[3px] border-black bg-white p-10 text-center shadow-[12px_12px_0_0_#FFD100]">
-          <div className="mx-auto mb-6 h-14 w-14 animate-spin rounded-full border-[4px] border-neutral-200 border-t-black"></div>
-          <p className="text-[10px] font-black uppercase tracking-[0.25em] text-neutral-600">
-            Se încarcă anunțul...
-          </p>
-        </div>
-      </div>
-    );
-  }
 
   if (!adData) {
     return (
@@ -592,16 +489,28 @@ export default function AnuntClient() {
         id: adData.id,
         title: adData.title,
         category: adData.category,
-        market_price: adData.market_price,
-        exit_price: adData.exit_price,
-        discount: adData.discount,
-        discount_percentage: adData.discount_percentage,
-        deal_score: adData.deal_score,
-        location: adData.location,
-        images: adData.images,
-        sale_strategy: adData.sale_strategy,
-        created_at: adData.created_at,
-        details: adData.details,
+        market_price:
+          typeof adData.market_price === "number" ? adData.market_price : null,
+        exit_price: typeof adData.exit_price === "number" ? adData.exit_price : null,
+        discount: typeof adData.discount === "number" ? adData.discount : null,
+        discount_percentage:
+          typeof adData.discount_percentage === "number"
+            ? adData.discount_percentage
+            : null,
+        deal_score: typeof adData.deal_score === "number" ? adData.deal_score : null,
+        location: typeof adData.location === "string" ? adData.location : null,
+        images: Array.isArray(adData.images) ? adData.images : null,
+        sale_strategy:
+          typeof adData.sale_strategy === "string" ? adData.sale_strategy : null,
+        created_at:
+          typeof adData.created_at === "string" ? adData.created_at : null,
+        details:
+          adData.details !== null &&
+          adData.details !== undefined &&
+          typeof adData.details === "object" &&
+          !Array.isArray(adData.details)
+            ? (adData.details as Record<string, unknown>)
+            : null,
       })
     : null;
 
@@ -609,7 +518,7 @@ export default function AnuntClient() {
     setShareCopiedKey(null);
     setShareFallbackText(null);
     trackEvent("copy_social_share", {
-      listing_id: adData?.id || id,
+      listing_id: adData.id,
       channel: label,
     });
     try {
@@ -672,7 +581,7 @@ export default function AnuntClient() {
               >
                 <Image
                   src={displayImages[currentImageIndex]}
-                  alt={adData.title}
+                  alt={adData.title || "Imagine anunț"}
                   fill
                   sizes="(max-width: 768px) 100vw, (max-width: 1200px) 70vw, 900px"
                   className="object-cover transition-transform duration-500 group-hover:scale-[1.02]"
@@ -716,7 +625,7 @@ export default function AnuntClient() {
                 </span>
               </div>
               <h1 className="text-3xl font-black uppercase italic leading-[0.95] tracking-tighter text-black md:text-4xl lg:text-5xl">
-                {renderTitle(adData.title)}
+                {renderTitle(adData.title || "Anunț")}
               </h1>
 
               {isAuctionDetail && (
@@ -799,7 +708,7 @@ export default function AnuntClient() {
                 <div className="mb-6 flex flex-col justify-center rounded-[1.25rem] border-[3px] border-black bg-[#FFD100] p-5 shadow-[4px_4px_0_0_#000]">
                   <p className={`${labelBase} mb-1 text-black/60`}>Profit potențial</p>
                   <p className="break-words font-black italic leading-none text-black uppercase [font-size:clamp(1.75rem,4vw,2.75rem)]">
-                    €{(adData.market_price - adData.exit_price).toLocaleString("ro-RO")}
+                    €{((adData.market_price ?? 0) - (adData.exit_price ?? 0)).toLocaleString("ro-RO")}
                   </p>
                 </div>
 
@@ -809,7 +718,7 @@ export default function AnuntClient() {
                       Preț estimat de piață
                     </span>
                     <span className="font-black italic opacity-35 line-through [font-size:clamp(1rem,3vw,1.35rem)]">
-                      €{adData.market_price.toLocaleString("ro-RO")}
+                      €{(adData.market_price ?? 0).toLocaleString("ro-RO")}
                     </span>
                   </div>
                   <div className="flex w-full flex-col gap-1">
@@ -817,7 +726,7 @@ export default function AnuntClient() {
                       Preț de vânzare rapidă
                     </span>
                     <span className="w-full break-words font-black italic leading-none [font-size:clamp(2rem,5vw,3rem)]">
-                      €{adData.exit_price.toLocaleString("ro-RO")}
+                      €{(adData.exit_price ?? 0).toLocaleString("ro-RO")}
                     </span>
                   </div>
                   <div className="inline-flex rounded-lg border-2 border-black bg-black px-3 py-1 text-[10px] font-black uppercase tracking-wider text-[#FFD100]">
@@ -1001,21 +910,22 @@ export default function AnuntClient() {
                   <AdCard
                     key={item.id}
                     id={item.id}
-                    title={item.title}
+                    title={item.title || ""}
                     image={
                       item.images?.[0] ||
                       "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=800&q=80"
                     }
-                    marketPrice={`€${item.market_price.toLocaleString("ro-RO")}`}
-                    exitPrice={`€${item.exit_price.toLocaleString("ro-RO")}`}
+                    marketPrice={`€${(item.market_price ?? 0).toLocaleString("ro-RO")}`}
+                    exitPrice={`€${(item.exit_price ?? 0).toLocaleString("ro-RO")}`}
                     discount={item.discount?.toString() || "0"}
                     score={item.deal_score ? item.deal_score / 10 : 9.0}
                     type={st}
                     {...(st === "auction"
                       ? {
-                          offerCount: item.offer_count,
-                          highestOffer: item.highest_offer,
-                          expiresAt: item.expires_at,
+                          offerCount: parseListingOfferCount(item.offer_count),
+                          highestOffer: item.highest_offer ?? null,
+                          expiresAt:
+                            typeof item.expires_at === "string" ? item.expires_at : null,
                         }
                       : {})}
                   />
@@ -1043,21 +953,22 @@ export default function AnuntClient() {
                 <AdCard
                   key={item.id}
                   id={item.id}
-                  title={item.title}
+                  title={item.title || ""}
                   image={
                     item.images?.[0] ||
                     "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=800&q=80"
                   }
-                  marketPrice={`€${item.market_price.toLocaleString("ro-RO")}`}
-                  exitPrice={`€${item.exit_price.toLocaleString("ro-RO")}`}
+                  marketPrice={`€${(item.market_price ?? 0).toLocaleString("ro-RO")}`}
+                  exitPrice={`€${(item.exit_price ?? 0).toLocaleString("ro-RO")}`}
                   discount={item.discount?.toString() || "0"}
                   score={item.deal_score ? item.deal_score / 10 : 9.0}
                   type={st}
                   {...(st === "auction"
                     ? {
-                        offerCount: item.offer_count,
-                        highestOffer: item.highest_offer,
-                        expiresAt: item.expires_at,
+                        offerCount: parseListingOfferCount(item.offer_count),
+                        highestOffer: item.highest_offer ?? null,
+                        expiresAt:
+                          typeof item.expires_at === "string" ? item.expires_at : null,
                       }
                     : {})}
                 />
@@ -1073,286 +984,46 @@ export default function AnuntClient() {
           )}
         </section>
 
-        {activeModal && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-            <div
-              role="presentation"
-              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-              onClick={() => setActiveModal(null)}
-            />
-            <div className="relative max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-[2rem] border-[3px] border-black bg-white p-8 shadow-[14px_14px_0_0_#FFD100] md:p-10">
-              <button
-                type="button"
-                onClick={() => setActiveModal(null)}
-                className="absolute right-5 top-5 rounded-xl border-[3px] border-black px-3 py-1.5 text-[10px] font-black uppercase transition hover:bg-black hover:text-[#FFD100] md:right-6 md:top-6"
-              >
-                Închide
-              </button>
-
-              {activeModal === "verified" && (
-                <div className="space-y-6 pt-4">
-                  <h3 className="text-2xl font-black uppercase italic tracking-tighter md:text-3xl">
-                    Încredere pe{" "}
-                    <span className="text-[#FFD100]">platformă</span>
-                  </h3>
-                  <div className="space-y-3 text-base font-medium text-neutral-800">
-                    <p>
-                      Situația contului pentru acest utilizator este:{" "}
-                      <strong className="font-bold text-black">
-                        {kycStatusRo(sellerProfile?.kyc_status ?? null)}
-                      </strong>
-                      .
-                    </p>
-                    <p className="text-sm italic text-neutral-600">
-                      Nu afișăm public telefon sau e-mail. Contactul legitim se face printr-o ofertă.
-                    </p>
-                    <p className="rounded-xl border-[3px] border-black/15 bg-[#F7F4EC]/80 p-4 text-sm text-neutral-700">
-                      Istoricul de tranzacții va fi disponibil după primele vânzări confirmate pe platformă.
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {activeModal === "docs" && (
-                <div className="space-y-6 pt-4">
-                  <h3 className="text-2xl font-black uppercase italic tracking-tighter md:text-3xl">
-                    Fișier <span className="text-[#FFD100]">documentar</span>
-                  </h3>
-                  <p className="text-base font-medium text-neutral-800">
-                    Anunțurile marcate sunt structurate pentru a include documentele uzuale din tranzacția
-                    pentru categoria aleasă:
-                  </p>
-                  <ul className="grid grid-cols-1 gap-3 text-xs font-bold uppercase tracking-wide sm:grid-cols-2">
-                    <li className="rounded-xl border-[3px] border-black bg-[#F7F4EC] p-4">Act proprietate</li>
-                    <li className="rounded-xl border-[3px] border-black bg-[#F7F4EC] p-4">Intabulare</li>
-                    <li className="rounded-xl border-[3px] border-black bg-[#F7F4EC] p-4">Certificat fiscal</li>
-                    <li className="rounded-xl border-[3px] border-black bg-[#F7F4EC] p-4">Evaluare / expertiză</li>
-                  </ul>
-                  <p className="text-xs font-medium text-neutral-600">
-                    Lista exactă variază după tipul activului. Detaliile finale se stabilesc cu vânzătorul după depunerea unei oferte.
-                  </p>
-                </div>
-              )}
-
-              {activeModal === "ai-score" && (
-                <div className="space-y-6 pt-4">
-                  <h3 className="text-2xl font-black uppercase italic tracking-tighter md:text-3xl">
-                    Scor <span className="text-[#FFD100]">oportunitate</span>
-                  </h3>
-                  <p className="text-base font-medium text-neutral-800">
-                    Scorul {adData.deal_score ?? "—"} reflectă o combinație de factori de piață și lichiditate (indicativ,
-                    nu garanție).
-                  </p>
-                  <div className="grid grid-cols-3 gap-3">
-                    <div className="rounded-2xl border-[3px] border-black bg-[#F7F4EC] p-3 text-center">
-                      <p className="text-xl font-black italic leading-none md:text-2xl">40%</p>
-                      <p className="mt-2 text-[7px] font-black uppercase leading-tight md:text-[8px]">
-                        Poziție față de piață
-                      </p>
-                    </div>
-                    <div className="rounded-2xl border-[3px] border-black bg-[#F7F4EC] p-3 text-center">
-                      <p className="text-xl font-black italic leading-none md:text-2xl">35%</p>
-                      <p className="mt-2 text-[7px] font-black uppercase leading-tight md:text-[8px]">
-                        Lichiditate / cerere
-                      </p>
-                    </div>
-                    <div className="rounded-2xl border-[3px] border-black bg-[#F7F4EC] p-3 text-center">
-                      <p className="text-xl font-black italic leading-none md:text-2xl">25%</p>
-                      <p className="mt-2 text-[7px] font-black uppercase leading-tight md:text-[8px]">
-                        Atribute activ
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {activeModal === "accept" && (
-                <div className="space-y-8 pt-4 text-center">
-                  <h3 className="text-2xl font-black uppercase italic tracking-tighter md:text-3xl">
-                    Confirmare <span className="text-[#FFD100]">preț</span>
-                  </h3>
-
-                  {acceptSuccess ? (
-                    <div className="animate-in zoom-in rounded-2xl border-[3px] border-black bg-[#FFD100] p-6 text-center shadow-[4px_4px_0_0_#000] duration-300">
-                      <span className="mb-4 block text-5xl" aria-hidden>
-                        🤝
-                      </span>
-                      <p className="mb-2 text-xl font-black uppercase italic text-black">
-                        Cererea ta a fost înregistrată.
-                      </p>
-                      <p className="text-[10px] font-bold uppercase leading-relaxed tracking-widest text-neutral-900">
-                        Vânzătorul a fost notificat în legătură cu acordul tău la prețul de{" "}
-                        €{adData.exit_price.toLocaleString("ro-RO")}. Te poate contacta folosind datele transmise prin
-                        ofertă.
-                      </p>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setActiveModal(null);
-                          setAcceptSuccess(false);
-                        }}
-                        className="mt-6 w-full rounded-xl border-[3px] border-black bg-black py-4 text-[10px] font-black uppercase tracking-widest text-[#FFD100] transition hover:bg-neutral-900"
-                      >
-                        Închide
-                      </button>
-                    </div>
-                  ) : (
-                    <>
-                      {acceptActionMessage && (
-                        <div className="rounded-xl border-2 border-red-700 bg-red-100 px-4 py-3 text-sm font-bold text-red-900">
-                          {acceptActionMessage.text}
-                        </div>
-                      )}
-                      <p className="text-left text-base font-medium text-neutral-800">
-                        Confirmi achiziția la{" "}
-                        <span className="font-black">€{adData.exit_price.toLocaleString("ro-RO")}</span> (preț de vânzare
-                        rapidă)?
-                      </p>
-                      <div className="space-y-4 text-left">
-                        <div className="border-t-2 border-neutral-100 pt-4">
-                          <p className={`${labelBase} mb-3`}>
-                            Lasă datele tale — vânzătorul te contactează prin canalele agreate
-                          </p>
-                          <input
-                            type="tel"
-                            value={acceptPhone}
-                            onChange={(e) => setAcceptPhone(e.target.value)}
-                            placeholder="Număr de telefon"
-                            className={`${inputBase} mb-3 font-bold uppercase`}
-                          />
-                          <input
-                            type="email"
-                            value={acceptEmail}
-                            onChange={(e) => setAcceptEmail(e.target.value)}
-                            placeholder="E-mail (opțional)"
-                            className={`${inputBase} mb-3 normal-case`}
-                          />
-                          <button
-                            type="button"
-                            onClick={submitAcceptExitPrice}
-                            disabled={isAccepting || !acceptPhone}
-                            className="w-full rounded-xl border-[3px] border-black bg-black py-4 font-black uppercase tracking-widest text-[#FFD100] shadow-[4px_4px_0_0_#000] transition hover:bg-neutral-900 disabled:cursor-not-allowed disabled:opacity-50"
-                          >
-                            {isAccepting ? "Se trimite..." : "Trimite acordul"}
-                          </button>
-                        </div>
-                      </div>
-                    </>
-                  )}
-                </div>
-              )}
-
-              {activeModal === "offer" && (
-                <div className="space-y-6 pt-4">
-                  <h3 className="text-2xl font-black uppercase italic tracking-tighter md:text-3xl">
-                    Trimite <span className="text-[#FFD100]">ofertă</span>
-                  </h3>
-
-                  {offerSuccess ? (
-                    <div className="animate-in zoom-in rounded-2xl border-[3px] border-black bg-[#FFD100] p-6 text-center shadow-[4px_4px_0_0_#000] duration-300">
-                      <span className="mb-4 block text-5xl" aria-hidden>
-                        📬
-                      </span>
-                      <p className="mb-2 text-xl font-black uppercase italic text-black">Oferta a fost trimisă.</p>
-                      <p className="text-[10px] font-bold uppercase leading-relaxed tracking-widest text-neutral-900">
-                        Vânzătorul a fost notificat și te poate contacta folosind datele furnizate.
-                      </p>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setActiveModal(null);
-                          setOfferSuccess(false);
-                        }}
-                        className="mt-6 w-full rounded-xl border-[3px] border-black bg-black py-4 text-[10px] font-black uppercase tracking-widest text-[#FFD100] transition hover:bg-neutral-900"
-                      >
-                        Închide
-                      </button>
-                    </div>
-                  ) : (
-                    <>
-                      {offerActionMessage && (
-                        <div className="rounded-xl border-2 border-red-700 bg-red-100 px-4 py-3 text-sm font-bold text-red-900">
-                          {offerActionMessage.text}
-                        </div>
-                      )}
-                      <div className="rounded-2xl border-[3px] border-black bg-[#F7F4EC] p-6">
-                        <p className={labelBase}>Oferta ta (EUR)</p>
-                        <p className="mb-4 font-black italic tracking-tighter text-black [font-size:clamp(2rem,5vw,2.5rem)]">
-                          €{offerPrice.toLocaleString("ro-RO")}
-                        </p>
-                        <input
-                          type="range"
-                          min={minOffer}
-                          max={maxOffer}
-                          step={offerStep}
-                          value={offerPrice}
-                          onChange={(e) => setOfferPrice(clampOfferPrice(Number(e.target.value)))}
-                          onInput={(e) =>
-                            setOfferPrice(
-                              clampOfferPrice(Number((e.target as HTMLInputElement).value))
-                            )
-                          }
-                          className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-neutral-200 accent-black"
-                        />
-                        <input
-                          type="number"
-                          min={minOffer}
-                          max={maxOffer}
-                          step={offerStep}
-                          value={offerPrice}
-                          onChange={(e) => {
-                            const raw = e.target.value;
-                            if (raw === "") return;
-                            setOfferPrice(clampOfferPrice(Number(raw)));
-                          }}
-                          className="mt-3 w-full rounded-xl border-[3px] border-black bg-white px-4 py-3 text-lg font-black italic text-black outline-none focus:border-[#FFD100]"
-                          aria-label="Suma ofertei"
-                        />
-                        <div className="mt-3 flex justify-between text-[9px] font-black uppercase text-neutral-500">
-                          <span className="text-red-700">Min: €{minOffer.toLocaleString("ro-RO")} (−30%)</span>
-                          <span>Max: €{maxOffer.toLocaleString("ro-RO")}</span>
-                        </div>
-                      </div>
-
-                      <div className="space-y-3">
-                        <input
-                          type="tel"
-                          value={buyerPhone}
-                          onChange={(e) => setBuyerPhone(e.target.value)}
-                          placeholder="Număr de telefon"
-                          className={inputBase}
-                        />
-                        <input
-                          type="email"
-                          value={buyerEmail}
-                          onChange={(e) => setBuyerEmail(e.target.value)}
-                          placeholder="E-mail (opțional)"
-                          className={`${inputBase} normal-case`}
-                        />
-                        <textarea
-                          value={offerMessage}
-                          onChange={(e) => setOfferMessage(e.target.value)}
-                          placeholder="Mesaj pentru vânzător (ex.: termeni de plată, termen de răspuns)..."
-                          rows={3}
-                          className={`${inputBase} resize-none font-medium normal-case`}
-                        />
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={submitListingOffer}
-                        disabled={isSubmittingOffer || !buyerPhone}
-                        className="mt-2 w-full rounded-2xl border-[3px] border-black bg-black py-5 font-black uppercase tracking-widest text-[#FFD100] shadow-[4px_4px_0_0_#000] transition hover:bg-neutral-900 disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        {isSubmittingOffer ? "Se trimite..." : "Trimite oferta"}
-                      </button>
-                    </>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
+        {activeModal ? (
+          <ListingModals
+            activeModal={activeModal}
+            onClose={() => setActiveModal(null)}
+            adData={adData}
+            sellerProfile={sellerProfile}
+            acceptSuccess={acceptSuccess}
+            acceptActionMessage={acceptActionMessage}
+            acceptPhone={acceptPhone}
+            acceptEmail={acceptEmail}
+            isAccepting={isAccepting}
+            onAcceptPhoneChange={setAcceptPhone}
+            onAcceptEmailChange={setAcceptEmail}
+            onSubmitAccept={() => void submitAcceptExitPrice()}
+            onAcceptSuccessClose={() => {
+              setActiveModal(null);
+              setAcceptSuccess(false);
+            }}
+            offerSuccess={offerSuccess}
+            offerActionMessage={offerActionMessage}
+            buyerPhone={buyerPhone}
+            buyerEmail={buyerEmail}
+            offerMessage={offerMessage}
+            offerPrice={offerPrice}
+            minOffer={minOffer}
+            maxOffer={maxOffer}
+            offerStep={offerStep}
+            isSubmittingOffer={isSubmittingOffer}
+            onBuyerPhoneChange={setBuyerPhone}
+            onBuyerEmailChange={setBuyerEmail}
+            onOfferMessageChange={setOfferMessage}
+            onOfferPriceChange={setOfferPrice}
+            onSubmitOffer={() => void submitListingOffer()}
+            onOfferSuccessClose={() => {
+              setActiveModal(null);
+              setOfferSuccess(false);
+            }}
+            clampOfferPrice={clampOfferPrice}
+          />
+        ) : null}
       </div>
 
       {imageLightboxOpen ? (

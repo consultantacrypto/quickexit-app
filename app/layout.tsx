@@ -60,6 +60,15 @@ export default function RootLayout({
 
   return (
     <html lang="ro">
+      <head>
+        <link
+          rel="preload"
+          as="image"
+          href="/logo.webp"
+          type="image/webp"
+          fetchPriority="high"
+        />
+      </head>
       {gaId && (
         <>
           <Script

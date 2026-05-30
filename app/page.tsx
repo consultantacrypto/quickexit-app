@@ -10,8 +10,7 @@ import { getSiteUrl } from "@/lib/siteUrl";
 // IMPORT GLOBAL NOU
 import { normalizeSaleType } from "@/utils/normalizeSaleType";
 
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
+export const revalidate = 60;
 export const metadata: Metadata = buildPageMetadata({
   title: "Quick Exit | Platformă de lichiditate rapidă pentru active",
   description:

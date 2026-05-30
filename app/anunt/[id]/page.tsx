@@ -1,10 +1,16 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 import AnuntClient from "./AnuntClient";
 import { getSiteUrl } from "@/lib/siteUrl";
-import { fetchPublicListingSeoRow, type ListingSeoRow } from "@/lib/listingSeo";
+import {
+  fetchPublicListingDetail,
+  fetchPublicListingSeoRow,
+  fetchListingSellerContext,
+  fetchSimilarListings,
+  type ListingSeoRow,
+} from "@/lib/listingSeo";
 
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
+export const revalidate = 300;
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -107,7 +113,20 @@ export default async function ListingPage({ params }: PageProps) {
   const canonicalPath = listingId ? `/anunt/${listingId}` : "/anunt";
   const canonicalAbs = `${siteUrl}${canonicalPath}`;
 
-  const listing = listingId ? await fetchPublicListingSeoRow(listingId) : null;
+  const listing = listingId ? await fetchPublicListingDetail(listingId) : null;
+  if (!listing) notFound();
+
+  const userId = typeof listing.user_id === "string" ? listing.user_id : null;
+  const category = typeof listing.category === "string" ? listing.category : null;
+
+  const [initialSeller, initialSimilar] = await Promise.all([
+    userId
+      ? fetchListingSellerContext(userId, listingId!)
+      : Promise.resolve({ profile: null, otherListings: [], activeCount: null }),
+    category
+      ? fetchSimilarListings(category, listingId!)
+      : Promise.resolve([]),
+  ]);
 
   const hasValidExitPrice =
     typeof listing?.exit_price === "number" &&
@@ -190,7 +209,12 @@ export default async function ListingPage({ params }: PageProps) {
           type="application/ld+json"
         />
       )}
-      <AnuntClient />
+      <AnuntClient
+        key={listingId}
+        initialListing={listing}
+        initialSeller={initialSeller}
+        initialSimilar={initialSimilar}
+      />
     </>
   );
 }
