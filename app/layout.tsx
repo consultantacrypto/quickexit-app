@@ -62,6 +62,15 @@ export default function RootLayout({
     <html lang="ro">
       <head>
         <link
+          rel="preconnect"
+          href="https://geywuzwbzecknokvnins.supabase.co"
+          crossOrigin="anonymous"
+        />
+        <link
+          rel="dns-prefetch"
+          href="https://geywuzwbzecknokvnins.supabase.co"
+        />
+        <link
           rel="preload"
           as="image"
           href="/logo.webp"

@@ -448,23 +448,40 @@ export default async function Home() {
           animation: quickexit-hero-sweep 7.5s ease-in-out infinite;
         }
 
+        /* Glow compozit (doar opacity) randat pe un pseudo-element în spatele textului.
+           Textul LCP rămâne static (#ffd100) și se pictează imediat, fără repaint. */
         @keyframes quickexit-acum-pulse {
           0%,
           100% {
-            color: #ffd100;
-            text-shadow: 0 0 0 rgba(255, 209, 0, 0);
-            filter: brightness(1);
+            opacity: 0;
           }
           50% {
-            color: #ffd100;
-            text-shadow: 0 0 14px rgba(255, 209, 0, 0.34);
-            filter: brightness(1.08) saturate(1.04);
+            opacity: 1;
           }
         }
 
         .quickexit-acum-pulse {
+          position: relative;
+          display: inline-block;
+          color: #ffd100;
+          isolation: isolate;
+        }
+
+        .quickexit-acum-pulse::after {
+          content: "";
+          position: absolute;
+          inset: -12% -8%;
+          z-index: -1;
+          border-radius: 0.35em;
+          background: radial-gradient(
+            60% 60% at 50% 50%,
+            rgba(255, 209, 0, 0.45),
+            rgba(255, 209, 0, 0) 70%
+          );
+          opacity: 0;
+          will-change: opacity;
           animation: quickexit-acum-pulse 6s ease-in-out infinite;
-          will-change: text-shadow, filter;
+          pointer-events: none;
         }
 
         @keyframes quickexit-question-pulse {
@@ -492,10 +509,28 @@ export default async function Home() {
           will-change: color, text-shadow, transform;
         }
 
+        /* Pe mobil (LCP-ul de hero) anulăm complet animațiile non-composited.
+           Efectul de sweep pe gradient (bg-clip-text) nu se poate reproduce doar
+           cu transform/opacity, așa că lăsăm textul static, curat, gold solid. */
+        @media (max-width: 768px) {
+          .quickexit-hero-sweep {
+            animation: none;
+            background-image: none !important;
+            -webkit-text-fill-color: #ffd100;
+            color: #ffd100;
+          }
+          .quickexit-acum-pulse::after {
+            display: none;
+            animation: none;
+          }
+        }
+
         @media (prefers-reduced-motion: reduce) {
           .quickexit-hero-sweep {
             animation: none;
-            background-position: 50% 50%;
+            background-image: none !important;
+            -webkit-text-fill-color: #ffd100;
+            color: #ffd100;
           }
           .quickexit-question-pulse {
             animation: none;
@@ -503,10 +538,9 @@ export default async function Home() {
             text-shadow: none;
             transform: none;
           }
-          .quickexit-acum-pulse {
+          .quickexit-acum-pulse::after {
+            display: none;
             animation: none;
-            text-shadow: none;
-            filter: none;
           }
         }
       `}</style>
