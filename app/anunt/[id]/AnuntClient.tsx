@@ -602,6 +602,8 @@ export default function AnuntClient({
                       key={index}
                       type="button"
                       onClick={() => setCurrentImageIndex(index)}
+                      aria-label={`Selectează imaginea ${index + 1} din ${displayImages.length}`}
+                      aria-current={currentImageIndex === index ? "true" : undefined}
                       className={`relative h-16 w-full overflow-hidden rounded-xl border-[3px] transition-all md:h-20 lg:h-24 ${
                         currentImageIndex === index
                           ? "scale-[1.02] border-[#FFD100] opacity-100 shadow-[4px_4px_0_0_#000]"
@@ -827,6 +829,7 @@ export default function AnuntClient({
                       <button
                         type="button"
                         onClick={() => void quickShare()}
+                        aria-label="Distribuie rapid anunțul"
                         className="col-span-2 rounded-xl border-2 border-black bg-[#FFD100] px-3 py-2 text-[10px] font-black uppercase tracking-wider text-black hover:brightness-105"
                       >
                         Distribuie rapid
@@ -835,6 +838,7 @@ export default function AnuntClient({
                     <button
                       type="button"
                       onClick={() => void copyShareText("link", socialKit.utm.hq)}
+                      aria-label="Copiază linkul anunțului pentru distribuire"
                       className="rounded-xl border-2 border-black bg-white px-3 py-2 text-[10px] font-black uppercase tracking-wider hover:bg-[#FFD100]/60"
                     >
                       Copiază link
@@ -842,6 +846,7 @@ export default function AnuntClient({
                     <button
                       type="button"
                       onClick={() => void copyShareText("whatsapp", socialKit.whatsappMessage)}
+                      aria-label="Copiază mesajul pentru WhatsApp"
                       className="rounded-xl border-2 border-black bg-white px-3 py-2 text-[10px] font-black uppercase tracking-wider hover:bg-[#FFD100]/60"
                     >
                       WhatsApp
@@ -849,6 +854,7 @@ export default function AnuntClient({
                     <button
                       type="button"
                       onClick={() => void copyShareText("telegram", socialKit.telegramMessage)}
+                      aria-label="Copiază mesajul pentru Telegram"
                       className="rounded-xl border-2 border-black bg-white px-3 py-2 text-[10px] font-black uppercase tracking-wider hover:bg-[#FFD100]/60"
                     >
                       Telegram
@@ -856,6 +862,7 @@ export default function AnuntClient({
                     <button
                       type="button"
                       onClick={() => void copyShareText("x", socialKit.xPost)}
+                      aria-label="Copiază mesajul pentru X (Twitter)"
                       className="rounded-xl border-2 border-black bg-white px-3 py-2 text-[10px] font-black uppercase tracking-wider hover:bg-[#FFD100]/60"
                     >
                       X
@@ -863,6 +870,7 @@ export default function AnuntClient({
                     <button
                       type="button"
                       onClick={() => void copyShareText("linkedin", socialKit.linkedinPost)}
+                      aria-label="Copiază mesajul pentru LinkedIn"
                       className="rounded-xl border-2 border-black bg-white px-3 py-2 text-[10px] font-black uppercase tracking-wider hover:bg-[#FFD100]/60"
                     >
                       LinkedIn
@@ -870,6 +878,7 @@ export default function AnuntClient({
                     <button
                       type="button"
                       onClick={() => void copyShareText("instagram", socialKit.instagramCaption)}
+                      aria-label="Copiază mesajul pentru Instagram"
                       className="rounded-xl border-2 border-black bg-white px-3 py-2 text-[10px] font-black uppercase tracking-wider hover:bg-[#FFD100]/60"
                     >
                       Instagram

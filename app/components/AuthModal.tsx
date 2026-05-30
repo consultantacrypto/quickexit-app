@@ -81,11 +81,15 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
         </div>
 
         {/* Buton Închidere */}
-        <button 
+        <button
+          type="button"
           onClick={onClose}
+          aria-label="Închide fereastra de autentificare"
           className="absolute top-8 right-8 w-10 h-10 bg-gray-50 border-2 border-transparent hover:border-black hover:bg-[#FFD100] rounded-full flex items-center justify-center transition-all group z-10"
         >
-          <span className="text-2xl font-black text-black opacity-40 group-hover:opacity-100 group-hover:rotate-90 transition-all duration-300">✕</span>
+          <span className="text-2xl font-black text-black opacity-40 group-hover:opacity-100 group-hover:rotate-90 transition-all duration-300" aria-hidden>
+            ✕
+          </span>
         </button>
 
         <div className="p-10 pt-14 text-center">

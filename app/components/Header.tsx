@@ -110,7 +110,11 @@ export default function Header() {
       <div
         id="mobile-main-menu"
         className={`fixed inset-0 z-[60] bg-[#F7F4EC] transition-transform duration-500 ${isOpen ? "translate-x-0" : "translate-x-full"}`}
+        inert={!isOpen}
         aria-hidden={!isOpen}
+        role={isOpen ? "dialog" : undefined}
+        aria-modal={isOpen ? true : undefined}
+        aria-label={isOpen ? "Meniu principal" : undefined}
       >
         <div className="flex flex-col h-full">
           <div className="flex items-center justify-between px-6 h-20 border-b border-black/10">
