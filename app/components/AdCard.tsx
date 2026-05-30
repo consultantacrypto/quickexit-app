@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import { ro } from "../../locales/ro";
+import supabaseImageLoader from "@/lib/supabase-image-loader";
 import {
   auctionOfferLineForCard,
   formatAuctionCardTimeLeft,
@@ -84,6 +85,7 @@ export default function AdCard({
           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
           priority={priority}
           className="object-cover transition-transform duration-700 group-hover:scale-105"
+          loader={supabaseImageLoader}
         />
       </div>
 

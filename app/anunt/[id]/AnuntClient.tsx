@@ -15,6 +15,7 @@ import {
 } from "@/utils/auctionListingUi";
 import { buildSocialShareKit } from "@/lib/socialShare";
 import { trackEvent } from "@/lib/analytics";
+import supabaseImageLoader from "@/lib/supabase-image-loader";
 import type {
   ListingSellerContext,
   PublicListingRow,
@@ -586,6 +587,7 @@ export default function AnuntClient({
                   sizes="(max-width: 768px) 100vw, (max-width: 1200px) 70vw, 900px"
                   className="object-cover transition-transform duration-500 group-hover:scale-[1.02]"
                   priority
+                  loader={supabaseImageLoader}
                 />
                 <div className="pointer-events-none absolute left-4 top-4 rounded-lg border-2 border-black bg-black px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-[#FFD100]">
                   {strategyBadgeRo(adData.sale_strategy)}
@@ -610,7 +612,7 @@ export default function AnuntClient({
                           : "border-black opacity-70 hover:opacity-100"
                       }`}
                     >
-                      <Image src={img} alt={`Miniatură ${index + 1}`} fill className="object-cover" />
+                      <Image src={img} alt={`Miniatură ${index + 1}`} fill className="object-cover" loader={supabaseImageLoader} />
                     </button>
                   ))}
                 </div>
@@ -1093,6 +1095,7 @@ export default function AnuntClient({
               className="object-contain"
               sizes="100vw"
               priority
+              loader={supabaseImageLoader}
             />
           </div>
 

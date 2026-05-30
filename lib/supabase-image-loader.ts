@@ -20,15 +20,13 @@ export default function supabaseImageLoader({
     return src;
   }
 
-  const renderSrc = src.replace(SUPABASE_OBJECT_PUBLIC, SUPABASE_RENDER_PUBLIC);
-
   try {
+    const renderSrc = src.replace(SUPABASE_OBJECT_PUBLIC, SUPABASE_RENDER_PUBLIC);
     const url = new URL(renderSrc);
     url.searchParams.set("width", String(width));
     url.searchParams.set("quality", String(quality ?? 75));
     return url.toString();
   } catch {
-    const separator = renderSrc.includes("?") ? "&" : "?";
-    return `${renderSrc}${separator}width=${width}&quality=${quality ?? 75}`;
+    return src;
   }
 }
