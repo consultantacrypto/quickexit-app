@@ -3,7 +3,7 @@ import Stripe from 'stripe';
 
 // Inițializăm Stripe cu versiunea corectă cerută de TypeScript
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2026-04-22.dahlia', 
+  apiVersion: '2023-10-16' as any,
 });
 
 export async function POST(request: Request) {

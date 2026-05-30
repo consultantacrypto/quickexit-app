@@ -4,9 +4,31 @@ import { useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { Loader2, Search } from "lucide-react";
-import { getAttribution, trackEvent } from "@/lib/analytics";
+import { trackEvent } from "@/lib/analytics";
+import { getPriceIdForPackageId } from "@/lib/stripePackages";
 
-export default function PuneAnuntClient() {
+type PackageIdParam = "economy" | "standard" | "urgent" | "auction";
+
+const VALID_PACKAGES: readonly PackageIdParam[] = [
+  "economy",
+  "standard",
+  "urgent",
+  "auction",
+];
+
+function normalizeInitialPackage(value: string | undefined): PackageIdParam {
+  return value && (VALID_PACKAGES as readonly string[]).includes(value)
+    ? (value as PackageIdParam)
+    : "standard";
+}
+
+type PuneAnuntClientProps = {
+  initialPackage?: string;
+};
+
+export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps) {
+  const initialPkg = normalizeInitialPackage(initialPackage);
+
   const [step, setStep] = useState(1);
   const [category, setCategory] = useState("Auto & Moto");
   const [images, setImages] = useState<File[]>([]);
@@ -20,10 +42,14 @@ export default function PuneAnuntClient() {
   const [analyzedItems, setAnalyzedItems] = useState(0);
 
   const [exitPrice, setExitPrice] = useState("");
-  const [saleStrategy, setSaleStrategy] = useState("standard");
-  const [selectedPackage, setSelectedPackage] = useState<
-    "economy" | "standard" | "urgent" | "auction"
-  >("standard");
+  const [saleStrategy, setSaleStrategy] = useState<string>(
+    initialPkg === "urgent"
+      ? "lichidare"
+      : initialPkg === "auction"
+        ? "licitatie"
+        : "standard"
+  );
+  const [selectedPackage, setSelectedPackage] = useState<PackageIdParam>(initialPkg);
 
   const [isSaving, setIsSaving] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -267,6 +293,23 @@ export default function PuneAnuntClient() {
     finalCalculatedExitPrice = baseRequestedPrice;
   }
 
+  // Trimite utilizatorul către Stripe Checkout pentru un anunț deja creat.
+  const handleCheckout = async (priceId: string, listingId: string) => {
+    const res = await fetch("/api/stripe/checkout", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ priceId, listingId }),
+    });
+
+    const data = await res.json().catch(() => null);
+    if (!res.ok || !data?.url) {
+      throw new Error(data?.error || "Nu am putut inițializa plata. Te rugăm să încerci din nou.");
+    }
+
+    // Redirecționare către pagina securizată Stripe.
+    window.location.href = data.url;
+  };
+
   const handleFinalSubmit = async () => {
     setFlowError(null);
     setIsSaving(true);
@@ -335,33 +378,24 @@ export default function PuneAnuntClient() {
         return;
       }
 
-      // 2. Apelăm motorul de plăți Stripe
+      // 2. Rezolvăm Price ID-ul Stripe pentru pachetul ales (sursa adevărului: lib/stripePackages).
+      const priceId = getPriceIdForPackageId(selectedPackage);
+      if (!priceId) {
+        setFlowError("Pachet invalid pentru plată. Te rugăm să reîncerci.");
+        setIsSaving(false);
+        return;
+      }
+
+      // 3. Apelăm motorul de plăți Stripe (ruta nouă /api/stripe/checkout)
       trackEvent("checkout_listing_started", {
         category,
         package_id: selectedPackage,
         sale_strategy: saleStrategy,
         price: packagePrices[selectedPackage],
       });
-      const stripeRes = await fetch("/api/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          listingId: insertedData.id,
-          packageId: selectedPackage,
-          price: packagePrices[selectedPackage],
-          title: adTitle,
-          attribution: getAttribution(),
-        }),
-      });
 
-      const stripeData = await stripeRes.json();
-
-      if (stripeData.url) {
-        // 3. Aruncăm utilizatorul către pagina securizată Stripe
-        window.location.href = stripeData.url;
-      } else {
-        throw new Error(stripeData.error || "Eroare la generarea plății.");
-      }
+      // handleCheckout redirecționează către Stripe; aruncă dacă răspunsul e invalid.
+      await handleCheckout(priceId, insertedData.id);
     } catch (error: any) {
       console.error("Eroare salvare anunț / plată:", error);
       const msg =

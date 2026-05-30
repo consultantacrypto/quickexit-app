@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import Link from "next/link";
-import { getAttribution, trackEvent } from "@/lib/analytics";
+import { trackEvent } from "@/lib/analytics";
+import { getPriceIdForPackageId } from "@/lib/stripePackages";
 
 const labelBase =
   "block text-[10px] font-black uppercase tracking-widest text-neutral-500";
@@ -60,19 +61,35 @@ export default function PosteazaCerereClient() {
         return;
       }
 
-      const { error: profileError } = await supabase.from("profiles").upsert(
-        {
-          id: user.id,
-          full_name: user.user_metadata?.full_name || user.user_metadata?.name || null,
-          user_type: "buyer",
-        },
-        { onConflict: "id" }
-      );
+      // Profilul este best-effort și NU blochează niciodată fluxul.
+      // Folosim UPDATE (nu upsert): un INSERT prin upsert e refuzat de RLS (403),
+      // pentru că politica pentru `profiles` permite doar UPDATE pe propriul rând.
+      // Dacă rândul nu există, UPDATE afectează 0 rânduri, fără eroare. Coloana
+      // `kyc_status` nu este atinsă (interzisă din client).
+      try {
+        const { error: profileError } = await supabase
+          .from("profiles")
+          .update({
+            full_name:
+              user.user_metadata?.full_name || user.user_metadata?.name || null,
+            user_type: "buyer",
+          })
+          .eq("id", user.id);
 
-      if (profileError) {
-        setErrorMsg("Nu am putut actualiza profilul. Te rugăm să încerci din nou.");
-        setIsSubmitting(false);
-        return;
+        if (profileError) {
+          console.error(
+            "[posteaza-cerere] profiles update (best-effort) a eșuat — continuăm:",
+            {
+              message: profileError.message,
+              details: (profileError as { details?: string }).details,
+              hint: (profileError as { hint?: string }).hint,
+              code: (profileError as { code?: string }).code,
+            }
+          );
+        }
+      } catch (profileErr) {
+        // Orice excepție pe profil este ignorată intenționat: nu oprim postarea cererii.
+        console.error("[posteaza-cerere] excepție la profiles update (ignorată):", profileErr);
       }
 
       const { data: insertedData, error } = await supabase
@@ -92,8 +109,21 @@ export default function PosteazaCerereClient() {
         .single();
 
       if (error) {
-        console.error("Eroare Supabase demands insert:", error.message);
+        console.error("[posteaza-cerere] demands insert error:", {
+          message: error.message,
+          details: (error as { details?: string }).details,
+          hint: (error as { hint?: string }).hint,
+          code: error.code,
+        });
         setErrorMsg("Nu am putut salva cererea. Te rugăm să încerci din nou.");
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Price ID pentru pachetul „Cerere Capital" (99 RON) — sursa adevărului: lib/stripePackages.
+      const priceId = getPriceIdForPackageId("demand");
+      if (!priceId) {
+        setErrorMsg("Configurarea plății este indisponibilă. Te rugăm să încerci mai târziu.");
         setIsSubmitting(false);
         return;
       }
@@ -103,31 +133,30 @@ export default function PosteazaCerereClient() {
         price: 99,
       });
 
-      const stripeRes = await fetch("/api/checkout-demand", {
+      // Ruta generică /api/stripe/checkout; type: "demand" îi spune webhook-ului ce să activeze.
+      const stripeRes = await fetch("/api/stripe/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          priceId,
           demandId: insertedData.id,
-          title: targetAsset,
-          price: 99,
-          attribution: getAttribution(),
+          type: "demand",
+          userId: user.id,
         }),
       });
 
-      const stripeData = await stripeRes.json();
+      const stripeData = await stripeRes.json().catch(() => null);
 
-      if (stripeData.url) {
-        window.location.href = stripeData.url;
-      } else {
-        if (stripeData.error) {
-          setErrorMsg("Nu am putut porni plata. Te rugăm să încerci din nou.");
-        } else {
-          throw new Error("checkout_no_url");
-        }
+      if (!stripeRes.ok || !stripeData?.url) {
+        console.error("[posteaza-cerere] checkout error:", stripeData);
+        setErrorMsg("Nu am putut porni plata. Te rugăm să încerci din nou.");
         setIsSubmitting(false);
+        return;
       }
+
+      window.location.href = stripeData.url;
     } catch (error: any) {
-      console.error("Eroare la inserare/plată:", error.message);
+      console.error("[posteaza-cerere] Eroare la inserare/plată:", error);
       setErrorMsg("A apărut o problemă. Te rugăm să încerci din nou.");
       setIsSubmitting(false);
     }

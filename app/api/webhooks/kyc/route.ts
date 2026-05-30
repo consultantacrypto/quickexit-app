@@ -4,7 +4,7 @@ import { createClient } from '@supabase/supabase-js';
 
 // 1. Inițializăm Stripe
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2026-04-22.dahlia',
+  apiVersion: '2023-10-16' as any,
 });
 
 // 2. Inițializăm Supabase (Atenție: Folosim SERVICE_ROLE_KEY pentru a avea drepturi de scriere din backend)

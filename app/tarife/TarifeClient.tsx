@@ -158,7 +158,7 @@ export default function TarifeClient() {
                   {pkg.price}
                 </p>
                 <Link
-                  href="/pune-anunt"
+                  href={`/pune-anunt?package=${pkg.id}`}
                   onClick={() =>
                     trackEvent("click_pricing_package", {
                       package_id: pkg.id,
@@ -230,7 +230,7 @@ export default function TarifeClient() {
                 111 RON
               </p>
               <Link
-                href="/pune-anunt"
+                href="/pune-anunt?package=auction"
                 onClick={() =>
                   trackEvent("click_pricing_package", {
                     package_id: "auction",
