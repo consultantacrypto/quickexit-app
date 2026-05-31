@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
-import { Loader2, Search } from "lucide-react";
+import { Loader2, Search, Star, X } from "lucide-react";
 import { trackEvent } from "@/lib/analytics";
 import { getPriceIdForPackageId } from "@/lib/stripePackages";
 
@@ -197,9 +197,48 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
     "mt-2 w-full rounded-[0.875rem] border-2 border-black bg-white px-4 py-3 text-sm font-semibold text-neutral-900 placeholder:text-neutral-500 focus:border-[#FFD100] focus:outline-none focus:ring-[3px] focus:ring-[#FFD100]/35";
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      setImages(Array.from(e.target.files));
+    if (e.target.files && e.target.files.length > 0) {
+      // Adăugăm la selecția existentă (nu o suprascriem), evitând duplicatele.
+      const incoming = Array.from(e.target.files);
+      setImages((prev) => {
+        const existingKeys = new Set(prev.map((f) => `${f.name}-${f.size}-${f.lastModified}`));
+        const merged = [...prev];
+        for (const file of incoming) {
+          const key = `${file.name}-${file.size}-${file.lastModified}`;
+          if (!existingKeys.has(key)) merged.push(file);
+        }
+        return merged;
+      });
+      // Permite reselectarea aceluiași fișier ulterior.
+      e.target.value = "";
     }
+  };
+
+  // Generăm preview-uri (object URLs) pentru fișierele selectate și le eliberăm
+  // la cleanup ca să nu acumulăm memorie. Se regenerează la orice schimbare de listă.
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  useEffect(() => {
+    const urls = images.map((file) => URL.createObjectURL(file));
+    setImagePreviews(urls);
+    return () => {
+      urls.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, [images]);
+
+  // Mută imaginea de la `index` pe poziția 0 (devine coperta anunțului).
+  const setAsCover = (index: number) => {
+    if (index <= 0) return;
+    setImages((prev) => {
+      if (index >= prev.length) return prev;
+      const next = [...prev];
+      const [picked] = next.splice(index, 1);
+      next.unshift(picked);
+      return next;
+    });
+  };
+
+  const removeImage = (index: number) => {
+    setImages((prev) => prev.filter((_, i) => i !== index));
   };
 
   const generateAiPricing = async () => {
@@ -1195,6 +1234,69 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                       </p>
                     )}
                   </div>
+
+                  {imagePreviews.length > 0 && (
+                    <div className="mt-6">
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-neutral-500">
+                        Ordine poze — prima imagine este coperta anunțului
+                      </p>
+                      <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+                        {imagePreviews.map((src, index) => {
+                          const isCover = index === 0;
+                          return (
+                            <div
+                              key={src}
+                              className={`group relative aspect-square overflow-hidden rounded-2xl border-[3px] bg-white transition-all duration-200 ${
+                                isCover
+                                  ? "border-[#FFD100] shadow-[4px_4px_0_0_#000]"
+                                  : "border-black"
+                              }`}
+                            >
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={src}
+                                alt={`Fotografie ${index + 1}`}
+                                className="h-full w-full object-cover"
+                              />
+
+                              {isCover && (
+                                <span className="absolute left-2 top-2 flex items-center gap-1 rounded-full border-2 border-black bg-[#FFD100] px-2.5 py-1 text-[9px] font-black uppercase tracking-wider text-black shadow-[2px_2px_0_0_#000]">
+                                  <Star
+                                    size={11}
+                                    strokeWidth={3}
+                                    className="fill-black"
+                                    aria-hidden
+                                  />
+                                  Imagine principală
+                                </span>
+                              )}
+
+                              <button
+                                type="button"
+                                onClick={() => removeImage(index)}
+                                aria-label={`Șterge fotografia ${index + 1}`}
+                                className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full border-2 border-black bg-white text-black shadow-[2px_2px_0_0_#000] transition hover:bg-red-600 hover:text-white active:translate-y-0.5"
+                              >
+                                <X size={14} strokeWidth={3} aria-hidden />
+                              </button>
+
+                              {!isCover && (
+                                <button
+                                  type="button"
+                                  onClick={() => setAsCover(index)}
+                                  aria-label={`Setează fotografia ${index + 1} ca imagine principală`}
+                                  className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-1.5 border-t-2 border-black bg-black/85 py-2 text-[9px] font-black uppercase tracking-wider text-[#FFD100] backdrop-blur-sm transition hover:bg-black active:translate-y-0.5"
+                                >
+                                  <Star size={11} strokeWidth={3} aria-hidden />
+                                  Setează ca principală
+                                </button>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
