@@ -11,7 +11,9 @@ import { getSiteUrl } from "@/lib/siteUrl";
 const siteUrl = getSiteUrl();
 
 export const metadata: Metadata = {
-  metadataBase: new URL(siteUrl),
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_BASE_URL?.trim() || "https://www.quickexit.ro"
+  ),
   title: {
     default: "Quick Exit | Platforma de lichiditate rapida pentru active",
     template: "%s | Quick Exit",

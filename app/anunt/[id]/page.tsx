@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import AnuntClient from "./AnuntClient";
-import { getSiteUrl } from "@/lib/siteUrl";
+import { getSiteUrl, toAbsoluteSiteUrl } from "@/lib/siteUrl";
 import {
   fetchPublicListingDetail,
   fetchPublicListingSeoRow,
@@ -20,14 +20,6 @@ function formatEurPrice(value: number | null | undefined): string | null {
   const n = Number(value);
   if (!Number.isFinite(n) || n <= 0) return null;
   return `€${n.toLocaleString("ro-RO")}`;
-}
-
-function toAbsoluteUrl(siteUrl: string, pathOrUrl: string): string {
-  const trimmed = String(pathOrUrl || "").trim();
-  if (!trimmed) return siteUrl;
-  if (/^https?:\/\//i.test(trimmed)) return trimmed;
-  if (trimmed.startsWith("/")) return `${siteUrl}${trimmed}`;
-  return `${siteUrl}/${trimmed}`;
 }
 
 function buildListingDescription(listing: ListingSeoRow): string {
@@ -63,6 +55,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const listing = listingId ? await fetchPublicListingSeoRow(listingId) : null;
   if (!listing) {
     return {
+      metadataBase: new URL(siteUrl),
       title: { absolute: "Anunț indisponibil | Quick Exit" },
       description: "Acest anunț nu este disponibil public momentan.",
       alternates: { canonical: canonicalAbs },
@@ -74,7 +67,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
         type: "website",
         siteName: "Quick Exit",
         locale: "ro_RO",
-        images: [{ url: toAbsoluteUrl(siteUrl, "/logo.png") }],
+        images: [{ url: toAbsoluteSiteUrl("/logo.png") }],
       },
     };
   }
@@ -87,9 +80,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     Array.isArray(listing.images) && listing.images.length > 0
       ? String(listing.images[0] || "").trim()
       : "";
-  const ogImage = firstImage ? toAbsoluteUrl(siteUrl, firstImage) : toAbsoluteUrl(siteUrl, "/logo.png");
+  const ogImage = firstImage ? toAbsoluteSiteUrl(firstImage) : toAbsoluteSiteUrl("/logo.png");
 
   return {
+    metadataBase: new URL(siteUrl),
     title: { absolute: title },
     description,
     alternates: { canonical: canonicalAbs },
@@ -149,7 +143,7 @@ export default async function ListingPage({ params }: PageProps) {
                 image: listing.images
                   .map((img) => String(img || "").trim())
                   .filter(Boolean)
-                  .map((img) => toAbsoluteUrl(siteUrl, img)),
+                  .map((img) => toAbsoluteSiteUrl(img)),
               }
             : {}),
           ...(hasValidExitPrice

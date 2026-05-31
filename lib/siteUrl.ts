@@ -1,14 +1,27 @@
+/** Domeniu producție — folosit când env lipsește (fără VERCEL_URL). */
+export const DEFAULT_SITE_URL = "https://www.quickexit.ro";
+
 /**
  * URL-uri absolute pentru SEO, Stripe, Supabase Auth.
- * Prioritate: NEXT_PUBLIC_BASE_URL → NEXT_PUBLIC_SITE_URL.
- * Nu folosim NEXT_PUBLIC_VERCEL_URL și nu hardcodăm domenii Vercel.
+ * Prioritate: NEXT_PUBLIC_BASE_URL → NEXT_PUBLIC_SITE_URL → DEFAULT_SITE_URL.
+ * Nu folosim VERCEL_URL / NEXT_PUBLIC_VERCEL_URL.
  */
 export function getSiteUrl(): string {
   const raw =
     process.env.NEXT_PUBLIC_BASE_URL?.trim() ||
     process.env.NEXT_PUBLIC_SITE_URL?.trim() ||
-    "";
+    DEFAULT_SITE_URL;
   return raw.replace(/\/+$/, "");
+}
+
+/** Cale sau URL relativ → URL absolut pe domeniul site-ului. */
+export function toAbsoluteSiteUrl(pathOrUrl: string): string {
+  const siteUrl = getSiteUrl();
+  const trimmed = String(pathOrUrl || "").trim();
+  if (!trimmed) return siteUrl;
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  if (trimmed.startsWith("/")) return `${siteUrl}${trimmed}`;
+  return `${siteUrl}/${trimmed}`;
 }
 
 /** Originea pentru redirect-uri auth: în browser = domeniul curent; pe server = env. */

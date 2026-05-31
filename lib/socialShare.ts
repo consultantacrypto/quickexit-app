@@ -1,3 +1,5 @@
+import { getSiteUrl } from "@/lib/siteUrl";
+
 type SocialChannel = "x" | "linkedin" | "whatsapp" | "telegram" | "instagram" | "hq";
 
 type ListingForShare = {
@@ -85,11 +87,9 @@ export function getCategoryHashtags(category?: string | null): string[] {
 }
 
 export function buildListingUrl(listingId: string, baseOrigin?: string): string {
-  const fromEnv = process.env.NEXT_PUBLIC_BASE_URL?.trim();
   const fromWindow =
     typeof window !== "undefined" && window.location?.origin ? window.location.origin : "";
-  const origin = (baseOrigin || fromEnv || fromWindow || "").replace(/\/+$/, "");
-  if (!origin) return `/anunt/${listingId}`;
+  const origin = (baseOrigin || getSiteUrl() || fromWindow).replace(/\/+$/, "");
   return `${origin}/anunt/${listingId}`;
 }
 

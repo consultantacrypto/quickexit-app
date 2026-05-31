@@ -18,6 +18,7 @@ export function buildPageMetadata({
   const finalTitle = title.includes("Quick Exit") ? title : `${title} | Quick Exit`;
 
   return {
+    metadataBase: new URL(siteUrl),
     title: {
       absolute: finalTitle,
     },
@@ -32,6 +33,7 @@ export function buildPageMetadata({
       type: "website",
       siteName: "Quick Exit",
       locale: "ro_RO",
+      images: [{ url: `${siteUrl}/logo.png` }],
     },
   };
 }
