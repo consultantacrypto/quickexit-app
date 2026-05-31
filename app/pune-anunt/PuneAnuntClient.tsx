@@ -212,6 +212,17 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
     setIsAnalyzing(true);
     setStep(3);
 
+    // Fail-safe: dacă AI-ul/API-ul pică (502, timeout, JSON invalid), NU blocăm
+    // utilizatorul pe Pasul 2. Activăm modul manual (confidence 0 => isLowConfidence)
+    // și rămânem pe Pasul 3 ca să poată introduce manual prețurile.
+    const activateManualFallback = () => {
+      setEvaluationResult({ confidence_score: 0 });
+      setMarketPrice(0);
+      setAnalyzedItems(0);
+      setExitPrice("");
+      setFlowError(null);
+    };
+
     try {
       const apiCategory =
         category === "Auto & Moto"
@@ -246,9 +257,19 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
         body: JSON.stringify(payload),
       });
 
-      const data = await response.json();
+      // 502/500/etc. — răspunsul poate fi HTML, nu JSON. Nu blocăm userul.
+      if (!response.ok) {
+        console.error(
+          `[generateAiPricing] /api/evaluate a răspuns cu status ${response.status}. Trec pe fallback manual.`,
+        );
+        activateManualFallback();
+        return;
+      }
 
-      if (data.success) {
+      // Parsare defensivă: dacă body-ul nu e JSON valid, nu aruncăm — fallback manual.
+      const data = await response.json().catch(() => null);
+
+      if (data && data.success) {
         setEvaluationResult(data);
         setMarketPrice(data.estimated_market_price || 0);
         setAnalyzedItems(data.comparable_count || 0);
@@ -259,16 +280,17 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
           setExitPrice("");
         }
       } else {
-        setFlowError(
-          typeof data.message === "string" && data.message.trim()
-            ? data.message
-            : "Date insuficiente pentru o estimare automată. Completează câmpurile și încearcă din nou.",
+        // Răspuns fără success sau JSON invalid -> mod manual, rămânem pe Pasul 3.
+        console.error(
+          "[generateAiPricing] Răspuns fără succes de la /api/evaluate. Trec pe fallback manual:",
+          data,
         );
-        setStep(2);
+        activateManualFallback();
       }
     } catch (error) {
-      setFlowError("Estimarea pe piață este momentan indisponibilă. Te rugăm să încerci mai târziu.");
-      setStep(2);
+      // Eroare de rețea / excepție neașteptată -> mod manual, rămânem pe Pasul 3.
+      console.error("[generateAiPricing] Eroare rețea/excepție la /api/evaluate:", error);
+      activateManualFallback();
     } finally {
       setIsAnalyzing(false);
     }
