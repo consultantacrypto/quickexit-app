@@ -156,12 +156,11 @@ export default async function Home() {
                 href="/evaluare"
                 eventName="click_evaluate"
                 eventParams={{ source: "home_hero" }}
-                className="group relative inline-flex max-w-[min(100vw-2rem,27rem)] flex-col items-center justify-center overflow-hidden rounded-[2.125rem] border-b-8 border-yellow-700 bg-black px-7 py-[18px] font-black uppercase italic tracking-widest text-[#FFD100] shadow-[0_10px_28px_rgba(255,209,0,0.18)] transition-all hover:scale-[1.015] hover:shadow-[0_18px_36px_rgba(255,209,0,0.28)] active:border-b-0 active:translate-y-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#FFD100] md:px-10 md:py-[22px] lg:px-11 lg:py-6"
+                className="group relative inline-flex items-center justify-center overflow-hidden whitespace-nowrap rounded-full border border-black/[0.12] bg-black/90 px-8 py-3.5 text-sm font-semibold uppercase tracking-[0.12em] text-[#FFD100] shadow-[0_14px_36px_-10px_rgba(0,0,0,0.45)] backdrop-blur-md transition-all duration-300 hover:border-[#FFD100]/35 hover:bg-black hover:shadow-[0_22px_48px_-14px_rgba(0,0,0,0.5)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#FFD100] md:px-10 md:py-4 md:text-[15px]"
               >
-                <div className="absolute top-0 -left-[100%] h-full w-1/2 skew-x-[-25deg] bg-white/10 transition-all duration-1000 ease-in-out group-hover:left-[150%]" />
-                <span className="relative z-10 block text-center text-[21px] leading-none uppercase md:text-[26px] lg:text-[30px]">
+                <span className="relative z-10 whitespace-nowrap">
                   Cât valorează ce vinzi
-                  <span className="quickexit-question-pulse inline-block">?</span>
+                  <span className="quickexit-question-pulse ml-0.5 inline-block">?</span>
                 </span>
               </TrackedLink>
               <TrackedLink
@@ -190,30 +189,35 @@ export default async function Home() {
                     desc: "Pentru vânzări unde vrei să strângi mai multe oferte și să alegi manual varianta potrivită.",
                     time: "30 zile",
                     price: "111 RON",
+                    packageId: "auction",
                   },
                   {
                     label: "Expunere maximă",
                     desc: "Pentru anunțuri care au nevoie de mai mult timp la vedere.",
                     time: "30 zile",
                     price: "99 RON",
+                    packageId: "economy",
                   },
                   {
                     label: "Vânzare rapidă",
                     desc: "Pentru listări echilibrate între timp, cost și vizibilitate.",
                     time: "14 zile",
                     price: "79 RON",
+                    packageId: "standard",
                   },
                   {
                     label: "Vânzare urgentă",
                     desc: "Pentru situații în care vrei răspuns rapid.",
                     time: "48 ore",
                     price: "48 RON",
+                    packageId: "urgent",
                   },
                 ] as const
               ).map((item) => (
-                <div
+                <Link
                   key={item.label}
-                  className="rounded-2xl border-[3px] border-black bg-white p-3 shadow-[3px_3px_0_0_rgba(0,0,0,1)] transition hover:-translate-y-0.5 md:p-3.5 lg:p-4"
+                  href={`/pune-anunt?package=${item.packageId}`}
+                  className="block rounded-2xl border-[3px] border-black bg-white p-3 text-left shadow-[3px_3px_0_0_rgba(0,0,0,1)] transition hover:-translate-y-0.5 md:p-3.5 lg:p-4"
                 >
                   <p className="mb-1 text-[10px] font-black uppercase tracking-widest text-gray-500 md:text-[11px]">
                     {item.label}
@@ -227,7 +231,7 @@ export default async function Home() {
                   <p className="mt-2 block text-[10px] font-bold uppercase tracking-tighter text-neutral-500 opacity-90 md:text-[11px]">
                     {item.desc}
                   </p>
-                </div>
+                </Link>
               ))}
             </div>
           </div>
