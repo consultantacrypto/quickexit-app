@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
+import { getSiteUrl } from '@/lib/siteUrl';
 
 // Inițializăm Stripe cu versiunea corectă cerută de TypeScript
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
@@ -18,7 +19,13 @@ export async function POST(request: Request) {
       );
     }
 
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://quickexit-app.vercel.app";
+    const baseUrl = getSiteUrl();
+    if (!baseUrl) {
+      return NextResponse.json(
+        { error: 'Config server incompletă: NEXT_PUBLIC_BASE_URL lipsește.' },
+        { status: 500 },
+      );
+    }
 
     // Creăm sesiunea de verificare a identității
     const verificationSession = await stripe.identity.verificationSessions.create({

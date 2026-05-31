@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
+import { getAuthCallbackUrl } from "@/lib/siteUrl";
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -36,8 +37,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
-        // Îl trimitem direct în Dashboard după click pe linkul din mail
-        emailRedirectTo: `${window.location.origin}/dashboard`, 
+        emailRedirectTo: getAuthCallbackUrl("/dashboard"),
       },
     });
 
@@ -53,8 +53,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
     await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        // Îl trimitem direct în Dashboard după login-ul cu Google
-        redirectTo: `${window.location.origin}/dashboard`,
+        redirectTo: getAuthCallbackUrl("/dashboard"),
       },
     });
   };
