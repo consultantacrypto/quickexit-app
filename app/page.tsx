@@ -116,7 +116,7 @@ export default async function Home() {
   ];
 
   return (
-    <div className="flex flex-col w-full bg-white selection:bg-[#FFD100] selection:text-black font-sans">
+    <div className="flex w-full flex-col bg-canvas font-sans text-ink selection:bg-gold selection:text-ink">
       {itemListJsonLd && (
         <script
           // eslint-disable-next-line react/no-danger
@@ -124,120 +124,107 @@ export default async function Home() {
           type="application/ld+json"
         />
       )}
-      
-      {/* HERO + pachete (primul ecran) */}
-      <section className="relative overflow-hidden bg-white pb-8 pt-12 text-center md:pb-10 md:pt-14 lg:pb-11 lg:pt-12 xl:pt-10 2xl:pt-9">
-        <div className="mx-auto max-w-7xl px-4">
-          <div className="mx-auto max-w-4xl">
-            <h1 className="mb-5 font-black uppercase italic tracking-tighter text-black md:mb-6 lg:mb-7">
-              <span className="block text-6xl leading-[0.9] sm:text-7xl md:text-8xl md:leading-[0.85] lg:text-9xl">
-                Vinde <span className="quickexit-acum-pulse text-[#FFD100]">Acum</span>.
-              </span>
-              <span className="mt-1 block text-6xl leading-[0.9] sm:mt-0 sm:text-7xl md:text-8xl md:leading-[0.85] lg:text-9xl">
-                Banii{" "}
-                <span className="quickexit-hero-sweep inline-block bg-[length:240%_100%] bg-clip-text text-transparent [background-image:linear-gradient(110deg,#E5E7EB_0%,#E5E7EB_42%,#FFF3A3_47%,#FFD100_50%,#FFF3A3_53%,#E5E7EB_58%,#E5E7EB_100%)]">
-                  Azi
-                </span>
-                .
-              </span>
-            </h1>
 
-            <div className="mx-auto mb-5 max-w-[23rem] px-1.5 sm:max-w-3xl sm:px-2 md:mb-6 lg:mb-6 lg:max-w-[54rem]">
-              <p className="text-[13px] font-bold leading-[1.56] sm:text-[14px] sm:leading-[1.6] md:text-[17px] md:leading-[1.62] lg:text-[20px] lg:leading-[1.65]">
-                <span className="bg-[#FFD100] px-2.5 py-1.5 text-black box-decoration-clone sm:px-3 md:px-3.5 md:py-2">
-                  Quick Exit conectează vânzători care vor să vândă rapid cu cumpărători care au buget și caută
-                  oportunități sub prețul pieței.
-                </span>
-              </p>
-            </div>
+      {/* HERO */}
+      <section className="bg-canvas px-4 pb-14 pt-16 text-center md:pb-20 md:pt-24">
+        <div className="mx-auto max-w-5xl">
+          <h1 className="font-black tracking-tighter text-ink">
+            <span className="block text-5xl leading-[0.95] sm:text-6xl md:text-7xl lg:text-8xl">
+              Vinde <span className="text-gold-deep">acum</span>.
+            </span>
+            <span className="mt-1 block text-5xl leading-[0.95] sm:text-6xl md:text-7xl lg:text-8xl">
+              Banii <span className="text-gold-deep">azi</span>.
+            </span>
+          </h1>
 
-            <div className="mb-3 flex flex-col items-center md:mb-4 lg:mb-4">
-              <TrackedLink
-                href="/evaluare"
-                eventName="click_evaluate"
-                eventParams={{ source: "home_hero" }}
-                className="group relative bg-black px-7 py-[18px] text-[#FFD100] rounded-[2.125rem] font-black uppercase tracking-widest transition-all border-b-8 border-yellow-700 active:border-b-0 active:translate-y-2 hover:scale-[1.015] shadow-[0_10px_28px_rgba(255,209,0,0.18)] hover:shadow-[0_18px_36px_rgba(255,209,0,0.28)] overflow-hidden md:px-10 md:py-[22px] lg:px-11 lg:py-6 max-w-[min(100vw-2rem,27rem)] inline-flex flex-col items-center justify-center focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#FFD100]"
-              >
-                <div className="absolute top-0 -left-[100%] w-1/2 h-full bg-white/10 skew-x-[-25deg] group-hover:left-[150%] transition-all duration-1000 ease-in-out" />
-                <span className="relative z-10 block text-center text-[21px] md:text-[26px] lg:text-[30px] italic uppercase leading-none">
-                  Cât valorează ce vinzi
-                  <span className="quickexit-question-pulse inline-block">?</span>
-                </span>
-              </TrackedLink>
-              <TrackedLink
-                href="/capital-disponibil"
-                eventName="click_capital_available"
-                eventParams={{ source: "home_hero" }}
-                className="mt-2.5 inline-block border-b-2 border-transparent text-[10px] font-black uppercase tracking-widest text-neutral-600 underline-offset-4 transition hover:border-black hover:text-black md:mt-3 md:text-[11px]"
-              >
-                Vezi cereri de cumpărare
-              </TrackedLink>
-            </div>
-          </div>
+          <p className="mx-auto mt-7 max-w-2xl text-base font-medium leading-relaxed text-muted md:mt-8 md:text-lg">
+            Quick Exit conectează vânzători care vor să vândă rapid cu cumpărători care au buget și
+            caută oportunități sub prețul pieței.
+          </p>
 
-          <div className="mt-0.5 md:mt-1">
-            <div className="mb-2.5 text-center md:mb-3 lg:mb-4">
-              <h2 className="text-lg font-black uppercase italic tracking-tight text-black md:text-2xl">
-                Alege ritmul de vânzare
-              </h2>
-            </div>
-
-            <div className="mx-auto grid max-w-6xl grid-cols-2 gap-3 md:grid-cols-4 md:gap-4 lg:gap-5">
-              {(
-                [
-                  {
-                    label: "Licitație deschisă 30 zile",
-                    desc: "Pentru vânzări unde vrei să strângi mai multe oferte și să alegi manual varianta potrivită.",
-                    time: "30 zile",
-                    price: "111 RON",
-                  },
-                  {
-                    label: "Expunere maximă",
-                    desc: "Pentru anunțuri care au nevoie de mai mult timp la vedere.",
-                    time: "30 zile",
-                    price: "99 RON",
-                  },
-                  {
-                    label: "Vânzare rapidă",
-                    desc: "Pentru listări echilibrate între timp, cost și vizibilitate.",
-                    time: "14 zile",
-                    price: "79 RON",
-                  },
-                  {
-                    label: "Vânzare urgentă",
-                    desc: "Pentru situații în care vrei răspuns rapid.",
-                    time: "48 ore",
-                    price: "48 RON",
-                  },
-                ] as const
-              ).map((item) => (
-                <div
-                  key={item.label}
-                  className="rounded-2xl border-[3px] border-black bg-white p-3 shadow-[3px_3px_0_0_rgba(0,0,0,1)] transition hover:-translate-y-0.5 md:p-3.5 lg:p-4"
-                >
-                  <p className="mb-1 text-[10px] font-black uppercase tracking-widest text-gray-500 md:text-[11px]">
-                    {item.label}
-                  </p>
-                  <p className="text-base font-black uppercase italic leading-none md:text-lg lg:text-xl">
-                    {item.time}
-                  </p>
-                  <p className="mt-2 inline-block rounded bg-black px-2 py-0.5 text-[11px] font-black uppercase tracking-tighter text-[#FFD100] md:text-[11px]">
-                    {item.price}
-                  </p>
-                  <p className="mt-2 block text-[10px] font-bold uppercase tracking-tighter text-neutral-500 opacity-90 md:text-[11px]">
-                    {item.desc}
-                  </p>
-                </div>
-              ))}
-            </div>
+          <div className="mt-9 flex flex-col items-center gap-4 md:mt-10">
+            <TrackedLink
+              href="/evaluare"
+              eventName="click_evaluate"
+              eventParams={{ source: "home_hero" }}
+              className="group inline-flex items-center justify-center gap-2 rounded-full bg-ink px-10 py-4 text-sm font-semibold uppercase tracking-[0.18em] text-white transition-all duration-300 hover:bg-ink-soft hover:shadow-[0_18px_40px_-12px_rgba(0,0,0,0.35)] md:px-12 md:py-5 md:text-base focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-gold"
+            >
+              Cât valorează ce vinzi?
+              <span className="transition-transform duration-300 group-hover:translate-x-1">→</span>
+            </TrackedLink>
+            <TrackedLink
+              href="/capital-disponibil"
+              eventName="click_capital_available"
+              eventParams={{ source: "home_hero" }}
+              className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted underline-offset-4 transition hover:text-ink hover:underline"
+            >
+              Vezi cereri de cumpărare
+            </TrackedLink>
           </div>
         </div>
       </section>
 
-      <section className="border-t border-gray-100 bg-white py-12 md:py-14">
-        <div className="mx-auto max-w-6xl px-4 text-center md:text-left">
-          <h2 className="mb-10 inline-block border-b-[6px] border-[#FFD100] pb-3 text-sm font-black uppercase italic tracking-[0.35em] text-black md:mb-12 md:text-lg">
-            Alege Categoria
+      {/* RITM DE VÂNZARE */}
+      <section className="border-t border-line/60 bg-surface px-4 py-16 md:py-20">
+        <div className="mx-auto max-w-6xl">
+          <h2 className="mb-10 text-center text-2xl font-semibold tracking-tight text-ink md:mb-12 md:text-3xl">
+            Alege ritmul de vânzare
+          </h2>
+
+          <div className="mx-auto grid max-w-6xl grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            {(
+              [
+                {
+                  label: "Licitație deschisă 30 zile",
+                  desc: "Pentru vânzări unde vrei să strângi mai multe oferte și să alegi manual varianta potrivită.",
+                  time: "30 zile",
+                  price: "111 RON",
+                },
+                {
+                  label: "Expunere maximă",
+                  desc: "Pentru anunțuri care au nevoie de mai mult timp la vedere.",
+                  time: "30 zile",
+                  price: "99 RON",
+                },
+                {
+                  label: "Vânzare rapidă",
+                  desc: "Pentru listări echilibrate între timp, cost și vizibilitate.",
+                  time: "14 zile",
+                  price: "79 RON",
+                },
+                {
+                  label: "Vânzare urgentă",
+                  desc: "Pentru situații în care vrei răspuns rapid.",
+                  time: "48 ore",
+                  price: "48 RON",
+                },
+              ] as const
+            ).map((item) => (
+              <div
+                key={item.label}
+                className="flex flex-col rounded-2xl border border-line/70 bg-surface p-6 transition-all duration-500 ease-out hover:-translate-y-1 hover:border-neutral-300/80 hover:shadow-[0_22px_44px_-20px_rgba(0,0,0,0.2)]"
+              >
+                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">
+                  {item.label}
+                </p>
+                <p className="mt-2 text-2xl font-semibold tracking-tight text-ink">{item.time}</p>
+                <p className="mt-3 flex-1 text-sm font-medium leading-relaxed text-muted">
+                  {item.desc}
+                </p>
+                <p className="mt-5 text-sm font-semibold tracking-tight text-gold-deep">
+                  {item.price}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* CATEGORII */}
+      <section className="border-t border-line/60 bg-canvas px-4 py-16 md:py-20">
+        <div className="mx-auto max-w-6xl">
+          <h2 className="mb-10 text-2xl font-semibold tracking-tight text-ink md:mb-12 md:text-3xl">
+            Alege categoria
           </h2>
 
           <div className="grid grid-cols-2 gap-4 md:grid-cols-3 md:gap-6 lg:grid-cols-6">
@@ -245,10 +232,12 @@ export default async function Home() {
               <Link
                 key={cat.slug}
                 href={`/categorii/${cat.slug}`}
-                className="group flex flex-col items-center justify-center rounded-[2rem] border-[3px] border-black bg-white p-5 shadow-[6px_6px_0_0_rgba(0,0,0,1)] transition hover:-translate-y-1 hover:bg-[#FFD100] md:p-8"
+                className="group flex flex-col items-center justify-center gap-4 rounded-2xl border border-line/70 bg-surface p-8 transition-all duration-500 ease-out hover:-translate-y-1 hover:border-neutral-300/80 hover:shadow-[0_22px_44px_-20px_rgba(0,0,0,0.2)]"
               >
-                <div className="mb-3 text-black transition-transform group-hover:scale-110 md:mb-4">{cat.icon}</div>
-                <span className="text-center text-[10px] font-black uppercase tracking-tight text-black md:text-[11px]">
+                <div className="text-ink transition-transform duration-300 group-hover:scale-110 group-hover:text-gold-deep">
+                  {cat.icon}
+                </div>
+                <span className="text-center text-[11px] font-semibold uppercase tracking-[0.12em] text-ink">
                   {cat.name}
                 </span>
               </Link>
@@ -258,100 +247,121 @@ export default async function Home() {
       </section>
 
       {/* ANUNȚURI VÂNZĂRI ACTIVE */}
-      <section className="pt-24 pb-16 bg-gray-50">
-        <div className="mx-auto max-w-7xl px-4">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-16 border-b-[3px] border-black pb-8 gap-4">
-                <h2 className="text-4xl md:text-5xl font-black uppercase italic tracking-tighter leading-none">
-                  Anunțuri <span className="text-[#FFD100]">Vânzări Active</span>
-                </h2>
-                <div className="flex flex-wrap items-center gap-4">
-                  <TrackedLink href="/pune-anunt" eventName="click_post_listing" eventParams={{ source: "home_listings_section" }} className="bg-black text-[#FFD100] px-5 py-2.5 rounded-lg text-[10px] md:text-xs font-black uppercase tracking-widest italic hover:bg-[#FFD100] hover:text-black transition-colors border-2 border-black shadow-[3px_3px_0_0_rgba(0,0,0,1)]">
-                    + Pune Anunț
-                  </TrackedLink>
-                  <Link href="/categorii/auto" className="text-[10px] md:text-xs font-black uppercase tracking-widest italic hover:text-[#FFD100] transition-colors border-b-2 border-transparent hover:border-[#FFD100] py-2">
-                    Vezi toate anunțurile →
-                  </Link>
-                </div>
+      <section className="border-t border-line/60 bg-surface px-4 py-16 md:py-24">
+        <div className="mx-auto max-w-7xl">
+          <div className="mb-4 flex flex-col items-start justify-between gap-5 md:flex-row md:items-end">
+            <h2 className="text-3xl font-semibold tracking-tight text-ink md:text-4xl">
+              Anunțuri <span className="text-gold-deep">vânzări active</span>
+            </h2>
+            <div className="flex flex-wrap items-center gap-5">
+              <TrackedLink
+                href="/pune-anunt"
+                eventName="click_post_listing"
+                eventParams={{ source: "home_listings_section" }}
+                className="rounded-full bg-ink px-6 py-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-white transition-colors duration-300 hover:bg-gold hover:text-ink md:text-xs"
+              >
+                Pune anunț
+              </TrackedLink>
+              <Link
+                href="/categorii/auto"
+                className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted underline-offset-4 transition hover:text-ink hover:underline md:text-xs"
+              >
+                Vezi toate anunțurile →
+              </Link>
             </div>
-            <p className="-mt-10 mb-10 max-w-2xl text-[10px] font-semibold leading-relaxed text-neutral-600 md:-mt-12 md:mb-12 md:text-[11px]">
-              Poți naviga fără cont. Pentru publicare, trimitere oferte și Camera de Negociere ai nevoie de un cont
-              simplu.
-            </p>
-    
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 lg:gap-12">
-                {standardListings && standardListings.length > 0 ? (
-                  standardListings.slice(0, 9).map((item) => (
-                    <AdCard 
-                      key={item.id}
-                      id={item.id}
-                      title={item.title}
-                      image={item.images?.[0] || "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=800&q=80"}
-                      marketPrice={`€${item.market_price.toLocaleString('ro-RO')}`}
-                      exitPrice={`€${item.exit_price.toLocaleString('ro-RO')}`}
-                      discount={item.discount?.toString() || "0"}
-                      score={item.deal_score ? item.deal_score / 10 : 9.0} 
-                      type={normalizeSaleType(item.sale_strategy)}
-                    />
-                  ))
-                ) : (
-                  <div className="col-span-full py-20 text-center border-[3px] border-dashed border-gray-300 rounded-[2rem] bg-white">
-                    <p className="font-black uppercase italic text-gray-400">Momentan terminalul scanează noi active...</p>
-                  </div>
-                )}
-            </div>
+          </div>
+          <p className="mb-12 max-w-2xl text-sm font-medium leading-relaxed text-muted">
+            Poți naviga fără cont. Pentru publicare, trimitere oferte și Camera de Negociere ai nevoie
+            de un cont simplu.
+          </p>
+
+          <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3 lg:gap-10">
+            {standardListings && standardListings.length > 0 ? (
+              standardListings.slice(0, 9).map((item) => (
+                <AdCard
+                  key={item.id}
+                  id={item.id}
+                  title={item.title}
+                  image={
+                    item.images?.[0] ||
+                    "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=800&q=80"
+                  }
+                  marketPrice={`€${item.market_price.toLocaleString("ro-RO")}`}
+                  exitPrice={`€${item.exit_price.toLocaleString("ro-RO")}`}
+                  discount={item.discount?.toString() || "0"}
+                  score={item.deal_score ? item.deal_score / 10 : 9.0}
+                  type={normalizeSaleType(item.sale_strategy)}
+                />
+              ))
+            ) : (
+              <div className="col-span-full rounded-3xl border border-dashed border-line py-20 text-center">
+                <p className="text-sm font-medium text-muted">
+                  Momentan terminalul scanează noi active...
+                </p>
+              </div>
+            )}
+          </div>
         </div>
       </section>
 
       {/* CAPITAL DISPONIBIL */}
-      <section className="py-16 bg-white border-t border-gray-200">
-        <div className="mx-auto max-w-7xl px-4">
-            <div className="mb-12 border-b-[3px] border-black pb-8">
-              <div className="flex flex-col md:flex-row justify-between md:items-end gap-4 mb-4">
-                  <h2 className="text-4xl md:text-5xl font-black uppercase italic tracking-tighter leading-none">
-                    Capital <span className="text-black underline decoration-[#FFD100] decoration-[6px]">Disponibil</span>
-                  </h2>
-                  {/* Butonul tău de oferte cumpărare din Home */}
-                  <TrackedLink href="/capital-disponibil" eventName="click_capital_available" eventParams={{ source: "home_capital_section" }} className="text-[10px] md:text-xs font-black uppercase tracking-widest italic hover:text-[#FFD100] transition-colors border-b-2 border-transparent hover:border-[#FFD100] py-2 whitespace-nowrap">
-                    Vezi toate cererile →
-                  </TrackedLink>
+      <section className="border-t border-line/60 bg-canvas px-4 py-16 md:py-24">
+        <div className="mx-auto max-w-7xl">
+          <div className="mb-12">
+            <div className="mb-4 flex flex-col items-start justify-between gap-5 md:flex-row md:items-end">
+              <h2 className="text-3xl font-semibold tracking-tight text-ink md:text-4xl">
+                Capital <span className="text-gold-deep">disponibil</span>
+              </h2>
+              <TrackedLink
+                href="/capital-disponibil"
+                eventName="click_capital_available"
+                eventParams={{ source: "home_capital_section" }}
+                className="whitespace-nowrap text-[11px] font-semibold uppercase tracking-[0.18em] text-muted underline-offset-4 transition hover:text-ink hover:underline md:text-xs"
+              >
+                Vezi toate cererile →
+              </TrackedLink>
+            </div>
+            <p className="max-w-2xl text-sm font-medium leading-relaxed text-muted">
+              Cereri publicate de cumpărători cu buget comunicat în anunț — verifică detaliile direct
+              cu fiecare ofertant.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3 lg:gap-10">
+            {realDemands && realDemands.length > 0 ? (
+              realDemands.slice(0, 9).map((demand) => (
+                <DemandCard
+                  key={demand.id}
+                  id={demand.id}
+                  targetAsset={demand.target_asset}
+                  category={demand.category}
+                  budget={demand.budget?.toLocaleString("ro-RO")}
+                  description={demand.description}
+                />
+              ))
+            ) : (
+              <div className="col-span-full rounded-3xl border border-dashed border-line py-16 text-center">
+                <p className="text-sm font-medium text-muted">
+                  Nicio cerere de capital înregistrată momentan.
+                </p>
               </div>
-              <p className="text-sm md:text-base font-bold text-gray-500 uppercase italic">
-                Cereri publicate de cumpărători cu buget comunicat în anunț — verifică detaliile direct cu fiecare
-                ofertant.
-              </p>
-            </div>
-    
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 lg:gap-12">
-                {realDemands && realDemands.length > 0 ? (
-                  realDemands.slice(0, 9).map((demand) => (
-                    <DemandCard 
-                      key={demand.id}
-                      id={demand.id}
-                      targetAsset={demand.target_asset}
-                      category={demand.category}
-                      budget={demand.budget?.toLocaleString('ro-RO')}
-                      description={demand.description}
-                    />
-                  ))
-                ) : (
-                  <div className="col-span-full py-16 text-center bg-gray-50 border-[3px] border-dashed border-gray-300 rounded-[2rem]">
-                    <p className="font-black uppercase italic text-gray-400">Nicio cerere de capital înregistrată momentan.</p>
-                  </div>
-                )}
-            </div>
+            )}
+          </div>
         </div>
       </section>
 
-      <section className="border-t-[3px] border-black bg-[#fafafa] py-12 md:py-16">
-        <div className="mx-auto max-w-7xl px-4">
-          <div className="mb-8 border-b-[3px] border-black pb-6 md:mb-10 md:pb-8">
-            <h2 className="text-3xl font-black uppercase italic tracking-tighter md:text-4xl">
-              Licitații <span className="text-[#FFD100] underline decoration-black decoration-[5px]">deschise</span>
+      {/* LICITAȚII */}
+      <section className="border-t border-line/60 bg-surface px-4 py-16 md:py-24">
+        <div className="mx-auto max-w-7xl">
+          <div className="mb-12">
+            <h2 className="text-3xl font-semibold tracking-tight text-ink md:text-4xl">
+              Licitații <span className="text-gold-deep">deschise</span>
             </h2>
-            <p className="mt-3 max-w-2xl text-xs font-semibold uppercase tracking-widest text-neutral-700 md:text-[11px]">
-              Active cu fereastră de ofertare până la 30 de zile. Vânzătorul alege manual oferta potrivită.
+            <p className="mt-3 max-w-2xl text-sm font-medium leading-relaxed text-muted">
+              Active cu fereastră de ofertare până la 30 de zile. Vânzătorul alege manual oferta
+              potrivită.
             </p>
-            <p className="mt-2 max-w-2xl text-[10px] font-bold uppercase tracking-wide text-neutral-500 md:text-[10px]">
+            <p className="mt-2 max-w-2xl text-xs font-medium leading-relaxed text-muted">
               Nu există câștigător automat. Plata și predarea se stabilesc direct între părți.
             </p>
           </div>
@@ -379,20 +389,20 @@ export default async function Home() {
               ))}
             </div>
           ) : (
-            <div className="mx-auto max-w-xl rounded-2xl border-[3px] border-black bg-white p-5 shadow-[6px_6px_0_0_rgba(0,0,0,1)] md:p-6">
-              <h3 className="text-base font-black uppercase italic tracking-tight text-black md:text-lg">
+            <div className="mx-auto max-w-xl rounded-3xl border border-line/70 bg-surface p-8 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+              <h3 className="text-lg font-semibold tracking-tight text-ink">
                 Momentan nu există licitații active
               </h3>
-              <p className="mt-3 text-xs font-medium leading-relaxed text-neutral-700 md:text-sm">
-                Licitațiile deschise permit vânzătorilor să primească oferte timp de până la 30 de zile și să aleagă
-                manual oferta potrivită.
+              <p className="mt-3 text-sm font-medium leading-relaxed text-muted">
+                Licitațiile deschise permit vânzătorilor să primească oferte timp de până la 30 de
+                zile și să aleagă manual oferta potrivită.
               </p>
-              <p className="mt-2 text-[10px] font-bold uppercase tracking-wide text-neutral-600">
+              <p className="mt-2 text-xs font-medium leading-relaxed text-muted">
                 Nu există câștigător automat. Plata și predarea se stabilesc direct între părți.
               </p>
               <Link
                 href="/pune-anunt"
-                className="mt-4 inline-flex items-center justify-center border-[3px] border-black bg-[#FFD100] px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-black transition hover:bg-black hover:text-[#FFD100] md:text-xs"
+                className="mt-6 inline-flex items-center justify-center rounded-full bg-ink px-6 py-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-white transition-colors duration-300 hover:bg-gold hover:text-ink md:text-xs"
               >
                 Publică o licitație
               </Link>
@@ -403,148 +413,29 @@ export default async function Home() {
 
       <GlobalStats />
 
-      <section className="bg-black pb-8 pt-2 md:pb-10 md:pt-3">
-        <div className="mx-auto max-w-6xl px-4">
-          <div className="mx-auto max-w-5xl rounded-2xl border border-[#FFD100]/35 bg-neutral-950 px-4 py-4 text-left shadow-[0_0_0_1px_rgba(255,209,0,0.08)] md:px-6 md:py-5">
-            <h3 className="text-[11px] font-black uppercase tracking-wide text-[#FFD100] md:text-xs">
-              Recomandări pentru tranzacții sigure
-            </h3>
-            <p className="mt-2 text-[10px] font-medium leading-relaxed text-neutral-200 md:text-[11px]">
-              Quick Exit nu procesează plata și nu ține fonduri în custodie. Înainte de plată sau predare, verifică
-              activul, actele și identitatea celeilalte părți.
-            </p>
-            <ul className="mt-3 grid gap-2 text-[10px] font-medium leading-relaxed text-neutral-300 md:grid-cols-3 md:gap-3 md:text-[11px]">
-              <li className="rounded-lg border border-white/10 bg-white/[0.02] px-3 py-2">
-                Nu plăti avans fără verificări.
-              </li>
-              <li className="rounded-lg border border-white/10 bg-white/[0.02] px-3 py-2">
-                Pentru sume mari, folosește contract și consultanță de specialitate.
-              </li>
-              <li className="rounded-lg border border-white/10 bg-white/[0.02] px-3 py-2">
-                Nu introduce datele cardului în linkuri primite de la alți utilizatori.
-              </li>
-            </ul>
-          </div>
+      {/* RECOMANDĂRI TRANZACȚII SIGURE */}
+      <section className="bg-ink px-4 py-16 md:py-20">
+        <div className="mx-auto max-w-5xl">
+          <h3 className="text-[11px] font-semibold uppercase tracking-[0.22em] text-gold md:text-xs">
+            Recomandări pentru tranzacții sigure
+          </h3>
+          <p className="mt-3 max-w-2xl text-sm font-medium leading-relaxed text-neutral-300">
+            Quick Exit nu procesează plata și nu ține fonduri în custodie. Înainte de plată sau
+            predare, verifică activul, actele și identitatea celeilalte părți.
+          </p>
+          <ul className="mt-8 grid gap-4 md:grid-cols-3">
+            <li className="rounded-2xl border border-white/10 bg-white/[0.03] px-5 py-4 text-sm font-medium leading-relaxed text-neutral-300">
+              Nu plăti avans fără verificări.
+            </li>
+            <li className="rounded-2xl border border-white/10 bg-white/[0.03] px-5 py-4 text-sm font-medium leading-relaxed text-neutral-300">
+              Pentru sume mari, folosește contract și consultanță de specialitate.
+            </li>
+            <li className="rounded-2xl border border-white/10 bg-white/[0.03] px-5 py-4 text-sm font-medium leading-relaxed text-neutral-300">
+              Nu introduce datele cardului în linkuri primite de la alți utilizatori.
+            </li>
+          </ul>
         </div>
       </section>
-
-      <style>{`
-        @keyframes quickexit-hero-sweep {
-          0% {
-            background-position: 160% 50%;
-          }
-          45% {
-            background-position: 160% 50%;
-          }
-          70% {
-            background-position: -60% 50%;
-          }
-          100% {
-            background-position: -60% 50%;
-          }
-        }
-
-        .quickexit-hero-sweep {
-          animation: quickexit-hero-sweep 7.5s ease-in-out infinite;
-        }
-
-        /* Glow compozit (doar opacity) randat pe un pseudo-element în spatele textului.
-           Textul LCP rămâne static (#ffd100) și se pictează imediat, fără repaint. */
-        @keyframes quickexit-acum-pulse {
-          0%,
-          100% {
-            opacity: 0;
-          }
-          50% {
-            opacity: 1;
-          }
-        }
-
-        .quickexit-acum-pulse {
-          position: relative;
-          display: inline-block;
-          color: #ffd100;
-          isolation: isolate;
-        }
-
-        .quickexit-acum-pulse::after {
-          content: "";
-          position: absolute;
-          inset: -12% -8%;
-          z-index: -1;
-          border-radius: 0.35em;
-          background: radial-gradient(
-            60% 60% at 50% 50%,
-            rgba(255, 209, 0, 0.45),
-            rgba(255, 209, 0, 0) 70%
-          );
-          opacity: 0;
-          will-change: opacity;
-          animation: quickexit-acum-pulse 6s ease-in-out infinite;
-          pointer-events: none;
-        }
-
-        @keyframes quickexit-question-pulse {
-          0%,
-          70%,
-          100% {
-            color: #ffd100;
-            text-shadow: 0 0 0 rgba(255, 209, 0, 0);
-            transform: translateY(0);
-          }
-          78% {
-            color: #f3f4f6;
-            text-shadow: 0 0 8px rgba(255, 243, 163, 0.28);
-            transform: translateY(-0.5px);
-          }
-          85% {
-            color: #ffd100;
-            text-shadow: 0 0 4px rgba(255, 209, 0, 0.2);
-            transform: translateY(0);
-          }
-        }
-
-        .quickexit-question-pulse {
-          animation: quickexit-question-pulse 5.2s ease-in-out infinite;
-          will-change: color, text-shadow, transform;
-        }
-
-        /* Pe mobil (LCP-ul de hero) anulăm complet animațiile non-composited.
-           Efectul de sweep pe gradient (bg-clip-text) nu se poate reproduce doar
-           cu transform/opacity, așa că lăsăm textul static, curat, gold solid. */
-        @media (max-width: 768px) {
-          .quickexit-hero-sweep {
-            animation: none;
-            background-image: none !important;
-            -webkit-text-fill-color: #ffd100;
-            color: #ffd100;
-          }
-          .quickexit-acum-pulse::after {
-            display: none;
-            animation: none;
-          }
-        }
-
-        @media (prefers-reduced-motion: reduce) {
-          .quickexit-hero-sweep {
-            animation: none;
-            background-image: none !important;
-            -webkit-text-fill-color: #ffd100;
-            color: #ffd100;
-          }
-          .quickexit-question-pulse {
-            animation: none;
-            color: #ffd100;
-            text-shadow: none;
-            transform: none;
-          }
-          .quickexit-acum-pulse::after {
-            display: none;
-            animation: none;
-          }
-        }
-      `}</style>
-
     </div>
   );
 }

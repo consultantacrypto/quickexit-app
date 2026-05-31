@@ -12,46 +12,42 @@ interface DemandCardProps {
 
 export default function DemandCard({ id, targetAsset, category, budget, description }: DemandCardProps) {
   return (
-    <div className="bg-white border-[4px] border-[#FFD100] rounded-[2rem] p-8 shadow-[8px_8px_0_0_rgba(0,0,0,1)] hover:-translate-y-2 hover:shadow-[12px_12px_0_0_rgba(0,0,0,1)] transition-all flex flex-col justify-between group h-full">
+    <div className="group flex h-full flex-col justify-between rounded-3xl border border-line/70 bg-surface p-8 shadow-[0_1px_3px_rgba(0,0,0,0.04)] transition-all duration-500 ease-out hover:-translate-y-1 hover:border-neutral-300/80 hover:shadow-[0_28px_50px_-16px_rgba(0,0,0,0.22)]">
       <div>
-        <div className="flex justify-between items-start mb-6">
-          <span className="bg-[#FFD100] text-black px-4 py-2 rounded-lg text-[9px] md:text-[10px] font-black uppercase tracking-widest italic border-2 border-black">
-            BUGET DECLARAT
+        <div className="mb-6 flex items-center justify-between">
+          <span className="rounded-full border border-line bg-canvas px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">
+            Buget declarat
           </span>
-          <span className="text-2xl grayscale opacity-50 group-hover:grayscale-0 group-hover:opacity-100 transition-all">💰</span>
-        </div>
-
-        <h3 className="text-2xl font-black uppercase italic tracking-tight leading-none mb-3 text-black">
-          {targetAsset}
-        </h3>
-
-        <div className="flex items-center gap-2 mb-3">
-          <span className="text-[10px] font-black uppercase tracking-widest bg-gray-100 px-2 py-1 rounded border border-gray-200">
+          <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-gold-deep">
             {category || "General"}
           </span>
         </div>
 
-        <p className="text-[9px] font-semibold text-neutral-600 leading-snug normal-case mb-6 md:text-[10px]">
+        <h3 className="mb-3 text-2xl font-semibold leading-snug tracking-tight text-ink">
+          {targetAsset}
+        </h3>
+
+        <p className="mb-6 text-xs font-medium leading-relaxed text-muted">
           Bugetul este declarat de cumpărător și trebuie verificat direct între părți.
         </p>
 
-        <p className="text-sm font-bold text-gray-600 italic line-clamp-3 leading-relaxed">
+        <p className="line-clamp-3 text-sm font-normal italic leading-relaxed text-neutral-500">
           &quot;{description}&quot;
         </p>
       </div>
-      
-      <div className="mt-8 pt-6 border-t-[3px] border-gray-100">
-        <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1">Buget Maxim</p>
-        <p className="text-4xl font-black italic tracking-tighter text-black mb-8 break-words">
-          €{budget}
+
+      <div className="mt-8 border-t border-line/60 pt-6">
+        <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-muted">
+          Buget maxim
         </p>
-        
+        <p className="mb-8 break-words text-4xl font-bold tracking-tight text-ink">€{budget}</p>
+
         <Link
           href={`/trimite-oferta/${id}`}
           aria-label={`Vinde-i activul tău pentru cererea: ${targetAsset}`}
-          className="w-full bg-[#FFD100] border-[3px] border-black text-black py-5 rounded-2xl font-black uppercase tracking-widest text-[11px] md:text-xs italic hover:bg-black hover:text-[#FFD100] transition-colors shadow-[4px_4px_0_0_rgba(0,0,0,1)] active:shadow-none active:translate-y-1 block text-center"
+          className="block w-full rounded-2xl bg-ink py-4 text-center text-[11px] font-semibold uppercase tracking-[0.2em] text-white transition-colors duration-300 hover:bg-gold hover:text-ink md:text-xs"
         >
-          Vinde-i Activul Tău
+          Vinde-i activul tău
         </Link>
       </div>
     </div>

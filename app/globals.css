@@ -1,1 +1,22 @@
 @import "tailwindcss";
+
+/* QuickExit — paletă "lux minimalist" (Tailwind v4 @theme).
+   Un singur accent gold folosit cu parcimonie, neutrale calde,
+   negru profund (nu #000 pur) și alb cald (nu alb clinic). */
+@theme {
+  /* Accent — un singur gold */
+  --color-gold: #ffd100;
+  --color-gold-deep: #9a7d00; /* gold lizibil pe alb (text/hover) */
+
+  /* Fundaluri — alb cald */
+  --color-canvas: #fbfaf7; /* fundal pagină */
+  --color-surface: #ffffff; /* carduri/suprafețe */
+
+  /* "Ink" — negru cald */
+  --color-ink: #0a0a0a;
+  --color-ink-soft: #1c1c1c;
+
+  /* Neutrale calde */
+  --color-line: #e7e3da; /* borduri fine */
+  --color-muted: #8a8578; /* text secundar */
+}

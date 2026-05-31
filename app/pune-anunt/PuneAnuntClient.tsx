@@ -1237,7 +1237,7 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
 
                   {imagePreviews.length > 0 && (
                     <div className="mt-6">
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-neutral-500">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-neutral-400">
                         Ordine poze — prima imagine este coperta anunțului
                       </p>
                       <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
@@ -1246,10 +1246,10 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                           return (
                             <div
                               key={src}
-                              className={`group relative aspect-square overflow-hidden rounded-2xl border-[3px] bg-white transition-all duration-200 ${
+                              className={`group relative aspect-square overflow-hidden rounded-2xl border bg-white transition-all duration-300 ${
                                 isCover
-                                  ? "border-[#FFD100] shadow-[4px_4px_0_0_#000]"
-                                  : "border-black"
+                                  ? "border-[#FFD100] ring-2 ring-[#FFD100]/30"
+                                  : "border-neutral-200"
                               }`}
                             >
                               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -1258,16 +1258,12 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                                 alt={`Fotografie ${index + 1}`}
                                 className="h-full w-full object-cover"
                               />
+                              <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/15 via-transparent to-black/15" />
 
                               {isCover && (
-                                <span className="absolute left-2 top-2 flex items-center gap-1 rounded-full border-2 border-black bg-[#FFD100] px-2.5 py-1 text-[9px] font-black uppercase tracking-wider text-black shadow-[2px_2px_0_0_#000]">
-                                  <Star
-                                    size={11}
-                                    strokeWidth={3}
-                                    className="fill-black"
-                                    aria-hidden
-                                  />
-                                  Imagine principală
+                                <span className="absolute left-2.5 top-2.5 flex items-center gap-1 rounded-full bg-[#FFD100] px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.12em] text-black shadow-[0_2px_8px_rgba(0,0,0,0.18)]">
+                                  <Star size={10} strokeWidth={2.5} className="fill-black" aria-hidden />
+                                  Principală
                                 </span>
                               )}
 
@@ -1275,9 +1271,9 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                                 type="button"
                                 onClick={() => removeImage(index)}
                                 aria-label={`Șterge fotografia ${index + 1}`}
-                                className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full border-2 border-black bg-white text-black shadow-[2px_2px_0_0_#000] transition hover:bg-red-600 hover:text-white active:translate-y-0.5"
+                                className="absolute right-2.5 top-2.5 flex h-8 w-8 items-center justify-center rounded-full border border-white/25 bg-black/50 text-white backdrop-blur-md transition hover:bg-red-600"
                               >
-                                <X size={14} strokeWidth={3} aria-hidden />
+                                <X size={14} strokeWidth={2.5} aria-hidden />
                               </button>
 
                               {!isCover && (
@@ -1285,9 +1281,9 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                                   type="button"
                                   onClick={() => setAsCover(index)}
                                   aria-label={`Setează fotografia ${index + 1} ca imagine principală`}
-                                  className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-1.5 border-t-2 border-black bg-black/85 py-2 text-[9px] font-black uppercase tracking-wider text-[#FFD100] backdrop-blur-sm transition hover:bg-black active:translate-y-0.5"
+                                  className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-1.5 bg-black/55 py-2 text-[9px] font-semibold uppercase tracking-[0.12em] text-white backdrop-blur-md transition hover:bg-black/75"
                                 >
-                                  <Star size={11} strokeWidth={3} aria-hidden />
+                                  <Star size={10} strokeWidth={2.5} aria-hidden />
                                   Setează ca principală
                                 </button>
                               )}
