@@ -274,26 +274,34 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
     }
   };
 
+  // Helper: convertește orice valoare la un număr finit, altfel 0.
+  // Tratează string-uri ("26%", ""), null, undefined, NaN, Infinity.
+  const toFiniteNumber = (value: unknown): number => {
+    const n = typeof value === "string" ? parseFloat(value) : Number(value);
+    return Number.isFinite(n) ? n : 0;
+  };
+
   // Normalizăm scorul de încredere: API-ul poate întoarce fie 0-100 (procent),
   // fie 0-1 (fracție). Sub 50% => date insuficiente => mod manual premium/rar.
-  const rawConfidence = Number(evaluationResult?.confidence_score ?? 0);
+  // toFiniteNumber previne NaN/Infinity dacă API-ul trimite un format neașteptat.
+  const rawConfidence = toFiniteNumber(evaluationResult?.confidence_score);
   const confidencePercent =
     rawConfidence > 0 && rawConfidence <= 1 ? rawConfidence * 100 : rawConfidence;
   const isLowConfidence = !!evaluationResult && confidencePercent < 50;
 
   // LOGICA NOUĂ: Calcul matematic pentru discount în funcție de strategie
-  const baseRequestedPrice = Number(exitPrice) || 0;
-  const manualMarketPriceNum = Number(manualMarketPrice) || 0;
+  const baseRequestedPrice = toFiniteNumber(exitPrice);
+  const manualMarketPriceNum = toFiniteNumber(manualMarketPrice);
   let finalCalculatedExitPrice = baseRequestedPrice;
   let currentDiscountPercent = 0;
 
   if (isLowConfidence) {
     // Active premium/rare: discountul se calculează din cele două câmpuri manuale.
+    // Gard dublu: manualMarketPriceNum > 0 garantează că nu împărțim niciodată la 0.
     if (manualMarketPriceNum > 0 && baseRequestedPrice > 0) {
-      currentDiscountPercent = Math.max(
-        0,
-        Math.round((1 - baseRequestedPrice / manualMarketPriceNum) * 100),
-      );
+      const ratio = baseRequestedPrice / manualMarketPriceNum;
+      const computed = Math.round((1 - ratio) * 100);
+      currentDiscountPercent = Number.isFinite(computed) ? Math.max(0, computed) : 0;
     }
     finalCalculatedExitPrice = baseRequestedPrice;
   } else if (marketPrice === 0 && baseRequestedPrice > 0) {
@@ -308,7 +316,8 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
       currentDiscountPercent = 30;
     }
   } else if (marketPrice > 0 && baseRequestedPrice > 0) {
-    currentDiscountPercent = Math.round((1 - baseRequestedPrice / marketPrice) * 100);
+    const computed = Math.round((1 - baseRequestedPrice / marketPrice) * 100);
+    currentDiscountPercent = Number.isFinite(computed) ? computed : 0;
     finalCalculatedExitPrice = baseRequestedPrice;
   }
 
@@ -1264,7 +1273,11 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                               anunțuri similare.
                             </p>
                             <p className="text-[10px] font-semibold uppercase tracking-wider text-neutral-400">
-                              Încredere estimare: {Math.round(confidencePercent)}%
+                              Încredere estimare:{" "}
+                              {Number.isFinite(confidencePercent)
+                                ? Math.round(confidencePercent)
+                                : 0}
+                              %
                             </p>
                           </div>
                         </>
