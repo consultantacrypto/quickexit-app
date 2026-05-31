@@ -42,6 +42,8 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
   const [analyzedItems, setAnalyzedItems] = useState(0);
 
   const [exitPrice, setExitPrice] = useState("");
+  // Preț de piață introdus manual pentru active premium/rare (confidence < 50%).
+  const [manualMarketPrice, setManualMarketPrice] = useState("");
   const [saleStrategy, setSaleStrategy] = useState<string>(
     initialPkg === "urgent"
       ? "lichidare"
@@ -272,12 +274,29 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
     }
   };
 
+  // Normalizăm scorul de încredere: API-ul poate întoarce fie 0-100 (procent),
+  // fie 0-1 (fracție). Sub 50% => date insuficiente => mod manual premium/rar.
+  const rawConfidence = Number(evaluationResult?.confidence_score ?? 0);
+  const confidencePercent =
+    rawConfidence > 0 && rawConfidence <= 1 ? rawConfidence * 100 : rawConfidence;
+  const isLowConfidence = !!evaluationResult && confidencePercent < 50;
+
   // LOGICA NOUĂ: Calcul matematic pentru discount în funcție de strategie
   const baseRequestedPrice = Number(exitPrice) || 0;
+  const manualMarketPriceNum = Number(manualMarketPrice) || 0;
   let finalCalculatedExitPrice = baseRequestedPrice;
   let currentDiscountPercent = 0;
 
-  if (marketPrice === 0 && baseRequestedPrice > 0) {
+  if (isLowConfidence) {
+    // Active premium/rare: discountul se calculează din cele două câmpuri manuale.
+    if (manualMarketPriceNum > 0 && baseRequestedPrice > 0) {
+      currentDiscountPercent = Math.max(
+        0,
+        Math.round((1 - baseRequestedPrice / manualMarketPriceNum) * 100),
+      );
+    }
+    finalCalculatedExitPrice = baseRequestedPrice;
+  } else if (marketPrice === 0 && baseRequestedPrice > 0) {
     if (saleStrategy === "lichidare") {
       finalCalculatedExitPrice = Math.round(baseRequestedPrice * 0.9);
       currentDiscountPercent = 10;
@@ -292,6 +311,12 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
     currentDiscountPercent = Math.round((1 - baseRequestedPrice / marketPrice) * 100);
     finalCalculatedExitPrice = baseRequestedPrice;
   }
+
+  // Putem avansa de la pasul de preț doar dacă prețul de vânzare e completat,
+  // iar în modul premium/rar și prețul de piață introdus manual.
+  const canProceedFromPrice = isLowConfidence
+    ? Boolean(exitPrice) && manualMarketPriceNum > 0
+    : Boolean(exitPrice);
 
   // Trimite utilizatorul către Stripe Checkout pentru un anunț deja creat.
   const handleCheckout = async (priceId: string, listingId: string) => {
@@ -347,7 +372,13 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
         }
       }
 
-      const finalMarketPrice = marketPrice > 0 ? marketPrice : baseRequestedPrice;
+      const finalMarketPrice = isLowConfidence
+        ? manualMarketPriceNum > 0
+          ? manualMarketPriceNum
+          : baseRequestedPrice
+        : marketPrice > 0
+          ? marketPrice
+          : baseRequestedPrice;
       const dealScore = Math.min(Math.round(currentDiscountPercent * 1.5), 99);
 
       // 1. Salvăm anunțul ca "PENDING_PAYMENT" și îl returnăm din baza de date
@@ -1197,50 +1228,89 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                     </p>
                   </div>
 
-                  <div className="relative overflow-hidden rounded-[2rem] border-[3px] border-black bg-white p-6 text-left shadow-[8px_8px_0_0_rgba(0,0,0,0.1)] md:p-8">
-                    <div
-                      className={`absolute right-0 top-0 rounded-bl-xl px-4 py-2 text-[9px] font-black uppercase tracking-widest ${marketPrice > 0 ? "bg-black text-[#FFD100]" : "bg-amber-600 text-white"}`}
-                    >
-                      {marketPrice > 0 ? "Estimare disponibilă" : "Puține repere în piață"}
+                  {isLowConfidence ? (
+                    /* Active premium/rare: ascundem estimarea automată și afișăm atenționarea. */
+                    <div className="rounded-[2rem] border-[3px] border-amber-500 bg-amber-50 p-6 text-left shadow-[8px_8px_0_0_rgba(217,119,6,0.25)] md:p-8">
+                      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-700">
+                        Activ Premium sau Rar
+                      </p>
+                      <p className="mt-3 text-sm font-semibold leading-relaxed text-amber-900">
+                        💡 Algoritmul nostru indică date insuficiente în piață pentru o
+                        estimare automată precisă a acestui bun. Te rugăm să introduci
+                        manual prețul de piață (sau de listă) pentru a calcula corect
+                        discountul.
+                      </p>
                     </div>
+                  ) : (
+                    <div className="relative overflow-hidden rounded-[2rem] border-[3px] border-black bg-white p-6 text-left shadow-[8px_8px_0_0_rgba(0,0,0,0.1)] md:p-8">
+                      <div
+                        className={`absolute right-0 top-0 rounded-bl-xl px-4 py-2 text-[9px] font-black uppercase tracking-widest ${marketPrice > 0 ? "bg-black text-[#FFD100]" : "bg-amber-600 text-white"}`}
+                      >
+                        {marketPrice > 0 ? "Estimare disponibilă" : "Puține repere în piață"}
+                      </div>
 
-                    {marketPrice > 0 ? (
-                      <>
-                        <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-500">
-                          Preț estimat de piață
-                        </p>
-                        <p className="mt-2 font-black italic tracking-tighter text-black text-4xl md:text-5xl">
-                          €{marketPrice.toLocaleString("ro-RO")}
-                        </p>
-                        <div className="mt-4 flex flex-col gap-2 border-t border-neutral-200 pt-4">
-                          <p className="text-sm font-medium text-neutral-600">
-                            Comparație cu{" "}
-                            <span className="font-black text-black">{analyzedItems}</span>{" "}
-                            anunțuri similare.
+                      {marketPrice > 0 ? (
+                        <>
+                          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-500">
+                            Preț estimat de piață
                           </p>
-                          <p className="text-[10px] font-semibold uppercase tracking-wider text-neutral-400">
-                            Încredere estimare: {evaluationResult?.confidence_score ?? 0}%
+                          <p className="mt-2 font-black italic tracking-tighter text-black text-4xl md:text-5xl">
+                            €{marketPrice.toLocaleString("ro-RO")}
                           </p>
-                        </div>
-                      </>
-                    ) : (
-                      <>
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-amber-700">
-                          Repere limitate
-                        </p>
-                        <p className="mt-2 text-2xl font-black italic tracking-tighter text-black md:text-3xl">
-                          Activ mai rar pe piață
-                        </p>
-                        <p className="mt-4 text-sm font-medium text-neutral-600">
-                          Nu avem suficiente anunțuri identice pentru o medie clară.
-                          Stabilește mai jos prețul la care ești dispus să vinzi.
-                        </p>
-                      </>
-                    )}
-                  </div>
+                          <div className="mt-4 flex flex-col gap-2 border-t border-neutral-200 pt-4">
+                            <p className="text-sm font-medium text-neutral-600">
+                              Comparație cu{" "}
+                              <span className="font-black text-black">{analyzedItems}</span>{" "}
+                              anunțuri similare.
+                            </p>
+                            <p className="text-[10px] font-semibold uppercase tracking-wider text-neutral-400">
+                              Încredere estimare: {Math.round(confidencePercent)}%
+                            </p>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-amber-700">
+                            Repere limitate
+                          </p>
+                          <p className="mt-2 text-2xl font-black italic tracking-tighter text-black md:text-3xl">
+                            Activ mai rar pe piață
+                          </p>
+                          <p className="mt-4 text-sm font-medium text-neutral-600">
+                            Nu avem suficiente anunțuri identice pentru o medie clară.
+                            Stabilește mai jos prețul la care ești dispus să vinzi.
+                          </p>
+                        </>
+                      )}
+                    </div>
+                  )}
 
                   <div className="space-y-6 text-left">
                     <div className="flex flex-col gap-4 md:flex-row">
+                      {isLowConfidence && (
+                        <div className="flex-1 rounded-2xl border-[3px] border-black bg-[#F7F4EC]/80 p-6">
+                          <label className="text-[10px] font-bold uppercase tracking-widest text-neutral-500">
+                            Preț estimat de piață / Preț de listă (EUR)
+                          </label>
+                          <div className="relative mt-2">
+                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl font-black text-neutral-900">
+                              €
+                            </span>
+                            <input
+                              type="number"
+                              value={manualMarketPrice}
+                              onChange={(e) => setManualMarketPrice(e.target.value)}
+                              placeholder="ex. 250000"
+                              className={`${inputBase} pl-11 text-2xl font-black italic tabular-nums focus:bg-white md:text-3xl`}
+                            />
+                          </div>
+                          <p className="mt-3 text-xs font-medium text-neutral-500">
+                            Prețul de referință (listă dealer / piață) pentru a calcula
+                            discountul.
+                          </p>
+                        </div>
+                      )}
+
                       <div className="flex-1 rounded-2xl border-[3px] border-black bg-[#F7F4EC]/80 p-6">
                         <label className="text-[10px] font-bold uppercase tracking-widest text-neutral-500">
                           Preț de vânzare rapidă (EUR)
@@ -1258,13 +1328,17 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                           />
                         </div>
                         <p className="mt-3 text-xs font-medium text-neutral-500">
-                          {marketPrice > 0
-                            ? "Poți sub prețul pieței pentru lichiditate mai rapidă."
-                            : "Introdu prețul la care vrei să încasezi."}
+                          {isLowConfidence
+                            ? "Prețul la care vrei să vinzi rapid acest activ."
+                            : marketPrice > 0
+                              ? "Poți sub prețul pieței pentru lichiditate mai rapidă."
+                              : "Introdu prețul la care vrei să încasezi."}
                         </p>
                       </div>
 
-                      {(marketPrice > 0 || (marketPrice === 0 && exitPrice)) && (
+                      {(isLowConfidence
+                        ? manualMarketPriceNum > 0 && Boolean(exitPrice)
+                        : marketPrice > 0 || (marketPrice === 0 && exitPrice)) && (
                         <div
                           className={`flex w-full flex-col items-center justify-center rounded-2xl border-[3px] border-black p-6 md:w-36 ${
                             currentDiscountPercent >= 15
@@ -1307,7 +1381,7 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                         setFlowError(null);
                         setStep(4);
                       }}
-                      disabled={!exitPrice}
+                      disabled={!canProceedFromPrice}
                       className="w-full flex-1 rounded-2xl border-[3px] border-black bg-black py-4 text-xs font-black uppercase tracking-widest text-[#FFD100] shadow-[6px_6px_0_0_#000] transition hover:bg-neutral-900 disabled:cursor-not-allowed disabled:opacity-40"
                     >
                       Alege viteza de vânzare →
