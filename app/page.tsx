@@ -365,6 +365,29 @@ export default async function Home() {
               </div>
             )}
           </div>
+
+          <div className="mt-12 flex flex-col gap-5 sm:mt-14 sm:flex-row sm:items-center sm:justify-between md:gap-6">
+            <TrackedLink
+              href="/capital-disponibil"
+              eventName="click_capital_available"
+              eventParams={{ source: "home_capital_section_footer" }}
+              className="group inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted transition hover:text-ink md:text-xs"
+            >
+              Vezi tot capitalul disponibil
+              <span
+                className="transition-transform duration-300 group-hover:translate-x-1"
+                aria-hidden
+              >
+                →
+              </span>
+            </TrackedLink>
+            <Link
+              href="/posteaza-cerere"
+              className="inline-flex items-center justify-center rounded-full border border-line bg-surface px-6 py-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-ink transition hover:border-neutral-300 hover:bg-canvas md:text-xs"
+            >
+              Adaugă ofertă de capital
+            </Link>
+          </div>
         </div>
       </section>
 
@@ -419,13 +442,34 @@ export default async function Home() {
                 Nu există câștigător automat. Plata și predarea se stabilesc direct între părți.
               </p>
               <Link
-                href="/pune-anunt"
+                href="/pune-anunt?package=auction"
                 className="mt-6 inline-flex items-center justify-center rounded-full bg-ink px-6 py-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-white transition-colors duration-300 hover:bg-gold hover:text-ink md:text-xs"
               >
                 Publică o licitație
               </Link>
             </div>
           )}
+
+          <div className="mt-12 flex flex-col gap-5 sm:mt-14 sm:flex-row sm:items-center sm:justify-between md:gap-6">
+            <Link
+              href="/licitatii"
+              className="group inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted transition hover:text-ink md:text-xs"
+            >
+              Vezi toate licitațiile
+              <span
+                className="transition-transform duration-300 group-hover:translate-x-1"
+                aria-hidden
+              >
+                →
+              </span>
+            </Link>
+            <Link
+              href="/pune-anunt"
+              className="inline-flex items-center justify-center rounded-full border border-line bg-surface px-6 py-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-ink transition hover:border-neutral-300 hover:bg-canvas md:text-xs"
+            >
+              Adaugă o licitație
+            </Link>
+          </div>
         </div>
       </section>
 
