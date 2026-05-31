@@ -5,6 +5,7 @@ import Header from "./components/Header";
 import Footer from "./components/Footer"; 
 import StructuredData from "./components/StructuredData";
 import AnalyticsAttributionInit from "./components/AnalyticsAttributionInit";
+import AuthHashCleaner from "./components/AuthHashCleaner";
 import { getSiteUrl } from "@/lib/siteUrl";
 
 const siteUrl = getSiteUrl();
@@ -96,6 +97,7 @@ export default function RootLayout({
       )}
       <body className="bg-white text-black antialiased min-h-screen flex flex-col">
         <AnalyticsAttributionInit />
+        <AuthHashCleaner />
         <StructuredData siteUrl={siteUrl} />
         <Header />
         

@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { stripAuthHashFromUrl } from "@/lib/authUrl";
 
 function AuthCallbackInner() {
   const router = useRouter();
@@ -23,6 +24,7 @@ function AuthCallbackInner() {
           router.replace("/?auth=error");
           return;
         }
+        stripAuthHashFromUrl();
         router.replace(next);
         return;
       }
@@ -38,6 +40,7 @@ function AuthCallbackInner() {
         router.replace("/?auth=error");
         return;
       }
+      stripAuthHashFromUrl();
       router.replace(next);
     };
 
