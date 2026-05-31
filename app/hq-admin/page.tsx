@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabase";
 import { companyInfo } from "@/lib/company";
 import { buildSocialShareKit } from "@/lib/socialShare";
 import { trackEvent } from "@/lib/analytics";
+import { adminDeleteListing, adminForcePublish, type AdminTable } from "@/app/actions/adminActions";
 
 const ADMIN_EMAILS = ["consultantacrypto.ro@gmail.com"];
 
@@ -647,6 +648,65 @@ export default function AdminHQ() {
     setAllDemands((prev) => prev.map((d) => (d.id === id ? { ...d, status: "suspended" } : d)));
   };
 
+  // Trimite access token-ul la Server Actions; acolo se reverifică identitatea + rolul de admin.
+  const getAccessToken = async (): Promise<string | null> => {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    return session?.access_token ?? null;
+  };
+
+  const forcePublishRow = async (id: string, table: AdminTable) => {
+    const ok = window.confirm(
+      "FORCE PUBLISH: setezi status=activ, plătit=true și expirare la +30 zile, fără plată. Folosește doar pentru cazuri verificate. Continui?"
+    );
+    if (!ok) return;
+    setActionError(null);
+
+    const token = await getAccessToken();
+    if (!token) {
+      setActionError("Sesiunea a expirat. Reautentifică-te și încearcă din nou.");
+      return;
+    }
+
+    const res = await adminForcePublish(id, table, token);
+    if (!res.ok) {
+      setActionError(`Force Publish eșuat: ${res.error}`);
+      return;
+    }
+
+    setLoadNote("Rând publicat forțat (active, +30 zile).");
+    await loadAdminData();
+  };
+
+  const deleteRow = async (id: string, table: AdminTable) => {
+    const ok = window.confirm(
+      "ȘTERGERE DEFINITIVĂ: rândul va fi eliminat permanent din baza de date. Acțiunea este IREVERSIBILĂ. Ești sigur?"
+    );
+    if (!ok) return;
+    setActionError(null);
+
+    const token = await getAccessToken();
+    if (!token) {
+      setActionError("Sesiunea a expirat. Reautentifică-te și încearcă din nou.");
+      return;
+    }
+
+    const res = await adminDeleteListing(id, table, token);
+    if (!res.ok) {
+      setActionError(`Ștergere eșuată: ${res.error}`);
+      return;
+    }
+
+    // Scoatem rândul din UI imediat pentru feedback instant.
+    if (table === "listings") {
+      setAllListings((prev) => prev.filter((l) => l.id !== id));
+    } else {
+      setAllDemands((prev) => prev.filter((d) => d.id !== id));
+    }
+    setLoadNote("Rând șters definitiv.");
+  };
+
   if (gate === "loading") {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#F7F4EC] px-6 font-sans antialiased">
@@ -1082,6 +1142,20 @@ export default function AdminHQ() {
                           >
                             Ascunde
                           </button>
+                          <button
+                            type="button"
+                            onClick={() => void forcePublishRow(listing.id, "listings")}
+                            className="block w-full rounded-lg border-[3px] border-black bg-green-600 px-2 py-1.5 text-[9px] font-black uppercase text-white hover:bg-green-700"
+                          >
+                            Force Publish
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => void deleteRow(listing.id, "listings")}
+                            className="block w-full rounded-lg border-2 border-red-800 bg-red-600 px-2 py-1.5 text-[9px] font-black uppercase text-white hover:bg-red-700"
+                          >
+                            Șterge definitiv
+                          </button>
                         </td>
                       </tr>
                     );
@@ -1146,6 +1220,20 @@ export default function AdminHQ() {
                             className="block w-full rounded-lg border-2 border-black/40 bg-white px-2 py-1.5 text-[9px] font-black uppercase"
                           >
                             Ascunde
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => void forcePublishRow(d.id, "demands")}
+                            className="block w-full rounded-lg border-[3px] border-black bg-green-600 px-2 py-1.5 text-[9px] font-black uppercase text-white hover:bg-green-700"
+                          >
+                            Force Publish
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => void deleteRow(d.id, "demands")}
+                            className="block w-full rounded-lg border-2 border-red-800 bg-red-600 px-2 py-1.5 text-[9px] font-black uppercase text-white hover:bg-red-700"
+                          >
+                            Șterge definitiv
                           </button>
                         </td>
                       </tr>
