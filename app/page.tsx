@@ -116,7 +116,7 @@ export default async function Home() {
   ];
 
   return (
-    <div className="flex w-full flex-col bg-canvas font-sans text-ink selection:bg-gold selection:text-ink">
+    <div className="flex w-full flex-col bg-white font-sans selection:bg-[#FFD100] selection:text-black">
       {itemListJsonLd && (
         <script
           // eslint-disable-next-line react/no-danger
@@ -125,106 +125,120 @@ export default async function Home() {
         />
       )}
 
-      {/* HERO */}
-      <section className="bg-canvas px-4 pb-14 pt-16 text-center md:pb-20 md:pt-24">
-        <div className="mx-auto max-w-5xl">
-          <h1 className="font-black tracking-tighter text-ink">
-            <span className="block text-5xl leading-[0.95] sm:text-6xl md:text-7xl lg:text-8xl">
-              Vinde <span className="text-gold-deep">acum</span>.
-            </span>
-            <span className="mt-1 block text-5xl leading-[0.95] sm:text-6xl md:text-7xl lg:text-8xl">
-              Banii <span className="text-gold-deep">azi</span>.
-            </span>
-          </h1>
+      {/* HERO — identitate brand (neo-brutalist punchy) */}
+      <section className="relative overflow-hidden bg-white pb-8 pt-12 text-center md:pb-10 md:pt-14 lg:pb-11 lg:pt-12 xl:pt-10 2xl:pt-9">
+        <div className="mx-auto max-w-7xl px-4">
+          <div className="mx-auto max-w-4xl">
+            <h1 className="mb-5 font-black uppercase italic tracking-tighter text-black md:mb-6 lg:mb-7">
+              <span className="block text-6xl leading-[0.9] sm:text-7xl md:text-8xl md:leading-[0.85] lg:text-9xl">
+                Vinde <span className="quickexit-acum-pulse text-[#FFD100]">Acum</span>.
+              </span>
+              <span className="mt-1 block text-6xl leading-[0.9] sm:mt-0 sm:text-7xl md:text-8xl md:leading-[0.85] lg:text-9xl">
+                Banii{" "}
+                <span className="quickexit-hero-sweep inline-block bg-[length:240%_100%] bg-clip-text text-transparent [background-image:linear-gradient(110deg,#E5E7EB_0%,#E5E7EB_42%,#FFF3A3_47%,#FFD100_50%,#FFF3A3_53%,#E5E7EB_58%,#E5E7EB_100%)]">
+                  Azi
+                </span>
+                .
+              </span>
+            </h1>
 
-          <p className="mx-auto mt-7 max-w-2xl text-base font-medium leading-relaxed text-muted md:mt-8 md:text-lg">
-            Quick Exit conectează vânzători care vor să vândă rapid cu cumpărători care au buget și
-            caută oportunități sub prețul pieței.
-          </p>
+            <div className="mx-auto mb-5 max-w-[23rem] px-1.5 sm:max-w-3xl sm:px-2 md:mb-6 lg:mb-6 lg:max-w-[54rem]">
+              <p className="text-[13px] font-bold leading-[1.56] sm:text-[14px] sm:leading-[1.6] md:text-[17px] md:leading-[1.62] lg:text-[20px] lg:leading-[1.65]">
+                <span className="bg-[#FFD100] px-2.5 py-1.5 text-black box-decoration-clone sm:px-3 md:px-3.5 md:py-2">
+                  Quick Exit conectează vânzători care vor să vândă rapid cu cumpărători care au buget și caută
+                  oportunități sub prețul pieței.
+                </span>
+              </p>
+            </div>
 
-          <div className="mt-9 flex flex-col items-center gap-4 md:mt-10">
-            <TrackedLink
-              href="/evaluare"
-              eventName="click_evaluate"
-              eventParams={{ source: "home_hero" }}
-              className="group inline-flex items-center justify-center gap-2 rounded-full bg-ink px-10 py-4 text-sm font-semibold uppercase tracking-[0.18em] text-white transition-all duration-300 hover:bg-ink-soft hover:shadow-[0_18px_40px_-12px_rgba(0,0,0,0.35)] md:px-12 md:py-5 md:text-base focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-gold"
-            >
-              Cât valorează ce vinzi?
-              <span className="transition-transform duration-300 group-hover:translate-x-1">→</span>
-            </TrackedLink>
-            <TrackedLink
-              href="/capital-disponibil"
-              eventName="click_capital_available"
-              eventParams={{ source: "home_hero" }}
-              className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted underline-offset-4 transition hover:text-ink hover:underline"
-            >
-              Vezi cereri de cumpărare
-            </TrackedLink>
-          </div>
-        </div>
-      </section>
-
-      {/* RITM DE VÂNZARE */}
-      <section className="border-t border-line/60 bg-surface px-4 py-16 md:py-20">
-        <div className="mx-auto max-w-6xl">
-          <h2 className="mb-10 text-center text-2xl font-semibold tracking-tight text-ink md:mb-12 md:text-3xl">
-            Alege ritmul de vânzare
-          </h2>
-
-          <div className="mx-auto grid max-w-6xl grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            {(
-              [
-                {
-                  label: "Licitație deschisă 30 zile",
-                  desc: "Pentru vânzări unde vrei să strângi mai multe oferte și să alegi manual varianta potrivită.",
-                  time: "30 zile",
-                  price: "111 RON",
-                },
-                {
-                  label: "Expunere maximă",
-                  desc: "Pentru anunțuri care au nevoie de mai mult timp la vedere.",
-                  time: "30 zile",
-                  price: "99 RON",
-                },
-                {
-                  label: "Vânzare rapidă",
-                  desc: "Pentru listări echilibrate între timp, cost și vizibilitate.",
-                  time: "14 zile",
-                  price: "79 RON",
-                },
-                {
-                  label: "Vânzare urgentă",
-                  desc: "Pentru situații în care vrei răspuns rapid.",
-                  time: "48 ore",
-                  price: "48 RON",
-                },
-              ] as const
-            ).map((item) => (
-              <div
-                key={item.label}
-                className="flex flex-col rounded-2xl border border-line/70 bg-surface p-6 transition-all duration-500 ease-out hover:-translate-y-1 hover:border-neutral-300/80 hover:shadow-[0_22px_44px_-20px_rgba(0,0,0,0.2)]"
+            <div className="mb-3 flex flex-col items-center md:mb-4 lg:mb-4">
+              <TrackedLink
+                href="/evaluare"
+                eventName="click_evaluate"
+                eventParams={{ source: "home_hero" }}
+                className="group relative inline-flex max-w-[min(100vw-2rem,27rem)] flex-col items-center justify-center overflow-hidden rounded-[2.125rem] border-b-8 border-yellow-700 bg-black px-7 py-[18px] font-black uppercase italic tracking-widest text-[#FFD100] shadow-[0_10px_28px_rgba(255,209,0,0.18)] transition-all hover:scale-[1.015] hover:shadow-[0_18px_36px_rgba(255,209,0,0.28)] active:border-b-0 active:translate-y-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#FFD100] md:px-10 md:py-[22px] lg:px-11 lg:py-6"
               >
-                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">
-                  {item.label}
-                </p>
-                <p className="mt-2 text-2xl font-semibold tracking-tight text-ink">{item.time}</p>
-                <p className="mt-3 flex-1 text-sm font-medium leading-relaxed text-muted">
-                  {item.desc}
-                </p>
-                <p className="mt-5 text-sm font-semibold tracking-tight text-gold-deep">
-                  {item.price}
-                </p>
-              </div>
-            ))}
+                <div className="absolute top-0 -left-[100%] h-full w-1/2 skew-x-[-25deg] bg-white/10 transition-all duration-1000 ease-in-out group-hover:left-[150%]" />
+                <span className="relative z-10 block text-center text-[21px] leading-none uppercase md:text-[26px] lg:text-[30px]">
+                  Cât valorează ce vinzi
+                  <span className="quickexit-question-pulse inline-block">?</span>
+                </span>
+              </TrackedLink>
+              <TrackedLink
+                href="/capital-disponibil"
+                eventName="click_capital_available"
+                eventParams={{ source: "home_hero" }}
+                className="mt-2.5 inline-block border-b-2 border-transparent py-2 text-[10px] font-black uppercase tracking-widest text-neutral-600 underline-offset-4 transition hover:border-black hover:text-black md:mt-3 md:text-[11px]"
+              >
+                Vezi cereri de cumpărare
+              </TrackedLink>
+            </div>
+          </div>
+
+          <div className="mt-0.5 md:mt-1">
+            <div className="mb-2.5 text-center md:mb-3 lg:mb-4">
+              <h2 className="text-lg font-black uppercase italic tracking-tight text-black md:text-2xl">
+                Alege ritmul de vânzare
+              </h2>
+            </div>
+
+            <div className="mx-auto grid max-w-6xl grid-cols-2 gap-3 md:grid-cols-4 md:gap-4 lg:gap-5">
+              {(
+                [
+                  {
+                    label: "Licitație deschisă 30 zile",
+                    desc: "Pentru vânzări unde vrei să strângi mai multe oferte și să alegi manual varianta potrivită.",
+                    time: "30 zile",
+                    price: "111 RON",
+                  },
+                  {
+                    label: "Expunere maximă",
+                    desc: "Pentru anunțuri care au nevoie de mai mult timp la vedere.",
+                    time: "30 zile",
+                    price: "99 RON",
+                  },
+                  {
+                    label: "Vânzare rapidă",
+                    desc: "Pentru listări echilibrate între timp, cost și vizibilitate.",
+                    time: "14 zile",
+                    price: "79 RON",
+                  },
+                  {
+                    label: "Vânzare urgentă",
+                    desc: "Pentru situații în care vrei răspuns rapid.",
+                    time: "48 ore",
+                    price: "48 RON",
+                  },
+                ] as const
+              ).map((item) => (
+                <div
+                  key={item.label}
+                  className="rounded-2xl border-[3px] border-black bg-white p-3 shadow-[3px_3px_0_0_rgba(0,0,0,1)] transition hover:-translate-y-0.5 md:p-3.5 lg:p-4"
+                >
+                  <p className="mb-1 text-[10px] font-black uppercase tracking-widest text-gray-500 md:text-[11px]">
+                    {item.label}
+                  </p>
+                  <p className="text-base font-black uppercase italic leading-none md:text-lg lg:text-xl">
+                    {item.time}
+                  </p>
+                  <p className="mt-2 inline-block rounded bg-black px-2 py-0.5 text-[11px] font-black uppercase tracking-tighter text-[#FFD100] md:text-[11px]">
+                    {item.price}
+                  </p>
+                  <p className="mt-2 block text-[10px] font-bold uppercase tracking-tighter text-neutral-500 opacity-90 md:text-[11px]">
+                    {item.desc}
+                  </p>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </section>
 
-      {/* CATEGORII */}
-      <section className="border-t border-line/60 bg-canvas px-4 py-16 md:py-20">
-        <div className="mx-auto max-w-6xl">
-          <h2 className="mb-10 text-2xl font-semibold tracking-tight text-ink md:mb-12 md:text-3xl">
-            Alege categoria
+      {/* CATEGORII — farmec vizual original */}
+      <section className="border-t border-gray-100 bg-white py-12 md:py-14 pb-16 md:pb-20">
+        <div className="mx-auto max-w-6xl px-4 text-center md:text-left">
+          <h2 className="mb-10 inline-block border-b-[6px] border-[#FFD100] pb-3 text-sm font-black uppercase italic tracking-[0.35em] text-black md:mb-12 md:text-lg">
+            Alege Categoria
           </h2>
 
           <div className="grid grid-cols-2 gap-4 md:grid-cols-3 md:gap-6 lg:grid-cols-6">
@@ -232,12 +246,12 @@ export default async function Home() {
               <Link
                 key={cat.slug}
                 href={`/categorii/${cat.slug}`}
-                className="group flex flex-col items-center justify-center gap-4 rounded-2xl border border-line/70 bg-surface p-8 transition-all duration-500 ease-out hover:-translate-y-1 hover:border-neutral-300/80 hover:shadow-[0_22px_44px_-20px_rgba(0,0,0,0.2)]"
+                className="group flex flex-col items-center justify-center rounded-[2rem] border-[3px] border-black bg-white p-5 shadow-[6px_6px_0_0_rgba(0,0,0,1)] transition hover:-translate-y-1 hover:bg-[#FFD100] md:p-8"
               >
-                <div className="text-ink transition-transform duration-300 group-hover:scale-110 group-hover:text-gold-deep">
+                <div className="mb-3 text-black transition-transform group-hover:scale-110 md:mb-4">
                   {cat.icon}
                 </div>
-                <span className="text-center text-[11px] font-semibold uppercase tracking-[0.12em] text-ink">
+                <span className="text-center text-[10px] font-black uppercase tracking-tight text-black md:text-[11px]">
                   {cat.name}
                 </span>
               </Link>
@@ -246,8 +260,8 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* ANUNȚURI VÂNZĂRI ACTIVE */}
-      <section className="border-t border-line/60 bg-surface px-4 py-16 md:py-24">
+      {/* Tranziție → vitrină minimalistă (carduri albe) */}
+      <section className="border-t border-line/60 bg-canvas px-4 pt-20 pb-16 md:pt-28 md:pb-24">
         <div className="mx-auto max-w-7xl">
           <div className="mb-4 flex flex-col items-start justify-between gap-5 md:flex-row md:items-end">
             <h2 className="text-3xl font-semibold tracking-tight text-ink md:text-4xl">
@@ -436,6 +450,91 @@ export default async function Home() {
           </ul>
         </div>
       </section>
+
+      <style>{`
+        @keyframes quickexit-hero-sweep {
+          0% { background-position: 160% 50%; }
+          45% { background-position: 160% 50%; }
+          70% { background-position: -60% 50%; }
+          100% { background-position: -60% 50%; }
+        }
+        .quickexit-hero-sweep {
+          animation: quickexit-hero-sweep 7.5s ease-in-out infinite;
+        }
+        @keyframes quickexit-acum-pulse {
+          0%, 100% { opacity: 0; }
+          50% { opacity: 1; }
+        }
+        .quickexit-acum-pulse {
+          position: relative;
+          display: inline-block;
+          color: #ffd100;
+          isolation: isolate;
+        }
+        .quickexit-acum-pulse::after {
+          content: "";
+          position: absolute;
+          inset: -12% -8%;
+          z-index: -1;
+          border-radius: 0.35em;
+          background: radial-gradient(60% 60% at 50% 50%, rgba(255, 209, 0, 0.45), rgba(255, 209, 0, 0) 70%);
+          opacity: 0;
+          will-change: opacity;
+          animation: quickexit-acum-pulse 6s ease-in-out infinite;
+          pointer-events: none;
+        }
+        @keyframes quickexit-question-pulse {
+          0%, 70%, 100% {
+            color: #ffd100;
+            text-shadow: 0 0 0 rgba(255, 209, 0, 0);
+            transform: translateY(0);
+          }
+          78% {
+            color: #f3f4f6;
+            text-shadow: 0 0 8px rgba(255, 243, 163, 0.28);
+            transform: translateY(-0.5px);
+          }
+          85% {
+            color: #ffd100;
+            text-shadow: 0 0 4px rgba(255, 209, 0, 0.2);
+            transform: translateY(0);
+          }
+        }
+        .quickexit-question-pulse {
+          animation: quickexit-question-pulse 5.2s ease-in-out infinite;
+          will-change: color, text-shadow, transform;
+        }
+        @media (max-width: 768px) {
+          .quickexit-hero-sweep {
+            animation: none;
+            background-image: none !important;
+            -webkit-text-fill-color: #ffd100;
+            color: #ffd100;
+          }
+          .quickexit-acum-pulse::after {
+            display: none;
+            animation: none;
+          }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .quickexit-hero-sweep {
+            animation: none;
+            background-image: none !important;
+            -webkit-text-fill-color: #ffd100;
+            color: #ffd100;
+          }
+          .quickexit-question-pulse {
+            animation: none;
+            color: #ffd100;
+            text-shadow: none;
+            transform: none;
+          }
+          .quickexit-acum-pulse::after {
+            display: none;
+            animation: none;
+          }
+        }
+      `}</style>
     </div>
   );
 }
