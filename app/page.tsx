@@ -129,14 +129,14 @@ export default async function Home() {
       <section className="relative overflow-hidden bg-white pb-8 pt-12 text-center md:pb-10 md:pt-14 lg:pb-11 lg:pt-12 xl:pt-10 2xl:pt-9">
         <div className="mx-auto max-w-7xl px-4">
           <div className="mx-auto max-w-4xl">
-            <h1 className="mb-5 font-black uppercase italic tracking-tighter text-black md:mb-6 lg:mb-7">
-              <span className="block text-6xl leading-[0.9] sm:text-7xl md:text-8xl md:leading-[0.85] lg:text-9xl">
-                Vinde <span className="quickexit-acum-pulse text-[#FFD100]">Acum</span>.
+            <h1 className="mb-5 font-black italic tracking-tighter text-black md:mb-6 lg:mb-7">
+              <span className="block text-6xl normal-case leading-[0.9] sm:text-7xl md:text-8xl md:leading-[0.85] lg:text-9xl">
+                Vinde <span className="quickexit-acum-pulse text-[#FFD100]">acum</span>.
               </span>
-              <span className="mt-1 block text-6xl leading-[0.9] sm:mt-0 sm:text-7xl md:text-8xl md:leading-[0.85] lg:text-9xl">
+              <span className="mt-1 block text-6xl normal-case leading-[0.9] sm:mt-0 sm:text-7xl md:text-8xl md:leading-[0.85] lg:text-9xl">
                 Banii{" "}
                 <span className="quickexit-hero-sweep inline-block bg-[length:240%_100%] bg-clip-text text-transparent [background-image:linear-gradient(110deg,#E5E7EB_0%,#E5E7EB_42%,#FFF3A3_47%,#FFD100_50%,#FFF3A3_53%,#E5E7EB_58%,#E5E7EB_100%)]">
-                  Azi
+                  azi
                 </span>
                 .
               </span>
@@ -159,8 +159,7 @@ export default async function Home() {
                 className="group relative inline-flex items-center justify-center overflow-hidden whitespace-nowrap rounded-full border border-black/[0.12] bg-black/90 px-8 py-3.5 text-sm font-semibold uppercase tracking-[0.12em] text-[#FFD100] shadow-[0_14px_36px_-10px_rgba(0,0,0,0.45)] backdrop-blur-md transition-all duration-300 hover:border-[#FFD100]/35 hover:bg-black hover:shadow-[0_22px_48px_-14px_rgba(0,0,0,0.5)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#FFD100] md:px-10 md:py-4 md:text-[15px]"
               >
                 <span className="relative z-10 whitespace-nowrap">
-                  Cât valorează ce vinzi
-                  <span className="quickexit-question-pulse ml-0.5 inline-block">?</span>
+                  Cât valorează ce vinzi<span className="quickexit-question-pulse inline-block">?</span>
                 </span>
               </TrackedLink>
               <TrackedLink

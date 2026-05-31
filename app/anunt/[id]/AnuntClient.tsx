@@ -690,7 +690,7 @@ export default function AnuntClient({
                   <span className="text-sm" aria-hidden>
                     ⚡
                   </span>
-                  Scor oportunitate {adData.deal_score ?? "—"}
+                  Scor lichiditate {adData.deal_score ?? "—"}
                 </button>
               </div>
 

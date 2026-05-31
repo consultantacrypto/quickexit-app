@@ -1,109 +1,110 @@
-"use client";
-
-import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 
-export default function GlobalStats() {
-  const [stats, setStats] = useState({
-    activeListings: 0,
-    activeDemands: 0,
-    totalValue: 0,
-    soldItems: 0
-  });
+async function fetchPlatformStats() {
+  const [listingsRes, demandsRes, soldRes] = await Promise.all([
+    supabase
+      .from("listings")
+      .select("exit_price, market_price")
+      .eq("status", "active")
+      .eq("is_seed", false),
+    supabase.from("demands").select("budget").eq("status", "active"),
+    supabase
+      .from("listings")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "sold"),
+  ]);
 
-  useEffect(() => {
-    async function fetchStats() {
-      try {
-        const { data: listings } = await supabase
-          .from('listings')
-          .select('exit_price')
-          .eq('status', 'active')
-          .eq('is_seed', false);
-          
-        const { data: demands } = await supabase
-          .from('demands')
-          .select('budget')
-          .eq('status', 'active');
+  if (listingsRes.error) {
+    console.error("[GlobalStats] listings:", listingsRes.error.message);
+  }
+  if (demandsRes.error) {
+    console.error("[GlobalStats] demands:", demandsRes.error.message);
+  }
+  if (soldRes.error) {
+    console.error("[GlobalStats] sold count:", soldRes.error.message);
+  }
 
-        const { count: soldCount } = await supabase
-          .from('listings')
-          .select('id', { count: 'exact', head: true })
-          .eq('status', 'sold');
+  const listings = listingsRes.data ?? [];
+  const demands = demandsRes.data ?? [];
 
-        const valoareVanzari = listings ? listings.reduce((acc, curr) => acc + (Number(curr.exit_price) || 0), 0) : 0;
-        const valoareCumparari = demands ? demands.reduce((acc, curr) => acc + (Number(curr.budget) || 0), 0) : 0;
+  const valoareVanzari = listings.reduce(
+    (acc, row) => acc + (Number(row.exit_price) || Number(row.market_price) || 0),
+    0,
+  );
+  const valoareCumparari = demands.reduce(
+    (acc, row) => acc + (Number(row.budget) || 0),
+    0,
+  );
 
-        setStats({
-          activeListings: listings ? listings.length : 0,
-          activeDemands: demands ? demands.length : 0,
-          totalValue: valoareVanzari + valoareCumparari,
-          soldItems: soldCount || 0
-        });
-      } catch (error) {
-        console.error("Eroare la fetch statistici:", error);
-      }
-    }
+  return {
+    activeListings: listings.length,
+    activeDemands: demands.length,
+    totalValue: valoareVanzari + valoareCumparari,
+    soldItems: soldRes.count ?? 0,
+  };
+}
 
-    fetchStats();
-  }, []);
+export default async function GlobalStats() {
+  const stats = await fetchPlatformStats();
 
   return (
-    <section className="bg-black py-10 md:py-12 border-t-[8px] border-black font-sans z-20 relative">
-      <div className="max-w-7xl mx-auto px-4">
-        
-        {/* Structură clară, pe înțelesul tuturor */}
-        <div className="flex flex-col md:flex-row justify-between items-center gap-8 md:gap-0 divide-y-2 md:divide-y-0 md:divide-x-2 divide-gray-800">
-          
-          {/* 1. Valoare declarată (sumă comunicată, nu disponibilitate verificată) */}
-          <div className="flex-1 w-full text-center md:px-6 pt-4 md:pt-0">
-            <p className="text-[10px] md:text-xs font-black uppercase tracking-[0.2em] text-gray-500 mb-1 md:mb-2 italic">
+    <section className="relative z-20 border-t-8 border-black bg-black py-10 font-sans md:py-12">
+      <div className="mx-auto max-w-7xl px-4">
+        <div className="flex flex-col items-center justify-between gap-8 divide-y-2 divide-gray-800 md:flex-row md:gap-0 md:divide-x-2 md:divide-y-0">
+          <div className="w-full flex-1 pt-4 text-center md:px-6 md:pt-0">
+            <p className="mb-1 text-[10px] font-black uppercase italic tracking-[0.2em] text-gray-500 md:mb-2 md:text-xs">
               Valoare declarată în anunțuri și cereri
             </p>
-            <p className="text-4xl md:text-5xl font-black italic text-[#FFD100] tracking-tighter">
-              {stats.totalValue > 0 ? `€${stats.totalValue.toLocaleString('ro-RO')}` : '—'}
+            <p className="text-4xl font-black italic tracking-tighter text-[#FFD100] md:text-5xl">
+              {stats.totalValue > 0 ? `€${stats.totalValue.toLocaleString("ro-RO")}` : "—"}
             </p>
             {stats.totalValue > 0 ? (
-              <p className="text-[9px] font-bold text-gray-600 uppercase mt-2 tracking-widest">
+              <p className="mt-2 text-[9px] font-bold uppercase tracking-widest text-gray-600">
                 Sume comunicate în anunțuri și cereri
               </p>
             ) : (
-              <p className="text-[8px] font-semibold text-gray-500 normal-case mt-2 max-w-[14rem] mx-auto leading-snug md:text-[9px] md:max-w-xs">
-                În acest moment nu există sume declarate cumulate în anunțuri și cereri active, sau valorile lipsesc.
+              <p className="mx-auto mt-2 max-w-[14rem] text-[8px] font-semibold normal-case leading-snug text-gray-500 md:max-w-xs md:text-[9px]">
+                În acest moment nu există sume declarate cumulate în anunțuri și cereri active, sau
+                valorile lipsesc.
               </p>
             )}
           </div>
 
-          {/* 2. Cereri active de cumpărare */}
-          <div className="flex-1 w-full text-center md:px-6 pt-6 md:pt-0">
-            <p className="text-[10px] md:text-xs font-black uppercase tracking-[0.2em] text-gray-500 mb-1 md:mb-2 italic">
+          <div className="w-full flex-1 pt-6 text-center md:px-6 md:pt-0">
+            <p className="mb-1 text-[10px] font-black uppercase italic tracking-[0.2em] text-gray-500 md:mb-2 md:text-xs">
               Cereri active de cumpărare
             </p>
-            <p className="text-3xl md:text-4xl font-black italic text-white tracking-tighter">
+            <p className="text-3xl font-black italic tracking-tighter text-white md:text-4xl">
               {stats.activeDemands}
             </p>
-            <p className="text-[9px] font-bold text-gray-600 uppercase mt-2 tracking-widest">
+            <p className="mt-2 text-[9px] font-bold uppercase tracking-widest text-gray-600">
               Publicate pe platformă; bugetul se verifică direct între părți
             </p>
           </div>
 
-          {/* 3. Anunțuri (Listings) */}
-          <div className="flex-1 w-full text-center md:px-6 pt-6 md:pt-0">
-            <p className="text-[10px] md:text-xs font-black uppercase tracking-[0.2em] text-gray-500 mb-1 md:mb-2 italic">Anunțuri la Vânzare</p>
-            <p className="text-3xl md:text-4xl font-black italic text-white tracking-tighter">
+          <div className="w-full flex-1 pt-6 text-center md:px-6 md:pt-0">
+            <p className="mb-1 text-[10px] font-black uppercase italic tracking-[0.2em] text-gray-500 md:mb-2 md:text-xs">
+              Anunțuri la vânzare
+            </p>
+            <p className="text-3xl font-black italic tracking-tighter text-white md:text-4xl">
               {stats.activeListings}
             </p>
-            <p className="text-[9px] font-bold text-gray-600 uppercase mt-2 tracking-widest">Active disponibile chiar acum</p>
+            <p className="mt-2 text-[9px] font-bold uppercase tracking-widest text-gray-600">
+              Active disponibile chiar acum
+            </p>
           </div>
 
-          {/* 4. Tranzacții Finalizate */}
-          <div className="flex-1 w-full text-center md:px-6 pt-6 md:pt-0 pb-4 md:pb-0">
-            <p className="text-[10px] md:text-xs font-black uppercase tracking-[0.2em] text-gray-500 mb-1 md:mb-2 italic">Vânzări Finalizate</p>
-            <p className="text-3xl md:text-4xl font-black italic text-white tracking-tighter">
+          <div className="w-full flex-1 pb-4 pt-6 text-center md:px-6 md:pb-0 md:pt-0">
+            <p className="mb-1 text-[10px] font-black uppercase italic tracking-[0.2em] text-gray-500 md:mb-2 md:text-xs">
+              Vânzări finalizate
+            </p>
+            <p className="text-3xl font-black italic tracking-tighter text-white md:text-4xl">
               {stats.soldItems}
             </p>
-            <p className="text-[9px] font-bold text-gray-600 uppercase mt-2 tracking-widest">Tranzacții încheiate cu succes</p>
+            <p className="mt-2 text-[9px] font-bold uppercase tracking-widest text-gray-600">
+              Tranzacții încheiate cu succes
+            </p>
           </div>
-
         </div>
       </div>
     </section>

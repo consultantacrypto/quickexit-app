@@ -123,7 +123,7 @@ export default function AdCard({
       <div className="flex flex-1 flex-col gap-5 p-7">
         <div>
           <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-muted">
-            Scor AI · {score}
+            Scor Lichiditate · {score}
           </p>
           <h3 className="mt-2 line-clamp-2 text-lg font-semibold leading-snug tracking-tight text-ink">
             {title}

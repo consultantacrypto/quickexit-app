@@ -139,7 +139,7 @@ export default function ListingModals({
         {activeModal === "ai-score" && (
           <div className="space-y-6 pt-4">
             <h3 className="text-2xl font-black uppercase italic tracking-tighter md:text-3xl">
-              Scor <span className="text-[#FFD100]">oportunitate</span>
+              Scor <span className="text-[#FFD100]">lichiditate</span>
             </h3>
             <p className="text-base font-medium text-neutral-800">
               Scorul {adData.deal_score ?? "—"} reflectă o combinație de factori de piață și lichiditate
