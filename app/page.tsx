@@ -237,8 +237,8 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* CATEGORII — farmec vizual original */}
-      <section className="border-t border-gray-100 bg-white py-12 md:py-14 pb-16 md:pb-20">
+      {/* CATEGORII — aliniat cu Hero (neo-brutalist luminos) */}
+      <section className="border-t border-gray-100 bg-white py-12 pb-16 md:py-14 md:pb-20">
         <div className="mx-auto max-w-6xl px-4 text-center md:text-left">
           <h2 className="mb-10 inline-block border-b-[6px] border-[#FFD100] pb-3 text-sm font-black uppercase italic tracking-[0.35em] text-black md:mb-12 md:text-lg">
             Alege Categoria
@@ -249,9 +249,9 @@ export default async function Home() {
               <Link
                 key={cat.slug}
                 href={`/categorii/${cat.slug}`}
-                className="group flex flex-col items-center justify-center rounded-[2rem] border-[3px] border-black bg-white p-5 shadow-[6px_6px_0_0_rgba(0,0,0,1)] transition hover:-translate-y-1 hover:bg-[#FFD100] md:p-8"
+                className="group flex flex-col items-center justify-center rounded-2xl border-[3px] border-black bg-[#FDFCF8] p-5 text-black shadow-[6px_6px_0_0_rgba(0,0,0,1)] transition duration-200 hover:-translate-y-1 hover:bg-white hover:shadow-[6px_6px_0_0_#FFD100] md:p-8"
               >
-                <div className="mb-3 text-black transition-transform group-hover:scale-110 md:mb-4">
+                <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-xl border-[3px] border-black bg-[#FFD100] text-black shadow-[3px_3px_0_0_rgba(0,0,0,1)] transition-transform group-hover:scale-110 md:mb-4 md:h-16 md:w-16 [&_svg]:!h-8 [&_svg]:!w-8 md:[&_svg]:!h-9 md:[&_svg]:!w-9">
                   {cat.icon}
                 </div>
                 <span className="text-center text-[10px] font-black uppercase tracking-tight text-black md:text-[11px]">
@@ -263,31 +263,31 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* Tranziție → vitrină minimalistă (carduri albe) */}
-      <section className="border-t border-line/60 bg-canvas px-4 pt-20 pb-16 md:pt-28 md:pb-24">
+      {/* Anunțuri vânzări active */}
+      <section className="border-t border-gray-100 bg-white px-4 pt-20 pb-16 md:pt-28 md:pb-24">
         <div className="mx-auto max-w-7xl">
           <div className="mb-4 flex flex-col items-start justify-between gap-5 md:flex-row md:items-end">
-            <h2 className="text-3xl font-semibold tracking-tight text-ink md:text-4xl">
-              Anunțuri <span className="text-gold-deep">vânzări active</span>
+            <h2 className="text-3xl font-black uppercase italic tracking-tight text-black md:text-4xl">
+              Anunțuri <span className="text-[#FFD100]">vânzări active</span>
             </h2>
             <div className="flex flex-wrap items-center gap-5">
               <TrackedLink
                 href="/pune-anunt"
                 eventName="click_post_listing"
                 eventParams={{ source: "home_listings_section" }}
-                className="rounded-full bg-ink px-6 py-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-white transition-colors duration-300 hover:bg-gold hover:text-ink md:text-xs"
+                className="inline-flex items-center justify-center rounded-2xl border-[3px] border-black bg-[#FDFCF8] px-6 py-3 text-[11px] font-black uppercase tracking-widest text-black shadow-[6px_6px_0_0_rgba(0,0,0,1)] transition hover:-translate-y-0.5 hover:bg-white hover:shadow-[6px_6px_0_0_#FFD100] md:text-xs"
               >
                 Pune anunț
               </TrackedLink>
               <Link
                 href="/categorii/auto"
-                className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted underline-offset-4 transition hover:text-ink hover:underline md:text-xs"
+                className="border-b-2 border-transparent text-[11px] font-black uppercase tracking-widest text-neutral-600 underline-offset-4 transition hover:border-black hover:text-black md:text-xs"
               >
                 Vezi toate anunțurile →
               </Link>
             </div>
           </div>
-          <p className="mb-12 max-w-2xl text-sm font-medium leading-relaxed text-muted">
+          <p className="mb-12 max-w-2xl text-sm font-bold leading-relaxed text-neutral-600">
             Poți naviga fără cont. Pentru publicare, trimitere oferte și Camera de Negociere ai nevoie
             de un cont simplu.
           </p>
@@ -311,8 +311,8 @@ export default async function Home() {
                 />
               ))
             ) : (
-              <div className="col-span-full rounded-3xl border border-dashed border-line py-20 text-center">
-                <p className="text-sm font-medium text-muted">
+              <div className="col-span-full rounded-2xl border-[3px] border-dashed border-black bg-[#FDFCF8] py-20 text-center shadow-[6px_6px_0_0_rgba(0,0,0,1)]">
+                <p className="text-sm font-bold text-neutral-600">
                   Momentan terminalul scanează noi active...
                 </p>
               </div>
@@ -321,24 +321,24 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* CAPITAL DISPONIBIL */}
-      <section className="border-t border-line/60 bg-canvas px-4 py-16 md:py-24">
+      {/* Capital disponibil */}
+      <section className="border-t border-gray-100 bg-[#FDFCF8] px-4 py-16 md:py-24">
         <div className="mx-auto max-w-7xl">
           <div className="mb-12">
             <div className="mb-4 flex flex-col items-start justify-between gap-5 md:flex-row md:items-end">
-              <h2 className="text-3xl font-semibold tracking-tight text-ink md:text-4xl">
-                Capital <span className="text-gold-deep">disponibil</span>
+              <h2 className="text-3xl font-black uppercase italic tracking-tight text-black md:text-4xl">
+                Capital <span className="text-[#FFD100]">disponibil</span>
               </h2>
               <TrackedLink
                 href="/capital-disponibil"
                 eventName="click_capital_available"
                 eventParams={{ source: "home_capital_section" }}
-                className="whitespace-nowrap text-[11px] font-semibold uppercase tracking-[0.18em] text-muted underline-offset-4 transition hover:text-ink hover:underline md:text-xs"
+                className="whitespace-nowrap border-b-2 border-transparent text-[11px] font-black uppercase tracking-widest text-neutral-600 underline-offset-4 transition hover:border-black hover:text-black md:text-xs"
               >
                 Vezi toate cererile →
               </TrackedLink>
             </div>
-            <p className="max-w-2xl text-sm font-medium leading-relaxed text-muted">
+            <p className="max-w-2xl text-sm font-bold leading-relaxed text-neutral-600">
               Cereri publicate de cumpărători cu buget comunicat în anunț — verifică detaliile direct
               cu fiecare ofertant.
             </p>
@@ -357,8 +357,8 @@ export default async function Home() {
                 />
               ))
             ) : (
-              <div className="col-span-full rounded-3xl border border-dashed border-line py-16 text-center">
-                <p className="text-sm font-medium text-muted">
+              <div className="col-span-full rounded-2xl border-[3px] border-dashed border-black bg-white py-16 text-center shadow-[6px_6px_0_0_rgba(0,0,0,1)]">
+                <p className="text-sm font-bold text-neutral-600">
                   Nicio cerere de capital înregistrată momentan.
                 </p>
               </div>
@@ -370,7 +370,7 @@ export default async function Home() {
               href="/capital-disponibil"
               eventName="click_capital_available"
               eventParams={{ source: "home_capital_section_footer" }}
-              className="group inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted transition hover:text-ink md:text-xs"
+              className="group inline-flex items-center gap-1.5 border-b-2 border-transparent text-[11px] font-black uppercase tracking-widest text-neutral-600 transition hover:border-black hover:text-black md:text-xs"
             >
               Vezi tot capitalul disponibil
               <span
@@ -382,7 +382,7 @@ export default async function Home() {
             </TrackedLink>
             <Link
               href="/posteaza-cerere"
-              className="inline-flex items-center justify-center rounded-full border border-line bg-surface px-6 py-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-ink transition hover:border-neutral-300 hover:bg-canvas md:text-xs"
+              className="inline-flex items-center justify-center rounded-2xl border-[3px] border-black bg-white px-6 py-3 text-[11px] font-black uppercase tracking-widest text-black shadow-[6px_6px_0_0_rgba(0,0,0,1)] transition hover:-translate-y-0.5 hover:shadow-[6px_6px_0_0_#FFD100] md:text-xs"
             >
               Adaugă ofertă de capital
             </Link>
@@ -390,18 +390,18 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* LICITAȚII */}
-      <section className="border-t border-line/60 bg-surface px-4 py-16 md:py-24">
+      {/* Licitații deschise */}
+      <section className="border-t border-gray-100 bg-white px-4 py-16 md:py-24">
         <div className="mx-auto max-w-7xl">
           <div className="mb-12">
-            <h2 className="text-3xl font-semibold tracking-tight text-ink md:text-4xl">
-              Licitații <span className="text-gold-deep">deschise</span>
+            <h2 className="text-3xl font-black uppercase italic tracking-tight text-black md:text-4xl">
+              Licitații <span className="text-[#FFD100]">deschise</span>
             </h2>
-            <p className="mt-3 max-w-2xl text-sm font-medium leading-relaxed text-muted">
+            <p className="mt-3 max-w-2xl text-sm font-bold leading-relaxed text-neutral-600">
               Active cu fereastră de ofertare până la 30 de zile. Vânzătorul alege manual oferta
               potrivită.
             </p>
-            <p className="mt-2 max-w-2xl text-xs font-medium leading-relaxed text-muted">
+            <p className="mt-2 max-w-2xl text-xs font-bold leading-relaxed text-neutral-500">
               Nu există câștigător automat. Plata și predarea se stabilesc direct între părți.
             </p>
           </div>
@@ -429,20 +429,20 @@ export default async function Home() {
               ))}
             </div>
           ) : (
-            <div className="mx-auto max-w-xl rounded-3xl border border-line/70 bg-surface p-8 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-              <h3 className="text-lg font-semibold tracking-tight text-ink">
+            <div className="mx-auto max-w-xl rounded-2xl border-[3px] border-black bg-[#FDFCF8] p-8 shadow-[6px_6px_0_0_rgba(0,0,0,1)]">
+              <h3 className="text-lg font-black uppercase italic tracking-tight text-black">
                 Momentan nu există licitații active
               </h3>
-              <p className="mt-3 text-sm font-medium leading-relaxed text-muted">
+              <p className="mt-3 text-sm font-bold leading-relaxed text-neutral-600">
                 Licitațiile deschise permit vânzătorilor să primească oferte timp de până la 30 de
                 zile și să aleagă manual oferta potrivită.
               </p>
-              <p className="mt-2 text-xs font-medium leading-relaxed text-muted">
+              <p className="mt-2 text-xs font-bold leading-relaxed text-neutral-500">
                 Nu există câștigător automat. Plata și predarea se stabilesc direct între părți.
               </p>
               <Link
                 href="/pune-anunt?package=auction"
-                className="mt-6 inline-flex items-center justify-center rounded-full bg-ink px-6 py-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-white transition-colors duration-300 hover:bg-gold hover:text-ink md:text-xs"
+                className="mt-6 inline-flex items-center justify-center rounded-2xl border-[3px] border-black bg-white px-6 py-3 text-[11px] font-black uppercase tracking-widest text-black shadow-[6px_6px_0_0_rgba(0,0,0,1)] transition hover:-translate-y-0.5 hover:shadow-[6px_6px_0_0_#FFD100] md:text-xs"
               >
                 Publică o licitație
               </Link>
@@ -452,7 +452,7 @@ export default async function Home() {
           <div className="mt-12 flex flex-col gap-5 sm:mt-14 sm:flex-row sm:items-center sm:justify-between md:gap-6">
             <Link
               href="/licitatii"
-              className="group inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted transition hover:text-ink md:text-xs"
+              className="group inline-flex items-center gap-1.5 border-b-2 border-transparent text-[11px] font-black uppercase tracking-widest text-neutral-600 transition hover:border-black hover:text-black md:text-xs"
             >
               Vezi toate licitațiile
               <span
@@ -464,7 +464,7 @@ export default async function Home() {
             </Link>
             <Link
               href="/pune-anunt"
-              className="inline-flex items-center justify-center rounded-full border border-line bg-surface px-6 py-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-ink transition hover:border-neutral-300 hover:bg-canvas md:text-xs"
+              className="inline-flex items-center justify-center rounded-2xl border-[3px] border-black bg-[#FDFCF8] px-6 py-3 text-[11px] font-black uppercase tracking-widest text-black shadow-[6px_6px_0_0_rgba(0,0,0,1)] transition hover:-translate-y-0.5 hover:bg-white hover:shadow-[6px_6px_0_0_#FFD100] md:text-xs"
             >
               Adaugă o licitație
             </Link>
