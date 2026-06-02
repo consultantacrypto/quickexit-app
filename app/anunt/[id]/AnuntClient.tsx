@@ -4,7 +4,10 @@ import { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { MessagesSquare, Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import AuthModal from "../../components/AuthModal";
 import AdCard from "../../components/AdCard";
 import { normalizeSaleType } from "@/utils/normalizeSaleType";
 import {
@@ -245,6 +248,84 @@ export default function AnuntClient({
   const [isAccepting, setIsAccepting] = useState(false);
   const [acceptSuccess, setAcceptSuccess] = useState(false);
   const [acceptActionMessage, setAcceptActionMessage] = useState<{ type: "error"; text: string } | null>(null);
+
+  const router = useRouter();
+  const [isOpeningRoom, setIsOpeningRoom] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [roomError, setRoomError] = useState<string | null>(null);
+
+  // Deschide (sau creează) camera de negociere între investitor și vânzător pentru acest anunț.
+  const openNegotiationRoom = async () => {
+    setRoomError(null);
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    // Neautentificat → trimitem la login (modal).
+    if (!user) {
+      setShowAuthModal(true);
+      return;
+    }
+
+    const sellerId =
+      typeof adData.user_id === "string" && adData.user_id.trim()
+        ? adData.user_id.trim()
+        : null;
+
+    if (!sellerId) {
+      setRoomError("Vânzătorul nu este disponibil pentru negociere.");
+      return;
+    }
+    if (user.id === sellerId) {
+      setRoomError("Acesta este anunțul tău — negocierea pornește din partea cumpărătorilor.");
+      return;
+    }
+
+    setIsOpeningRoom(true);
+    try {
+      // Verificăm dacă există deja o cameră pentru (listing, buyer, seller).
+      const { data: existing, error: lookupError } = await supabase
+        .from("negotiation_rooms")
+        .select("id")
+        .eq("listing_id", adData.id)
+        .eq("buyer_id", user.id)
+        .eq("seller_id", sellerId)
+        .maybeSingle();
+
+      if (lookupError) throw lookupError;
+
+      let roomId = existing?.id as string | undefined;
+
+      if (!roomId) {
+        const { data: created, error: insertError } = await supabase
+          .from("negotiation_rooms")
+          .insert({
+            listing_id: adData.id,
+            buyer_id: user.id,
+            seller_id: sellerId,
+          })
+          .select("id")
+          .single();
+
+        if (insertError) throw insertError;
+        roomId = created?.id as string | undefined;
+      }
+
+      if (!roomId) throw new Error("room_id missing");
+
+      trackEvent("open_negotiation_room", {
+        listing_id: adData.id,
+        category: adData.category || "unknown",
+      });
+
+      router.push(`/negociere/${roomId}`);
+    } catch (err) {
+      console.error("[negociere] Eroare deschidere cameră:", err);
+      setRoomError("Nu am putut deschide camera de negociere. Reîncearcă.");
+      setIsOpeningRoom(false);
+    }
+  };
 
   useEffect(() => {
     if (!imageLightboxOpen) return;
@@ -765,6 +846,29 @@ export default function AnuntClient({
                   >
                     Trimite ofertă
                   </button>
+                  <button
+                    type="button"
+                    onClick={openNegotiationRoom}
+                    disabled={isOpeningRoom}
+                    className="flex w-full items-center justify-center gap-2 rounded-2xl border-[3px] border-black bg-[#FFD100] py-4 font-black uppercase tracking-wider text-black shadow-[4px_4px_0_0_#000] transition hover:-translate-y-0.5 hover:shadow-[6px_6px_0_0_#000] active:translate-y-0.5 active:shadow-none disabled:opacity-50 md:text-xs"
+                  >
+                    {isOpeningRoom ? (
+                      <>
+                        <Loader2 className="animate-spin" size={16} aria-hidden />
+                        Se deschide...
+                      </>
+                    ) : (
+                      <>
+                        <MessagesSquare size={16} aria-hidden />
+                        Deschide Cameră de Negociere
+                      </>
+                    )}
+                  </button>
+                  {roomError ? (
+                    <p className="text-center text-[11px] font-black uppercase tracking-wide text-red-600">
+                      {roomError}
+                    </p>
+                  ) : null}
                 </div>
 
                 <p className="mt-3 max-w-none rounded-xl border border-neutral-200 bg-[#F7F4EC] px-3 py-2.5 text-left text-[11px] font-semibold leading-relaxed text-neutral-800 sm:mt-4 sm:px-4 sm:py-3 sm:text-xs">
@@ -1104,6 +1208,8 @@ export default function AnuntClient({
           </p>
         </div>
       ) : null}
+
+      <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
     </div>
   );
 }
