@@ -205,63 +205,31 @@ export default async function Home() {
                     packageId: "standard",
                   },
                   {
-                    label: "Pachet Validare & Listare Standard",
-                    desc: null,
-                    benefits: [
-                      "Verificare manuală a activului (Filtru anti-zgomot)",
-                      "Listare garantată timp de 60 de zile în platformă",
-                      "Acces complet în Camera de Negociere cu investitorii",
-                    ],
+                    label: "Validare & listare",
+                    desc: "Pentru listări verificate manual, fără zgomot, cu acces garantat în Camera de Negociere direct cu investitorii.",
                     time: "60 zile",
                     price: "179 RON",
                     packageId: "urgent",
-                    premium: true,
                   },
                 ] as const
               ).map((item) => (
                 <Link
                   key={item.label}
                   href={`/pune-anunt?package=${item.packageId}`}
-                  className={`block rounded-2xl border-[3px] border-black bg-white text-left shadow-[3px_3px_0_0_rgba(0,0,0,1)] transition hover:-translate-y-0.5 hover:shadow-[4px_4px_0_0_#FFD100] md:p-3.5 lg:p-4 ${
-                    "premium" in item && item.premium
-                      ? "col-span-2 p-4 md:col-span-2 lg:col-span-1 lg:p-4"
-                      : "p-3"
-                  }`}
+                  className="block rounded-2xl border-[3px] border-black bg-white p-3 text-left shadow-[3px_3px_0_0_rgba(0,0,0,1)] transition hover:-translate-y-0.5 md:p-3.5 lg:p-4"
                 >
                   <p className="mb-1 text-[10px] font-black uppercase tracking-widest text-gray-500 md:text-[11px]">
                     {item.label}
                   </p>
-                  {"benefits" in item && item.benefits ? (
-                    <ul className="mt-2 space-y-1.5 border-l-2 border-[#FFD100] pl-3">
-                      {item.benefits.map((benefit) => (
-                        <li
-                          key={benefit}
-                          className="text-[10px] font-semibold leading-snug text-neutral-700 md:text-[11px]"
-                        >
-                          {benefit}
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="text-base font-black uppercase italic leading-none md:text-lg lg:text-xl">
-                      {item.time}
-                    </p>
-                  )}
-                  <div className="mt-3 flex flex-wrap items-center gap-2">
-                    {"benefits" in item && item.benefits ? (
-                      <span className="text-[10px] font-black uppercase tracking-widest text-neutral-500 md:text-[11px]">
-                        {item.time}
-                      </span>
-                    ) : null}
-                    <p className="inline-block rounded bg-black px-2 py-0.5 text-[11px] font-black uppercase tracking-tighter text-[#FFD100]">
-                      {item.price}
-                    </p>
-                  </div>
-                  {item.desc ? (
-                    <p className="mt-2 block text-[10px] font-bold uppercase tracking-tighter text-neutral-500 opacity-90 md:text-[11px]">
-                      {item.desc}
-                    </p>
-                  ) : null}
+                  <p className="text-base font-black uppercase italic leading-none md:text-lg lg:text-xl">
+                    {item.time}
+                  </p>
+                  <p className="mt-2 inline-block rounded bg-black px-2 py-0.5 text-[11px] font-black uppercase tracking-tighter text-[#FFD100] md:text-[11px]">
+                    {item.price}
+                  </p>
+                  <p className="mt-2 block text-[10px] font-bold uppercase tracking-tighter text-neutral-500 opacity-90 md:text-[11px]">
+                    {item.desc}
+                  </p>
                 </Link>
               ))}
             </div>
@@ -269,24 +237,24 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* CATEGORII — lux premium (charcoal + accent auriu) */}
-      <section className="border-t border-zinc-800/80 bg-zinc-950 py-14 pb-16 md:py-16 md:pb-20">
+      {/* CATEGORII */}
+      <section className="border-t border-gray-100 bg-white py-12 pb-16 md:py-14 md:pb-20">
         <div className="mx-auto max-w-6xl px-4 text-center md:text-left">
-          <h2 className="mb-10 inline-block border-b border-[#FFD100]/80 pb-3 text-sm font-semibold uppercase tracking-[0.28em] text-white md:mb-12 md:text-lg">
-            Alege categoria
+          <h2 className="mb-10 inline-block border-b-[6px] border-[#FFD100] pb-3 text-sm font-black uppercase italic tracking-[0.35em] text-black md:mb-12 md:text-lg">
+            Alege Categoria
           </h2>
 
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4 lg:grid-cols-6">
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-3 md:gap-6 lg:grid-cols-6">
             {categories.map((cat) => (
               <Link
                 key={cat.slug}
                 href={`/categorii/${cat.slug}`}
-                className="group flex flex-col items-center justify-center rounded-xl border border-zinc-800 bg-zinc-900/50 p-5 text-zinc-100 transition duration-300 hover:border-[#FFD100]/60 hover:bg-zinc-900 hover:shadow-[0_0_0_1px_rgba(255,209,0,0.35)] md:p-7"
+                className="group flex flex-col items-center justify-center rounded-2xl border-[3px] border-black bg-[#FDFCF8] p-5 text-black shadow-[6px_6px_0_0_rgba(0,0,0,1)] transition duration-200 hover:-translate-y-1 hover:bg-white hover:shadow-[6px_6px_0_0_#FFD100] md:p-8"
               >
-                <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-lg border border-zinc-700 bg-zinc-950 text-[#FFD100] transition-all duration-300 group-hover:border-[#FFD100]/50 group-hover:bg-zinc-900 md:mb-4 md:h-14 md:w-14 [&_svg]:!h-7 [&_svg]:!w-7 md:[&_svg]:!h-8 md:[&_svg]:!w-8">
+                <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-xl border-[3px] border-black bg-[#FFD100] text-black shadow-[3px_3px_0_0_rgba(0,0,0,1)] transition-transform group-hover:scale-110 md:mb-4 md:h-16 md:w-16 [&_svg]:!h-8 [&_svg]:!w-8 md:[&_svg]:!h-9 md:[&_svg]:!w-9">
                   {cat.icon}
                 </div>
-                <span className="text-center text-[10px] font-medium uppercase tracking-[0.12em] text-zinc-200 transition-colors group-hover:text-[#FFD100] md:text-[11px]">
+                <span className="text-center text-[10px] font-black uppercase tracking-tight text-black md:text-[11px]">
                   {cat.name}
                 </span>
               </Link>
