@@ -35,6 +35,8 @@ function resolvePriceId(
   return (publicValue || serverValue || fallback).trim();
 }
 
+// Env rămân NEXT_PUBLIC_STRIPE_PRICE_48_RON / STRIPE_PRICE_48_RON (același Price ID Stripe).
+// Valoarea logică a pachetului urgent este acum 179 RON / 60 zile.
 const PRICE_48_RON = resolvePriceId(
   process.env.NEXT_PUBLIC_STRIPE_PRICE_48_RON,
   process.env.STRIPE_PRICE_48_RON,
@@ -72,9 +74,9 @@ const PACKAGES: readonly StripeListingPackage[] = [
   {
     packageId: "urgent",
     priceId: PRICE_48_RON,
-    amountRon: 48,
-    label: "Vânzare urgentă (48h)",
-    duration: { kind: "hours", value: 48 },
+    amountRon: 179,
+    label: "Validare & Listare Standard (60 zile)",
+    duration: { kind: "days", value: 60 },
   },
   {
     packageId: "standard",

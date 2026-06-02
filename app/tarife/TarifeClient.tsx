@@ -45,21 +45,21 @@ export default function TarifeClient() {
     },
     {
       id: "urgent",
-      name: "Urgent",
-      publicName: "Vânzare Urgentă",
-      bestFor: "Pentru situații în care vrei răspuns rapid.",
-      benefit: "Fereastră scurtă (48 ore) pentru mesaje și oferte rapide.",
-      duration: "48 ORE",
-      price: "48 RON",
-      tag: "LICHIDARE",
+      name: "Validation",
+      publicName: "Pachet Validare & Listare Standard",
+      bestFor: "Pentru active care merită listare curată, verificată și expunere susținută.",
+      benefit: "60 de zile de listare cu filtru anti-zgomot și acces la Camera de Negociere.",
+      duration: "60 ZILE",
+      price: "179 RON",
+      tag: "VALIDARE",
       features: [
-        "Primul loc în terminal 48h",
-        "Push Notification Global",
-        "Verificare KYC Prioritară",
+        "Verificare manuală a activului (Filtru anti-zgomot)",
+        "Listare garantată timp de 60 de zile în platformă",
+        "Acces complet în Camera de Negociere cu investitorii",
       ],
-      color: "bg-[#FDFCF8]",
-      btnColor: "bg-black text-white",
-      badge: "bg-black text-white",
+      color: "bg-white",
+      btnColor: "bg-black text-[#FFD100]",
+      badge: "bg-[#FFD100] text-black",
       isRecommended: false,
     },
   ];
@@ -195,7 +195,7 @@ export default function TarifeClient() {
               <p className="text-sm font-bold text-black leading-relaxed mb-4">
                 Vizibilitate extinsă până la{" "}
                 <span className="underline decoration-white">30 zile</span> și fereastră de ofertare pe întreaga
-                perioadă. Comparativ cu urgentă (48 ore), ai mai mult timp să strângi și să compari oferte, fără escrow
+                perioadă. Comparativ cu listarea standard de 60 de zile (179 RON), ai fereastră dedicată licitației, fără escrow
                 sau plată între părți prin platformă.
               </p>
               <p className="text-xs font-bold text-black leading-relaxed mb-4">
@@ -242,7 +242,7 @@ export default function TarifeClient() {
                 Publică cu acest pachet
               </Link>
               <p className="text-xs font-semibold mt-4 text-black/70">
-                Când vrei mai mult timp pentru oferte și alegerea manuală, nu doar sprint 48h.
+                Când vrei mai mult timp pentru oferte și alegerea manuală, nu doar listare standard.
               </p>
             </div>
           </div>

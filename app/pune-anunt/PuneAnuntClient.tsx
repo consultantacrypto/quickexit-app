@@ -45,9 +45,7 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
   // Preț de piață introdus manual pentru active premium/rare (confidence < 50%).
   const [manualMarketPrice, setManualMarketPrice] = useState("");
   const [saleStrategy, setSaleStrategy] = useState<string>(
-    initialPkg === "urgent"
-      ? "lichidare"
-      : initialPkg === "auction"
+    initialPkg === "auction"
         ? "licitatie"
         : "standard"
   );
@@ -106,7 +104,7 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
   const packagePrices: Record<"economy" | "standard" | "urgent" | "auction", number> = {
     economy: 99,
     standard: 79,
-    urgent: 48,
+    urgent: 179,
     auction: 111,
   };
 
@@ -117,6 +115,7 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
     title: string;
     durationLabel: string;
     description: string;
+    benefits?: string[];
     badge?: string;
   }[] = [
     {
@@ -134,9 +133,16 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
     },
     {
       id: "urgent",
-      title: "Vânzare Urgentă",
-      durationLabel: "48 ore",
-      description: "Pentru situații în care vrei răspuns rapid.",
+      title: "Pachet Validare & Listare Standard",
+      durationLabel: "60 zile",
+      description:
+        "Listare curată, verificată manual, cu acces complet la investitori pregătiți să negocieze.",
+      benefits: [
+        "Verificare manuală a activului (Filtru anti-zgomot)",
+        "Listare garantată timp de 60 de zile în platformă",
+        "Acces complet în Camera de Negociere cu investitorii",
+      ],
+      badge: "Premium",
     },
     {
       id: "auction",
@@ -150,7 +156,7 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
   const PACKAGE_TO_STRATEGY: Record<PackageId, "standard" | "lichidare" | "licitatie"> = {
     economy: "standard",
     standard: "standard",
-    urgent: "lichidare",
+    urgent: "standard",
     auction: "licitatie",
   };
 
@@ -1576,6 +1582,18 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                       <p className="mt-3 text-[11px] font-semibold leading-snug text-neutral-700">
                         {pkg.description}
                       </p>
+                      {pkg.benefits && pkg.benefits.length > 0 && (
+                        <ul className="mt-3 space-y-1.5 border-l-2 border-[#FFD100] pl-3">
+                          {pkg.benefits.map((benefit) => (
+                            <li
+                              key={benefit}
+                              className="text-[10px] font-semibold leading-snug text-neutral-700"
+                            >
+                              {benefit}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
                       {pkg.id === "auction" && (
                         <p className="mt-2 text-[10px] font-bold uppercase tracking-wide text-neutral-600">
                           Nu există câștigător automat. Plata și predarea se stabilesc direct între părți.

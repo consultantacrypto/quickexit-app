@@ -22,9 +22,9 @@ const LISTING_PACKAGES: Record<ListingPackageId, ListingPackage> = {
   },
   urgent: {
     id: "urgent",
-    title: "Vanzare urgenta",
-    priceRon: 48,
-    activeDuration: { kind: "hours", value: 48 },
+    title: "Pachet Validare & Listare Standard",
+    priceRon: 179,
+    activeDuration: { kind: "days", value: 60 },
   },
   auction: {
     id: "auction",
