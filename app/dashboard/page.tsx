@@ -8,7 +8,8 @@ import AdCard from "../components/AdCard";
 import { normalizeSaleType } from "@/utils/normalizeSaleType";
 import { Wallet, Inbox, PlusCircle, Search, Settings, Power, Play, PiggyBank, ClipboardList, Loader2 } from "lucide-react";
 // Importul corectat cu calea relativă
-import KycBanner from "../components/KycBanner"; 
+import KycBanner from "../components/KycBanner";
+import { buildKycStartRequestInit } from "@/lib/kycClient"; 
 
 type DashboardTab = "portofoliu" | "cumparari" | "oferte";
 const OWNER_USER_ID = "83da9725-68f3-4ded-9605-714b9094bf0e";
@@ -620,11 +621,7 @@ function DashboardContent() {
     }
     setKycLoading(true);
     try {
-      const res = await fetch("/api/kyc/start", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId }),
-      });
+      const res = await fetch("/api/kyc/start", await buildKycStartRequestInit(userId));
       const data = await res.json();
       if (data.url) {
         window.location.href = data.url;

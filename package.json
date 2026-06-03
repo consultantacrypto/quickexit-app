@@ -12,6 +12,7 @@
     "@google-analytics/data": "^5.2.2",
     "@google/generative-ai": "^0.24.1",
     "@stripe/stripe-js": "^9.7.0",
+    "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.104.0",
     "csv-parse": "^6.2.1",
     "dotenv": "^17.4.2",

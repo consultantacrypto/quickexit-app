@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Shield, Loader2, ArrowRight } from "lucide-react";
+import { buildKycStartRequestInit } from "@/lib/kycClient";
 
 interface KycBannerProps {
   userId: string;
@@ -17,11 +18,7 @@ export default function KycBanner({ userId, kycStatus }: KycBannerProps) {
   const handleStartKyc = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch("/api/kyc/start", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId }),
-      });
+      const res = await fetch("/api/kyc/start", await buildKycStartRequestInit(userId));
 
       const data = await res.json();
 

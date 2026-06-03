@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
 import { getSiteUrl } from "@/lib/siteUrl";
+import { resolveKycStartUserId } from "@/lib/kycStartAuth";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 // Endpoint generic de inițiere KYC — decuplează UI-ul de providerul concret.
 // KYC_PROVIDER: "didit" | "stripe" (implicit: "stripe" dacă lipsește sau e invalid).
@@ -60,15 +64,25 @@ async function startDiditKyc(userId: string) {
   } | null;
 
   if (!sessionRes.ok) {
-    console.error("[kyc/start] Didit session error:", sessionRes.status, sessionData);
+    console.error("[kyc/start] Didit API error:", {
+      status: sessionRes.status,
+      body: sessionData,
+      userId,
+      workflowIdPresent: Boolean(workflowId),
+      apiKeyPresent: Boolean(apiKey),
+    });
+    const diditMessage =
+      sessionData?.detail ||
+      sessionData?.message ||
+      sessionData?.error ||
+      "Eroare la crearea sesiunii Didit.";
+
     return NextResponse.json(
       {
-        error:
-          sessionData?.detail ||
-          sessionData?.message ||
-          sessionData?.error ||
-          "Eroare la crearea sesiunii Didit.",
+        error: diditMessage,
         provider: "didit",
+        upstream: "didit",
+        upstreamStatus: sessionRes.status,
       },
       { status: sessionRes.status >= 400 && sessionRes.status < 600 ? sessionRes.status : 502 }
     );
@@ -83,6 +97,7 @@ async function startDiditKyc(userId: string) {
       {
         error: "Răspuns Didit invalid: lipsește URL-ul de verificare.",
         provider: "didit",
+        upstream: "didit",
       },
       { status: 502 }
     );
@@ -136,18 +151,33 @@ async function startStripeKyc(userId: string) {
 }
 
 export async function POST(request: Request) {
+  const provider = getKycProvider();
+
   try {
     const body = await request.json().catch(() => null);
-    const userId = body && typeof body.userId === "string" ? body.userId.trim() : "";
+    const bodyUserId =
+      body && typeof body.userId === "string" ? body.userId.trim() : "";
 
-    if (!userId) {
+    const authResult = await resolveKycStartUserId(request, bodyUserId);
+
+    if (!authResult.ok) {
+      console.error("[kyc/start] Auth refuzată:", {
+        status: authResult.status,
+        error: authResult.error,
+        debug: authResult.debug,
+        provider,
+      });
       return NextResponse.json(
-        { error: "ID-ul utilizatorului este obligatoriu" },
-        { status: 400 }
+        {
+          error: authResult.error,
+          provider,
+          auth: authResult.debug,
+        },
+        { status: authResult.status }
       );
     }
 
-    const provider = getKycProvider();
+    const userId = authResult.userId;
 
     switch (provider) {
       case "didit":
@@ -160,11 +190,23 @@ export async function POST(request: Request) {
   } catch (error: unknown) {
     const message =
       error instanceof Error ? error.message : "Eroare la inițierea verificării.";
-    console.error("[kyc/start] Eroare inițiere KYC:", error);
+    const stack = error instanceof Error ? error.stack : undefined;
+
+    console.error("[kyc/start] Eroare neașteptată:", {
+      message,
+      stack,
+      provider,
+      supabaseUrlPresent: Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL),
+      supabaseAnonPresent: Boolean(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY),
+      kycProviderEnv: process.env.KYC_PROVIDER ?? null,
+      diditKeyPresent: Boolean(process.env.DIDIT_API_KEY),
+      stripeKeyPresent: Boolean(process.env.STRIPE_SECRET_KEY),
+    });
+
     return NextResponse.json(
       {
         error: message,
-        provider: getKycProvider(),
+        provider,
       },
       { status: 500 }
     );
