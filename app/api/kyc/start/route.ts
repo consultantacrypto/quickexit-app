@@ -58,8 +58,7 @@ async function startStripeKyc(userId: string) {
   return NextResponse.json({ url: verificationSession.url });
 }
 
-// Placeholder Didit — structură pregătită, fără logica extinsă încă (Faza 2).
-function startDiditKyc(_userId: string) {
+async function startDiditKyc(userId: string) {
   if (!isDiditEnabled()) {
     return NextResponse.json(
       { error: "Providerul Didit nu este activat (DIDIT_ENABLED=false)." },
@@ -67,14 +66,70 @@ function startDiditKyc(_userId: string) {
     );
   }
 
-  return NextResponse.json(
-    {
-      error: "Integrarea Didit nu este încă disponibilă.",
-      provider: "didit",
-      status: "not_implemented",
+  const apiKey = process.env.DIDIT_API_KEY?.trim();
+  const workflowId = process.env.DIDIT_WORKFLOW_ID?.trim();
+  if (!apiKey || !workflowId) {
+    return NextResponse.json(
+      {
+        error:
+          "Config server incompletă: DIDIT_API_KEY sau DIDIT_WORKFLOW_ID lipsește.",
+      },
+      { status: 500 }
+    );
+  }
+
+  const baseUrl = getSiteUrl();
+  const callback = baseUrl
+    ? `${baseUrl}/dashboard?kyc_process=started`
+    : undefined;
+
+  const sessionRes = await fetch("https://verification.didit.me/v3/session/", {
+    method: "POST",
+    headers: {
+      "x-api-key": apiKey,
+      "Content-Type": "application/json",
     },
-    { status: 501 }
-  );
+    body: JSON.stringify({
+      workflow_id: workflowId,
+      vendor_data: userId,
+      ...(callback ? { callback } : {}),
+    }),
+  });
+
+  const sessionData = (await sessionRes.json().catch(() => null)) as {
+    verification_url?: string;
+    url?: string;
+    detail?: string;
+    message?: string;
+    error?: string;
+  } | null;
+
+  if (!sessionRes.ok) {
+    console.error("[kyc/start] Didit session error:", sessionRes.status, sessionData);
+    return NextResponse.json(
+      {
+        error:
+          sessionData?.detail ||
+          sessionData?.message ||
+          sessionData?.error ||
+          "Eroare la crearea sesiunii Didit.",
+      },
+      { status: sessionRes.status >= 400 && sessionRes.status < 600 ? sessionRes.status : 502 }
+    );
+  }
+
+  const verificationUrl =
+    sessionData?.verification_url ?? sessionData?.url ?? null;
+
+  if (!verificationUrl) {
+    console.error("[kyc/start] Didit răspuns fără verification_url:", sessionData);
+    return NextResponse.json(
+      { error: "Răspuns Didit invalid: lipsește URL-ul de verificare." },
+      { status: 502 }
+    );
+  }
+
+  return NextResponse.json({ url: verificationUrl });
 }
 
 export async function POST(request: Request) {
@@ -92,7 +147,7 @@ export async function POST(request: Request) {
     const provider = resolveProvider();
 
     if (provider === "didit") {
-      return startDiditKyc(userId);
+      return await startDiditKyc(userId);
     }
 
     return await startStripeKyc(userId);

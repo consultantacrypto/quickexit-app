@@ -6,7 +6,7 @@ import { supabase } from "@/lib/supabase";
 import { trackEvent } from "@/lib/analytics";
 import AdCard from "../components/AdCard";
 import { normalizeSaleType } from "@/utils/normalizeSaleType";
-import { Wallet, Inbox, PlusCircle, Search, Settings, Power, Play, PiggyBank, ClipboardList } from "lucide-react";
+import { Wallet, Inbox, PlusCircle, Search, Settings, Power, Play, PiggyBank, ClipboardList, Loader2 } from "lucide-react";
 // Importul corectat cu calea relativă
 import KycBanner from "../components/KycBanner"; 
 
@@ -33,6 +33,7 @@ function DashboardContent() {
   };
 
   const [activeTab, setActiveTab] = useState<DashboardTab>(getValidTab(tabParam));
+  const [kycLoading, setKycLoading] = useState(false);
   
   // Stare pentru profilul utilizatorului (pentru KYC)
   const [userProfile, setUserProfile] = useState<any>(null);
@@ -510,7 +511,11 @@ function DashboardContent() {
   const newDemandOffersCount = myDemandOffers.filter(o => o.status === 'new').length;
   const totalNotifications = newOffersCount + newDemandOffersCount;
 
-  const kycStatusLabel = (status?: string) => {
+  /** true doar pentru status explicit „verified” (null/undefined/"" → neverificat). */
+  const isKycVerified = (status?: string | null) =>
+    String(status ?? "").trim() === "verified";
+
+  const kycStatusLabel = (status?: string | null) => {
     switch (status) {
       case "verified":
         return "Identitate verificată";
@@ -589,13 +594,73 @@ function DashboardContent() {
   const hasItemsInPortfolio = myListings.length > 0 || myDemands.length > 0;
   const hasPaidActivity =
     myListings.some((l) => l.status === "active") || myDemands.some((d) => d.status === "active");
+  const kycStatusValue = userProfile?.kyc_status as string | null | undefined;
+
   const showKycRecommendationBanner =
-    Boolean(userProfile) && userProfile.kyc_status !== "verified" && hasPaidActivity;
+    !isKycVerified(kycStatusValue) && hasPaidActivity;
   const showKycSoftHint =
-    Boolean(userProfile) &&
-    userProfile.kyc_status !== "verified" &&
+    !isKycVerified(kycStatusValue) &&
     hasItemsInPortfolio &&
     !hasPaidActivity;
+
+  const resolveKycUserId = () =>
+    (currentUserId || userProfile?.id || "").trim();
+
+  const handleStartKyc = async () => {
+    if (kycLoading) return;
+    let userId = resolveKycUserId();
+    if (!userId) {
+      const { data: { user } } = await supabase.auth.getUser();
+      userId = user?.id?.trim() || "";
+      if (userId) setCurrentUserId(userId);
+    }
+    if (!userId) {
+      console.error("[dashboard] Nu s-a putut rezolva userId pentru KYC.");
+      return;
+    }
+    setKycLoading(true);
+    try {
+      const res = await fetch("/api/kyc/start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId }),
+      });
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+        return;
+      }
+      console.error("[dashboard] Eroare inițiere KYC:", data.error);
+      setKycLoading(false);
+    } catch (err) {
+      console.error("[dashboard] Eroare request KYC:", err);
+      setKycLoading(false);
+    }
+  };
+
+  const kycStartButtonClass =
+    "inline-flex shrink-0 items-center justify-center gap-2 rounded-xl border-[3px] border-black bg-[#FFD100] px-5 py-3 text-xs font-black uppercase tracking-widest text-black shadow-[4px_4px_0_0_rgba(0,0,0,1)] transition hover:-translate-y-0.5 hover:shadow-[2px_2px_0_0_rgba(0,0,0,1)] disabled:opacity-50 disabled:hover:translate-y-0";
+
+  const renderKycStartButton = (extraClass = "") => {
+    if (isKycVerified(kycStatusValue)) return null;
+    return (
+      <button
+        type="button"
+        onClick={handleStartKyc}
+        disabled={kycLoading}
+        className={`${kycStartButtonClass} ${extraClass}`.trim()}
+      >
+        {kycLoading ? (
+          <>
+            <Loader2 className="animate-spin" size={16} aria-hidden />
+            Se încarcă...
+          </>
+        ) : (
+          "Inițiază Verificarea"
+        )}
+      </button>
+    );
+  };
 
   return (
     <div className="max-w-7xl mx-auto min-h-screen pb-20 overflow-x-hidden">
@@ -657,9 +722,10 @@ function DashboardContent() {
         </div>
       </section>
 
+      {/* source: app/dashboard/page.tsx — secțiune Status cont / KYC */}
       <div className="bg-[#FDFCF8] border-[3px] border-black rounded-2xl p-4 md:p-5 shadow-[5px_5px_0_0_rgba(255,209,0,0.75)] mb-6">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-          <div>
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="min-w-0 flex-1">
             <p className="text-xs font-black uppercase tracking-widest text-neutral-600 mb-1">Status cont</p>
             <p className="text-lg font-black italic">{kycStatusLabel(userProfile?.kyc_status)}</p>
             <p className="text-sm text-neutral-700 mt-1">Verificarea identității ajută la protejarea cumpărătorilor și vânzătorilor.</p>
@@ -670,14 +736,15 @@ function DashboardContent() {
               </p>
             ) : null}
           </div>
+          {renderKycStartButton("w-full md:w-auto")}
         </div>
       </div>
 
       {/* Banner KYC: după plată reușită (listing/cerere activă), mesaj aliniat cu politica reală — fără blocare */}
-      {!isLoading && showKycRecommendationBanner && (
+      {!isLoading && showKycRecommendationBanner && resolveKycUserId() && (
         <KycBanner
-          userId={currentUserId}
-          kycStatus={userProfile.kyc_status || "unverified"}
+          userId={resolveKycUserId()}
+          kycStatus={kycStatusValue || "unverified"}
         />
       )}
 
@@ -698,9 +765,10 @@ function DashboardContent() {
             Oferte la anunțurile tale și pentru cererile tale de cumpărare
           </p>
         </div>
-        <div className="bg-[#FDFCF8] border-[3px] border-black p-4 rounded-xl shadow-[3px_3px_0_0_rgba(255,209,0,0.8)]">
+        <div className="bg-[#FDFCF8] border-[3px] border-black p-4 rounded-xl shadow-[3px_3px_0_0_rgba(255,209,0,0.8)] flex flex-col">
           <span className="text-xs font-black uppercase text-neutral-600 block mb-1">Verificare cont</span>
           <p className="text-sm font-black">{kycStatusLabel(userProfile?.kyc_status)}</p>
+          {renderKycStartButton("mt-3 w-full")}
         </div>
       </div>
 
