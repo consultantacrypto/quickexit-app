@@ -1,71 +1,25 @@
 import { NextResponse } from "next/server";
-import Stripe from "stripe";
 import { getSiteUrl } from "@/lib/siteUrl";
 
 // Endpoint generic de inițiere KYC — decuplează UI-ul de providerul concret.
-// Provider selectat prin env: KYC_PROVIDER = "stripe" | "didit" (default: "stripe").
-// DIDIT_ENABLED gardează activarea Didit (default: "false").
-//
-// IMPORTANT: ruta veche /api/create-verification-session rămâne intactă (rollback).
+// KYC_PROVIDER: "didit" | "stripe" (implicit: "stripe" dacă lipsește sau e invalid).
+// IMPORTANT: /api/create-verification-session rămâne intact (rollback Stripe direct).
 
 type KycProvider = "stripe" | "didit";
 
-function resolveProvider(): KycProvider {
-  const raw = (process.env.KYC_PROVIDER || "stripe").trim().toLowerCase();
+function normalizeEnvValue(value: string | undefined): string {
+  return (value ?? "")
+    .trim()
+    .replace(/^['"]|['"]$/g, "")
+    .toLowerCase();
+}
+
+function getKycProvider(): KycProvider {
+  const raw = normalizeEnvValue(process.env.KYC_PROVIDER);
   return raw === "didit" ? "didit" : "stripe";
 }
 
-function isDiditEnabled(): boolean {
-  return (process.env.DIDIT_ENABLED || "false").trim().toLowerCase() === "true";
-}
-
-// Aceeași logică Stripe Identity ca în /api/create-verification-session,
-// întoarcem același format așteptat de UI: { url }.
-async function startStripeKyc(userId: string) {
-  const stripeKey = process.env.STRIPE_SECRET_KEY;
-  if (!stripeKey) {
-    return NextResponse.json(
-      { error: "Config server incompletă: STRIPE_SECRET_KEY lipsește." },
-      { status: 500 }
-    );
-  }
-
-  const baseUrl = getSiteUrl();
-  if (!baseUrl) {
-    return NextResponse.json(
-      { error: "Config server incompletă: NEXT_PUBLIC_BASE_URL lipsește." },
-      { status: 500 }
-    );
-  }
-
-  const stripe = new Stripe(stripeKey, {
-    apiVersion: "2023-10-16" as any,
-  });
-
-  const verificationSession = await stripe.identity.verificationSessions.create({
-    type: "document",
-    metadata: {
-      userId,
-    },
-    options: {
-      document: {
-        require_matching_selfie: true,
-      },
-    },
-    return_url: `${baseUrl}/dashboard?kyc_process=started`,
-  });
-
-  return NextResponse.json({ url: verificationSession.url });
-}
-
 async function startDiditKyc(userId: string) {
-  if (!isDiditEnabled()) {
-    return NextResponse.json(
-      { error: "Providerul Didit nu este activat (DIDIT_ENABLED=false)." },
-      { status: 503 }
-    );
-  }
-
   const apiKey = process.env.DIDIT_API_KEY?.trim();
   const workflowId = process.env.DIDIT_WORKFLOW_ID?.trim();
   if (!apiKey || !workflowId) {
@@ -73,6 +27,7 @@ async function startDiditKyc(userId: string) {
       {
         error:
           "Config server incompletă: DIDIT_API_KEY sau DIDIT_WORKFLOW_ID lipsește.",
+        provider: "didit",
       },
       { status: 500 }
     );
@@ -113,6 +68,7 @@ async function startDiditKyc(userId: string) {
           sessionData?.message ||
           sessionData?.error ||
           "Eroare la crearea sesiunii Didit.",
+        provider: "didit",
       },
       { status: sessionRes.status >= 400 && sessionRes.status < 600 ? sessionRes.status : 502 }
     );
@@ -124,12 +80,59 @@ async function startDiditKyc(userId: string) {
   if (!verificationUrl) {
     console.error("[kyc/start] Didit răspuns fără verification_url:", sessionData);
     return NextResponse.json(
-      { error: "Răspuns Didit invalid: lipsește URL-ul de verificare." },
+      {
+        error: "Răspuns Didit invalid: lipsește URL-ul de verificare.",
+        provider: "didit",
+      },
       { status: 502 }
     );
   }
 
-  return NextResponse.json({ url: verificationUrl });
+  return NextResponse.json({ url: verificationUrl, provider: "didit" });
+}
+
+async function startStripeKyc(userId: string) {
+  const stripeKey = process.env.STRIPE_SECRET_KEY?.trim();
+  if (!stripeKey) {
+    return NextResponse.json(
+      {
+        error: "Config server incompletă: STRIPE_SECRET_KEY lipsește.",
+        provider: "stripe",
+      },
+      { status: 500 }
+    );
+  }
+
+  const baseUrl = getSiteUrl();
+  if (!baseUrl) {
+    return NextResponse.json(
+      {
+        error: "Config server incompletă: NEXT_PUBLIC_BASE_URL lipsește.",
+        provider: "stripe",
+      },
+      { status: 500 }
+    );
+  }
+
+  const { default: Stripe } = await import("stripe");
+  const stripe = new Stripe(stripeKey, {
+    apiVersion: "2023-10-16" as any,
+  });
+
+  const verificationSession = await stripe.identity.verificationSessions.create({
+    type: "document",
+    metadata: {
+      userId,
+    },
+    options: {
+      document: {
+        require_matching_selfie: true,
+      },
+    },
+    return_url: `${baseUrl}/dashboard?kyc_process=started`,
+  });
+
+  return NextResponse.json({ url: verificationSession.url, provider: "stripe" });
 }
 
 export async function POST(request: Request) {
@@ -144,17 +147,25 @@ export async function POST(request: Request) {
       );
     }
 
-    const provider = resolveProvider();
+    const provider = getKycProvider();
 
-    if (provider === "didit") {
-      return await startDiditKyc(userId);
+    switch (provider) {
+      case "didit":
+        return await startDiditKyc(userId);
+      case "stripe":
+        return await startStripeKyc(userId);
+      default:
+        return await startStripeKyc(userId);
     }
-
-    return await startStripeKyc(userId);
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message =
+      error instanceof Error ? error.message : "Eroare la inițierea verificării.";
     console.error("[kyc/start] Eroare inițiere KYC:", error);
     return NextResponse.json(
-      { error: error?.message || "Eroare la inițierea verificării." },
+      {
+        error: message,
+        provider: getKycProvider(),
+      },
       { status: 500 }
     );
   }
