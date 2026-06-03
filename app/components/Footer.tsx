@@ -1,9 +1,34 @@
 "use client";
 
 import Link from "next/link";
+import { ShieldCheck } from "lucide-react";
 import { companyInfo } from "@/lib/company";
 
 const footerLink = "text-xs font-bold uppercase italic text-neutral-400 transition-colors hover:text-[#FFD100]";
+
+function DiditKycTrustBadge({ className = "" }: { className?: string }) {
+  return (
+    <a
+      href="https://www.didit.me/"
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label="KYC Secured by Didit — partener verificare identitate"
+      className={`group inline-flex items-center gap-2.5 rounded-xl border-[3px] border-black bg-[#FDFCF8] px-3.5 py-2.5 text-black shadow-[4px_4px_0_0_#FFD100] transition duration-200 hover:-translate-y-0.5 hover:shadow-[2px_2px_0_0_#FFD100] dark:border-neutral-600 dark:bg-neutral-900 dark:text-white dark:shadow-[4px_4px_0_0_rgba(255,209,0,0.85)] ${className}`.trim()}
+    >
+      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border-2 border-black bg-[#FFD100] text-black dark:border-[#FFD100]">
+        <ShieldCheck size={16} strokeWidth={2.5} aria-hidden />
+      </span>
+      <span className="flex flex-col leading-tight">
+        <span className="text-[9px] font-black uppercase tracking-[0.14em] text-neutral-600 dark:text-neutral-400">
+          KYC Secured by
+        </span>
+        <span className="text-[11px] font-black uppercase italic tracking-tight text-black dark:text-[#FFD100]">
+          Didit
+        </span>
+      </span>
+    </a>
+  );
+}
 
 export default function Footer() {
   return (
@@ -26,6 +51,7 @@ export default function Footer() {
               <span>Made in Romania</span>
               <span className="text-base">🇷🇴</span>
             </div>
+            <DiditKycTrustBadge className="mt-2" />
           </div>
 
           {/* Platformă */}
@@ -164,18 +190,21 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className="flex flex-col items-center justify-between gap-6 border-t border-neutral-900 pt-10 md:flex-row">
+        <div className="flex flex-col items-center justify-between gap-8 border-t border-neutral-900 pt-10 md:flex-row md:items-end">
           <p className="text-center text-[10px] font-medium italic leading-relaxed text-neutral-400 md:text-left">
             {companyInfo.copyright}
           </p>
 
-          <div className="flex items-center gap-8 opacity-30 grayscale transition-all hover:grayscale-0 hover:opacity-100">
-            <div className="text-[10px] font-black italic tracking-tighter text-white underline decoration-[#FFD100] decoration-2">
-              SECURE PAYMENTS BY STRIPE
-            </div>
-            <div className="flex gap-4">
-              <span className="text-[10px] font-black italic text-white">VISA</span>
-              <span className="text-[10px] font-black italic text-white">MASTERCARD</span>
+          <div className="flex flex-col items-center gap-5 sm:flex-row sm:flex-wrap sm:justify-end">
+            <DiditKycTrustBadge />
+            <div className="flex items-center gap-8 opacity-30 grayscale transition-all hover:grayscale-0 hover:opacity-100">
+              <div className="text-[10px] font-black italic tracking-tighter text-white underline decoration-[#FFD100] decoration-2">
+                SECURE PAYMENTS BY STRIPE
+              </div>
+              <div className="flex gap-4">
+                <span className="text-[10px] font-black italic text-white">VISA</span>
+                <span className="text-[10px] font-black italic text-white">MASTERCARD</span>
+              </div>
             </div>
           </div>
         </div>
