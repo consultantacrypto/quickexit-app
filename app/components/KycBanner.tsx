@@ -17,7 +17,7 @@ export default function KycBanner({ userId, kycStatus }: KycBannerProps) {
   const handleStartKyc = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch("/api/create-verification-session", {
+      const res = await fetch("/api/kyc/start", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId }),
