@@ -1,16 +1,11 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { getSupabaseAnonKey, getSupabaseProjectUrl } from "@/lib/supabase/config";
 
+/** Client server (App Router) — citește/scrie sesiunea din cookie-uri pe Vercel. */
 export async function createServerSupabaseClient() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
-
-  if (!supabaseUrl || !supabaseAnonKey) {
-    throw new Error(
-      "Config Supabase incompletă: NEXT_PUBLIC_SUPABASE_URL sau NEXT_PUBLIC_SUPABASE_ANON_KEY lipsește."
-    );
-  }
-
+  const supabaseUrl = getSupabaseProjectUrl();
+  const supabaseAnonKey = getSupabaseAnonKey();
   const cookieStore = await cookies();
 
   return createServerClient(supabaseUrl, supabaseAnonKey, {
@@ -24,7 +19,7 @@ export async function createServerSupabaseClient() {
             cookieStore.set(name, value, options);
           });
         } catch {
-          // Route handlers may not always allow set — session refresh handled in middleware if added later.
+          // Setarea cookie-urilor poate eșua în unele Server Components; route handlers OK.
         }
       },
     },

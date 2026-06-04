@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { getSupabaseAnonKey, getSupabaseProjectUrl } from "@/lib/supabase/config";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 const UUID_RE =
@@ -31,13 +32,15 @@ async function getUserIdFromBearer(bearer: string): Promise<{
   userId: string | null;
   error: string | null;
 }> {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
-  if (!supabaseUrl || !anonKey) {
-    return {
-      userId: null,
-      error: "Config Supabase incompletă pentru validare Bearer.",
-    };
+  let supabaseUrl: string;
+  let anonKey: string;
+  try {
+    supabaseUrl = getSupabaseProjectUrl();
+    anonKey = getSupabaseAnonKey();
+  } catch (configError) {
+    const message =
+      configError instanceof Error ? configError.message : "Config Supabase invalidă.";
+    return { userId: null, error: message };
   }
 
   const authSupabase = createClient(supabaseUrl, anonKey, {
