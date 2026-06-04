@@ -6,13 +6,16 @@ import { supabase } from "@/lib/supabase";
 import { trackEvent } from "@/lib/analytics";
 import AdCard from "../components/AdCard";
 import { normalizeSaleType } from "@/utils/normalizeSaleType";
-import { Wallet, Inbox, PlusCircle, Search, Settings, Power, Play, PiggyBank, ClipboardList, Loader2 } from "lucide-react";
-// Importul corectat cu calea relativă
+import { Wallet, Inbox, PlusCircle, Search, Settings, Power, Play, PiggyBank, ClipboardList } from "lucide-react";
 import KycBanner from "../components/KycBanner";
-import { buildKycStartRequestInit } from "@/lib/kycClient"; 
 
 type DashboardTab = "portofoliu" | "cumparari" | "oferte";
 const OWNER_USER_ID = "83da9725-68f3-4ded-9605-714b9094bf0e";
+
+/** Didit Hosted Reusable Flow — redirect direct (fără API backend). */
+const DIDIT_HOSTED_VERIFICATION_URL =
+  process.env.NEXT_PUBLIC_DIDIT_VERIFICATION_URL?.trim() ||
+  "https://verify.didit.me/u/muFAuyvBTnO2lEhEuo56YQ";
 
 function DashboardContent() {
   const searchParams = useSearchParams();
@@ -34,8 +37,7 @@ function DashboardContent() {
   };
 
   const [activeTab, setActiveTab] = useState<DashboardTab>(getValidTab(tabParam));
-  const [kycLoading, setKycLoading] = useState(false);
-  
+
   // Stare pentru profilul utilizatorului (pentru KYC)
   const [userProfile, setUserProfile] = useState<any>(null);
   const [currentUserId, setCurrentUserId] = useState<string>("");
@@ -607,36 +609,12 @@ function DashboardContent() {
   const resolveKycUserId = () =>
     (currentUserId || userProfile?.id || "").trim();
 
-  const handleStartKyc = async () => {
-    if (kycLoading) return;
-    let userId = resolveKycUserId();
-    if (!userId) {
-      const { data: { user } } = await supabase.auth.getUser();
-      userId = user?.id?.trim() || "";
-      if (userId) setCurrentUserId(userId);
-    }
-    if (!userId) {
-      console.error("[dashboard] Nu s-a putut rezolva userId pentru KYC.");
-      return;
-    }
-    setKycLoading(true);
-    try {
-      const res = await fetch("/api/kyc/start", await buildKycStartRequestInit(userId));
-      const data = await res.json();
-      if (data.url) {
-        window.location.href = data.url;
-        return;
-      }
-      console.error("[dashboard] Eroare inițiere KYC:", data.error);
-      setKycLoading(false);
-    } catch (err) {
-      console.error("[dashboard] Eroare request KYC:", err);
-      setKycLoading(false);
-    }
+  const handleStartKyc = () => {
+    window.location.href = DIDIT_HOSTED_VERIFICATION_URL;
   };
 
   const kycStartButtonClass =
-    "inline-flex shrink-0 items-center justify-center gap-2 rounded-xl border-[3px] border-black bg-[#FFD100] px-5 py-3 text-xs font-black uppercase tracking-widest text-black shadow-[4px_4px_0_0_rgba(0,0,0,1)] transition hover:-translate-y-0.5 hover:shadow-[2px_2px_0_0_rgba(0,0,0,1)] disabled:opacity-50 disabled:hover:translate-y-0";
+    "inline-flex shrink-0 items-center justify-center gap-2 rounded-xl border-[3px] border-black bg-[#FFD100] px-5 py-3 text-xs font-black uppercase tracking-widest text-black shadow-[4px_4px_0_0_rgba(0,0,0,1)] transition hover:-translate-y-0.5 hover:shadow-[2px_2px_0_0_rgba(0,0,0,1)]";
 
   const renderKycStartButton = (extraClass = "") => {
     if (isKycVerified(kycStatusValue)) return null;
@@ -644,17 +622,9 @@ function DashboardContent() {
       <button
         type="button"
         onClick={handleStartKyc}
-        disabled={kycLoading}
         className={`${kycStartButtonClass} ${extraClass}`.trim()}
       >
-        {kycLoading ? (
-          <>
-            <Loader2 className="animate-spin" size={16} aria-hidden />
-            Se încarcă...
-          </>
-        ) : (
-          "Inițiază Verificarea"
-        )}
+        Inițiază Verificarea
       </button>
     );
   };
