@@ -51,7 +51,6 @@ export default function Footer() {
               <span>Made in Romania</span>
               <span className="text-base">🇷🇴</span>
             </div>
-            <DiditKycTrustBadge className="mt-2" />
           </div>
 
           {/* Platformă */}
