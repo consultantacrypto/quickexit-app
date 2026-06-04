@@ -23,9 +23,39 @@ function getKycProvider(): KycProvider {
   return raw === "didit" ? "didit" : "stripe";
 }
 
+/** ID-uri aplicație Quick Exit din consola Didit (override prin env pe Vercel). */
+const DEFAULT_DIDIT_APPLICATION_ID = "2930d050-3f93-47c1-b595-30ebaf407db3";
+const DEFAULT_DIDIT_ORGANIZATION_ID = "2e3455b4-a04f-4ffd-8171-e9550bb148a2";
+
+function resolveDiditApplicationId(): string {
+  return (
+    process.env.DIDIT_APPLICATION_ID?.trim() || DEFAULT_DIDIT_APPLICATION_ID
+  );
+}
+
+function resolveDiditOrganizationId(): string {
+  return (
+    process.env.DIDIT_ORGANIZATION_ID?.trim() || DEFAULT_DIDIT_ORGANIZATION_ID
+  );
+}
+
+/** Parsează body Didit: JSON dacă e posibil, altfel text brut. */
+function parseDiditResponseBody(rawText: string): unknown {
+  const trimmed = rawText.trim();
+  if (!trimmed) return null;
+  try {
+    return JSON.parse(trimmed) as unknown;
+  } catch {
+    return trimmed;
+  }
+}
+
 async function startDiditKyc(userId: string) {
   const apiKey = process.env.DIDIT_API_KEY?.trim();
   const workflowId = process.env.DIDIT_WORKFLOW_ID?.trim();
+  const applicationId = resolveDiditApplicationId();
+  const organizationId = resolveDiditOrganizationId();
+
   if (!apiKey || !workflowId) {
     return NextResponse.json(
       {
@@ -42,62 +72,88 @@ async function startDiditKyc(userId: string) {
     ? `${baseUrl}/dashboard?kyc_process=started`
     : undefined;
 
-  const sessionRes = await fetch("https://verification.didit.me/v3/session/", {
-    method: "POST",
-    headers: {
-      "x-api-key": apiKey,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      workflow_id: workflowId,
-      vendor_data: userId,
-      ...(callback ? { callback } : {}),
-    }),
-  });
+  const diditSessionBody = {
+    workflow_id: workflowId,
+    vendor_data: userId,
+    application_id: applicationId,
+    organization_id: organizationId,
+    ...(callback ? { callback } : {}),
+  };
 
-  const sessionData = (await sessionRes.json().catch(() => null)) as {
-    verification_url?: string;
-    url?: string;
-    detail?: string;
-    message?: string;
-    error?: string;
-  } | null;
-
-  if (!sessionRes.ok) {
-    console.error("[kyc/start] Didit API error:", {
-      status: sessionRes.status,
-      body: sessionData,
-      userId,
-      workflowIdPresent: Boolean(workflowId),
-      apiKeyPresent: Boolean(apiKey),
+  let sessionRes: Response;
+  try {
+    sessionRes = await fetch("https://verification.didit.me/v3/session/", {
+      method: "POST",
+      headers: {
+        "x-api-key": apiKey,
+        "Content-Type": "application/json",
+        "X-App-Id": applicationId,
+      },
+      body: JSON.stringify(diditSessionBody),
     });
-    const diditMessage =
-      sessionData?.detail ||
-      sessionData?.message ||
-      sessionData?.error ||
-      "Eroare la crearea sesiunii Didit.";
-
+  } catch (fetchError: unknown) {
+    const message =
+      fetchError instanceof Error ? fetchError.message : "Eroare rețea la apelul Didit.";
+    console.error("[kyc/start] Didit fetch failed:", fetchError);
     return NextResponse.json(
       {
-        error: diditMessage,
+        error: "Didit Upstream Error",
+        diditStatus: 0,
+        diditRawResponse: { message, type: "network_error" },
         provider: "didit",
-        upstream: "didit",
-        upstreamStatus: sessionRes.status,
       },
-      { status: sessionRes.status >= 400 && sessionRes.status < 600 ? sessionRes.status : 502 }
+      { status: 502 }
     );
   }
 
-  const verificationUrl =
-    sessionData?.verification_url ?? sessionData?.url ?? null;
+  const rawText = await sessionRes.text();
+  const parsedBody = parseDiditResponseBody(rawText);
 
-  if (!verificationUrl) {
-    console.error("[kyc/start] Didit răspuns fără verification_url:", sessionData);
+  if (!sessionRes.ok) {
+    console.error("[kyc/start] Didit API error:", {
+      diditStatus: sessionRes.status,
+      diditRawResponse: parsedBody,
+      rawTextLength: rawText.length,
+      userId,
+      workflowIdPresent: Boolean(workflowId),
+      apiKeyPresent: Boolean(apiKey),
+      applicationId,
+      organizationId,
+      callback,
+    });
+
     return NextResponse.json(
       {
-        error: "Răspuns Didit invalid: lipsește URL-ul de verificare.",
+        error: "Didit Upstream Error",
+        diditStatus: sessionRes.status,
+        diditRawResponse: parsedBody ?? rawText ?? null,
         provider: "didit",
-        upstream: "didit",
+      },
+      { status: sessionRes.status }
+    );
+  }
+
+  const sessionData = parsedBody as {
+    verification_url?: string;
+    url?: string;
+  } | null;
+
+  const verificationUrl =
+    sessionData &&
+    typeof sessionData === "object" &&
+    !Array.isArray(sessionData)
+      ? sessionData.verification_url ?? sessionData.url ?? null
+      : null;
+
+  if (!verificationUrl) {
+    console.error("[kyc/start] Didit răspuns fără verification_url:", parsedBody);
+    return NextResponse.json(
+      {
+        error: "Didit Upstream Error",
+        diditStatus: sessionRes.status,
+        diditRawResponse: parsedBody ?? rawText ?? null,
+        provider: "didit",
+        detail: "Răspuns Didit OK dar lipsește verification_url / url.",
       },
       { status: 502 }
     );
