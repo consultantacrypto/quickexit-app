@@ -85,9 +85,11 @@ async function startDiditKyc(userId: string) {
     sessionRes = await fetch("https://verification.didit.me/v3/session/", {
       method: "POST",
       headers: {
-        "x-api-key": apiKey,
         "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+        "x-api-key": apiKey,
         "X-App-Id": applicationId,
+        "X-Organization-Id": organizationId,
       },
       body: JSON.stringify(diditSessionBody),
     });
