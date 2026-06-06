@@ -1,11 +1,25 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { Loader2, Search, Star, X } from "lucide-react";
 import { trackEvent } from "@/lib/analytics";
 import { getPriceIdForPackageId } from "@/lib/stripePackages";
+import { resolveEvaluateCategoryKey } from "@/lib/evaluateSafety";
+import {
+  buildEvaluationPrefillMessage,
+  computePrefillLevel,
+  EVALUATION_CATEGORY_LABELS,
+  EVALUATION_PRICE_STRATEGIES,
+  loadEvaluationDraftFromSession,
+  mapEvaluationDraftToListingPatch,
+  parseEvaluationPriceType,
+  prefillMessageForLevel,
+  type EvaluationPriceType,
+  type PrefillLevel,
+} from "@/lib/evaluationDraft";
 
 type PackageIdParam = "economy" | "standard" | "urgent" | "auction";
 
@@ -22,12 +36,27 @@ function normalizeInitialPackage(value: string | undefined): PackageIdParam {
     : "standard";
 }
 
+const MAX_EVALUATION_EXIT_PRICE_EUR = 100_000_000;
+
+function parseEvaluationExitPrice(raw: string | null): number | null {
+  if (!raw) return null;
+  const trimmed = raw.trim();
+  if (!/^\d+$/.test(trimmed)) return null;
+  const n = Number(trimmed);
+  if (!Number.isFinite(n) || n <= 0 || n > MAX_EVALUATION_EXIT_PRICE_EUR) return null;
+  return Math.round(n);
+}
+
 type PuneAnuntClientProps = {
   initialPackage?: string;
 };
 
 export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps) {
+  const searchParams = useSearchParams();
   const initialPkg = normalizeInitialPackage(initialPackage);
+  const prefillTrackedRef = useRef(false);
+  const priceLockedFromEvaluationRef = useRef(false);
+  const evaluationHandoffRef = useRef(false);
 
   const [step, setStep] = useState(1);
   const [category, setCategory] = useState("Auto & Moto");
@@ -42,6 +71,9 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
   const [analyzedItems, setAnalyzedItems] = useState(0);
 
   const [exitPrice, setExitPrice] = useState("");
+  const [evaluationPrefillActive, setEvaluationPrefillActive] = useState(false);
+  const [evaluationPrefillMessage, setEvaluationPrefillMessage] = useState<string | null>(null);
+  const [evaluationHandoffActive, setEvaluationHandoffActive] = useState(false);
   // Preț de piață introdus manual pentru active premium/rare (confidence < 50%).
   const [manualMarketPrice, setManualMarketPrice] = useState("");
   const [saleStrategy, setSaleStrategy] = useState<string>(
@@ -91,6 +123,135 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
     specs: "",
     warranty: "",
   });
+
+  useEffect(() => {
+    const source = searchParams.get("source")?.trim().toLowerCase();
+    if (source !== "evaluation") return;
+
+    let didPrefill = false;
+    let hasExitPrice = false;
+    let resolvedCategoryKey: string | null = null;
+    let prefillLevel: PrefillLevel = "price_only";
+    let selectedPriceType: EvaluationPriceType | undefined;
+    let selectedPriceLabel: string | undefined;
+
+    const draft = loadEvaluationDraftFromSession();
+
+    const applyReferenceMarketPrice = (referenceMarketPrice: number) => {
+      setMarketPrice(referenceMarketPrice);
+      setManualMarketPrice(String(referenceMarketPrice));
+      evaluationHandoffRef.current = true;
+      setEvaluationHandoffActive(true);
+      didPrefill = true;
+    };
+
+    if (draft) {
+      const { formDataPatch, adTitle } = mapEvaluationDraftToListingPatch(draft);
+
+      if (EVALUATION_CATEGORY_LABELS[draft.category]) {
+        setCategory(EVALUATION_CATEGORY_LABELS[draft.category]);
+        resolvedCategoryKey = draft.category;
+        didPrefill = true;
+      }
+
+      if (draft.selectedExitPrice) {
+        setExitPrice(String(draft.selectedExitPrice));
+        hasExitPrice = true;
+        priceLockedFromEvaluationRef.current = true;
+        didPrefill = true;
+      }
+
+      if (draft.referenceMarketPrice) {
+        applyReferenceMarketPrice(draft.referenceMarketPrice);
+      }
+
+      if (draft.confidenceScore !== undefined) {
+        setEvaluationResult({ confidence_score: draft.confidenceScore });
+      } else if (draft.referenceMarketPrice) {
+        setEvaluationResult({ confidence_score: 75 });
+      }
+
+      if (draft.selectedPriceType) {
+        selectedPriceType = draft.selectedPriceType;
+      }
+
+      if (draft.selectedPriceLabel) {
+        selectedPriceLabel = draft.selectedPriceLabel;
+      }
+
+      if (Object.keys(formDataPatch).length > 0) {
+        setFormData((prev) => ({ ...prev, ...formDataPatch }));
+        didPrefill = true;
+      }
+
+      if (adTitle) {
+        setAdTitle(adTitle);
+        didPrefill = true;
+      }
+
+      prefillLevel = computePrefillLevel(draft.category, draft.assetDetails, hasExitPrice);
+    }
+
+    if (!resolvedCategoryKey) {
+      const categoryKey = resolveEvaluateCategoryKey(searchParams.get("category"));
+      if (categoryKey && EVALUATION_CATEGORY_LABELS[categoryKey]) {
+        setCategory(EVALUATION_CATEGORY_LABELS[categoryKey]);
+        resolvedCategoryKey = categoryKey;
+        didPrefill = true;
+      }
+    }
+
+    if (!hasExitPrice) {
+      const parsedExitPrice = parseEvaluationExitPrice(searchParams.get("exit_price"));
+      if (parsedExitPrice !== null) {
+        setExitPrice(String(parsedExitPrice));
+        hasExitPrice = true;
+        priceLockedFromEvaluationRef.current = true;
+        didPrefill = true;
+      }
+    }
+
+    if (!selectedPriceType) {
+      const queryPriceType = parseEvaluationPriceType(searchParams.get("price_type"));
+      if (queryPriceType) {
+        selectedPriceType = queryPriceType;
+        if (!selectedPriceLabel) {
+          selectedPriceLabel = EVALUATION_PRICE_STRATEGIES.find(
+            (s) => s.type === queryPriceType,
+          )?.label;
+        }
+      }
+    }
+
+    if (!evaluationHandoffRef.current) {
+      const parsedReferenceMarketPrice = parseEvaluationExitPrice(
+        searchParams.get("reference_market_price"),
+      );
+      if (parsedReferenceMarketPrice !== null) {
+        applyReferenceMarketPrice(parsedReferenceMarketPrice);
+        setEvaluationResult({ confidence_score: 75 });
+      }
+    }
+
+    if (didPrefill) {
+      setEvaluationPrefillActive(true);
+      setEvaluationPrefillMessage(
+        selectedPriceLabel
+          ? buildEvaluationPrefillMessage(prefillLevel, selectedPriceLabel)
+          : prefillMessageForLevel(prefillLevel),
+      );
+    }
+
+    if (didPrefill && !prefillTrackedRef.current) {
+      prefillTrackedRef.current = true;
+      trackEvent("listing_prefilled_from_evaluation", {
+        category: resolvedCategoryKey ?? "unknown",
+        has_exit_price: hasExitPrice,
+        selected_price_type: selectedPriceType ?? "unknown",
+        prefill_level: prefillLevel,
+      });
+    }
+  }, [searchParams]);
 
   const categoriesList = [
     "Auto & Moto",
@@ -261,10 +422,14 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
     // utilizatorul pe Pasul 2. Activăm modul manual (confidence 0 => isLowConfidence)
     // și rămânem pe Pasul 3 ca să poată introduce manual prețurile.
     const activateManualFallback = () => {
-      setEvaluationResult({ confidence_score: 0 });
-      setMarketPrice(0);
-      setAnalyzedItems(0);
-      setExitPrice("");
+      if (!evaluationHandoffRef.current) {
+        setEvaluationResult({ confidence_score: 0 });
+        setMarketPrice(0);
+        setAnalyzedItems(0);
+      }
+      if (!priceLockedFromEvaluationRef.current) {
+        setExitPrice("");
+      }
       setFlowError(null);
     };
 
@@ -315,14 +480,20 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
       const data = await response.json().catch(() => null);
 
       if (data && data.success) {
-        setEvaluationResult(data);
-        setMarketPrice(data.estimated_market_price || 0);
-        setAnalyzedItems(data.comparable_count || 0);
-
-        if (data.strong_exit_price) {
-          setExitPrice(data.strong_exit_price.toString());
+        if (evaluationHandoffRef.current) {
+          setAnalyzedItems(data.comparable_count || 0);
         } else {
-          setExitPrice("");
+          setEvaluationResult(data);
+          setMarketPrice(data.estimated_market_price || 0);
+          setAnalyzedItems(data.comparable_count || 0);
+
+          if (!priceLockedFromEvaluationRef.current) {
+            if (data.strong_exit_price) {
+              setExitPrice(data.strong_exit_price.toString());
+            } else {
+              setExitPrice("");
+            }
+          }
         }
       } else {
         // Răspuns fără success sau JSON invalid -> mod manual, rămânem pe Pasul 3.
@@ -354,7 +525,8 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
   const rawConfidence = toFiniteNumber(evaluationResult?.confidence_score);
   const confidencePercent =
     rawConfidence > 0 && rawConfidence <= 1 ? rawConfidence * 100 : rawConfidence;
-  const isLowConfidence = !!evaluationResult && confidencePercent < 50;
+  const isLowConfidence =
+    !!evaluationResult && confidencePercent < 50 && !evaluationHandoffActive;
 
   // LOGICA NOUĂ: Calcul matematic pentru discount în funcție de strategie
   const baseRequestedPrice = toFiniteNumber(exitPrice);
@@ -566,6 +738,14 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
         </div>
 
         <div className="relative overflow-hidden rounded-[2rem] border-[3px] border-black bg-white p-8 shadow-[12px_12px_0_0_rgba(0,0,0,0.12)] md:p-14 md:shadow-[14px_14px_0_0_#FFD100]">
+          {evaluationPrefillActive && evaluationPrefillMessage && (
+            <div
+              role="status"
+              className="relative z-10 mb-8 rounded-xl border-2 border-[#FFD100]/70 bg-[#FFF9E6] px-4 py-3 text-sm font-medium leading-relaxed text-neutral-800"
+            >
+              {evaluationPrefillMessage}
+            </div>
+          )}
           <div
             className="pointer-events-none absolute right-0 top-0 z-0 hidden p-8 opacity-[0.06] md:block"
             aria-hidden
@@ -1461,7 +1641,10 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                           <input
                             type="number"
                             value={exitPrice}
-                            onChange={(e) => setExitPrice(e.target.value)}
+                            onChange={(e) => {
+                              priceLockedFromEvaluationRef.current = false;
+                              setExitPrice(e.target.value);
+                            }}
                             placeholder={marketPrice > 0 ? marketPrice.toString() : "ex. 45000"}
                             className={`${inputBase} pl-11 text-2xl font-black italic tabular-nums focus:bg-white md:text-3xl`}
                           />

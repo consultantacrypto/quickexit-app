@@ -4,6 +4,15 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "@/src/i18n/navigation";
 import { Clock3, ShieldCheck } from "lucide-react";
 import { trackEvent } from "@/lib/analytics";
+import {
+  buildEvaluationDraft,
+  buildListingHrefForStrategy,
+  computeReferenceMarketPrice,
+  EVALUATION_PRICE_STRATEGIES,
+  getEvaluationPriceFromResult,
+  saveEvaluationDraftToSession,
+  type EvaluationPriceType,
+} from "@/lib/evaluationDraft";
 
 type ApiResult = {
   success: boolean;
@@ -102,21 +111,63 @@ function validateEvaluationForm(
   }
 }
 
-function buildListingHref(
-  category: CategoryId,
-  result: ApiResult | null,
-  includeExitPrice = true,
-): string {
-  const params = new URLSearchParams();
-  params.set("source", "evaluation");
-  params.set("category", category);
-  if (includeExitPrice) {
-    const exit = Number(result?.quick_exit_price);
-    if (Number.isFinite(exit) && exit > 0) {
-      params.set("exit_price", String(Math.round(exit)));
-    }
+function buildManualListingHref(category: CategoryId): string {
+  return `/pune-anunt?source=evaluation&category=${category}`;
+}
+
+function priceStrategyCardClass(type: EvaluationPriceType): string {
+  switch (type) {
+    case "market":
+      return "rounded-2xl border-2 border-black bg-white p-6 md:p-7 shadow-[6px_6px_0_0_rgba(0,0,0,0.12)]";
+    case "quick_exit":
+      return "rounded-2xl border-[3px] border-black bg-[#FFD100] p-6 md:p-7 shadow-[6px_6px_0_0_#000]";
+    case "fast_sale":
+      return "rounded-2xl border-2 border-black bg-white p-6 md:p-7 shadow-[4px_4px_0_0_rgba(0,0,0,0.08)]";
+    case "liquidation":
+      return "rounded-2xl border-2 border-red-700/55 bg-neutral-950 p-6 md:p-7 shadow-[6px_6px_0_0_rgba(220,38,38,0.25)]";
+    default:
+      return "rounded-2xl border-2 border-black bg-white p-6 md:p-7";
   }
-  return `/pune-anunt?${params.toString()}`;
+}
+
+function priceStrategySubtitle(type: EvaluationPriceType): string | null {
+  switch (type) {
+    case "quick_exit":
+      return "recomandat pentru vânzare accelerată";
+    case "fast_sale":
+      return "vânzare rapidă cu discount controlat";
+    case "liquidation":
+      return "încasare rapidă / lichidare agresivă";
+    default:
+      return null;
+  }
+}
+
+function priceStrategyTitleClass(type: EvaluationPriceType): string {
+  if (type === "liquidation") return "text-[10px] font-bold uppercase tracking-[0.22em] text-red-400";
+  if (type === "quick_exit") return "text-[10px] font-bold uppercase tracking-[0.22em] text-black/75";
+  return "text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-500";
+}
+
+function priceStrategyValueClass(type: EvaluationPriceType): string {
+  return type === "liquidation"
+    ? "mt-4 text-2xl font-black tabular-nums text-white md:text-3xl"
+    : "mt-3 text-2xl font-black tabular-nums text-black md:text-3xl";
+}
+
+function priceStrategyCtaClass(type: EvaluationPriceType, enabled: boolean): string {
+  const base =
+    "mt-5 block w-full rounded-xl px-4 py-3 text-center text-[10px] font-black uppercase tracking-widest transition";
+  if (!enabled) {
+    return `${base} cursor-not-allowed border-2 border-neutral-400 bg-neutral-200 text-neutral-500`;
+  }
+  if (type === "quick_exit") {
+    return `${base} border-[3px] border-black bg-black text-[#FFD100] shadow-[4px_4px_0_0_#000] hover:brightness-110`;
+  }
+  if (type === "liquidation") {
+    return `${base} border-2 border-red-400 bg-red-950 text-red-100 hover:bg-red-900`;
+  }
+  return `${base} border-2 border-black bg-white text-black hover:bg-[#FFD100]`;
 }
 
 function formatPrice(price: unknown) {
@@ -170,17 +221,19 @@ export default function EvaluareClient() {
 
   const analyzedSources = Number(result?.google_result_count ?? result?.comparable_count ?? 0);
 
-  const listingHref = useMemo(
-    () => buildListingHref(category, result, true),
-    [category, result],
+  const manualListingHref = useMemo(
+    () => buildManualListingHref(category),
+    [category],
   );
 
-  const listingHrefManual = useMemo(
-    () => buildListingHref(category, result, false),
-    [category, result],
-  );
+  const handleManualListingClick = () => {
+    saveEvaluationDraftToSession(
+      buildEvaluationDraft({
+        category,
+        formData,
+      }),
+    );
 
-  const trackListingClick = () => {
     trackEvent("click_evaluation_to_listing", {
       category,
       data_quality_label: result?.data_quality_label
@@ -188,6 +241,37 @@ export default function EvaluareClient() {
         : "unknown",
       confidence_score: formatConfidenceScore(result?.confidence_score),
       source: "evaluation_result",
+      selected_price_type: "manual",
+    });
+  };
+
+  const handlePriceStrategyClick = (priceType: EvaluationPriceType) => () => {
+    const strategy = EVALUATION_PRICE_STRATEGIES.find((s) => s.type === priceType);
+    if (!strategy) return;
+
+    const selectedExitPrice = getEvaluationPriceFromResult(result, priceType);
+    const estimatedMarketPrice = getEvaluationPriceFromResult(result, "market");
+
+    saveEvaluationDraftToSession(
+      buildEvaluationDraft({
+        category,
+        formData,
+        selectedExitPrice,
+        selectedPriceType: priceType,
+        selectedPriceLabel: strategy.label,
+        estimatedMarketPrice,
+        confidenceScore: formatConfidenceScore(result?.confidence_score),
+      }),
+    );
+
+    trackEvent("click_evaluation_to_listing", {
+      category,
+      data_quality_label: result?.data_quality_label
+        ? String(result.data_quality_label)
+        : "unknown",
+      confidence_score: formatConfidenceScore(result?.confidence_score),
+      source: "evaluation_result",
+      selected_price_type: priceType,
     });
   };
 
@@ -444,8 +528,8 @@ export default function EvaluareClient() {
                   </p>
                   <div className="mt-10 flex flex-col gap-3 sm:flex-row sm:justify-center">
                     <Link
-                      href={listingHrefManual}
-                      onClick={trackListingClick}
+                      href={manualListingHref}
+                      onClick={handleManualListingClick}
                       className="rounded-xl border-2 border-white bg-transparent px-8 py-3.5 text-center text-[11px] font-black uppercase tracking-widest text-white transition hover:bg-white hover:text-black"
                     >
                       Stabilesc manual prețul
@@ -467,8 +551,8 @@ export default function EvaluareClient() {
                   </p>
                   <div className="mt-10">
                     <Link
-                      href={listingHrefManual}
-                      onClick={trackListingClick}
+                      href={manualListingHref}
+                      onClick={handleManualListingClick}
                       className="inline-block rounded-xl border-[3px] border-black bg-[#FFD100] px-10 py-3.5 text-[11px] font-black uppercase tracking-widest text-black shadow-[5px_5px_0_0_rgba(0,0,0,0.9)] transition hover:brightness-105"
                     >
                       Continuu cu preț manual
@@ -502,41 +586,72 @@ export default function EvaluareClient() {
                   </div>
 
                   <div className="mb-8 grid gap-4 md:grid-cols-2 md:gap-5">
-                    <div className="rounded-2xl border-2 border-black bg-white p-6 md:p-7 shadow-[6px_6px_0_0_rgba(0,0,0,0.12)]">
-                      <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-500">
-                        Preț piață estimat
-                      </p>
-                      <p className="mt-3 text-2xl font-black tabular-nums text-black md:text-3xl">
-                        {formatPrice(result.estimated_market_price)}
-                      </p>
-                    </div>
-                    <div className="rounded-2xl border-[3px] border-black bg-[#FFD100] p-6 md:p-7 shadow-[6px_6px_0_0_#000]">
-                      <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-black/75">
-                        Preț recomandat Quick Exit
-                      </p>
-                      <p className="mt-2 text-[10px] font-semibold uppercase leading-snug tracking-wide text-black/65">
-                        recomandat pentru vânzare accelerată
-                      </p>
-                      <p className="mt-4 text-2xl font-black tabular-nums text-black md:text-3xl">
-                        {formatPrice(result.quick_exit_price)}
-                      </p>
-                    </div>
-                    <div className="rounded-2xl border-2 border-black bg-white p-6 md:p-7 shadow-[4px_4px_0_0_rgba(0,0,0,0.08)]">
-                      <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-500">
-                        Preț pentru vânzare foarte rapidă
-                      </p>
-                      <p className="mt-2 text-[10px] font-semibold uppercase leading-snug tracking-wide text-neutral-500">
-                        vânzare rapidă cu discount controlat
-                      </p>
-                      <p className="mt-4 text-2xl font-black tabular-nums text-black md:text-3xl">{formatPrice(result.strong_exit_price)}</p>
-                    </div>
-                    <div className="rounded-2xl border-2 border-red-700/55 bg-neutral-950 p-6 md:p-7 shadow-[6px_6px_0_0_rgba(220,38,38,0.25)]">
-                      <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-red-400">Preț de lichidare</p>
-                      <p className="mt-2 text-[10px] font-semibold uppercase leading-snug tracking-wide text-neutral-400">
-                        încasare rapidă / lichidare agresivă
-                      </p>
-                      <p className="mt-4 text-2xl font-black tabular-nums text-white md:text-3xl">{formatPrice(result.liquidation_price)}</p>
-                    </div>
+                    {EVALUATION_PRICE_STRATEGIES.map((strategy) => {
+                      const price = getEvaluationPriceFromResult(result, strategy.type);
+                      const estimatedMarketPrice = getEvaluationPriceFromResult(result, "market");
+                      const referenceMarketPrice = computeReferenceMarketPrice(
+                        estimatedMarketPrice,
+                        price,
+                        strategy.type,
+                      );
+                      const href = buildListingHrefForStrategy(
+                        category,
+                        price,
+                        strategy.type,
+                        referenceMarketPrice,
+                      );
+                      const subtitle = priceStrategySubtitle(strategy.type);
+                      const priceEnabled = Boolean(price);
+
+                      return (
+                        <div
+                          key={strategy.type}
+                          className={`flex flex-col ${priceStrategyCardClass(strategy.type)}`}
+                        >
+                          <p className={priceStrategyTitleClass(strategy.type)}>
+                            {strategy.type === "market"
+                              ? "Preț piață estimat"
+                              : strategy.type === "quick_exit"
+                                ? "Preț recomandat Quick Exit"
+                                : strategy.type === "fast_sale"
+                                  ? "Preț pentru vânzare foarte rapidă"
+                                  : "Preț de lichidare"}
+                          </p>
+                          {subtitle && (
+                            <p
+                              className={`mt-2 text-[10px] font-semibold uppercase leading-snug tracking-wide ${
+                                strategy.type === "quick_exit"
+                                  ? "text-black/65"
+                                  : strategy.type === "liquidation"
+                                    ? "text-neutral-400"
+                                    : "text-neutral-500"
+                              }`}
+                            >
+                              {subtitle}
+                            </p>
+                          )}
+                          <p className={priceStrategyValueClass(strategy.type)}>
+                            {formatPrice(price ?? result[strategy.resultKey])}
+                          </p>
+                          {priceEnabled ? (
+                            <Link
+                              href={href}
+                              onClick={handlePriceStrategyClick(strategy.type)}
+                              className={priceStrategyCtaClass(strategy.type, true)}
+                            >
+                              {strategy.ctaLabel}
+                            </Link>
+                          ) : (
+                            <span
+                              className={priceStrategyCtaClass(strategy.type, false)}
+                              aria-disabled
+                            >
+                              Preț indisponibil
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
 
                   {result.explanation && String(result.explanation).trim() && (
@@ -572,25 +687,11 @@ export default function EvaluareClient() {
                     </div>
                   </div>
 
-                  <div className="mt-10 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-                    <Link
-                      href={listingHref}
-                      onClick={trackListingClick}
-                      className="flex-1 min-w-[200px] rounded-xl border-[3px] border-black bg-[#FFD100] px-6 py-4 text-center text-[11px] font-black uppercase tracking-widest text-black shadow-[5px_5px_0_0_#000] transition hover:brightness-105"
-                    >
-                      Publică anunț cu prețul Quick Exit
-                    </Link>
-                    <Link
-                      href={listingHrefManual}
-                      onClick={trackListingClick}
-                      className="flex-1 min-w-[200px] rounded-xl border-2 border-white bg-transparent px-6 py-4 text-center text-[11px] font-black uppercase tracking-widest text-white transition hover:bg-white hover:text-black"
-                    >
-                      Aleg altă strategie
-                    </Link>
+                  <div className="mt-10 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-center">
                     <button
                       type="button"
                       onClick={() => setPhase("form")}
-                      className="flex-1 min-w-[200px] rounded-xl border-2 border-white/30 bg-transparent px-6 py-4 text-[11px] font-black uppercase tracking-widest text-neutral-300 transition hover:border-white hover:text-white"
+                      className="min-w-[200px] rounded-xl border-2 border-white/30 bg-transparent px-6 py-4 text-[11px] font-black uppercase tracking-widest text-neutral-300 transition hover:border-white hover:text-white"
                     >
                       Reiau evaluarea
                     </button>

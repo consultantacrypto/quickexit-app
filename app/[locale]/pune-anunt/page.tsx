@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { buildPageMetadata } from "@/lib/seo";
 import PuneAnuntClient from "./PuneAnuntClient";
 
@@ -15,5 +16,9 @@ type PageProps = {
 
 export default async function PostAdPage({ searchParams }: PageProps) {
   const { package: pkg } = await searchParams;
-  return <PuneAnuntClient initialPackage={pkg} />;
+  return (
+    <Suspense fallback={null}>
+      <PuneAnuntClient initialPackage={pkg} />
+    </Suspense>
+  );
 }
