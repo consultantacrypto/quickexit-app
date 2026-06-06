@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useEffect, Suspense } from "react";
-import { useParams, useSearchParams, useRouter } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
+import { Link, useRouter } from "@/src/i18n/navigation";
 import { supabase } from "@/lib/supabase";
 import AdCard from "@/app/components/AdCard";
-import Link from "next/link";
 import { normalizeSaleType } from "@/utils/normalizeSaleType";
 
 // Am extras subcategoriile EXACT cum apar ele în formularele tale din pune-anunt

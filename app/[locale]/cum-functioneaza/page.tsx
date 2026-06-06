@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Link } from "@/src/i18n/navigation";
 import type { Metadata } from "next";
 import { buildPageMetadata } from "@/lib/seo";
 

@@ -12,11 +12,8 @@ import {
   type ListingSeoRow,
 } from "@/lib/listingSeo";
 import { getTranslations, setRequestLocale } from "next-intl/server";
-import { routing } from "@/src/i18n/routing";
 
 export const dynamic = "force-dynamic";
-
-export const revalidate = 300;
 
 type PageProps = {
   params: Promise<{ locale: string; id: string }>;
@@ -115,10 +112,6 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       images: [{ url: ogImage }],
     },
   };
-}
-
-export function generateStaticParams() {
-  return routing.locales.map((locale) => ({ locale }));
 }
 
 export default async function ListingPage({ params }: PageProps) {

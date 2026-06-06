@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
+import { useRouter } from "@/src/i18n/navigation";
 import { ArrowLeft, Loader2, Send, ShieldCheck } from "lucide-react";
 import { useNegotiationRoom, type NegotiationMessage } from "@/lib/useNegotiationRoom";
 

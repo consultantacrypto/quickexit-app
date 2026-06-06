@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
+import { Link, useRouter } from "@/src/i18n/navigation";
 import { supabase } from "@/lib/supabase";
 import { trackEvent } from "@/lib/analytics";
 

@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState, Suspense } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
+import { useRouter } from "@/src/i18n/navigation";
 import { supabase } from "@/lib/supabase";
 import { trackEvent } from "@/lib/analytics";
 import AdCard from "@/app/components/AdCard";
