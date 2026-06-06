@@ -9,6 +9,7 @@ import { getSiteUrl } from "@/lib/siteUrl";
 import { normalizeSaleType } from "@/utils/normalizeSaleType";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/src/i18n/navigation";
+import { categoryPath } from "@/src/i18n/paths";
 
 export const revalidate = 60;
 
@@ -280,7 +281,7 @@ export default async function Home({ params }: HomePageProps) {
             {CATEGORY_DEFS.map((cat) => (
               <Link
                 key={cat.slug}
-                href={`/categorii/${cat.slug}`}
+                href={categoryPath(cat.slug)}
                 className="group flex flex-col items-center justify-center rounded-2xl border-[3px] border-black bg-[#FDFCF8] p-5 text-black shadow-[6px_6px_0_0_rgba(0,0,0,1)] transition duration-200 hover:-translate-y-1 hover:bg-white hover:shadow-[6px_6px_0_0_#FFD100] md:p-8"
               >
                 <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-xl border-[3px] border-black bg-[#FFD100] text-black shadow-[3px_3px_0_0_rgba(0,0,0,1)] transition-transform group-hover:scale-110 md:mb-4 md:h-16 md:w-16 [&_svg]:!h-8 [&_svg]:!w-8 md:[&_svg]:!h-9 md:[&_svg]:!w-9">
@@ -313,7 +314,7 @@ export default async function Home({ params }: HomePageProps) {
                 {tHome("listings.postListing")}
               </TrackedLink>
               <Link
-                href="/categorii/auto"
+                href={categoryPath("auto")}
                 className="border-b-2 border-transparent text-[11px] font-black uppercase tracking-widest text-neutral-600 underline-offset-4 transition hover:border-black hover:text-black md:text-xs"
               >
                 {tHome("listings.viewAll")}

@@ -1,6 +1,7 @@
 "use client";
 
 import { Link } from "@/src/i18n/navigation";
+import { demandOfferPath } from "@/src/i18n/paths";
 
 interface DemandCardProps {
   id: string;
@@ -43,7 +44,7 @@ export default function DemandCard({ id, targetAsset, category, budget, descript
         <p className="mb-8 break-words text-4xl font-bold tracking-tight text-ink">€{budget}</p>
 
         <Link
-          href={`/trimite-oferta/${id}`}
+          href={demandOfferPath(id)}
           aria-label={`Vinde-i activul tău pentru cererea: ${targetAsset}`}
           className="block w-full rounded-2xl bg-ink py-4 text-center text-[11px] font-semibold uppercase tracking-[0.2em] text-white transition-colors duration-300 hover:bg-gold hover:text-ink md:text-xs"
         >

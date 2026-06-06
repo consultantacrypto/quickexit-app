@@ -5,6 +5,7 @@ import { Link } from "@/src/i18n/navigation";
 import { useState } from "react";
 import { ro } from "../../locales/ro";
 import supabaseImageLoader from "@/lib/supabase-image-loader";
+import { listingDetailPath } from "@/src/i18n/paths";
 import {
   auctionOfferLineForCard,
   formatAuctionCardTimeLeft,
@@ -50,11 +51,7 @@ export default function AdCard({
 }: AdCardProps) {
   const { cards } = ro;
   const [isFavorite, setIsFavorite] = useState(false);
-
-  const toggleFavorite = (e: React.MouseEvent) => {
-    e.preventDefault();
-    setIsFavorite(!isFavorite);
-  };
+  const listingHref = listingDetailPath(id);
 
   const nOffers = parseListingOfferCount(offerCount ?? null);
   const highestLabel = formatHighestOfferEURLabel(highestOffer ?? null);
@@ -62,22 +59,25 @@ export default function AdCard({
   const discountNum = Number(discount) || 0;
 
   return (
-    <Link
-      href={`/anunt/${id}`}
-      className="group relative flex flex-col overflow-hidden rounded-3xl border border-line/70 bg-surface shadow-[0_1px_3px_rgba(0,0,0,0.04)] transition-all duration-500 ease-out hover:-translate-y-1 hover:border-neutral-300/80 hover:shadow-[0_28px_50px_-16px_rgba(0,0,0,0.22)]"
-    >
+    <article className="group relative flex flex-col overflow-hidden rounded-3xl border border-line/70 bg-surface shadow-[0_1px_3px_rgba(0,0,0,0.04)] transition-all duration-500 ease-out hover:-translate-y-1 hover:border-neutral-300/80 hover:shadow-[0_28px_50px_-16px_rgba(0,0,0,0.22)]">
+      <Link
+        href={listingHref}
+        aria-label={title}
+        className="absolute inset-0 z-[1]"
+      />
+
       {/* IMAGINEA — eroul cardului */}
-      <div className="relative aspect-[4/3] w-full overflow-hidden bg-neutral-100">
+      <div className="pointer-events-none relative aspect-[4/3] w-full overflow-hidden bg-neutral-100">
         <Image
           src={image}
-          alt={title}
+          alt=""
           fill
           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
           priority={priority}
           className="object-cover transition-transform duration-[1200ms] ease-out group-hover:scale-[1.04]"
           loader={supabaseImageLoader}
         />
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/10" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/10" />
 
         {/* tip — glass pill discret */}
         <span className="absolute left-4 top-4 rounded-full border border-white/20 bg-black/55 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-white backdrop-blur-md">
@@ -94,12 +94,12 @@ export default function AdCard({
         {/* favorite — subtil, jos-dreapta */}
         <button
           type="button"
-          onClick={toggleFavorite}
+          onClick={() => setIsFavorite(!isFavorite)}
           aria-label={
             isFavorite ? `Elimină „${title}” din favorite` : `Adaugă „${title}” la favorite`
           }
           aria-pressed={isFavorite}
-          className="absolute bottom-4 right-4 flex h-10 w-10 items-center justify-center rounded-full border border-white/25 bg-black/50 text-white backdrop-blur-md transition hover:bg-black/70"
+          className="pointer-events-auto absolute bottom-4 right-4 z-[2] flex h-10 w-10 items-center justify-center rounded-full border border-white/25 bg-black/50 text-white backdrop-blur-md transition hover:bg-black/70"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -120,7 +120,7 @@ export default function AdCard({
       </div>
 
       {/* CONȚINUT */}
-      <div className="flex flex-1 flex-col gap-5 p-7">
+      <div className="pointer-events-none relative z-[1] flex flex-1 flex-col gap-5 p-7">
         <div>
           <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-muted">
             Scor Lichiditate · {score}
@@ -155,6 +155,6 @@ export default function AdCard({
           </span>
         </div>
       </div>
-    </Link>
+    </article>
   );
 }
