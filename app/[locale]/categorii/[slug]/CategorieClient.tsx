@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import AdCard from "../../components/AdCard";
+import AdCard from "@/app/components/AdCard";
 import Link from "next/link";
 import { normalizeSaleType } from "@/utils/normalizeSaleType";
 

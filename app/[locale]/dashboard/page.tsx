@@ -4,10 +4,10 @@ import { useEffect, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { trackEvent } from "@/lib/analytics";
-import AdCard from "../components/AdCard";
+import AdCard from "@/app/components/AdCard";
 import { normalizeSaleType } from "@/utils/normalizeSaleType";
 import { Wallet, Inbox, PlusCircle, Search, Settings, Power, Play, PiggyBank, ClipboardList } from "lucide-react";
-import KycBanner from "../components/KycBanner";
+import KycBanner from "@/app/components/KycBanner";
 
 type DashboardTab = "portofoliu" | "cumparari" | "oferte";
 const OWNER_USER_ID = "83da9725-68f3-4ded-9605-714b9094bf0e";

@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import { useTranslations } from "next-intl";
+import { Link } from "@/src/i18n/navigation";
 import { supabase } from "@/lib/supabase";
 
 export type HeaderAuthUser = {
@@ -68,6 +69,8 @@ type HeaderAuthDesktopProps = {
 };
 
 export function HeaderAuthDesktop({ user, onOpenAuth, onLogout }: HeaderAuthDesktopProps) {
+  const t = useTranslations("Navigation");
+
   if (user) {
     return (
       <div className="flex max-w-[min(100%,22rem)] flex-col gap-1.5 rounded-xl border-2 border-gray-100 bg-gray-50 px-4 py-2 shadow-[2px_2px_0_0_rgba(0,0,0,0.1)] sm:max-w-none sm:flex-row sm:items-center sm:gap-4">
@@ -79,7 +82,7 @@ export function HeaderAuthDesktop({ user, onOpenAuth, onLogout }: HeaderAuthDesk
             <span className="text-sm" aria-hidden>
               ⚡
             </span>
-            Contul meu
+            {t("myAccount")}
           </Link>
           {user.email ? (
             <span
@@ -96,7 +99,7 @@ export function HeaderAuthDesktop({ user, onOpenAuth, onLogout }: HeaderAuthDesk
           onClick={() => void onLogout()}
           className="shrink-0 text-left text-[9px] font-black uppercase tracking-widest text-gray-500 italic transition-colors hover:text-red-600 sm:text-right"
         >
-          Ieși din cont
+          {t("signOut")}
         </button>
       </div>
     );
@@ -108,7 +111,7 @@ export function HeaderAuthDesktop({ user, onOpenAuth, onLogout }: HeaderAuthDesk
       onClick={onOpenAuth}
       className="mx-2 rounded-xl border-2 border-black bg-[#FFD100] px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-black shadow-[3px_3px_0_0_rgba(0,0,0,1)] transition hover:-translate-y-px hover:brightness-105"
     >
-      Intră în cont
+      {t("signIn")}
     </button>
   );
 }
@@ -126,6 +129,8 @@ export function HeaderAuthMobile({
   onLogout,
   onCloseMenu,
 }: HeaderAuthMobileProps) {
+  const t = useTranslations("Navigation");
+
   if (user) {
     return (
       <div className="flex w-full flex-col items-center gap-3 rounded-[2rem] border-2 border-gray-100 bg-gray-50 p-5">
@@ -137,7 +142,7 @@ export function HeaderAuthMobile({
           <span className="text-2xl" aria-hidden>
             ⚡
           </span>
-          Contul meu
+          {t("myAccount")}
         </Link>
         {user.email ? (
           <p
@@ -155,7 +160,7 @@ export function HeaderAuthMobile({
           }}
           className="mt-1 text-sm font-black uppercase tracking-widest text-red-600 transition-colors hover:text-red-800 italic"
         >
-          Ieși din cont
+          {t("signOut")}
         </button>
       </div>
     );
@@ -170,7 +175,7 @@ export function HeaderAuthMobile({
       }}
       className="w-full rounded-[2rem] border-4 border-black bg-[#FFD100] py-5 text-lg font-black uppercase tracking-widest italic shadow-[6px_6px_0_0_rgba(0,0,0,1)]"
     >
-      Intră în cont
+      {t("signIn")}
     </button>
   );
 }

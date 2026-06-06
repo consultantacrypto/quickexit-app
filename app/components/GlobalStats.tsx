@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import { supabase } from "@/lib/supabase";
 
 async function fetchPlatformStats() {
@@ -45,6 +46,7 @@ async function fetchPlatformStats() {
 }
 
 export default async function GlobalStats() {
+  const t = await getTranslations("Home.globalStats");
   const stats = await fetchPlatformStats();
 
   return (
@@ -53,56 +55,55 @@ export default async function GlobalStats() {
         <div className="flex flex-col items-center justify-between gap-8 divide-y-2 divide-gray-800 md:flex-row md:gap-0 md:divide-x-2 md:divide-y-0">
           <div className="w-full flex-1 pt-4 text-center md:px-6 md:pt-0">
             <p className="mb-1 text-[10px] font-black uppercase italic tracking-[0.2em] text-gray-500 md:mb-2 md:text-xs">
-              Valoare declarată în anunțuri și cereri
+              {t("declaredValueLabel")}
             </p>
             <p className="text-4xl font-black italic tracking-tighter text-[#FFD100] md:text-5xl">
               {stats.totalValue > 0 ? `€${stats.totalValue.toLocaleString("ro-RO")}` : "—"}
             </p>
             {stats.totalValue > 0 ? (
               <p className="mt-2 text-[9px] font-bold uppercase tracking-widest text-gray-600">
-                Sume comunicate în anunțuri și cereri
+                {t("declaredValueSub")}
               </p>
             ) : (
               <p className="mx-auto mt-2 max-w-[14rem] text-[8px] font-semibold normal-case leading-snug text-gray-500 md:max-w-xs md:text-[9px]">
-                În acest moment nu există sume declarate cumulate în anunțuri și cereri active, sau
-                valorile lipsesc.
+                {t("declaredValueEmpty")}
               </p>
             )}
           </div>
 
           <div className="w-full flex-1 pt-6 text-center md:px-6 md:pt-0">
             <p className="mb-1 text-[10px] font-black uppercase italic tracking-[0.2em] text-gray-500 md:mb-2 md:text-xs">
-              Cereri active de cumpărare
+              {t("activeDemandsLabel")}
             </p>
             <p className="text-3xl font-black italic tracking-tighter text-white md:text-4xl">
               {stats.activeDemands}
             </p>
             <p className="mt-2 text-[9px] font-bold uppercase tracking-widest text-gray-600">
-              Publicate pe platformă; bugetul se verifică direct între părți
+              {t("activeDemandsSub")}
             </p>
           </div>
 
           <div className="w-full flex-1 pt-6 text-center md:px-6 md:pt-0">
             <p className="mb-1 text-[10px] font-black uppercase italic tracking-[0.2em] text-gray-500 md:mb-2 md:text-xs">
-              Anunțuri la vânzare
+              {t("activeListingsLabel")}
             </p>
             <p className="text-3xl font-black italic tracking-tighter text-white md:text-4xl">
               {stats.activeListings}
             </p>
             <p className="mt-2 text-[9px] font-bold uppercase tracking-widest text-gray-600">
-              Active disponibile chiar acum
+              {t("activeListingsSub")}
             </p>
           </div>
 
           <div className="w-full flex-1 pb-4 pt-6 text-center md:px-6 md:pb-0 md:pt-0">
             <p className="mb-1 text-[10px] font-black uppercase italic tracking-[0.2em] text-gray-500 md:mb-2 md:text-xs">
-              Vânzări finalizate
+              {t("soldLabel")}
             </p>
             <p className="text-3xl font-black italic tracking-tighter text-white md:text-4xl">
               {stats.soldItems}
             </p>
             <p className="mt-2 text-[9px] font-bold uppercase tracking-widest text-gray-600">
-              Tranzacții încheiate cu succes
+              {t("soldSub")}
             </p>
           </div>
         </div>

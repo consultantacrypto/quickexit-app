@@ -1,18 +1,21 @@
 "use client";
 
-import Link from "next/link";
+import { useTranslations } from "next-intl";
+import { Link } from "@/src/i18n/navigation";
 import { ShieldCheck } from "lucide-react";
 import { companyInfo } from "@/lib/company";
 
 const footerLink = "text-xs font-bold uppercase italic text-neutral-400 transition-colors hover:text-[#FFD100]";
 
 function DiditKycTrustBadge({ className = "" }: { className?: string }) {
+  const t = useTranslations("Didit");
+
   return (
     <a
       href="https://www.didit.me/"
       target="_blank"
       rel="noopener noreferrer"
-      aria-label="KYC Secured by Didit — partener verificare identitate"
+      aria-label={t("trustBadgeAriaLabel")}
       className={`group inline-flex items-center gap-2.5 rounded-xl border-[3px] border-black bg-[#FDFCF8] px-3.5 py-2.5 text-black shadow-[4px_4px_0_0_#FFD100] transition duration-200 hover:-translate-y-0.5 hover:shadow-[2px_2px_0_0_#FFD100] dark:border-neutral-600 dark:bg-neutral-900 dark:text-white dark:shadow-[4px_4px_0_0_rgba(255,209,0,0.85)] ${className}`.trim()}
     >
       <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border-2 border-black bg-[#FFD100] text-black dark:border-[#FFD100]">
@@ -20,10 +23,10 @@ function DiditKycTrustBadge({ className = "" }: { className?: string }) {
       </span>
       <span className="flex flex-col leading-tight">
         <span className="text-[9px] font-black uppercase tracking-[0.14em] text-neutral-600 dark:text-neutral-400">
-          KYC Secured by
+          {t("securedBy")}
         </span>
         <span className="text-[11px] font-black uppercase italic tracking-tight text-black dark:text-[#FFD100]">
-          Didit
+          {t("brandName")}
         </span>
       </span>
     </a>
@@ -31,50 +34,45 @@ function DiditKycTrustBadge({ className = "" }: { className?: string }) {
 }
 
 export default function Footer() {
+  const t = useTranslations("Footer");
+  const tCat = useTranslations("Categories");
+
   return (
     <footer className="border-t-8 border-[#FFD100] bg-neutral-950 pb-10 pt-20 text-white">
       <div className="mx-auto max-w-7xl px-4">
         <div className="mb-16 grid grid-cols-1 gap-12 md:grid-cols-2 lg:grid-cols-5 lg:gap-10">
-          {/* Brand */}
           <div className="space-y-6 lg:col-span-1">
-            <div className="text-3xl font-black italic tracking-tighter text-[#FFD100]">QUICK EXIT</div>
-            <p className="text-sm font-bold italic leading-relaxed text-neutral-400">
-              Platformă pentru vânzări accelerate și contact direct în România. Conectăm active cu cumpărători și
-              investitori interesați prin tehnologie; disponibilitatea fondurilor nu este verificată de platformă.
-            </p>
-            <p className="text-[11px] font-semibold leading-relaxed text-neutral-500">
-              Poți naviga fără cont. Pentru publicare, trimitere oferte și Camera de Negociere ai nevoie de un cont
-              simplu.
-            </p>
+            <div className="text-3xl font-black italic tracking-tighter text-[#FFD100]">{t("brandName")}</div>
+            <p className="text-sm font-bold italic leading-relaxed text-neutral-400">{t("tagline")}</p>
+            <p className="text-[11px] font-semibold leading-relaxed text-neutral-500">{t("accountHint")}</p>
             <p className="text-[10px] font-semibold uppercase tracking-wider text-neutral-500">{companyInfo.legalName}</p>
             <div className="flex w-fit items-center gap-2 rounded-lg border border-neutral-800 px-4 py-2 text-[10px] font-black uppercase tracking-widest">
-              <span>Made in Romania</span>
+              <span>{t("madeInRomania")}</span>
               <span className="text-base">🇷🇴</span>
             </div>
           </div>
 
-          {/* Platformă */}
           <div>
-            <h4 className="mb-6 text-sm font-black uppercase tracking-widest text-[#FFD100]">Platformă</h4>
+            <h4 className="mb-6 text-sm font-black uppercase tracking-widest text-[#FFD100]">{t("platform.title")}</h4>
             <ul className="mb-8 space-y-4">
               <li>
                 <Link href="/cum-functioneaza" className={footerLink}>
-                  Cum funcționează
+                  {t("platform.howItWorks")}
                 </Link>
               </li>
               <li>
                 <Link href="/tarife" className={footerLink}>
-                  Tarife
+                  {t("platform.pricing")}
                 </Link>
               </li>
               <li>
                 <Link href="/evaluare" className={footerLink}>
-                  Evaluare
+                  {t("platform.evaluation")}
                 </Link>
               </li>
               <li>
                 <Link href="/capital-disponibil" className={footerLink}>
-                  Capital disponibil
+                  {t("platform.capitalAvailable")}
                 </Link>
               </li>
             </ul>
@@ -84,84 +82,81 @@ export default function Footer() {
                 type="button"
                 className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#FFD100] py-4 text-[10px] font-black italic uppercase tracking-widest text-black shadow-[4px_4px_0_0_rgba(255,255,255,0.15)] transition-all hover:translate-y-1 hover:shadow-none"
               >
-                <span>OFERTE SPECIALE & TARIFE</span>
+                <span>{t("platform.specialOffersCta")}</span>
                 <span>→</span>
               </button>
             </Link>
           </div>
 
-          {/* Legal & Informații */}
           <div>
             <h4 className="mb-6 text-sm font-black uppercase tracking-widest text-[#FFD100]">
-              Legal &amp; Informații
+              {t("legal.title")}
             </h4>
             <ul className="space-y-4">
               <li>
                 <Link href="/termeni" className={footerLink}>
-                  Termeni
+                  {t("legal.terms")}
                 </Link>
               </li>
               <li>
                 <Link href="/confidentialitate" className={footerLink}>
-                  Confidențialitate
+                  {t("legal.privacy")}
                 </Link>
               </li>
               <li>
                 <Link href="/cookies" className={footerLink}>
-                  Cookies
+                  {t("legal.cookies")}
                 </Link>
               </li>
               <li>
                 <Link href="/contact" className={footerLink}>
-                  Contact
+                  {t("legal.contact")}
                 </Link>
               </li>
               <li>
                 <a
-                  href={`mailto:${companyInfo.publicEmail}?subject=${encodeURIComponent("Feedback Quick Exit")}`}
+                  href={`mailto:${companyInfo.publicEmail}?subject=${encodeURIComponent(t("legal.feedbackSubject"))}`}
                   className={footerLink}
                 >
-                  Trimite feedback
+                  {t("legal.feedback")}
                 </a>
               </li>
             </ul>
           </div>
 
-          {/* Categorii */}
           <div>
-            <h4 className="mb-6 text-sm font-black uppercase tracking-widest text-[#FFD100]">Categorii</h4>
+            <h4 className="mb-6 text-sm font-black uppercase tracking-widest text-[#FFD100]">{t("categoriesTitle")}</h4>
             <ul className="space-y-4 text-[10px] font-black uppercase italic text-neutral-500">
               <li>
                 <Link href="/categorii/auto" className="transition-colors hover:text-[#FFD100]">
-                  Auto &amp; Moto
+                  {tCat("auto")}
                 </Link>
               </li>
               <li>
                 <Link href="/categorii/imobiliare" className="transition-colors hover:text-[#FFD100]">
-                  Imobiliare
+                  {tCat("realEstate")}
                 </Link>
               </li>
               <li>
                 <Link href="/categorii/lux" className="transition-colors hover:text-[#FFD100]">
-                  Lux &amp; Ceasuri
+                  {tCat("luxury")}
                 </Link>
               </li>
               <li>
                 <Link href="/categorii/business" className="transition-colors hover:text-[#FFD100]">
-                  Afaceri de vânzare
+                  {tCat("business")}
                 </Link>
               </li>
               <li>
                 <Link href="/categorii/gadgets" className="transition-colors hover:text-[#FFD100]">
-                  Gadgets &amp; Tech
+                  {tCat("gadgetsTech")}
                 </Link>
               </li>
             </ul>
           </div>
 
-          {/* Protecție */}
           <div>
-            <h4 className="mb-6 text-sm font-black uppercase tracking-widest text-[#FFD100]">Protecție</h4>
+            <h4 className="mb-6 text-sm font-black uppercase tracking-widest text-[#FFD100]">{t("protection.title")}</h4>
             <div className="space-y-4">
               <a
                 href="https://anpc.ro/"
@@ -170,9 +165,9 @@ export default function Footer() {
                 className="group block rounded-xl border border-neutral-800 p-4 transition-colors hover:border-[#FFD100]"
               >
                 <span className="text-[10px] font-black uppercase tracking-widest text-neutral-500 transition-colors group-hover:text-[#FFD100]">
-                  A.N.P.C.
+                  {t("protection.anpc")}
                 </span>
-                <p className="mt-1 text-[9px] uppercase text-neutral-600">Protecția Consumatorilor</p>
+                <p className="mt-1 text-[9px] uppercase text-neutral-600">{t("protection.anpcDescription")}</p>
               </a>
               <a
                 href="https://ec.europa.eu/consumers/odr/"
@@ -181,9 +176,9 @@ export default function Footer() {
                 className="group block rounded-xl border border-neutral-800 p-4 transition-colors hover:border-[#FFD100]"
               >
                 <span className="text-[10px] font-black uppercase tracking-widest text-neutral-500 transition-colors group-hover:text-[#FFD100]">
-                  S.O.L.
+                  {t("protection.odr")}
                 </span>
-                <p className="mt-1 text-[9px] uppercase text-neutral-600">Soluționarea Online a Litigiilor</p>
+                <p className="mt-1 text-[9px] uppercase text-neutral-600">{t("protection.odrDescription")}</p>
               </a>
             </div>
           </div>
@@ -198,11 +193,11 @@ export default function Footer() {
             <DiditKycTrustBadge />
             <div className="flex items-center gap-8 opacity-30 grayscale transition-all hover:grayscale-0 hover:opacity-100">
               <div className="text-[10px] font-black italic tracking-tighter text-white underline decoration-[#FFD100] decoration-2">
-                SECURE PAYMENTS BY STRIPE
+                {t("securePayments")}
               </div>
               <div className="flex gap-4">
-                <span className="text-[10px] font-black italic text-white">VISA</span>
-                <span className="text-[10px] font-black italic text-white">MASTERCARD</span>
+                <span className="text-[10px] font-black italic text-white">{t("visa")}</span>
+                <span className="text-[10px] font-black italic text-white">{t("mastercard")}</span>
               </div>
             </div>
           </div>

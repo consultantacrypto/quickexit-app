@@ -1,0 +1,505 @@
+{
+  "Navigation": {
+    "logoAlt": "Quick Exit — platformă de lichiditate rapidă pentru active",
+    "home": "Acasă",
+    "howItWorks": "Cum funcționează?",
+    "buyerOffers": "Oferte Cumpărători",
+    "buyWithCash": "Cumpăr cu Cash",
+    "postListing": "Pune anunț vânzare",
+    "openMenu": "Deschide meniul principal",
+    "closeMenu": "Închide meniul principal",
+    "mainMenu": "Meniu principal",
+    "myAccount": "Contul meu",
+    "signOut": "Ieși din cont",
+    "signIn": "Intră în cont",
+    "languageSwitcher": "Schimbă limba"
+  },
+  "Auth": {
+    "closeModal": "Închide fereastra de autentificare",
+    "welcomeTitle": "Bine ai venit",
+    "welcomeSubtitle": "Folosește mai jos adresa de e-mail (primești un link de acces) sau butonul Google. Același cont îl folosești pentru anunțuri, oferte și Camera de negociere.",
+    "emailLabel": "Creează cont sau loghează-te cu mail",
+    "emailPlaceholder": "adresa.ta@email.com",
+    "submitLoading": "Se procesează...",
+    "submitButton": "Primește link-ul de acces →",
+    "autoAccountHint": "Dacă nu ai cont, se va crea automat după ce apeși pe link-ul din mail.",
+    "advancedOptions": "Opțiuni Avansate",
+    "google": "Google",
+    "web3Wallet": "Web3 Wallet",
+    "errorPrefix": "Eroare: ",
+    "magicLinkSent": "✓ Verifică-ți mail-ul! Ți-am trimis link-ul de intrare.",
+    "web3Maintenance": "⚠ Sistemul WalletConnect este în mentenanță pentru Faza 2."
+  },
+  "Hero": {
+    "titleLine1": "Vinde acum.",
+    "titleLine1Highlight": "acum",
+    "titleLine2": "Banii azi.",
+    "titleLine2Highlight": "azi",
+    "subtitle": "Quick Exit conectează vânzători care vor să vândă rapid cu cumpărători care au buget și caută oportunități sub prețul pieței.",
+    "evaluateCta": "Cât valorează ce vinzi?",
+    "viewBuyerRequests": "Vezi cereri de cumpărare",
+    "packagesSectionTitle": "Alege ritmul de vânzare"
+  },
+  "Packages": {
+    "auction": {
+      "title": "Licitație deschisă 30 zile",
+      "description": "Pentru vânzări unde vrei să strângi mai multe oferte și să alegi manual varianta potrivită.",
+      "duration": "30 zile",
+      "price": "111 RON",
+      "disclaimer": "Nu există câștigător automat. Plata și predarea se stabilesc direct între părți."
+    },
+    "economy": {
+      "title": "Expunere maximă",
+      "description": "Pentru anunțuri care au nevoie de mai mult timp la vedere.",
+      "duration": "30 zile",
+      "price": "99 RON"
+    },
+    "standard": {
+      "title": "Vânzare rapidă",
+      "description": "Pentru listări echilibrate între timp, cost și vizibilitate.",
+      "duration": "14 zile",
+      "price": "79 RON",
+      "badge": "Recomandat"
+    },
+    "urgent": {
+      "title": "Validare & listare",
+      "fullTitle": "Pachet Validare & Listare Standard",
+      "description": "Pentru listări verificate manual, fără zgomot, cu acces garantat în Camera de Negociere direct cu investitorii.",
+      "duration": "60 zile",
+      "price": "179 RON",
+      "badge": "Premium",
+      "benefits": [
+        "Verificare manuală a activului (Filtru anti-zgomot)",
+        "Listare garantată timp de 60 de zile în platformă",
+        "Acces complet în Camera de Negociere cu investitorii"
+      ]
+    },
+    "publishWithPackage": "Publică cu acest pachet",
+    "payAndPublish": "Plătește și publică anunțul",
+    "preparingPayment": "Se pregătește plata...",
+    "selectedPackage": "Pachet ales: {title} — {price} RON",
+    "chooseSpeedTitle": "Alege viteza de vânzare",
+    "chooseSpeedDescription": "Pachetul stabilește cât timp va fi promovat anunțul și cât de rapid vrei să găsești cumpărători.",
+    "listingFeeNote": "Plata activează publicarea și expunerea anunțului. Nu garantează vânzarea activului."
+  },
+  "Pricing": {
+    "pageLabel": "Tarife Quick Exit",
+    "heroTitle": "Alege viteza de vânzare",
+    "heroDescription": "Pachetul stabilește durata, prioritatea și metoda de expunere a anunțului.",
+    "publishListing": "Publică anunț",
+    "backHome": "← Înapoi acasă",
+    "sellerPackagesTitle": "Pachete pentru publicare anunț",
+    "auctionSectionTitle": "Licitație deschisă 30 zile",
+    "extendedVisibility": "Vizibilitate extinsă",
+    "auctionListingFee": "Taxă listare licitație",
+    "buyerServicesTitle": "Servicii cumpărători",
+    "capitalRequest": {
+      "title": "Cerere Capital",
+      "description": "Anunță capital disponibil pentru achiziții urgente sub preț.",
+      "price": "99 RON",
+      "cta": "Postează bugetul"
+    },
+    "guestOffer": {
+      "title": "Ofertă Guest",
+      "description": "Trimite o ofertă directă fără a avea un cont verificat.",
+      "price": "49 RON",
+      "cta": "Vinde-i activul tău"
+    },
+    "howToChooseTitle": "Cum aleg pachetul potrivit?",
+    "howToChooseNotInHurry": "Dacă nu te grăbești:",
+    "howToChooseBalance": "Dacă vrei echilibru preț/viteză:",
+    "howToChooseUrgent": "Dacă ai nevoie de lichiditate imediată:",
+    "safeTransactionsTitle": "Tranzacții directe, cu atenție",
+    "safeTransactionsDescription": "Quick Exit nu procesează plata dintre părți și nu ține fonduri în custodie. Verifică activul, actele și identitatea celeilalte părți înainte de plată sau predare.",
+    "tags": {
+      "maxExposure": "EXPUNERE MAXIMĂ",
+      "fastSale": "VÂNZARE RAPIDĂ",
+      "validation": "VALIDARE"
+    },
+    "features": {
+      "economy": [
+        "Afișare standard în listă",
+        "Contact direct cumpărători",
+        "Alerte AI către investitori"
+      ],
+      "standard": [
+        "Poziționare Priority (Top)",
+        "Badge 'FAST' pe card",
+        "Notificare Email Investitori"
+      ]
+    },
+    "durationLabel": "Durată: {duration}"
+  },
+  "Home": {
+    "metaTitle": "Quick Exit | Platformă de lichiditate rapidă pentru active",
+    "metaDescription": "Quick Exit conectează vânzătorii care vor lichiditate rapidă cu cumpărători și investitori pregătiți pentru achiziții.",
+    "categoriesTitle": "Alege Categoria",
+    "listings": {
+      "title": "Anunțuri vânzări active",
+      "titleHighlight": "vânzări active",
+      "postListing": "Pune anunț",
+      "viewAll": "Vezi toate anunțurile →",
+      "accountHint": "Poți naviga fără cont. Pentru publicare, trimitere oferte și Camera de Negociere ai nevoie de un cont simplu.",
+      "empty": "Momentan terminalul scanează noi active..."
+    },
+    "capital": {
+      "title": "Capital disponibil",
+      "titleHighlight": "disponibil",
+      "viewAll": "Vezi toate cererile →",
+      "description": "Cereri publicate de cumpărători cu buget comunicat în anunț — verifică detaliile direct cu fiecare ofertant.",
+      "empty": "Nicio cerere de capital înregistrată momentan.",
+      "viewAllFooter": "Vezi tot capitalul disponibil",
+      "addOffer": "Adaugă ofertă de capital"
+    },
+    "auctions": {
+      "title": "Licitații deschise",
+      "titleHighlight": "deschise",
+      "description": "Active cu fereastră de ofertare până la 30 de zile. Vânzătorul alege manual oferta potrivită.",
+      "disclaimer": "Nu există câștigător automat. Plata și predarea se stabilesc direct între părți.",
+      "emptyTitle": "Momentan nu există licitații active",
+      "emptyDescription": "Licitațiile deschise permit vânzătorilor să primească oferte timp de până la 30 de zile și să aleagă manual oferta potrivită.",
+      "publishAuction": "Publică o licitație",
+      "viewAll": "Vezi toate licitațiile",
+      "addAuction": "Adaugă o licitație"
+    },
+    "safety": {
+      "title": "Recomandări pentru tranzacții sigure",
+      "description": "Quick Exit nu procesează plata și nu ține fonduri în custodie. Înainte de plată sau predare, verifică activul, actele și identitatea celeilalte părți.",
+      "tips": [
+        "Nu plăti avans fără verificări.",
+        "Pentru sume mari, folosește contract și consultanță de specialitate.",
+        "Nu introduce datele cardului în linkuri primite de la alți utilizatori."
+      ]
+    },
+    "globalStats": {
+      "declaredValueLabel": "Valoare declarată în anunțuri și cereri",
+      "declaredValueSub": "Sume comunicate în anunțuri și cereri",
+      "declaredValueEmpty": "În acest moment nu există sume declarate cumulate în anunțuri și cereri active, sau valorile lipsesc.",
+      "activeDemandsLabel": "Cereri active de cumpărare",
+      "activeDemandsSub": "Publicate pe platformă; bugetul se verifică direct între părți",
+      "activeListingsLabel": "Anunțuri la vânzare",
+      "activeListingsSub": "Active disponibile chiar acum",
+      "soldLabel": "Vânzări finalizate",
+      "soldSub": "Tranzacții încheiate cu succes"
+    }
+  },
+  "Categories": {
+    "auto": "Auto & Moto",
+    "realEstate": "Imobiliare",
+    "luxury": "Lux & Ceasuri",
+    "business": "Afaceri de vânzare",
+    "gadgets": "Gadgets",
+    "photoAudio": "Foto & Audio",
+    "gadgetsTech": "Gadgets & Tech"
+  },
+  "Footer": {
+    "brandName": "QUICK EXIT",
+    "tagline": "Platformă pentru vânzări accelerate și contact direct în România. Conectăm active cu cumpărători și investitori interesați prin tehnologie; disponibilitatea fondurilor nu este verificată de platformă.",
+    "accountHint": "Poți naviga fără cont. Pentru publicare, trimitere oferte și Camera de Negociere ai nevoie de un cont simplu.",
+    "madeInRomania": "Made in Romania",
+    "platform": {
+      "title": "Platformă",
+      "howItWorks": "Cum funcționează",
+      "pricing": "Tarife",
+      "evaluation": "Evaluare",
+      "capitalAvailable": "Capital disponibil",
+      "specialOffersCta": "OFERTE SPECIALE & TARIFE"
+    },
+    "legal": {
+      "title": "Legal & Informații",
+      "terms": "Termeni",
+      "privacy": "Confidențialitate",
+      "cookies": "Cookies",
+      "contact": "Contact",
+      "feedback": "Trimite feedback",
+      "feedbackSubject": "Feedback Quick Exit"
+    },
+    "categoriesTitle": "Categorii",
+    "protection": {
+      "title": "Protecție",
+      "anpc": "A.N.P.C.",
+      "anpcDescription": "Protecția Consumatorilor",
+      "odr": "S.O.L.",
+      "odrDescription": "Soluționarea Online a Litigiilor"
+    },
+    "securePayments": "SECURE PAYMENTS BY STRIPE",
+    "visa": "VISA",
+    "mastercard": "MASTERCARD"
+  },
+  "Kyc": {
+    "bannerTitle": "Verificare cont recomandată",
+    "bannerDescription": "Ai deja activitate plătită pe Quick Exit. Pentru a continua cu încredere și pentru a crește credibilitatea în fața cumpărătorilor, finalizează verificarea contului.",
+    "preparing": "Se pregătește...",
+    "completeVerification": "Finalizează verificarea",
+    "startVerification": "Inițiază Verificarea",
+    "accountStatus": "Status cont",
+    "accountVerification": "Verificare cont",
+    "identityHelp": "Verificarea identității ajută la protejarea cumpărătorilor și vânzătorilor.",
+    "softHint": "După ce finalizezi plata și ai prima activitate activă pe platformă, îți recomandăm verificarea contului pentru mai multă încredere — fără obligație înainte de plată.",
+    "status": {
+      "verified": "Identitate verificată",
+      "pending": "Verificare în așteptare",
+      "processing": "Verificare în procesare",
+      "requiresInput": "Verificare de reluat",
+      "canceled": "Verificare anulată",
+      "unverified": "Verificare neinițiată"
+    }
+  },
+  "Didit": {
+    "trustBadgeAriaLabel": "KYC Secured by Didit — partener verificare identitate",
+    "securedBy": "KYC Secured by",
+    "brandName": "Didit"
+  },
+  "PostListing": {
+    "terminalLabel": "Quick Exit Terminal",
+    "pageTitle": "Publică anunțul",
+    "pageSubtitle": "pentru vânzare rapidă",
+    "pageDescription": "Completează activul, stabilește prețul și alege viteza de vânzare.",
+    "steps": {
+      "assetData": "Date activ",
+      "photosDescription": "Poze și descriere",
+      "salePrice": "Preț de vânzare",
+      "packagePublish": "Pachet și publicare"
+    },
+    "successTitle": "Anunț activat cu succes",
+    "successDescription": "Anunțul este publicat. Poți urmări ofertele din cont.",
+    "goToDashboard": "Mergi la contul meu",
+    "checkoutErrors": {
+      "authRequired": "Trebuie să fii autentificat pentru a publica. Deschide „Contul meu”, autentifică-te și revino la acest pas.",
+      "saveFailed": "Nu am putut salva anunțul. Te rugăm să încerci din nou.",
+      "invalidPackage": "Pachet invalid pentru plată. Te rugăm să reîncerci.",
+      "paymentFailed": "Nu am putut inițializa plata. Te rugăm să încerci din nou.",
+      "uploadFailed": "Nu am putut încărca imaginile. Verifică fișierele și încearcă din nou.",
+      "genericFailed": "Nu am putut finaliza solicitarea sau pornirea plății. Te rugăm să încerci din nou."
+    }
+  },
+  "ListingDetail": {
+    "meta": {
+      "unavailableTitle": "Anunț indisponibil | Quick Exit",
+      "unavailableDescription": "Acest anunț nu este disponibil public momentan.",
+      "listingFallback": "Anunț",
+      "assetFallback": "Acest activ",
+      "siteName": "Quick Exit",
+      "breadcrumbListings": "Anunțuri",
+      "seoListedInCategory": "{title} este listat pe Quick Exit pentru vânzare rapidă în categoria {category}.",
+      "seoListed": "{title} este listat pe Quick Exit pentru vânzare rapidă.",
+      "seoCta": "Vezi prețul de exit, detalii și oportunitatea.",
+      "seoExitPrice": "Preț exit: {price}."
+    },
+    "unavailable": {
+      "title": "Activ indisponibil",
+      "description": "Acest anunț nu mai este disponibil sau a fost retras de pe platformă.",
+      "backHome": "Înapoi la pagina principală"
+    },
+    "navigation": {
+      "backHome": "← Acasă",
+      "favoriteAdd": "Adaugă la favorite",
+      "favoriteSaved": "Salvat"
+    },
+    "defaults": {
+      "listingTitle": "Anunț",
+      "listingImageAlt": "Imagine anunț",
+      "sellerName": "Vânzător Quick Exit"
+    },
+    "strategyBadge": {
+      "auction": "Licitație deschisă",
+      "urgent": "Urgență",
+      "extreme": "Oportunitate",
+      "standard": "Standard"
+    },
+    "gallery": {
+      "openLightbox": "Deschide imaginea mărită",
+      "tapToEnlarge": "Apasă pentru a mări",
+      "selectImage": "Selectează imaginea {index} din {total}",
+      "thumbnailAlt": "Miniatură {index}",
+      "lightboxTitle": "Imagine mărită",
+      "close": "Închide",
+      "previousImage": "Imaginea anterioară",
+      "nextImage": "Imaginea următoare",
+      "lightboxHint": "Apasă în afara imaginii sau tasta Esc pentru a închide"
+    },
+    "auction": {
+      "title": "Licitație deschisă",
+      "beFirstOffer": "Fii primul care trimite o ofertă.",
+      "offersReceived": "{count, plural, =1 {1 ofertă primită} other {# oferte primite}}",
+      "highestOffer": "Cea mai mare ofertă primită: {amount}",
+      "biddingWindowUntil": "Fereastră de ofertare până la: {date}",
+      "disclaimer": "Cea mai mare ofertă nu este câștigătoare automat. Vânzătorul alege manual oferta potrivită, iar tranzacția se finalizează direct între părți."
+    },
+    "details": {
+      "empty": "Detaliile tehnice nu au fost completate.",
+      "fields": {
+        "year": "An",
+        "mileage": "Kilometraj",
+        "transmission": "Transmisie",
+        "fuel": "Combustibil",
+        "bodyType": "Caroserie",
+        "drivetrain": "Tracțiune",
+        "accidentHistory": "Istoric daune",
+        "propertyType": "Tip proprietate",
+        "location": "Localizare",
+        "surface": "Suprafață utilă",
+        "landSurface": "Teren",
+        "rooms": "Camere",
+        "buildYear": "An construcție",
+        "parking": "Parcare",
+        "vat": "TVA",
+        "brand": "Brand",
+        "model": "Model",
+        "boxPapers": "Cutie și acte",
+        "mechanism": "Mecanism",
+        "condition": "Stare",
+        "storage": "Stocare",
+        "warranty": "Garanție",
+        "industry": "Domeniu",
+        "revenue": "Venit anual",
+        "profit": "Profit",
+        "employees": "Angajați"
+      },
+      "sqmUnit": "mp",
+      "kmUnit": "km",
+      "yes": "Da",
+      "no": "Nu"
+    },
+    "trust": {
+      "verifiedIdentity": "Identitate verificată",
+      "trustPrefix": "Încredere: {status}",
+      "documentFile": "Fișier documentar",
+      "liquidityScore": "Scor lichiditate {score}"
+    },
+    "about": {
+      "title": "Despre acest",
+      "titleHighlight": "activ"
+    },
+    "pricing": {
+      "potentialProfit": "Profit potențial",
+      "marketPrice": "Preț estimat de piață",
+      "exitPrice": "Preț de vânzare rapidă",
+      "discountFromMarket": "Reducere față de piață: −{percent}%"
+    },
+    "actions": {
+      "acceptExitPrice": "Accept prețul de vânzare rapidă",
+      "submitOffer": "Trimite ofertă",
+      "openNegotiation": "Deschide Cameră de Negociere",
+      "openingRoom": "Se deschide..."
+    },
+    "errors": {
+      "sellerUnavailable": "Vânzătorul nu este disponibil pentru negociere.",
+      "ownListing": "Acesta este anunțul tău — negocierea pornește din partea cumpărătorilor.",
+      "roomOpenFailed": "Nu am putut deschide camera de negociere. Reîncearcă.",
+      "offerSubmitFailed": "Nu am putut trimite oferta. Te rugăm să reîncerci.",
+      "acceptSubmitFailed": "Nu am putut trimite confirmarea. Te rugăm să reîncerci."
+    },
+    "safety": {
+      "warning": "Nu trimite bani în avans și nu introduce datele cardului în linkuri primite de la alți utilizatori. Verifică activul și detaliile direct cu vânzătorul.",
+      "comingSoon": "În curând: poți salva criterii și primi notificări pentru anunțuri noi."
+    },
+    "seller": {
+      "title": "Vânzător",
+      "displayName": "Nume pe platformă",
+      "status": "Status",
+      "memberSince": "Membru din",
+      "activeListings": "Anunțuri active listate",
+      "role": "Rol",
+      "contactHint": "Datele de contact se transmit doar prin ofertă, pentru protecția ambelor părți.",
+      "transactionHistory": "Istoricul de tranzacții va fi disponibil după primele vânzări confirmate pe platformă."
+    },
+    "userType": {
+      "buyer": "Cumpărător",
+      "seller": "Vânzător",
+      "guest": "Utilizator",
+      "default": "Utilizator Quick Exit"
+    },
+    "kyc": {
+      "verified": "Identitate verificată",
+      "processing": "Verificare în procesare",
+      "requiresInput": "Verificare necesară",
+      "pending": "Verificare în așteptare"
+    },
+    "share": {
+      "title": "Distribuie oportunitatea",
+      "description": "Copiază un mesaj gata pregătit și trimite-l către cumpărători sau comunitatea ta.",
+      "quickShare": "Distribuie rapid",
+      "copyLink": "Copiază link",
+      "whatsapp": "WhatsApp",
+      "telegram": "Telegram",
+      "x": "X",
+      "linkedin": "LinkedIn",
+      "instagram": "Instagram",
+      "copied": "Copiat.",
+      "quickShareAria": "Distribuie rapid anunțul",
+      "copyLinkAria": "Copiază linkul anunțului pentru distribuire",
+      "whatsappAria": "Copiază mesajul pentru WhatsApp",
+      "telegramAria": "Copiază mesajul pentru Telegram",
+      "xAria": "Copiază mesajul pentru X (Twitter)",
+      "linkedinAria": "Copiază mesajul pentru LinkedIn",
+      "instagramAria": "Copiază mesajul pentru Instagram"
+    },
+    "sections": {
+      "otherSellerTitle": "Alte active ale",
+      "otherSellerHighlight": "vânzătorului",
+      "onlyListing": "Acesta este singurul activ public al vânzătorului momentan.",
+      "similarTitle": "Oportunități",
+      "similarHighlight": "similare",
+      "noSimilar": "Nu există alte active disponibile momentan în categoria „{category}”."
+    },
+    "modals": {
+      "closeDialog": "Închide dialogul",
+      "close": "Închide",
+      "verified": {
+        "title": "Încredere pe",
+        "titleHighlight": "platformă",
+        "statusLine": "Situația contului pentru acest utilizator este: {status}.",
+        "privacyHint": "Nu afișăm public telefon sau e-mail. Contactul legitim se face printr-o ofertă.",
+        "transactionHistory": "Istoricul de tranzacții va fi disponibil după primele vânzări confirmate pe platformă."
+      },
+      "docs": {
+        "title": "Fișier",
+        "titleHighlight": "documentar",
+        "intro": "Anunțurile marcate sunt structurate pentru a include documentele uzuale din tranzacția pentru categoria aleasă:",
+        "items": {
+          "ownership": "Act proprietate",
+          "registration": "Intabulare",
+          "fiscal": "Certificat fiscal",
+          "appraisal": "Evaluare / expertiză"
+        },
+        "footer": "Lista exactă variază după tipul activului. Detaliile finale se stabilesc cu vânzătorul după depunerea unei oferte."
+      },
+      "aiScore": {
+        "title": "Scor",
+        "titleHighlight": "lichiditate",
+        "description": "Scorul {score} reflectă o combinație de factori de piață și lichiditate (indicativ, nu garanție).",
+        "marketPosition": "Poziție față de piață",
+        "liquidityDemand": "Lichiditate / cerere",
+        "assetAttributes": "Atribute activ"
+      },
+      "accept": {
+        "title": "Confirmare",
+        "titleHighlight": "preț",
+        "successTitle": "Cererea ta a fost înregistrată.",
+        "successBody": "Vânzătorul a fost notificat în legătură cu acordul tău la prețul de {price}. Te poate contacta folosind datele transmise prin ofertă.",
+        "confirmQuestion": "Confirmi achiziția la {price} (preț de vânzare rapidă)?",
+        "contactHint": "Lasă datele tale — vânzătorul te contactează prin canalele agreate",
+        "phonePlaceholder": "Număr de telefon",
+        "emailPlaceholder": "E-mail (opțional)",
+        "submitting": "Se trimite...",
+        "submit": "Trimite acordul"
+      },
+      "offer": {
+        "title": "Trimite",
+        "titleHighlight": "ofertă",
+        "successTitle": "Oferta a fost trimisă.",
+        "successBody": "Vânzătorul a fost notificat și te poate contacta folosind datele furnizate.",
+        "yourOffer": "Oferta ta (EUR)",
+        "offerAmountAria": "Suma ofertei",
+        "minOffer": "Min: {price} (−30%)",
+        "maxOffer": "Max: {price}",
+        "phonePlaceholder": "Număr de telefon",
+        "emailPlaceholder": "E-mail (opțional)",
+        "messagePlaceholder": "Mesaj pentru vânzător (ex.: termeni de plată, termen de răspuns)...",
+        "submitting": "Se trimite...",
+        "submit": "Trimite oferta"
+      }
+    }
+  }
+}

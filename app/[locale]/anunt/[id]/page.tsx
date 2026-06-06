@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import AnuntClient from "./AnuntClient";
 import { getSiteUrl, toAbsoluteSiteUrl } from "@/lib/siteUrl";
+import { formatEurAmount } from "@/lib/i18n/format";
+import { resolveListingField } from "@/lib/i18n/listingContent";
 import {
   fetchPublicListingDetail,
   fetchPublicListingSeoRow,
@@ -9,34 +11,43 @@ import {
   fetchSimilarListings,
   type ListingSeoRow,
 } from "@/lib/listingSeo";
+import { getTranslations, setRequestLocale } from "next-intl/server";
+import { routing } from "@/src/i18n/routing";
 
 export const revalidate = 300;
 
 type PageProps = {
-  params: Promise<{ id: string }>;
+  params: Promise<{ locale: string; id: string }>;
 };
 
-function formatEurPrice(value: number | null | undefined): string | null {
+function formatEurPrice(value: number | null | undefined, locale: string): string | null {
   const n = Number(value);
   if (!Number.isFinite(n) || n <= 0) return null;
-  return `€${n.toLocaleString("ro-RO")}`;
+  return formatEurAmount(n, locale);
 }
 
-function buildListingDescription(listing: ListingSeoRow): string {
-  const title = (listing.title || "Acest activ").trim();
+async function buildListingDescription(
+  listing: ListingSeoRow,
+  locale: string,
+): Promise<string> {
+  const t = await getTranslations({ locale, namespace: "ListingDetail.meta" });
+  const title = resolveListingField(
+    listing,
+    "title",
+    locale,
+    t("assetFallback"),
+  );
   const category = listing.category?.trim();
-  const exitPrice = formatEurPrice(listing.exit_price);
 
   const parts: string[] = [];
   if (category) {
-    parts.push(
-      `${title} este listat pe Quick Exit pentru vânzare rapidă în categoria ${category}.`
-    );
+    parts.push(t("seoListedInCategory", { title, category }));
   } else {
-    parts.push(`${title} este listat pe Quick Exit pentru vânzare rapidă.`);
+    parts.push(t("seoListed", { title }));
   }
-  parts.push("Vezi prețul de exit, detalii și oportunitatea.");
-  if (exitPrice) parts.push(`Preț exit: ${exitPrice}.`);
+  parts.push(t("seoCta"));
+  const exitPrice = formatEurPrice(listing.exit_price, locale);
+  if (exitPrice) parts.push(t("seoExitPrice", { price: exitPrice }));
   return parts.join(" ");
 }
 
@@ -46,35 +57,39 @@ function normalizeId(raw: string | undefined): string | null {
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const { id } = await params;
+  const { locale, id } = await params;
+  setRequestLocale(locale);
+  const t = await getTranslations({ locale, namespace: "ListingDetail.meta" });
+
   const listingId = normalizeId(id);
   const siteUrl = getSiteUrl();
-  const canonicalPath = listingId ? `/anunt/${listingId}` : "/anunt";
+  const canonicalPath = listingId ? `/${locale}/anunt/${listingId}` : `/${locale}/anunt`;
   const canonicalAbs = `${siteUrl}${canonicalPath}`;
+  const ogLocale = locale === "en" ? "en_GB" : "ro_RO";
 
   const listing = listingId ? await fetchPublicListingSeoRow(listingId) : null;
   if (!listing) {
     return {
       metadataBase: new URL(siteUrl),
-      title: { absolute: "Anunț indisponibil | Quick Exit" },
-      description: "Acest anunț nu este disponibil public momentan.",
+      title: { absolute: t("unavailableTitle") },
+      description: t("unavailableDescription"),
       alternates: { canonical: canonicalAbs },
       robots: { index: false, follow: false },
       openGraph: {
-        title: "Anunț indisponibil | Quick Exit",
-        description: "Acest anunț nu este disponibil public momentan.",
+        title: t("unavailableTitle"),
+        description: t("unavailableDescription"),
         url: canonicalAbs,
         type: "website",
-        siteName: "Quick Exit",
-        locale: "ro_RO",
+        siteName: t("siteName"),
+        locale: ogLocale,
         images: [{ url: toAbsoluteSiteUrl("/logo.png") }],
       },
     };
   }
 
-  const titleRaw = (listing.title || "Anunț").trim();
-  const title = `${titleRaw} | Quick Exit`;
-  const description = buildListingDescription(listing);
+  const titleRaw = resolveListingField(listing, "title", locale, t("listingFallback"));
+  const title = `${titleRaw} | ${t("siteName")}`;
+  const description = await buildListingDescription(listing, locale);
 
   const firstImage =
     Array.isArray(listing.images) && listing.images.length > 0
@@ -93,18 +108,25 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       description,
       url: canonicalAbs,
       type: "website",
-      siteName: "Quick Exit",
-      locale: "ro_RO",
+      siteName: t("siteName"),
+      locale: ogLocale,
       images: [{ url: ogImage }],
     },
   };
 }
 
+export function generateStaticParams() {
+  return routing.locales.map((locale) => ({ locale }));
+}
+
 export default async function ListingPage({ params }: PageProps) {
-  const { id } = await params;
+  const { locale, id } = await params;
+  setRequestLocale(locale);
+  const t = await getTranslations({ locale, namespace: "ListingDetail.meta" });
+
   const listingId = normalizeId(id);
   const siteUrl = getSiteUrl();
-  const canonicalPath = listingId ? `/anunt/${listingId}` : "/anunt";
+  const canonicalPath = listingId ? `/${locale}/anunt/${listingId}` : `/${locale}/anunt`;
   const canonicalAbs = `${siteUrl}${canonicalPath}`;
 
   const listing = listingId ? await fetchPublicListingDetail(listingId) : null;
@@ -127,15 +149,18 @@ export default async function ListingPage({ params }: PageProps) {
     Number.isFinite(listing.exit_price) &&
     listing.exit_price > 0;
 
+  const listingTitle = resolveListingField(listing, "title", locale, t("listingFallback"));
+  const listingDescription =
+    resolveListingField(listing, "description", locale, "") ||
+    (await buildListingDescription(listing, locale));
+
   const jsonLd =
     listing
       ? {
           "@context": "https://schema.org",
           "@type": "Product",
-          name: listing.title || "Anunț Quick Exit",
-          description:
-            (typeof listing.description === "string" && listing.description.trim()) ||
-            buildListingDescription(listing),
+          name: listingTitle,
+          description: listingDescription,
           ...(listing.category ? { category: listing.category } : {}),
           url: canonicalAbs,
           ...(Array.isArray(listing.images) && listing.images.length > 0
@@ -168,19 +193,19 @@ export default async function ListingPage({ params }: PageProps) {
             {
               "@type": "ListItem",
               position: 1,
-              name: "Quick Exit",
-              item: siteUrl,
+              name: t("siteName"),
+              item: `${siteUrl}/${locale}`,
             },
             {
               "@type": "ListItem",
               position: 2,
-              name: "Anunțuri",
-              item: `${siteUrl}/`,
+              name: t("breadcrumbListings"),
+              item: `${siteUrl}/${locale}`,
             },
             {
               "@type": "ListItem",
               position: 3,
-              name: (listing.title || "Anunț Quick Exit").trim() || "Anunț Quick Exit",
+              name: listingTitle,
               item: canonicalAbs,
             },
           ],

@@ -1,0 +1,505 @@
+{
+  "Navigation": {
+    "logoAlt": "Quick Exit — rapid liquidity platform for assets",
+    "home": "Home",
+    "howItWorks": "How It Works",
+    "buyerOffers": "Buyer Offers",
+    "buyWithCash": "Buy with Cash",
+    "postListing": "List an Asset for Sale",
+    "openMenu": "Open main menu",
+    "closeMenu": "Close main menu",
+    "mainMenu": "Main menu",
+    "myAccount": "My Account",
+    "signOut": "Sign Out",
+    "signIn": "Sign In",
+    "languageSwitcher": "Change language"
+  },
+  "Auth": {
+    "closeModal": "Close sign-in dialog",
+    "welcomeTitle": "Welcome",
+    "welcomeSubtitle": "Use your email below (you'll receive a magic link) or sign in with Google. One account covers listings, offers, and the Negotiation Room.",
+    "emailLabel": "Create an account or sign in with email",
+    "emailPlaceholder": "you@email.com",
+    "submitLoading": "Processing...",
+    "submitButton": "Send Access Link →",
+    "autoAccountHint": "If you don't have an account yet, one will be created automatically when you click the link in your email.",
+    "advancedOptions": "Advanced Options",
+    "google": "Google",
+    "web3Wallet": "Web3 Wallet",
+    "errorPrefix": "Error: ",
+    "magicLinkSent": "✓ Check your inbox! We've sent you a sign-in link.",
+    "web3Maintenance": "⚠ WalletConnect is under maintenance for Phase 2."
+  },
+  "Hero": {
+    "titleLine1": "Sell now.",
+    "titleLine1Highlight": "now",
+    "titleLine2": "Get paid today.",
+    "titleLine2Highlight": "today",
+    "subtitle": "Quick Exit connects sellers who need fast liquidity with buyers who have capital and are looking for below-market opportunities.",
+    "evaluateCta": "What's your asset worth?",
+    "viewBuyerRequests": "View buyer requests",
+    "packagesSectionTitle": "Choose your sale pace"
+  },
+  "Packages": {
+    "auction": {
+      "title": "Open auction — 30 days",
+      "description": "For sales where you want multiple bids and manual selection of the best offer.",
+      "duration": "30 days",
+      "price": "111 RON",
+      "disclaimer": "No automatic winner. Payment and handover are arranged directly between parties."
+    },
+    "economy": {
+      "title": "Maximum exposure",
+      "description": "For listings that need more time in market view.",
+      "duration": "30 days",
+      "price": "99 RON"
+    },
+    "standard": {
+      "title": "Fast sale",
+      "description": "Balanced listing duration, cost, and visibility.",
+      "duration": "14 days",
+      "price": "79 RON",
+      "badge": "Recommended"
+    },
+    "urgent": {
+      "title": "Validation & listing",
+      "fullTitle": "Validation & Standard Listing Package",
+      "description": "Manually verified listings with guaranteed access to the Negotiation Room and qualified investors.",
+      "duration": "60 days",
+      "price": "179 RON",
+      "badge": "Premium",
+      "benefits": [
+        "Manual asset verification (noise filter)",
+        "Guaranteed 60-day platform listing",
+        "Full access to the Negotiation Room with investors"
+      ]
+    },
+    "publishWithPackage": "Publish with this package",
+    "payAndPublish": "Pay and publish listing",
+    "preparingPayment": "Preparing checkout...",
+    "selectedPackage": "Selected package: {title} — {price} RON",
+    "chooseSpeedTitle": "Choose your sale speed",
+    "chooseSpeedDescription": "Your package sets how long the listing stays promoted and how quickly you want buyer engagement.",
+    "listingFeeNote": "Payment activates listing publication and exposure. It does not guarantee the asset will sell."
+  },
+  "Pricing": {
+    "pageLabel": "Quick Exit Pricing",
+    "heroTitle": "Choose your sale speed",
+    "heroDescription": "Your package defines duration, priority, and how your listing is exposed on the platform.",
+    "publishListing": "Publish listing",
+    "backHome": "← Back to home",
+    "sellerPackagesTitle": "Seller listing packages",
+    "auctionSectionTitle": "Open auction — 30 days",
+    "extendedVisibility": "Extended visibility",
+    "auctionListingFee": "Auction listing fee",
+    "buyerServicesTitle": "Buyer services",
+    "capitalRequest": {
+      "title": "Capital Request",
+      "description": "Publish available capital for urgent below-market acquisitions.",
+      "price": "99 RON",
+      "cta": "Post your budget"
+    },
+    "guestOffer": {
+      "title": "Guest Offer",
+      "description": "Submit a direct offer without a verified account.",
+      "price": "49 RON",
+      "cta": "Sell them your asset"
+    },
+    "howToChooseTitle": "How do I pick the right package?",
+    "howToChooseNotInHurry": "If you're not in a rush:",
+    "howToChooseBalance": "If you want price/speed balance:",
+    "howToChooseUrgent": "If you need immediate liquidity:",
+    "safeTransactionsTitle": "Direct transactions — proceed with care",
+    "safeTransactionsDescription": "Quick Exit does not process payments between parties or hold funds in escrow. Verify the asset, documentation, and the other party's identity before payment or handover.",
+    "tags": {
+      "maxExposure": "MAX EXPOSURE",
+      "fastSale": "FAST SALE",
+      "validation": "VALIDATION"
+    },
+    "features": {
+      "economy": [
+        "Standard list placement",
+        "Direct buyer contact",
+        "AI alerts to investors"
+      ],
+      "standard": [
+        "Priority placement (top)",
+        "'FAST' badge on card",
+        "Investor email notification"
+      ]
+    },
+    "durationLabel": "Duration: {duration}"
+  },
+  "Home": {
+    "metaTitle": "Quick Exit | Rapid liquidity platform for assets",
+    "metaDescription": "Quick Exit connects sellers seeking fast liquidity with buyers and investors ready to acquire assets.",
+    "categoriesTitle": "Choose a Category",
+    "listings": {
+      "title": "Active sale listings",
+      "titleHighlight": "sale listings",
+      "postListing": "Post listing",
+      "viewAll": "View all listings →",
+      "accountHint": "Browse without an account. To publish, submit offers, and access the Negotiation Room, you'll need a simple account.",
+      "empty": "The terminal is scanning for new assets..."
+    },
+    "capital": {
+      "title": "Available capital",
+      "titleHighlight": "capital",
+      "viewAll": "View all requests →",
+      "description": "Buyer requests with stated budgets — verify details directly with each counterparty.",
+      "empty": "No capital requests registered at the moment.",
+      "viewAllFooter": "View all available capital",
+      "addOffer": "Add capital offer"
+    },
+    "auctions": {
+      "title": "Open auctions",
+      "titleHighlight": "auctions",
+      "description": "Assets with a bidding window of up to 30 days. The seller manually selects the right offer.",
+      "disclaimer": "No automatic winner. Payment and handover are arranged directly between parties.",
+      "emptyTitle": "No active auctions at the moment",
+      "emptyDescription": "Open auctions let sellers receive offers for up to 30 days and manually select the right bid.",
+      "publishAuction": "Publish an auction",
+      "viewAll": "View all auctions",
+      "addAuction": "Add an auction"
+    },
+    "safety": {
+      "title": "Safe transaction guidelines",
+      "description": "Quick Exit does not process payments or hold funds in escrow. Before payment or handover, verify the asset, documentation, and the other party's identity.",
+      "tips": [
+        "Don't pay deposits without verification.",
+        "For large amounts, use a contract and professional advisory.",
+        "Never enter card details on links sent by other users."
+      ]
+    },
+    "globalStats": {
+      "declaredValueLabel": "Declared value in listings and requests",
+      "declaredValueSub": "Amounts stated in listings and requests",
+      "declaredValueEmpty": "There are currently no cumulative declared amounts in active listings and requests, or values are missing.",
+      "activeDemandsLabel": "Active buyer requests",
+      "activeDemandsSub": "Published on the platform; budgets are verified directly between parties",
+      "activeListingsLabel": "Listings for sale",
+      "activeListingsSub": "Assets available right now",
+      "soldLabel": "Completed sales",
+      "soldSub": "Successfully closed transactions"
+    }
+  },
+  "Categories": {
+    "auto": "Auto & Moto",
+    "realEstate": "Real Estate",
+    "luxury": "Luxury & Watches",
+    "business": "Businesses for Sale",
+    "gadgets": "Gadgets",
+    "photoAudio": "Photo & Audio",
+    "gadgetsTech": "Gadgets & Tech"
+  },
+  "Footer": {
+    "brandName": "QUICK EXIT",
+    "tagline": "Platform for accelerated sales and direct contact in Romania. We connect assets with interested buyers and investors through technology; fund availability is not verified by the platform.",
+    "accountHint": "Browse without an account. To publish, submit offers, and access the Negotiation Room, you'll need a simple account.",
+    "madeInRomania": "Made in Romania",
+    "platform": {
+      "title": "Platform",
+      "howItWorks": "How It Works",
+      "pricing": "Pricing",
+      "evaluation": "Valuation",
+      "capitalAvailable": "Available Capital",
+      "specialOffersCta": "SPECIAL OFFERS & PRICING"
+    },
+    "legal": {
+      "title": "Legal & Information",
+      "terms": "Terms",
+      "privacy": "Privacy",
+      "cookies": "Cookies",
+      "contact": "Contact",
+      "feedback": "Send feedback",
+      "feedbackSubject": "Quick Exit Feedback"
+    },
+    "categoriesTitle": "Categories",
+    "protection": {
+      "title": "Consumer Protection",
+      "anpc": "A.N.P.C.",
+      "anpcDescription": "National Consumer Protection Authority",
+      "odr": "O.D.R.",
+      "odrDescription": "Online Dispute Resolution"
+    },
+    "securePayments": "SECURE PAYMENTS BY STRIPE",
+    "visa": "VISA",
+    "mastercard": "MASTERCARD"
+  },
+  "Kyc": {
+    "bannerTitle": "Account verification recommended",
+    "bannerDescription": "You already have paid activity on Quick Exit. To build trust and increase credibility with buyers, complete account verification.",
+    "preparing": "Preparing...",
+    "completeVerification": "Complete verification",
+    "startVerification": "Start Verification",
+    "accountStatus": "Account status",
+    "accountVerification": "Account verification",
+    "identityHelp": "Identity verification helps protect buyers and sellers.",
+    "softHint": "After you complete payment and have your first active listing or request, we recommend verifying your account for added trust — not required before payment.",
+    "status": {
+      "verified": "Identity verified",
+      "pending": "Verification pending",
+      "processing": "Verification in progress",
+      "requiresInput": "Verification needs attention",
+      "canceled": "Verification canceled",
+      "unverified": "Verification not started"
+    }
+  },
+  "Didit": {
+    "trustBadgeAriaLabel": "KYC Secured by Didit — identity verification partner",
+    "securedBy": "KYC Secured by",
+    "brandName": "Didit"
+  },
+  "PostListing": {
+    "terminalLabel": "Quick Exit Terminal",
+    "pageTitle": "Publish your listing",
+    "pageSubtitle": "for a fast sale",
+    "pageDescription": "Complete your asset details, set your price, and choose your sale speed.",
+    "steps": {
+      "assetData": "Asset details",
+      "photosDescription": "Photos & description",
+      "salePrice": "Sale price",
+      "packagePublish": "Package & publish"
+    },
+    "successTitle": "Listing activated successfully",
+    "successDescription": "Your listing is live. Track offers from your account.",
+    "goToDashboard": "Go to my account",
+    "checkoutErrors": {
+      "authRequired": "You must be signed in to publish. Open My Account, sign in, and return to this step.",
+      "saveFailed": "We couldn't save your listing. Please try again.",
+      "invalidPackage": "Invalid package for checkout. Please try again.",
+      "paymentFailed": "We couldn't initialize payment. Please try again.",
+      "uploadFailed": "We couldn't upload your images. Check your files and try again.",
+      "genericFailed": "We couldn't complete your request or start checkout. Please try again."
+    }
+  },
+  "ListingDetail": {
+    "meta": {
+      "unavailableTitle": "Listing unavailable | Quick Exit",
+      "unavailableDescription": "This listing is not publicly available at the moment.",
+      "listingFallback": "Listing",
+      "assetFallback": "This asset",
+      "siteName": "Quick Exit",
+      "breadcrumbListings": "Listings",
+      "seoListedInCategory": "{title} is listed on Quick Exit for a fast sale in the {category} category.",
+      "seoListed": "{title} is listed on Quick Exit for a fast sale.",
+      "seoCta": "See the exit price, details, and opportunity.",
+      "seoExitPrice": "Exit price: {price}."
+    },
+    "unavailable": {
+      "title": "Asset unavailable",
+      "description": "This listing is no longer available or has been removed from the platform.",
+      "backHome": "Back to homepage"
+    },
+    "navigation": {
+      "backHome": "← Home",
+      "favoriteAdd": "Add to favorites",
+      "favoriteSaved": "Saved"
+    },
+    "defaults": {
+      "listingTitle": "Listing",
+      "listingImageAlt": "Listing image",
+      "sellerName": "Quick Exit seller"
+    },
+    "strategyBadge": {
+      "auction": "Open auction",
+      "urgent": "Urgent",
+      "extreme": "Opportunity",
+      "standard": "Standard"
+    },
+    "gallery": {
+      "openLightbox": "Open enlarged image",
+      "tapToEnlarge": "Tap to enlarge",
+      "selectImage": "Select image {index} of {total}",
+      "thumbnailAlt": "Thumbnail {index}",
+      "lightboxTitle": "Enlarged image",
+      "close": "Close",
+      "previousImage": "Previous image",
+      "nextImage": "Next image",
+      "lightboxHint": "Click outside the image or press Esc to close"
+    },
+    "auction": {
+      "title": "Open auction",
+      "beFirstOffer": "Be the first to submit an offer.",
+      "offersReceived": "{count, plural, =1 {1 offer received} other {# offers received}}",
+      "highestOffer": "Highest offer received: {amount}",
+      "biddingWindowUntil": "Bidding window until: {date}",
+      "disclaimer": "The highest offer does not win automatically. The seller manually selects the right offer, and the transaction is completed directly between parties."
+    },
+    "details": {
+      "empty": "Technical details have not been provided.",
+      "fields": {
+        "year": "Year",
+        "mileage": "Mileage",
+        "transmission": "Transmission",
+        "fuel": "Fuel",
+        "bodyType": "Body type",
+        "drivetrain": "Drivetrain",
+        "accidentHistory": "Accident history",
+        "propertyType": "Property type",
+        "location": "Location",
+        "surface": "Usable area",
+        "landSurface": "Land",
+        "rooms": "Rooms",
+        "buildYear": "Year built",
+        "parking": "Parking",
+        "vat": "VAT",
+        "brand": "Brand",
+        "model": "Model",
+        "boxPapers": "Box & papers",
+        "mechanism": "Mechanism",
+        "condition": "Condition",
+        "storage": "Storage",
+        "warranty": "Warranty",
+        "industry": "Industry",
+        "revenue": "Annual revenue",
+        "profit": "Profit",
+        "employees": "Employees"
+      },
+      "sqmUnit": "sqm",
+      "kmUnit": "km",
+      "yes": "Yes",
+      "no": "No"
+    },
+    "trust": {
+      "verifiedIdentity": "Verified identity",
+      "trustPrefix": "Trust: {status}",
+      "documentFile": "Document file",
+      "liquidityScore": "Liquidity score {score}"
+    },
+    "about": {
+      "title": "About this",
+      "titleHighlight": "asset"
+    },
+    "pricing": {
+      "potentialProfit": "Potential profit",
+      "marketPrice": "Estimated market price",
+      "exitPrice": "Fast sale price",
+      "discountFromMarket": "Discount vs market: −{percent}%"
+    },
+    "actions": {
+      "acceptExitPrice": "Accept fast sale price",
+      "submitOffer": "Submit offer",
+      "openNegotiation": "Open negotiation room",
+      "openingRoom": "Opening..."
+    },
+    "errors": {
+      "sellerUnavailable": "The seller is not available for negotiation.",
+      "ownListing": "This is your listing — negotiation is initiated by buyers.",
+      "roomOpenFailed": "We couldn't open the negotiation room. Please try again.",
+      "offerSubmitFailed": "We couldn't submit your offer. Please try again.",
+      "acceptSubmitFailed": "We couldn't submit your confirmation. Please try again."
+    },
+    "safety": {
+      "warning": "Do not send money in advance and do not enter card details via links from other users. Verify the asset and details directly with the seller.",
+      "comingSoon": "Coming soon: save criteria and get alerts for new listings."
+    },
+    "seller": {
+      "title": "Seller",
+      "displayName": "Platform name",
+      "status": "Status",
+      "memberSince": "Member since",
+      "activeListings": "Active listings",
+      "role": "Role",
+      "contactHint": "Contact details are shared only through an offer, to protect both parties.",
+      "transactionHistory": "Transaction history will be available after the first confirmed sales on the platform."
+    },
+    "userType": {
+      "buyer": "Buyer",
+      "seller": "Seller",
+      "guest": "User",
+      "default": "Quick Exit user"
+    },
+    "kyc": {
+      "verified": "Verified identity",
+      "processing": "Verification in progress",
+      "requiresInput": "Verification required",
+      "pending": "Verification pending"
+    },
+    "share": {
+      "title": "Share the opportunity",
+      "description": "Copy a ready-made message and send it to buyers or your network.",
+      "quickShare": "Quick share",
+      "copyLink": "Copy link",
+      "whatsapp": "WhatsApp",
+      "telegram": "Telegram",
+      "x": "X",
+      "linkedin": "LinkedIn",
+      "instagram": "Instagram",
+      "copied": "Copied.",
+      "quickShareAria": "Quick share listing",
+      "copyLinkAria": "Copy listing link for sharing",
+      "whatsappAria": "Copy message for WhatsApp",
+      "telegramAria": "Copy message for Telegram",
+      "xAria": "Copy message for X (Twitter)",
+      "linkedinAria": "Copy message for LinkedIn",
+      "instagramAria": "Copy message for Instagram"
+    },
+    "sections": {
+      "otherSellerTitle": "Other assets from this",
+      "otherSellerHighlight": "seller",
+      "onlyListing": "This is the seller's only public asset at the moment.",
+      "similarTitle": "Similar",
+      "similarHighlight": "opportunities",
+      "noSimilar": "No other assets are currently available in the \"{category}\" category."
+    },
+    "modals": {
+      "closeDialog": "Close dialog",
+      "close": "Close",
+      "verified": {
+        "title": "Trust on the",
+        "titleHighlight": "platform",
+        "statusLine": "This user's account status is: {status}.",
+        "privacyHint": "We do not publicly display phone or email. Legitimate contact happens through an offer.",
+        "transactionHistory": "Transaction history will be available after the first confirmed sales on the platform."
+      },
+      "docs": {
+        "title": "Document",
+        "titleHighlight": "file",
+        "intro": "Marked listings are structured to include the usual documents for transactions in the selected category:",
+        "items": {
+          "ownership": "Proof of ownership",
+          "registration": "Land registry entry",
+          "fiscal": "Tax certificate",
+          "appraisal": "Appraisal / expert report"
+        },
+        "footer": "The exact list varies by asset type. Final details are agreed with the seller after submitting an offer."
+      },
+      "aiScore": {
+        "title": "Liquidity",
+        "titleHighlight": "score",
+        "description": "Score {score} reflects a combination of market and liquidity factors (indicative, not a guarantee).",
+        "marketPosition": "Market position",
+        "liquidityDemand": "Liquidity / demand",
+        "assetAttributes": "Asset attributes"
+      },
+      "accept": {
+        "title": "Price",
+        "titleHighlight": "confirmation",
+        "successTitle": "Your request has been recorded.",
+        "successBody": "The seller has been notified about your agreement at {price}. They may contact you using the details submitted with your offer.",
+        "confirmQuestion": "Do you confirm purchase at {price} (fast sale price)?",
+        "contactHint": "Leave your details — the seller will contact you through agreed channels",
+        "phonePlaceholder": "Phone number",
+        "emailPlaceholder": "Email (optional)",
+        "submitting": "Submitting...",
+        "submit": "Submit agreement"
+      },
+      "offer": {
+        "title": "Submit",
+        "titleHighlight": "offer",
+        "successTitle": "Your offer has been sent.",
+        "successBody": "The seller has been notified and may contact you using the details you provided.",
+        "yourOffer": "Your offer (EUR)",
+        "offerAmountAria": "Offer amount",
+        "minOffer": "Min: {price} (−30%)",
+        "maxOffer": "Max: {price}",
+        "phonePlaceholder": "Phone number",
+        "emailPlaceholder": "Email (optional)",
+        "messagePlaceholder": "Message for the seller (e.g. payment terms, response deadline)...",
+        "submitting": "Submitting...",
+        "submit": "Submit offer"
+      }
+    }
+  }
+}
