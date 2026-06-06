@@ -17,6 +17,7 @@ type ApiResult = {
   comparable_count?: number;
   google_result_count?: number;
   cache_hit?: boolean;
+  warnings?: string[];
   [key: string]: unknown;
 };
 
@@ -52,9 +53,70 @@ const LABEL_MAP: Record<string, string> = {
 
 function getPublicEvaluationDisclaimer(dataQuality?: string): string {
   if (dataQuality === "external_search_strong") {
-    return "Estimare bazată pe surse publice și anunțuri similare disponibile la momentul evaluării.";
+    return "Estimare orientativă bazată pe surse publice disponibile la momentul evaluării. Nu garantează vânzarea.";
   }
-  return "Estimare orientativă calculată pe baza rezultatelor disponibile și a anunțurilor similare. Prețurile nu garantează vânzarea și trebuie validate de vânzător.";
+  return "Estimare orientativă calculată din rezultate de piață disponibile. Prețurile nu garantează vânzarea și trebuie validate de vânzător.";
+}
+
+function formatConfidenceScore(score: unknown): number {
+  const n = Number(score);
+  if (!Number.isFinite(n)) return 0;
+  return Math.max(0, Math.min(99, Math.round(n)));
+}
+
+function validateEvaluationForm(
+  category: CategoryId,
+  formData: {
+    make: string;
+    model: string;
+    year: string;
+    location: string;
+    surface: string;
+    brand: string;
+    industry: string;
+    revenue: string;
+  },
+): string | null {
+  switch (category) {
+    case "auto":
+      if (!formData.make.trim()) return "Completează marca.";
+      if (!formData.model.trim()) return "Completează modelul.";
+      if (!formData.year.trim()) return "Completează anul.";
+      return null;
+    case "imobiliare":
+      if (!formData.location.trim()) return "Completează localizarea.";
+      if (!formData.surface.trim()) return "Completează suprafața.";
+      return null;
+    case "lux":
+    case "gadgets":
+    case "foto":
+      if (!formData.brand.trim()) return "Completează brandul.";
+      if (!formData.model.trim()) return "Completează modelul.";
+      return null;
+    case "business":
+      if (!formData.industry.trim()) return "Completează domeniul.";
+      if (!formData.revenue.trim()) return "Completează venitul anual.";
+      return null;
+    default:
+      return null;
+  }
+}
+
+function buildListingHref(
+  category: CategoryId,
+  result: ApiResult | null,
+  includeExitPrice = true,
+): string {
+  const params = new URLSearchParams();
+  params.set("source", "evaluation");
+  params.set("category", category);
+  if (includeExitPrice) {
+    const exit = Number(result?.quick_exit_price);
+    if (Number.isFinite(exit) && exit > 0) {
+      params.set("exit_price", String(Math.round(exit)));
+    }
+  }
+  return `/pune-anunt?${params.toString()}`;
 }
 
 function formatPrice(price: unknown) {
@@ -108,6 +170,34 @@ export default function EvaluareClient() {
 
   const analyzedSources = Number(result?.google_result_count ?? result?.comparable_count ?? 0);
 
+  const listingHref = useMemo(
+    () => buildListingHref(category, result, true),
+    [category, result],
+  );
+
+  const listingHrefManual = useMemo(
+    () => buildListingHref(category, result, false),
+    [category, result],
+  );
+
+  const trackListingClick = () => {
+    trackEvent("click_evaluation_to_listing", {
+      category,
+      data_quality_label: result?.data_quality_label
+        ? String(result.data_quality_label)
+        : "unknown",
+      confidence_score: formatConfidenceScore(result?.confidence_score),
+      source: "evaluation_result",
+    });
+  };
+
+  const resultWarnings = useMemo(() => {
+    if (!result?.warnings || !Array.isArray(result.warnings)) return [];
+    return result.warnings.map((w) => String(w)).filter(Boolean);
+  }, [result?.warnings]);
+
+  const confidencePercent = formatConfidenceScore(result?.confidence_score);
+
   const buildPayload = () => ({
     category,
     make: category === "auto" ? formData.make : undefined,
@@ -141,6 +231,12 @@ export default function EvaluareClient() {
   });
 
   const runEvaluation = async () => {
+    const validationMessage = validateEvaluationForm(category, formData);
+    if (validationMessage) {
+      setEvaluationError(validationMessage);
+      return;
+    }
+
     trackEvent("start_evaluation", { category });
     setEvaluationError(null);
     setPhase("loading");
@@ -155,7 +251,7 @@ export default function EvaluareClient() {
       });
 
       const data = (await response.json()) as ApiResult & { message?: string };
-      if (!data.success) {
+      if (!response.ok || !data.success) {
         setEvaluationError(
           typeof data.message === "string" && data.message.trim()
             ? data.message
@@ -331,6 +427,13 @@ export default function EvaluareClient() {
 
           {phase === "result" && result && (
             <section className="space-y-8 md:space-y-10">
+              <div
+                role="note"
+                className="rounded-xl border-2 border-amber-600/40 bg-amber-50 px-4 py-3 text-center text-[10px] font-black uppercase leading-relaxed tracking-wide text-amber-950 md:text-[11px]"
+              >
+                Estimare orientativă — nu evaluare oficială, nu garanție de preț sau vânzare.
+              </div>
+
               {result.data_quality_label === "vip_asset" ? (
                 <div className="rounded-[2rem] border-[3px] border-black bg-black px-8 py-10 text-center text-white shadow-[10px_10px_0_0_#FFD100] md:px-14 md:py-12">
                   <h3 className="text-2xl font-black uppercase italic tracking-tight md:text-4xl">
@@ -341,7 +444,8 @@ export default function EvaluareClient() {
                   </p>
                   <div className="mt-10 flex flex-col gap-3 sm:flex-row sm:justify-center">
                     <Link
-                      href="/pune-anunt"
+                      href={listingHrefManual}
+                      onClick={trackListingClick}
                       className="rounded-xl border-2 border-white bg-transparent px-8 py-3.5 text-center text-[11px] font-black uppercase tracking-widest text-white transition hover:bg-white hover:text-black"
                     >
                       Stabilesc manual prețul
@@ -363,7 +467,8 @@ export default function EvaluareClient() {
                   </p>
                   <div className="mt-10">
                     <Link
-                      href="/pune-anunt"
+                      href={listingHrefManual}
+                      onClick={trackListingClick}
                       className="inline-block rounded-xl border-[3px] border-black bg-[#FFD100] px-10 py-3.5 text-[11px] font-black uppercase tracking-widest text-black shadow-[5px_5px_0_0_rgba(0,0,0,0.9)] transition hover:brightness-105"
                     >
                       Continuu cu preț manual
@@ -380,9 +485,20 @@ export default function EvaluareClient() {
                       </p>
                     </div>
                     <div className="md:text-right">
-                      <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-neutral-500">Surse analizate</p>
+                      <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-neutral-500">
+                        Surse publice analizate
+                      </p>
                       <p className="mt-2 text-3xl font-black tabular-nums text-white md:text-4xl">{analyzedSources}</p>
+                      <p className="mt-1 text-[9px] font-semibold uppercase tracking-wider text-neutral-500">
+                        rezultate de piață (surse publice)
+                      </p>
                     </div>
+                  </div>
+
+                  <div className="mb-6 flex flex-wrap items-center gap-3">
+                    <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-white">
+                      Încredere estimare: {confidencePercent}%
+                    </span>
                   </div>
 
                   <div className="mb-8 grid gap-4 md:grid-cols-2 md:gap-5">
@@ -423,6 +539,25 @@ export default function EvaluareClient() {
                     </div>
                   </div>
 
+                  {result.explanation && String(result.explanation).trim() && (
+                    <div className="mb-6 rounded-2xl border border-white/15 bg-white/5 p-5 md:p-6">
+                      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#FFD100]/85">
+                        Raționament estimare
+                      </p>
+                      <p className="mt-3 text-sm font-medium leading-relaxed text-neutral-200 md:text-[15px]">
+                        {String(result.explanation)}
+                      </p>
+                    </div>
+                  )}
+
+                  {resultWarnings.length > 0 && (
+                    <ul className="mb-6 space-y-1 rounded-xl border border-white/10 bg-neutral-950/50 px-4 py-3 text-[11px] font-medium text-neutral-400">
+                      {resultWarnings.map((warning) => (
+                        <li key={warning}>• {warning}</li>
+                      ))}
+                    </ul>
+                  )}
+
                   <div className="rounded-2xl border border-white/20 bg-neutral-950/80 p-5 md:p-6">
                     <div className="flex items-start gap-4">
                       <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-[#FFD100]" aria-hidden />
@@ -439,13 +574,15 @@ export default function EvaluareClient() {
 
                   <div className="mt-10 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
                     <Link
-                      href="/pune-anunt"
+                      href={listingHref}
+                      onClick={trackListingClick}
                       className="flex-1 min-w-[200px] rounded-xl border-[3px] border-black bg-[#FFD100] px-6 py-4 text-center text-[11px] font-black uppercase tracking-widest text-black shadow-[5px_5px_0_0_#000] transition hover:brightness-105"
                     >
                       Publică anunț cu prețul Quick Exit
                     </Link>
                     <Link
-                      href="/pune-anunt"
+                      href={listingHrefManual}
+                      onClick={trackListingClick}
                       className="flex-1 min-w-[200px] rounded-xl border-2 border-white bg-transparent px-6 py-4 text-center text-[11px] font-black uppercase tracking-widest text-white transition hover:bg-white hover:text-black"
                     >
                       Aleg altă strategie

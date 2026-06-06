@@ -3,6 +3,17 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { createHash } from "node:crypto";
 import dns from "node:dns";
 import https from "https";
+import {
+  GEMINI_API_TIMEOUT_MS,
+  MAX_EVALUATE_BODY_BYTES,
+  SERP_API_TIMEOUT_MS,
+  checkEvaluateRateLimit,
+  getClientIp,
+  resolveEvaluateCategoryKey,
+  sanitizeEvaluationBody,
+  validateEvaluateMinimumFields,
+  withEvaluateTimeout,
+} from "@/lib/evaluateSafety";
 
 export const runtime = "nodejs";
 
@@ -404,6 +415,7 @@ async function fetchSerpOrganicLite(
         headers: { Accept: "application/json" },
       },
       (incoming) => {
+        clearTimeout(timeoutHandle);
         const chunks: Buffer[] = [];
         incoming.on("data", (chunk: Buffer) => {
           chunks.push(chunk);
@@ -427,7 +439,13 @@ async function fetchSerpOrganicLite(
         incoming.on("error", reject);
       }
     );
-    req.on("error", reject);
+    const timeoutHandle = setTimeout(() => {
+      req.destroy(new Error("SerpApi timeout"));
+    }, SERP_API_TIMEOUT_MS);
+    req.on("error", (err) => {
+      clearTimeout(timeoutHandle);
+      reject(err);
+    });
   });
 
   const raw = (await res.json().catch(() => ({}))) as Record<string, unknown>;
@@ -512,6 +530,7 @@ const geminiFetch = async (
         headers,
       },
       (incoming) => {
+        clearTimeout(timeoutHandle);
         const chunks: Buffer[] = [];
         incoming.on("data", (chunk: Buffer) => chunks.push(chunk));
         incoming.on("error", reject);
@@ -534,7 +553,14 @@ const geminiFetch = async (
       }
     );
 
-    req.on("error", reject);
+    const timeoutHandle = setTimeout(() => {
+      req.destroy(new Error("Gemini timeout"));
+    }, GEMINI_API_TIMEOUT_MS);
+
+    req.on("error", (err) => {
+      clearTimeout(timeoutHandle);
+      reject(err);
+    });
     if (body) req.write(body);
     req.end();
   });
@@ -596,6 +622,57 @@ async function saveValuationReport(params: {
 
 export async function POST(req: NextRequest) {
   try {
+    const clientIp = getClientIp(req.headers);
+    if (!checkEvaluateRateLimit(clientIp).allowed) {
+      return NextResponse.json(
+        {
+          success: false,
+          message:
+            "Prea multe evaluări din această adresă. Încearcă din nou în câteva minute.",
+        },
+        { status: 429 },
+      );
+    }
+
+    const rawBody = await req.text();
+    if (rawBody.length > MAX_EVALUATE_BODY_BYTES) {
+      return NextResponse.json(
+        { success: false, message: "Date trimise prea voluminoase. Verifică formularul." },
+        { status: 413 },
+      );
+    }
+
+    let body: Record<string, unknown>;
+    try {
+      body = JSON.parse(rawBody) as Record<string, unknown>;
+    } catch {
+      return NextResponse.json(
+        { success: false, message: "Format de date invalid." },
+        { status: 400 },
+      );
+    }
+
+    const catKey = resolveEvaluateCategoryKey(body.category);
+    if (!catKey) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Categorie neacceptată. Alege una din listele disponibile.",
+        },
+        { status: 400 },
+      );
+    }
+
+    body = sanitizeEvaluationBody(body);
+
+    const minimumFields = validateEvaluateMinimumFields(body, catKey);
+    if (!minimumFields.ok) {
+      return NextResponse.json(
+        { success: false, message: minimumFields.message },
+        { status: 400 },
+      );
+    }
+
     if (!process.env.SERPAPI_KEY) {
       return NextResponse.json(
         {
@@ -619,25 +696,6 @@ export async function POST(req: NextRequest) {
     }
 
     const supabase = createClient(supabaseUrl, serviceRoleKey);
-    const body = (await req.json()) as Record<string, unknown>;
-    const catInput =
-      typeof body.category === "string" ? body.category.toLowerCase() : "auto";
-
-    let catKey = "auto";
-    if (catInput.includes("imobil")) catKey = "imobiliare";
-    else if (catInput.includes("lux") || catInput.includes("ceas")) catKey = "lux";
-    else if (
-      catInput.includes("afacer") ||
-      catInput.includes("business")
-    )
-      catKey = "business";
-    else if (
-      catInput.includes("gadget") ||
-      catInput.includes("phone") ||
-      catInput.includes("laptop")
-    )
-      catKey = "gadgets";
-    else if (catInput.includes("foto") || catInput.includes("audio")) catKey = "foto";
 
     const config = categoryConfig[catKey];
 
@@ -706,63 +764,43 @@ export async function POST(req: NextRequest) {
         const cachedPayload = {
           ...(cachedResult as Record<string, unknown>),
         };
-        let reportId: string | null = null;
-        if (toBool(body.save_report)) {
-          reportId = await saveValuationReport({
-            supabase,
-            body,
-            estimatedMarketPrice: toSafeInt(cachedPayload.estimated_market_price),
-            quickExitPrice: toSafeInt(cachedPayload.quick_exit_price),
-            strongExitPrice: toSafeInt(cachedPayload.strong_exit_price),
-            liquidationPrice: toSafeInt(cachedPayload.liquidation_price),
-            confidenceScore: toConfidence(cachedPayload.confidence_score),
-            explanation:
-              typeof cachedPayload.explanation === "string"
-                ? cachedPayload.explanation
-                : "",
-          });
-        }
+        // EVAL-1: skip duplicate valuation_reports inserts on cache hit.
         return NextResponse.json({
           ...cachedPayload,
-          valuation_report_id: reportId,
+          valuation_report_id: null,
           cache_hit: true,
         });
       }
     }
 
+    const searchQuery = buildSerpSearchQuery(body, catKey);
+
+    let serpOrganic: SerpOrganicLite[] = [];
+    let serpFailed = false;
+    try {
+      const fetched = await fetchSerpOrganicLite(searchQuery);
+      serpOrganic = fetched.organic;
+    } catch (serpErr) {
+      serpFailed = true;
+      console.error("[evaluate] SerpApi failure — continuing with safe fallback", {
+        category: catKey,
+        query: searchQuery.slice(0, 120),
+        reason: serpErr instanceof Error ? serpErr.message : String(serpErr),
+      });
+      serpOrganic = [];
+    }
+
     const warnings: string[] = [];
+    if (serpFailed) {
+      warnings.push(
+        "Căutarea pieței a eșuat temporar; estimarea folosește date limitate disponibile.",
+      );
+    }
     config.requiredFields.forEach((f: string) => {
       if (!body[f] && !(body.details as Record<string, unknown> | undefined)?.[f]) {
         warnings.push(`Lipsește: ${f}`);
       }
     });
-
-    const searchQuery = buildSerpSearchQuery(body, catKey);
-
-    let serpOrganic: SerpOrganicLite[] = [];
-    try {
-      const fetched = await fetchSerpOrganicLite(searchQuery);
-      serpOrganic = fetched.organic;
-    } catch (serpErr) {
-      console.error("Eroare Detaliată Fetch:", serpErr);
-      console.error("[evaluate] SerpApi failure", {
-        category: catKey,
-        query: searchQuery.slice(0, 120),
-        reason:
-          serpErr instanceof Error ? serpErr.message : String(serpErr),
-      });
-
-      return NextResponse.json(
-        {
-          success: false,
-          message:
-            serpErr instanceof Error
-              ? `Căutare piață eșuată: ${serpErr.message}`
-              : "Căutare piață eșuată (SerpApi).",
-        },
-        { status: 502 }
-      );
-    }
 
     const organicCount = serpOrganic.length;
     const live_comparable_count = 0;
@@ -845,25 +883,29 @@ Prețuri: întregi ≥ 0. confidence_score: întreg între 1 și 99. explanation
         const geminiUrl =
           "https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent";
 
-        const geminiResponse = await geminiFetch(geminiUrl, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "x-goog-api-key": geminiApiKey,
-          },
-          body: JSON.stringify({
-            contents: [
-              {
-                role: "user",
-                parts: [{ text: JSON.stringify(geminiPrompt) }],
-              },
-            ],
-            system_instruction: {
-              parts: [{ text: geminiSystemInstruction }],
+        const geminiResponse = await withEvaluateTimeout(
+          geminiFetch(geminiUrl, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "x-goog-api-key": geminiApiKey,
             },
-            generation_config: { response_mime_type: "application/json" },
+            body: JSON.stringify({
+              contents: [
+                {
+                  role: "user",
+                  parts: [{ text: JSON.stringify(geminiPrompt) }],
+                },
+              ],
+              system_instruction: {
+                parts: [{ text: geminiSystemInstruction }],
+              },
+              generation_config: { response_mime_type: "application/json" },
+            }),
           }),
-        });
+          GEMINI_API_TIMEOUT_MS + 500,
+          "Gemini",
+        );
 
         const geminiJson = (await geminiResponse.json()) as Record<string, unknown>;
         if (!geminiResponse.ok) {
@@ -962,7 +1004,10 @@ Prețuri: întregi ≥ 0. confidence_score: întreg între 1 și 99. explanation
 
     return NextResponse.json(responsePayload);
   } catch (e: unknown) {
-    const message = e instanceof Error ? e.message : "Eroare necunoscută";
-    return NextResponse.json({ success: false, error: message }, { status: 500 });
+    console.error("[evaluate] unhandled error", e);
+    return NextResponse.json(
+      { success: false, message: "Evaluarea nu a putut fi procesată. Încearcă din nou." },
+      { status: 500 },
+    );
   }
 }
