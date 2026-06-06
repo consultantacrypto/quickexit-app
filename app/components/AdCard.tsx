@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
+import { Link } from "@/src/i18n/navigation";
 import { useState } from "react";
 import { ro } from "../../locales/ro";
 import supabaseImageLoader from "@/lib/supabase-image-loader";

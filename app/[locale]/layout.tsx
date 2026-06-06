@@ -113,7 +113,7 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
         </>
       )}
       <body className="bg-white text-black antialiased min-h-screen flex flex-col">
-        <NextIntlClientProvider messages={messages}>
+        <NextIntlClientProvider locale={locale} messages={messages}>
           <AnalyticsAttributionInit />
           <AuthHashCleaner />
           <StructuredData siteUrl={siteUrl} />

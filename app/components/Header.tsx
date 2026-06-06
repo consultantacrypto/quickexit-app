@@ -45,7 +45,6 @@ export default function Header() {
                 priority
               />
             </Link>
-            <LanguageSwitcher className="hidden sm:inline-flex lg:hidden" />
           </div>
 
           <div className="hidden lg:flex items-center gap-4 xl:gap-7">
@@ -100,7 +99,7 @@ export default function Header() {
           </div>
 
           <div className="flex items-center gap-2 lg:hidden">
-            <LanguageSwitcher className="sm:hidden" />
+            <LanguageSwitcher />
             <button
               type="button"
               onClick={() => setIsOpen(true)}
@@ -119,7 +118,9 @@ export default function Header() {
 
       <div
         id="mobile-main-menu"
-        className={`fixed inset-0 z-[60] bg-[#F7F4EC] transition-transform duration-500 ${isOpen ? "translate-x-0" : "translate-x-full"}`}
+        className={`fixed inset-0 z-[60] bg-[#F7F4EC] transition-transform duration-500 ${
+          isOpen ? "translate-x-0" : "pointer-events-none translate-x-full"
+        }`}
         inert={!isOpen}
         aria-hidden={!isOpen}
         role={isOpen ? "dialog" : undefined}
@@ -142,8 +143,6 @@ export default function Header() {
           </div>
 
           <div className="flex flex-col items-center justify-center flex-grow gap-6 px-6 overflow-y-auto py-8">
-            <LanguageSwitcher />
-
             <Link
               href="/"
               onClick={() => setIsOpen(false)}

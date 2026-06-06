@@ -19,7 +19,11 @@ export default function TrackedLink({
     <Link
       {...props}
       onClick={(e) => {
-        trackEvent(eventName, eventParams);
+        try {
+          trackEvent(eventName, eventParams);
+        } catch {
+          // Analytics must never block navigation.
+        }
         onClick?.(e);
       }}
     />
