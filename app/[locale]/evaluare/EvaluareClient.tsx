@@ -264,6 +264,15 @@ export default function EvaluareClient() {
       }),
     );
 
+    trackEvent("selected_price_strategy", {
+      category,
+      selected_price_type: priceType,
+      data_quality_label: result?.data_quality_label
+        ? String(result.data_quality_label)
+        : "unknown",
+      confidence_score: formatConfidenceScore(result?.confidence_score),
+    });
+
     trackEvent("click_evaluation_to_listing", {
       category,
       data_quality_label: result?.data_quality_label
@@ -336,6 +345,18 @@ export default function EvaluareClient() {
 
       const data = (await response.json()) as ApiResult & { message?: string };
       if (!response.ok || !data.success) {
+        trackEvent("evaluation_failed", {
+          category,
+          status_code: response.status,
+          reason:
+            response.status === 429
+              ? "rate_limit"
+              : response.status === 400
+                ? "validation"
+                : response.status === 413
+                  ? "payload_too_large"
+                  : "api_error",
+        });
         setEvaluationError(
           typeof data.message === "string" && data.message.trim()
             ? data.message
@@ -353,6 +374,10 @@ export default function EvaluareClient() {
       });
       setPhase("result");
     } catch {
+      trackEvent("evaluation_failed", {
+        category,
+        reason: "network",
+      });
       setEvaluationError("Serviciul de evaluare este temporar indisponibil. Te rugăm să încerci mai târziu.");
       setPhase("form");
     }

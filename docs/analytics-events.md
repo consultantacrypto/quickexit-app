@@ -26,12 +26,19 @@ Evenimentele GA4 din Quick Exit sunt folosite pentru:
 | `click_evaluate` | `app/page.tsx` | click CTA către `/evaluare` | `source` | măsoară intrarea în funnel-ul de evaluare |
 | `click_post_listing` | `app/page.tsx` | click CTA către `/pune-anunt` | `source` | măsoară intenția directă de publicare anunț |
 | `click_capital_available` | `app/page.tsx` | click CTA către `/capital-disponibil` | `source` | măsoară interesul pentru cereri active |
-| `start_evaluation` | `app/evaluare/page.tsx` | la pornirea evaluării | `category` | măsoară începutul evaluării pe categorii |
-| `evaluation_success` | `app/evaluare/page.tsx` | la evaluare reușită | `category`, `data_quality_label`, `confidence_score` | măsoară calitatea și finalizarea evaluării |
-| `start_post_listing` | `app/pune-anunt/page.tsx` | la intrarea efectivă în flow-ul de publicare | `category` | măsoară începutul funnel-ului seller |
-| `checkout_listing_started` | `app/pune-anunt/page.tsx` | înainte de pornirea checkout listing | `category`, `package_id`, `sale_strategy`, `price` | măsoară intenția de plată seller |
-| `start_post_demand` | `app/posteaza-cerere/page.tsx` | la intrarea în flow-ul de cerere | `category` | măsoară începutul funnel-ului buyer |
-| `checkout_demand_started` | `app/posteaza-cerere/page.tsx` | înainte de pornirea checkout demand | `category`, `price` | măsoară intenția de plată buyer |
+| `start_evaluation` | `app/[locale]/evaluare/EvaluareClient.tsx` | la pornirea evaluării | `category` | măsoară începutul evaluării pe categorii |
+| `evaluation_success` | `app/[locale]/evaluare/EvaluareClient.tsx` | la evaluare reușită | `category`, `data_quality_label`, `confidence_score` | măsoară calitatea și finalizarea evaluării |
+| `evaluation_failed` | `app/[locale]/evaluare/EvaluareClient.tsx` | API error / timeout / 429 / 400 | `category`, `status_code`, `reason` | măsoară eșecul evaluării |
+| `selected_price_strategy` | `app/[locale]/evaluare/EvaluareClient.tsx` | la alegerea uneia dintre cele 4 strategii | `category`, `selected_price_type`, `data_quality_label`, `confidence_score` | distribuție strategii preț |
+| `click_evaluation_to_listing` | `app/[locale]/evaluare/EvaluareClient.tsx` | CTA listare după evaluare | `category`, `selected_price_type`, `data_quality_label`, `confidence_score`, `source` | conversie evaluare → listare |
+| `listing_prefilled_from_evaluation` | `app/[locale]/pune-anunt/PuneAnuntClient.tsx` | la prefill din draft/query | `category`, `has_exit_price`, `selected_price_type`, `prefill_level` | handoff reușit evaluator → formular |
+| `listing_step_completed` | `app/[locale]/pune-anunt/PuneAnuntClient.tsx` | la finalizarea pașilor 1–4 | `step`, `category`, `source`, `selected_price_type`, `prefill_level` | abandon pe pași formular |
+| `listing_submit_attempt` | `app/[locale]/pune-anunt/PuneAnuntClient.tsx` | înainte/după submit listing | `category`, `package_id`, `status`, `reason`, `source`, `selected_price_type` | fricțiune auth/upload/save |
+| `start_post_listing` | `app/[locale]/pune-anunt/PuneAnuntClient.tsx` | step 1 → 2 | `category`, `source`, `selected_price_type`, `prefill_level` | început funnel listare |
+| `checkout_listing_started` | `app/[locale]/pune-anunt/PuneAnuntClient.tsx` | înainte de Stripe redirect | `category`, `package_id`, `amount`, `checkout_type`, `source`, `selected_price_type`, `prefill_level` | intenție plată |
+| `checkout_created` | `app/[locale]/pune-anunt/PuneAnuntClient.tsx` | sesiune Stripe creată | `checkout_type`, `listing_id`, `package_id`, `amount`, `status`, `source`, `selected_price_type` | confirmare creare checkout |
+| `start_post_demand` | `app/[locale]/posteaza-cerere/page.tsx` | la intrarea în flow-ul de cerere | `category` | măsoară începutul funnel-ului buyer |
+| `checkout_demand_started` | `app/[locale]/posteaza-cerere/page.tsx` | înainte de pornirea checkout demand | `category`, `price` | măsoară intenția de plată buyer |
 | `view_capital_disponibil` | `app/capital-disponibil/page.tsx` | la încărcare pagină (client-side) | `page_path` | măsoară trafic pe zona de cereri active |
 | `click_send_demand_offer` | `app/capital-disponibil/page.tsx` | click pe „Trimite ofertă” | `demand_id`, `category` | măsoară trecerea spre funnel ofertare |
 | `view_listing` | `app/anunt/[id]/page.tsx` | la încărcare anunț activ | `listing_id`, `category`, `status` | măsoară view-uri pe anunțuri active |
@@ -65,6 +72,8 @@ Evenimentele GA4 din Quick Exit sunt folosite pentru:
 |---|---|---|---|---|
 | `checkout_listing_success` | la redirect în `dashboard` după checkout listing cu `payment=success` | `source`, `checkout_type`, `status`, `listing_id`, `session_id`, `payment` | listing | tracking client-side pe redirect; webhook rămâne sursa finală pentru activare |
 | `checkout_listing_cancel` | la redirect în `dashboard` după anulare checkout listing cu `payment=cancel` | `source`, `checkout_type`, `status`, `listing_id`, `session_id`, `payment` | listing | tracking client-side pe redirect; webhook nu activează listing-ul la cancel |
+| `payment_success_from_evaluation` | dashboard success când `listings.details.acquisition_source === "evaluation"` | `checkout_type`, `status`, `category`, `selected_price_type`, `prefill_level`, `listing_id`, `source=evaluation` | listing | conversie finală din funnel evaluator |
+| `payment_cancel_from_evaluation` | dashboard cancel când listing vine din evaluator | `checkout_type`, `status`, `category`, `selected_price_type`, `prefill_level`, `listing_id`, `source=evaluation` | listing | abandon plată din funnel evaluator |
 | `checkout_demand_success` | la redirect în `dashboard` după checkout demand cu `payment=success` | `source`, `checkout_type`, `status`, `demand_id`, `session_id`, `payment` | demand | tracking client-side pe redirect; webhook rămâne sursa finală pentru activare |
 | `checkout_demand_cancel` | la redirect în `dashboard` după anulare checkout demand cu `payment=cancel` | `source`, `checkout_type`, `status`, `demand_id`, `session_id`, `payment` | demand | tracking client-side pe redirect; webhook nu activează demand-ul la cancel |
 
@@ -112,11 +121,30 @@ Evenimentele GA4 din Quick Exit sunt folosite pentru:
 
 ## Funnel-uri Urmărite
 
-- **Funnel vânzător:** `home` → `evaluare` → `pune-anunt` → `checkout listing`
+- **Funnel evaluator → checkout:** `click_evaluate` → `start_evaluation` → `evaluation_success` → `selected_price_strategy` → `click_evaluation_to_listing` → `listing_prefilled_from_evaluation` → `listing_step_completed` → `checkout_listing_started` → `checkout_created` → `checkout_listing_success` → `payment_success_from_evaluation`
+- **Funnel vânzător (legacy):** `home` → `evaluare` → `pune-anunt` → `checkout listing`
 - **Funnel cumpărător:** `home/capital` → `posteaza-cerere` → `checkout demand`
 - **Funnel ofertare:** `capital-disponibil` → `trimite-oferta` → `submit_demand_offer`
 - **Funnel distribuție:** `view_listing` → `copy_social_share` → trafic UTM ulterior
 - **Funnel admin:** `hq_copilot_run`
+
+### Parametri evaluator (safe)
+
+Permise în GA4: `category`, `source`, `selected_price_type`, `prefill_level`, `package_id`, `amount` (doar preț pachet RON), `checkout_type`, `status`, `data_quality_label`, `confidence_score`, `has_exit_price`, `has_market_reference`, `step`, `reason`.
+
+**Nu trimite niciodată:** brand, model, km, titlu anunț, description, email, telefon, nume, texte libere, preț exact al activului.
+
+### Metadata listing (JSON `details`, fără schema change)
+
+Când listingul este creat din flow-ul evaluator (`source=evaluation` pe `/pune-anunt`, draft sau query prefill):
+- `acquisition_source: "evaluation"`
+- `evaluation_handoff: true`
+- `selected_price_type` (enum valid: `market`, `quick_exit`, `fast_sale`, `liquidation`, `manual`)
+- `prefill_level` (enum valid: `price_only`, `partial_details`, `full_details`)
+
+Nu depinde de existența `referenceMarketPrice`. Listings directe (fără evaluator) nu primesc aceste câmpuri.
+
+Folosit pentru atribuire checkout și evenimente `payment_*_from_evaluation`.
 
 ## Recomandări Viitoare (Sprint 3B+)
 

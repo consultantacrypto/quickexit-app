@@ -10,8 +10,19 @@ const TRACKED_EVENTS = [
   "click_capital_available",
   "start_evaluation",
   "evaluation_success",
+  "evaluation_failed",
+  "selected_price_strategy",
+  "click_evaluation_to_listing",
+  "listing_prefilled_from_evaluation",
+  "listing_step_completed",
+  "listing_submit_attempt",
   "start_post_listing",
   "checkout_listing_started",
+  "checkout_created",
+  "checkout_listing_success",
+  "checkout_listing_cancel",
+  "payment_success_from_evaluation",
+  "payment_cancel_from_evaluation",
   "start_post_demand",
   "checkout_demand_started",
   "view_capital_disponibil",
@@ -45,6 +56,13 @@ type GaSnapshot = {
     social: Record<string, number>;
     admin: Record<string, number>;
   };
+  computedRates: {
+    evaluation_success_rate: number | null;
+    evaluation_to_listing_rate: number | null;
+    listing_to_checkout_rate: number | null;
+    checkout_success_rate: number | null;
+    evaluation_to_payment_rate: number | null;
+  };
   topPages: Array<{ pagePath: string; screenPageViews: number; activeUsers: number }>;
   traffic: Array<{ source: string; medium: string; sessions: number; activeUsers: number }>;
   devices: Array<{ deviceCategory: string; sessions: number; activeUsers: number }>;
@@ -77,6 +95,11 @@ type GaErrorDebugInfo = {
 function toNumber(value: string | number | null | undefined): number {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function safeRatePercent(numerator: number, denominator: number): number | null {
+  if (denominator <= 0) return null;
+  return Number(((numerator / denominator) * 100).toFixed(2));
 }
 
 function getLookbackDays(): number {
@@ -431,8 +454,19 @@ export async function getAnalyticsSnapshot(options?: { includeDebugErrors?: bool
         click_evaluate: 0,
         start_evaluation: 0,
         evaluation_success: 0,
+        evaluation_failed: 0,
+        selected_price_strategy: 0,
+        click_evaluation_to_listing: 0,
+        listing_prefilled_from_evaluation: 0,
+        listing_step_completed: 0,
+        listing_submit_attempt: 0,
         start_post_listing: 0,
         checkout_listing_started: 0,
+        checkout_created: 0,
+        checkout_listing_success: 0,
+        checkout_listing_cancel: 0,
+        payment_success_from_evaluation: 0,
+        payment_cancel_from_evaluation: 0,
       },
       buyer: {
         click_capital_available: 0,
@@ -458,6 +492,13 @@ export async function getAnalyticsSnapshot(options?: { includeDebugErrors?: bool
     traffic: [],
     devices: [],
     warnings,
+    computedRates: {
+      evaluation_success_rate: null,
+      evaluation_to_listing_rate: null,
+      listing_to_checkout_rate: null,
+      checkout_success_rate: null,
+      evaluation_to_payment_rate: null,
+    },
   };
 
   {
@@ -526,8 +567,19 @@ export async function getAnalyticsSnapshot(options?: { includeDebugErrors?: bool
       click_evaluate: snapshot.events.click_evaluate,
       start_evaluation: snapshot.events.start_evaluation,
       evaluation_success: snapshot.events.evaluation_success,
+      evaluation_failed: snapshot.events.evaluation_failed,
+      selected_price_strategy: snapshot.events.selected_price_strategy,
+      click_evaluation_to_listing: snapshot.events.click_evaluation_to_listing,
+      listing_prefilled_from_evaluation: snapshot.events.listing_prefilled_from_evaluation,
+      listing_step_completed: snapshot.events.listing_step_completed,
+      listing_submit_attempt: snapshot.events.listing_submit_attempt,
       start_post_listing: snapshot.events.start_post_listing,
       checkout_listing_started: snapshot.events.checkout_listing_started,
+      checkout_created: snapshot.events.checkout_created,
+      checkout_listing_success: snapshot.events.checkout_listing_success,
+      checkout_listing_cancel: snapshot.events.checkout_listing_cancel,
+      payment_success_from_evaluation: snapshot.events.payment_success_from_evaluation,
+      payment_cancel_from_evaluation: snapshot.events.payment_cancel_from_evaluation,
     },
     buyer: {
       click_capital_available: snapshot.events.click_capital_available,
@@ -548,6 +600,34 @@ export async function getAnalyticsSnapshot(options?: { includeDebugErrors?: bool
     admin: {
       hq_copilot_run: snapshot.events.hq_copilot_run,
     },
+  };
+
+  const listingPrefillOrStart = Math.max(
+    snapshot.events.listing_prefilled_from_evaluation,
+    snapshot.events.start_post_listing,
+  );
+
+  snapshot.computedRates = {
+    evaluation_success_rate: safeRatePercent(
+      snapshot.events.evaluation_success,
+      snapshot.events.start_evaluation,
+    ),
+    evaluation_to_listing_rate: safeRatePercent(
+      snapshot.events.click_evaluation_to_listing,
+      snapshot.events.evaluation_success,
+    ),
+    listing_to_checkout_rate: safeRatePercent(
+      snapshot.events.checkout_listing_started,
+      listingPrefillOrStart,
+    ),
+    checkout_success_rate: safeRatePercent(
+      snapshot.events.checkout_listing_success,
+      snapshot.events.checkout_listing_started,
+    ),
+    evaluation_to_payment_rate: safeRatePercent(
+      snapshot.events.payment_success_from_evaluation,
+      snapshot.events.evaluation_success,
+    ),
   };
 
   {

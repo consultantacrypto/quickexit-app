@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
+import { createClient } from "@supabase/supabase-js";
 import { getSiteUrl } from "@/lib/siteUrl";
 import { getPackageByPriceId } from "@/lib/stripePackages";
 
@@ -63,6 +64,37 @@ export async function POST(req: Request) {
         ? `payment=cancel&type=demand&demandId=${demandId}`
         : `payment=cancel&type=listing&listingId=${listingId}`;
 
+    const checkoutMetadata: Record<string, string> = {
+      type,
+      listingId: type === "listing" ? listingId : "",
+      demandId: type === "demand" ? demandId : "",
+      userId: userId || "",
+      priceId: pkg.priceId,
+    };
+
+    if (type === "listing") {
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+      if (supabaseUrl && serviceRoleKey) {
+        const adminSupabase = createClient(supabaseUrl, serviceRoleKey, {
+          auth: { persistSession: false, autoRefreshToken: false },
+        });
+        const { data: listingRow } = await adminSupabase
+          .from("listings")
+          .select("details")
+          .eq("id", listingId)
+          .maybeSingle();
+        const details = listingRow?.details as Record<string, unknown> | null;
+        if (details?.acquisition_source === "evaluation") {
+          checkoutMetadata.acquisition_source = "evaluation";
+          const priceType = String(details.selected_price_type ?? "").trim().slice(0, 40);
+          if (priceType) checkoutMetadata.selected_price_type = priceType;
+          const prefillLevel = String(details.prefill_level ?? "").trim().slice(0, 40);
+          if (prefillLevel) checkoutMetadata.prefill_level = prefillLevel;
+        }
+      }
+    }
+
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       payment_method_types: ["card"],
@@ -75,13 +107,7 @@ export async function POST(req: Request) {
       success_url: `${baseUrl}/dashboard?${successQuery}&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${baseUrl}/dashboard?${cancelQuery}`,
       // type + id-ul obiectului sunt esențiale în webhook pentru a activa lucrul corect.
-      metadata: {
-        type,
-        listingId: type === "listing" ? listingId : "",
-        demandId: type === "demand" ? demandId : "",
-        userId: userId || "",
-        priceId: pkg.priceId,
-      },
+      metadata: checkoutMetadata,
     });
 
     return NextResponse.json({ url: session.url, sessionId: session.id });

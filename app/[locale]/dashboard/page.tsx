@@ -5,6 +5,11 @@ import { useSearchParams } from "next/navigation";
 import { useRouter } from "@/src/i18n/navigation";
 import { supabase } from "@/lib/supabase";
 import { trackEvent } from "@/lib/analytics";
+import {
+  categoryLabelToTrackingKey,
+  parseListingAcquisitionDetails,
+  toEvaluationTrackingEventParams,
+} from "@/lib/evaluationTracking";
 import AdCard from "@/app/components/AdCard";
 import { normalizeSaleType } from "@/utils/normalizeSaleType";
 import { Wallet, Inbox, PlusCircle, Search, Settings, Power, Play, PiggyBank, ClipboardList } from "lucide-react";
@@ -113,13 +118,12 @@ function DashboardContent() {
 
     const effectiveListingId = listingIdParam || listingId || undefined;
     const effectiveDemandId = demandIdParam || demandId || undefined;
-    const effectiveId = normalizedType === "listing" ? effectiveListingId : effectiveDemandId;
     const searchSignature =
       typeof window !== "undefined" ? window.location.search || "" : "";
     const dedupeKey = [
       "checkout_result",
       normalizedType,
-      effectiveId || "no_id",
+      effectiveListingId || effectiveDemandId || "no_id",
       sessionIdParam || "no_session",
       normalizedPayment,
       searchSignature || "no_search",
@@ -130,31 +134,80 @@ function DashboardContent() {
       window.sessionStorage.setItem(dedupeKey, "1");
     }
 
-    const baseParams = {
-      source: "dashboard",
-      checkout_type: normalizedType,
-      status: normalizedPayment,
-      session_id: sessionIdParam || undefined,
-      payment: normalizedPayment,
-      listing_id: effectiveListingId,
-      demand_id: effectiveDemandId,
+    const trackCheckoutOutcome = async () => {
+      const baseParams = {
+        source: "dashboard",
+        checkout_type: normalizedType,
+        status: normalizedPayment,
+        session_id: sessionIdParam || undefined,
+        payment: normalizedPayment,
+        listing_id: effectiveListingId,
+        demand_id: effectiveDemandId,
+      };
+
+      if (normalizedType === "listing" && normalizedPayment === "success") {
+        trackEvent("checkout_listing_success", baseParams);
+
+        if (effectiveListingId) {
+          const { data: listingRow } = await supabase
+            .from("listings")
+            .select("details, category")
+            .eq("id", effectiveListingId)
+            .maybeSingle();
+
+          const acquisition = parseListingAcquisitionDetails(listingRow?.details);
+          if (acquisition?.source === "evaluation") {
+            trackEvent(
+              "payment_success_from_evaluation",
+              toEvaluationTrackingEventParams(acquisition, {
+                checkout_type: "listing",
+                status: "success",
+                category: categoryLabelToTrackingKey(String(listingRow?.category ?? "")),
+                listing_id: effectiveListingId,
+              }),
+            );
+          }
+        }
+        return;
+      }
+
+      if (normalizedType === "listing" && normalizedPayment === "cancel") {
+        trackEvent("checkout_listing_cancel", baseParams);
+
+        if (effectiveListingId) {
+          const { data: listingRow } = await supabase
+            .from("listings")
+            .select("details, category")
+            .eq("id", effectiveListingId)
+            .maybeSingle();
+
+          const acquisition = parseListingAcquisitionDetails(listingRow?.details);
+          if (acquisition?.source === "evaluation") {
+            trackEvent(
+              "payment_cancel_from_evaluation",
+              toEvaluationTrackingEventParams(acquisition, {
+                checkout_type: "listing",
+                status: "cancel",
+                category: categoryLabelToTrackingKey(String(listingRow?.category ?? "")),
+                listing_id: effectiveListingId,
+              }),
+            );
+          }
+        }
+        return;
+      }
+
+      if (normalizedType === "demand" && normalizedPayment === "success") {
+        trackEvent("checkout_demand_success", baseParams);
+        return;
+      }
+
+      if (normalizedType === "demand" && normalizedPayment === "cancel") {
+        trackEvent("checkout_demand_cancel", baseParams);
+      }
     };
 
-    if (normalizedType === "listing" && normalizedPayment === "success") {
-      trackEvent("checkout_listing_success", baseParams);
-      return;
-    }
-    if (normalizedType === "listing" && normalizedPayment === "cancel") {
-      trackEvent("checkout_listing_cancel", baseParams);
-      return;
-    }
-    if (normalizedType === "demand" && normalizedPayment === "success") {
-      trackEvent("checkout_demand_success", baseParams);
-      return;
-    }
-    if (normalizedType === "demand" && normalizedPayment === "cancel") {
-      trackEvent("checkout_demand_cancel", baseParams);
-    }
+    void trackCheckoutOutcome();
   }, [
     paymentStatus,
     checkoutTypeParam,

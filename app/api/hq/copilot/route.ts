@@ -786,7 +786,11 @@ Relatii pe care trebuie sa le verifici explicit in analiza:
 - view_listing mare dar copy_social_share mic
 - view_capital_disponibil mare dar click_send_demand_offer mic
 - click_evaluate mare dar start_evaluation mic
+- evaluation_success mare dar click_evaluation_to_listing mic
+- click_evaluation_to_listing mare dar listing_prefilled_from_evaluation mic
+- listing_prefilled_from_evaluation mare dar listing_step_completed mic
 - start_post_listing mare dar checkout_listing_started mic
+- checkout_listing_started mare dar checkout_listing_success / payment_success_from_evaluation mic
 - start_post_demand mare dar checkout_demand_started mic
 - mobile dominant dar conversie slaba
 - pagini cu trafic dar fara actiune

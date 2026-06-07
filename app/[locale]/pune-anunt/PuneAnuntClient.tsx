@@ -20,6 +20,13 @@ import {
   type EvaluationPriceType,
   type PrefillLevel,
 } from "@/lib/evaluationDraft";
+import {
+  buildListingAcquisitionDetails,
+  categoryLabelToTrackingKey,
+  parseListingAcquisitionDetails,
+  toEvaluationTrackingEventParams,
+  type EvaluationTrackingContext,
+} from "@/lib/evaluationTracking";
 
 type PackageIdParam = "economy" | "standard" | "urgent" | "auction";
 
@@ -57,6 +64,7 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
   const prefillTrackedRef = useRef(false);
   const priceLockedFromEvaluationRef = useRef(false);
   const evaluationHandoffRef = useRef(false);
+  const evaluationTrackingRef = useRef<EvaluationTrackingContext>({ source: "direct" });
 
   const [step, setStep] = useState(1);
   const [category, setCategory] = useState("Auto & Moto");
@@ -234,6 +242,15 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
     }
 
     if (didPrefill) {
+      evaluationTrackingRef.current = {
+        source: "evaluation",
+        selected_price_type: selectedPriceType ?? "unknown",
+        prefill_level: prefillLevel,
+        has_exit_price: hasExitPrice,
+        has_market_reference: evaluationHandoffRef.current,
+        evaluation_handoff: true,
+      };
+
       setEvaluationPrefillActive(true);
       setEvaluationPrefillMessage(
         selectedPriceLabel
@@ -252,6 +269,16 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
       });
     }
   }, [searchParams]);
+
+  const trackListingStepCompleted = (completedStep: number) => {
+    trackEvent(
+      "listing_step_completed",
+      toEvaluationTrackingEventParams(evaluationTrackingRef.current, {
+        step: completedStep,
+        category: categoryLabelToTrackingKey(category),
+      }),
+    );
+  };
 
   const categoriesList = [
     "Auto & Moto",
@@ -417,6 +444,7 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
     setFlowError(null);
     setIsAnalyzing(true);
     setStep(3);
+    trackListingStepCompleted(2);
 
     // Fail-safe: dacă AI-ul/API-ul pică (502, timeout, JSON invalid), NU blocăm
     // utilizatorul pe Pasul 2. Activăm modul manual (confidence 0 => isLowConfidence)
@@ -567,11 +595,15 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
     : Boolean(exitPrice);
 
   // Trimite utilizatorul către Stripe Checkout pentru un anunț deja creat.
-  const handleCheckout = async (priceId: string, listingId: string) => {
+  const handleCheckout = async (priceId: string, listingId: string, userId?: string) => {
     const res = await fetch("/api/stripe/checkout", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ priceId, listingId }),
+      body: JSON.stringify({
+        priceId,
+        listingId,
+        userId: userId ?? "",
+      }),
     });
 
     const data = await res.json().catch(() => null);
@@ -579,18 +611,48 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
       throw new Error(data?.error || "Nu am putut inițializa plata. Te rugăm să încerci din nou.");
     }
 
+    trackEvent(
+      "checkout_created",
+      toEvaluationTrackingEventParams(evaluationTrackingRef.current, {
+        checkout_type: "listing",
+        listing_id: listingId,
+        package_id: selectedPackage,
+        amount: packagePrices[selectedPackage],
+        status: "created",
+        category: categoryLabelToTrackingKey(category),
+      }),
+    );
+
     // Redirecționare către pagina securizată Stripe.
     window.location.href = data.url;
   };
 
   const handleFinalSubmit = async () => {
     setFlowError(null);
+    trackEvent(
+      "listing_submit_attempt",
+      toEvaluationTrackingEventParams(evaluationTrackingRef.current, {
+        category: categoryLabelToTrackingKey(category),
+        package_id: selectedPackage,
+        status: "started",
+      }),
+    );
+    trackListingStepCompleted(4);
     setIsSaving(true);
     try {
       const {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) {
+        trackEvent(
+          "listing_submit_attempt",
+          toEvaluationTrackingEventParams(evaluationTrackingRef.current, {
+            category: categoryLabelToTrackingKey(category),
+            package_id: selectedPackage,
+            status: "failed",
+            reason: "auth_required",
+          }),
+        );
         setFlowError(
           "Trebuie să fii autentificat pentru a publica. Deschide „Contul meu”, autentifică-te și revino la acest pas.",
         );
@@ -645,13 +707,27 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
           deal_score: dealScore,
           discount: currentDiscountPercent,
           images: uploadedImageUrls,
-          details: { ...formData, package: selectedPackage, strategy: saleStrategy },
+          details: {
+            ...formData,
+            package: selectedPackage,
+            strategy: saleStrategy,
+            ...buildListingAcquisitionDetails(evaluationTrackingRef.current),
+          },
         })
         .select()
         .single();
 
       if (error) {
         console.error("Eroare la salvarea anunțului:", error.message);
+        trackEvent(
+          "listing_submit_attempt",
+          toEvaluationTrackingEventParams(evaluationTrackingRef.current, {
+            category: categoryLabelToTrackingKey(category),
+            package_id: selectedPackage,
+            status: "failed",
+            reason: "save_error",
+          }),
+        );
         setFlowError("Nu am putut salva anunțul. Te rugăm să încerci din nou.");
         setIsSaving(false);
         return;
@@ -666,17 +742,33 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
       }
 
       // 3. Apelăm motorul de plăți Stripe (ruta nouă /api/stripe/checkout)
-      trackEvent("checkout_listing_started", {
-        category,
-        package_id: selectedPackage,
-        sale_strategy: saleStrategy,
-        price: packagePrices[selectedPackage],
-      });
+      trackEvent(
+        "checkout_listing_started",
+        toEvaluationTrackingEventParams(evaluationTrackingRef.current, {
+          category: categoryLabelToTrackingKey(category),
+          package_id: selectedPackage,
+          sale_strategy: saleStrategy,
+          amount: packagePrices[selectedPackage],
+          checkout_type: "listing",
+        }),
+      );
 
       // handleCheckout redirecționează către Stripe; aruncă dacă răspunsul e invalid.
-      await handleCheckout(priceId, insertedData.id);
+      await handleCheckout(priceId, insertedData.id, user.id);
     } catch (error: any) {
       console.error("Eroare salvare anunț / plată:", error);
+      trackEvent(
+        "listing_submit_attempt",
+        toEvaluationTrackingEventParams(evaluationTrackingRef.current, {
+          category: categoryLabelToTrackingKey(category),
+          package_id: selectedPackage,
+          status: "failed",
+          reason:
+            typeof error?.message === "string" && error.message === "upload_failed"
+              ? "upload_failed"
+              : "checkout_error",
+        }),
+      );
       const msg =
         typeof error?.message === "string" && error.message === "upload_failed"
           ? "Nu am putut încărca imaginile. Verifică fișierele și încearcă din nou."
@@ -1357,9 +1449,15 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                     }
                     setFlowError(null);
                     if (!hasTrackedStart) {
-                      trackEvent("start_post_listing", { category });
+                      trackEvent(
+                        "start_post_listing",
+                        toEvaluationTrackingEventParams(evaluationTrackingRef.current, {
+                          category: categoryLabelToTrackingKey(category),
+                        }),
+                      );
                       setHasTrackedStart(true);
                     }
+                    trackListingStepCompleted(1);
                     setStep(2);
                   }}
                   className="w-full rounded-2xl border-[3px] border-black bg-[#FFD100] py-5 text-sm font-black uppercase tracking-[0.15em] text-black shadow-[6px_6px_0_0_#000] transition hover:brightness-105 active:translate-y-0.5 active:shadow-[4px_4px_0_0_#000]"
@@ -1701,6 +1799,7 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                       type="button"
                       onClick={() => {
                         setFlowError(null);
+                        trackListingStepCompleted(3);
                         setStep(4);
                       }}
                       disabled={!canProceedFromPrice}
