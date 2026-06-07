@@ -6,6 +6,8 @@ import { useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { Loader2, Search, Star, X } from "lucide-react";
 import { trackEvent } from "@/lib/analytics";
+import EvaluateTurnstile, { type EvaluateTurnstileHandle } from "@/components/EvaluateTurnstile";
+import { isEvaluateTurnstileUiEnabled } from "@/lib/turnstilePublic";
 import { getPriceIdForPackageId } from "@/lib/stripePackages";
 import { resolveEvaluateCategoryKey } from "@/lib/evaluateSafety";
 import {
@@ -65,6 +67,8 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
   const priceLockedFromEvaluationRef = useRef(false);
   const evaluationHandoffRef = useRef(false);
   const evaluationTrackingRef = useRef<EvaluationTrackingContext>({ source: "direct" });
+  const listingTurnstileRef = useRef<EvaluateTurnstileHandle>(null);
+  const turnstileUiEnabled = isEvaluateTurnstileUiEnabled();
 
   const [step, setStep] = useState(1);
   const [category, setCategory] = useState("Auto & Moto");
@@ -95,6 +99,7 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
   const [isSuccess, setIsSuccess] = useState(false);
   const [hasTrackedStart, setHasTrackedStart] = useState(false);
   const [flowError, setFlowError] = useState<string | null>(null);
+  const [listingTurnstileToken, setListingTurnstileToken] = useState<string | null>(null);
 
   // STATE NOU: Capturăm datele scrise de utilizator pentru API
   const [formData, setFormData] = useState({
@@ -441,6 +446,14 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
       setFlowError(missing);
       return;
     }
+
+    if (turnstileUiEnabled && !listingTurnstileToken) {
+      setFlowError(
+        "Completează verificarea de securitate de mai jos, apoi continuă către estimarea pe piață.",
+      );
+      return;
+    }
+
     setFlowError(null);
     setIsAnalyzing(true);
     setStep(3);
@@ -487,6 +500,7 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
         revenue: formData.revenue ? parseInt(formData.revenue) : undefined,
         extraDetails: formData,
         save_report: false,
+        ...(listingTurnstileToken ? { turnstileToken: listingTurnstileToken } : {}),
       };
 
       const response = await fetch("/api/evaluate", {
@@ -494,6 +508,25 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
+
+      if (response.status === 403) {
+        let message =
+          "Verificarea de securitate nu a reușit. Te rugăm să reîncerci.";
+        try {
+          const data = (await response.json()) as { message?: string };
+          if (typeof data.message === "string" && data.message.trim()) {
+            message = data.message.trim();
+          }
+        } catch {
+          // ignore parse errors
+        }
+        setFlowError(message);
+        setIsAnalyzing(false);
+        setStep(2);
+        listingTurnstileRef.current?.reset();
+        setListingTurnstileToken(null);
+        return;
+      }
 
       // 502/500/etc. — răspunsul poate fi HTML, nu JSON. Nu blocăm userul.
       if (!response.ok) {
@@ -1579,6 +1612,23 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                   )}
                 </div>
               </div>
+
+              {flowError && step === 2 && (
+                <div
+                  role="alert"
+                  className="mb-4 rounded-2xl border-2 border-red-800/40 bg-red-50 px-4 py-3 text-sm font-semibold text-red-900"
+                >
+                  {flowError}
+                </div>
+              )}
+
+              {turnstileUiEnabled && (
+                <EvaluateTurnstile
+                  ref={listingTurnstileRef}
+                  className="mb-6 flex justify-center"
+                  onTokenChange={setListingTurnstileToken}
+                />
+              )}
 
               <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
                 <button

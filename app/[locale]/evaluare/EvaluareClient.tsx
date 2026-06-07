@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "@/src/i18n/navigation";
 import { Clock3, ShieldCheck } from "lucide-react";
 import { trackEvent } from "@/lib/analytics";
+import EvaluateTurnstile, { type EvaluateTurnstileHandle } from "@/components/EvaluateTurnstile";
+import { isEvaluateTurnstileUiEnabled } from "@/lib/turnstilePublic";
 import {
   buildEvaluationDraft,
   buildListingHrefForStrategy,
@@ -199,6 +201,10 @@ export default function EvaluareClient() {
     revenue: "",
   });
 
+  const turnstileRef = useRef<EvaluateTurnstileHandle>(null);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const turnstileUiEnabled = isEvaluateTurnstileUiEnabled();
+
   useEffect(() => {
     if (phase !== "loading") return;
     const interval = setInterval(() => {
@@ -321,12 +327,20 @@ export default function EvaluareClient() {
     },
     extraDetails: formData,
     save_report: true,
+    ...(turnstileToken ? { turnstileToken } : {}),
   });
 
   const runEvaluation = async () => {
     const validationMessage = validateEvaluationForm(category, formData);
     if (validationMessage) {
       setEvaluationError(validationMessage);
+      return;
+    }
+
+    if (turnstileUiEnabled && !turnstileToken) {
+      setEvaluationError(
+        "Completează verificarea de securitate de mai jos, apoi încearcă din nou.",
+      );
       return;
     }
 
@@ -351,17 +365,21 @@ export default function EvaluareClient() {
           reason:
             response.status === 429
               ? "rate_limit"
-              : response.status === 400
-                ? "validation"
-                : response.status === 413
-                  ? "payload_too_large"
-                  : "api_error",
+              : response.status === 403
+                ? "turnstile"
+                : response.status === 400
+                  ? "validation"
+                  : response.status === 413
+                    ? "payload_too_large"
+                    : "api_error",
         });
         setEvaluationError(
           typeof data.message === "string" && data.message.trim()
             ? data.message
             : "Evaluarea nu a putut fi procesată. Te rugăm să încerci din nou.",
         );
+        turnstileRef.current?.reset();
+        setTurnstileToken(null);
         setPhase("form");
         return;
       }
@@ -379,6 +397,8 @@ export default function EvaluareClient() {
         reason: "network",
       });
       setEvaluationError("Serviciul de evaluare este temporar indisponibil. Te rugăm să încerci mai târziu.");
+      turnstileRef.current?.reset();
+      setTurnstileToken(null);
       setPhase("form");
     }
   };
@@ -507,6 +527,14 @@ export default function EvaluareClient() {
                 <p className="mt-6 text-[11px] font-bold uppercase tracking-wider text-neutral-500 md:text-xs">
                   Cu cât datele sunt mai exacte, cu atât raportul va fi mai precis.
                 </p>
+
+                {turnstileUiEnabled && (
+                  <EvaluateTurnstile
+                    ref={turnstileRef}
+                    className="mt-8 flex justify-center"
+                    onTokenChange={setTurnstileToken}
+                  />
+                )}
 
                 <button
                   type="button"

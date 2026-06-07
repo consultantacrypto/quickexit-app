@@ -14,6 +14,7 @@ import {
   validateEvaluateMinimumFields,
   withEvaluateTimeout,
 } from "@/lib/evaluateSafety";
+import { verifyTurnstileToken } from "@/lib/turnstileVerify";
 
 export const runtime = "nodejs";
 
@@ -649,6 +650,24 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         { success: false, message: "Format de date invalid." },
         { status: 400 },
+      );
+    }
+
+    const turnstileToken =
+      typeof body.turnstileToken === "string" ? body.turnstileToken.trim() : undefined;
+    delete body.turnstileToken;
+
+    const turnstileResult = await verifyTurnstileToken(turnstileToken, clientIp);
+    if (!turnstileResult.ok) {
+      console.warn("[evaluate] turnstile blocked", {
+        reason: turnstileResult.reason,
+      });
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Verificarea de securitate nu a reușit. Te rugăm să reîncerci.",
+        },
+        { status: 403 },
       );
     }
 
