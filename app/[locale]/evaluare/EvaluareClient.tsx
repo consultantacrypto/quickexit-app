@@ -12,6 +12,7 @@ import {
   computeReferenceMarketPrice,
   EVALUATION_PRICE_STRATEGIES,
   getEvaluationPriceFromResult,
+  hasUsableEvaluationPrices,
   saveEvaluationDraftToSession,
   type EvaluationPriceType,
 } from "@/lib/evaluationDraft";
@@ -57,12 +58,37 @@ const LOADING_MESSAGES = [
 
 const LABEL_MAP: Record<string, string> = {
   external_search_strong: "Încredere bună",
-  external_search: "Încredere medie",
+  external_search: "Încredere moderată",
   low_data: "Date insuficiente",
+  insufficient_price_data: "Estimare incompletă",
   vip_asset: "Evaluare specială necesară",
 };
 
-function getPublicEvaluationDisclaimer(dataQuality?: string): string {
+function getEvaluationConfidenceLabel(
+  confidence: number,
+  dataQuality: string | undefined,
+  isInsufficientPriceData: boolean,
+): string {
+  if (isInsufficientPriceData) {
+    if (dataQuality === "insufficient_price_data") return "Estimare incompletă";
+    return "Date insuficiente";
+  }
+  if (dataQuality === "vip_asset") return LABEL_MAP.vip_asset;
+  if (dataQuality === "low_data") return LABEL_MAP.low_data;
+  if (dataQuality === "insufficient_price_data") return "Estimare incompletă";
+  if (dataQuality && LABEL_MAP[dataQuality]) return LABEL_MAP[dataQuality];
+  if (confidence <= 30) return "Date insuficiente";
+  if (confidence <= 60) return "Încredere moderată";
+  return "Încredere bună";
+}
+
+function getPublicEvaluationDisclaimer(
+  dataQuality: string | undefined,
+  isInsufficientPriceData: boolean,
+): string {
+  if (isInsufficientPriceData) {
+    return "Nu am găsit suficiente prețuri interpretabile pentru o estimare automată. Poți continua cu un preț setat manual.";
+  }
   if (dataQuality === "external_search_strong") {
     return "Estimare orientativă bazată pe surse publice disponibile la momentul evaluării. Nu garantează vânzarea.";
   }
@@ -215,15 +241,43 @@ export default function EvaluareClient() {
 
   const activeStep = phase === "form" ? 2 : phase === "loading" ? 3 : 4;
 
+  const hasUsablePrices = useMemo(
+    () => (result ? hasUsableEvaluationPrices(result) : false),
+    [result],
+  );
+
+  const isInsufficientPriceData = useMemo(
+    () =>
+      !hasUsablePrices || result?.data_quality_label === "insufficient_price_data",
+    [hasUsablePrices, result?.data_quality_label],
+  );
+
   const qualityLabel = useMemo(() => {
-    if (!result?.data_quality_label) return "";
-    return LABEL_MAP[result.data_quality_label] || "Evaluare disponibilă";
-  }, [result]);
+    return getEvaluationConfidenceLabel(
+      formatConfidenceScore(result?.confidence_score),
+      result?.data_quality_label,
+      isInsufficientPriceData,
+    );
+  }, [result?.confidence_score, result?.data_quality_label, isInsufficientPriceData]);
 
   const publicExplanation = useMemo(
-    () => getPublicEvaluationDisclaimer(result?.data_quality_label),
-    [result?.data_quality_label],
+    () =>
+      getPublicEvaluationDisclaimer(result?.data_quality_label, isInsufficientPriceData),
+    [result?.data_quality_label, isInsufficientPriceData],
   );
+
+  useEffect(() => {
+    if (process.env.NODE_ENV === "production" || phase !== "result" || !result) return;
+    console.log("[evaluare] price-data", {
+      hasUsablePrices,
+      isInsufficientPriceData,
+      data_quality_label: result.data_quality_label,
+      estimated_market_price: result.estimated_market_price,
+      quick_exit_price: result.quick_exit_price,
+      strong_exit_price: result.strong_exit_price,
+      liquidation_price: result.liquidation_price,
+    });
+  }, [phase, result, hasUsablePrices, isInsufficientPriceData]);
 
   const analyzedSources = Number(result?.google_result_count ?? result?.comparable_count ?? 0);
 
@@ -252,10 +306,14 @@ export default function EvaluareClient() {
   };
 
   const handlePriceStrategyClick = (priceType: EvaluationPriceType) => () => {
+    if (isInsufficientPriceData) return;
+
     const strategy = EVALUATION_PRICE_STRATEGIES.find((s) => s.type === priceType);
     if (!strategy) return;
 
     const selectedExitPrice = getEvaluationPriceFromResult(result, priceType);
+    if (!selectedExitPrice) return;
+
     const estimatedMarketPrice = getEvaluationPriceFromResult(result, "market");
 
     saveEvaluationDraftToSession(
@@ -595,6 +653,35 @@ export default function EvaluareClient() {
                     </Link>
                   </div>
                 </div>
+              ) : isInsufficientPriceData ? (
+                <div className="rounded-[2rem] border-[3px] border-black bg-black px-8 py-10 text-center shadow-[10px_10px_0_0_rgba(0,0,0,0.15)] md:px-14 md:py-12">
+                  <div className="mx-auto mb-6 h-px max-w-[120px] bg-[#FFD100]" aria-hidden />
+                  <p className="text-[10px] font-black uppercase tracking-[0.35em] text-[#FFD100]/90">
+                    {qualityLabel}
+                  </p>
+                  <h3 className="mt-4 text-2xl font-black uppercase italic text-white md:text-4xl">
+                    Nu avem suficiente date de piață
+                  </h3>
+                  <p className="mx-auto mt-6 max-w-2xl text-sm font-medium leading-relaxed text-neutral-300 md:text-[15px]">
+                    Nu avem suficiente date de piață pentru o estimare automată sigură. Poți continua cu
+                    listare manuală și poți introduce prețul tău de referință.
+                  </p>
+                  {analyzedSources > 0 && (
+                    <p className="mx-auto mt-4 max-w-xl text-xs font-semibold text-neutral-500">
+                      Am analizat {analyzedSources} surse publice, dar fără prețuri interpretabile
+                      suficiente pentru cele 4 strategii.
+                    </p>
+                  )}
+                  <div className="mt-10">
+                    <Link
+                      href={manualListingHref}
+                      onClick={handleManualListingClick}
+                      className="inline-block rounded-xl border-[3px] border-black bg-[#FFD100] px-10 py-3.5 text-[11px] font-black uppercase tracking-widest text-black shadow-[5px_5px_0_0_rgba(0,0,0,0.9)] transition hover:brightness-105"
+                    >
+                      Continuă cu preț manual
+                    </Link>
+                  </div>
+                </div>
               ) : result.data_quality_label === "low_data" ? (
                 <div className="rounded-[2rem] border-[3px] border-black bg-black px-8 py-10 text-center shadow-[10px_10px_0_0_rgba(0,0,0,0.15)] md:px-14 md:py-12">
                   <div className="mx-auto mb-6 h-px max-w-[120px] bg-[#FFD100]" aria-hidden />
@@ -608,7 +695,7 @@ export default function EvaluareClient() {
                       onClick={handleManualListingClick}
                       className="inline-block rounded-xl border-[3px] border-black bg-[#FFD100] px-10 py-3.5 text-[11px] font-black uppercase tracking-widest text-black shadow-[5px_5px_0_0_rgba(0,0,0,0.9)] transition hover:brightness-105"
                     >
-                      Continuu cu preț manual
+                      Continuă cu preț manual
                     </Link>
                   </div>
                 </div>

@@ -177,6 +177,49 @@ export function sanitizeEvaluationBody(body: Record<string, unknown>): Record<st
 export const SERP_API_TIMEOUT_MS = 12_000;
 export const GEMINI_API_TIMEOUT_MS = 12_000;
 
+export const INSUFFICIENT_PRICE_DATA_LABEL = "insufficient_price_data";
+
+export const INSUFFICIENT_PRICE_WARNING =
+  "Nu am găsit suficiente prețuri interpretabile în sursele publice pentru o estimare automată sigură.";
+
+export type EvaluationPriceSnapshot = {
+  estimated_market_price: number;
+  quick_exit_price: number;
+  strong_exit_price: number;
+  liquidation_price: number;
+  confidence_score: number;
+  data_quality_label: string;
+  warnings: string[];
+};
+
+export function hasUsableEvaluationPrices(prices: EvaluationPriceSnapshot): boolean {
+  return (
+    prices.estimated_market_price > 0 ||
+    prices.quick_exit_price > 0 ||
+    prices.strong_exit_price > 0 ||
+    prices.liquidation_price > 0
+  );
+}
+
+export function applyInsufficientPriceDataNormalization<T extends EvaluationPriceSnapshot>(
+  payload: T,
+): T {
+  if (hasUsableEvaluationPrices(payload)) {
+    return payload;
+  }
+
+  const warnings = payload.warnings.includes(INSUFFICIENT_PRICE_WARNING)
+    ? payload.warnings
+    : [...payload.warnings, INSUFFICIENT_PRICE_WARNING];
+
+  return {
+    ...payload,
+    data_quality_label: INSUFFICIENT_PRICE_DATA_LABEL,
+    confidence_score: Math.min(payload.confidence_score, 20),
+    warnings,
+  };
+}
+
 export function withEvaluateTimeout<T>(
   promise: Promise<T>,
   timeoutMs: number,

@@ -7,6 +7,7 @@ import {
   GEMINI_API_TIMEOUT_MS,
   MAX_EVALUATE_BODY_BYTES,
   SERP_API_TIMEOUT_MS,
+  applyInsufficientPriceDataNormalization,
   checkEvaluateRateLimit,
   getClientIp,
   resolveEvaluateCategoryKey,
@@ -780,12 +781,24 @@ export async function POST(req: NextRequest) {
       const cachedRow = Array.isArray(cacheRows) ? cacheRows[0] : null;
       const cachedResult = cachedRow?.normalized_result;
       if (cachedResult && typeof cachedResult === "object") {
-        const cachedPayload = {
-          ...(cachedResult as Record<string, unknown>),
-        };
+        const cachedRaw = cachedResult as Record<string, unknown>;
+        const cachedWarnings = Array.isArray(cachedRaw.warnings)
+          ? cachedRaw.warnings.map((w) => String(w)).filter(Boolean)
+          : [];
+        const cachedNormalized = applyInsufficientPriceDataNormalization({
+          estimated_market_price: toSafeInt(cachedRaw.estimated_market_price),
+          quick_exit_price: toSafeInt(cachedRaw.quick_exit_price),
+          strong_exit_price: toSafeInt(cachedRaw.strong_exit_price),
+          liquidation_price: toSafeInt(cachedRaw.liquidation_price),
+          confidence_score: toConfidence(cachedRaw.confidence_score),
+          data_quality_label: String(cachedRaw.data_quality_label ?? "low_data"),
+          warnings: cachedWarnings,
+        });
         // EVAL-1: skip duplicate valuation_reports inserts on cache hit.
         return NextResponse.json({
-          ...cachedPayload,
+          ...cachedRaw,
+          ...cachedNormalized,
+          success: cachedRaw.success ?? true,
           valuation_report_id: null,
           cache_hit: true,
         });
@@ -809,7 +822,7 @@ export async function POST(req: NextRequest) {
       serpOrganic = [];
     }
 
-    const warnings: string[] = [];
+    let warnings: string[] = [];
     if (serpFailed) {
       warnings.push(
         "Căutarea pieței a eșuat temporar; estimarea folosește date limitate disponibile.",
@@ -963,6 +976,24 @@ Prețuri: întregi ≥ 0. confidence_score: întreg între 1 și 99. explanation
         });
       }
     }
+
+    const normalizedPrices = applyInsufficientPriceDataNormalization({
+      estimated_market_price,
+      quick_exit_price,
+      strong_exit_price,
+      liquidation_price,
+      confidence_score,
+      data_quality_label,
+      warnings,
+    });
+
+    estimated_market_price = normalizedPrices.estimated_market_price;
+    quick_exit_price = normalizedPrices.quick_exit_price;
+    strong_exit_price = normalizedPrices.strong_exit_price;
+    liquidation_price = normalizedPrices.liquidation_price;
+    confidence_score = normalizedPrices.confidence_score;
+    data_quality_label = normalizedPrices.data_quality_label;
+    warnings = normalizedPrices.warnings;
 
     let reportId: string | null = null;
     if (toBool(body.save_report)) {

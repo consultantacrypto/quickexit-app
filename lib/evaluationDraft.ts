@@ -159,6 +159,10 @@ function sanitizePriceLabel(value: unknown): string | undefined {
   return sanitized || undefined;
 }
 
+export const EVALUATION_PRICE_RESULT_KEYS = EVALUATION_PRICE_STRATEGIES.map(
+  (strategy) => strategy.resultKey,
+);
+
 export function getEvaluationPriceFromResult(
   result: Record<string, unknown> | null | undefined,
   priceType: EvaluationPriceType,
@@ -167,6 +171,26 @@ export function getEvaluationPriceFromResult(
   const strategy = EVALUATION_PRICE_STRATEGIES.find((s) => s.type === priceType);
   if (!strategy) return undefined;
   return parseExitPrice(result[strategy.resultKey]);
+}
+
+/** True when at least one of the four strategy prices is a valid number > 0. */
+export function hasUsableEvaluationPrices(
+  result: Record<string, unknown> | null | undefined,
+): boolean {
+  if (!result) return false;
+  return EVALUATION_PRICE_RESULT_KEYS.some((key) => {
+    const price = parseExitPrice(result[key]);
+    return price !== undefined && price > 0;
+  });
+}
+
+/** Client-side guard: stale cache may keep external_search_strong while all prices are 0/N/A. */
+export function isInsufficientPriceDataResult(
+  result: Record<string, unknown> | null | undefined,
+): boolean {
+  if (!result) return false;
+  if (result.data_quality_label === "insufficient_price_data") return true;
+  return !hasUsableEvaluationPrices(result);
 }
 
 export function buildListingHrefForStrategy(
