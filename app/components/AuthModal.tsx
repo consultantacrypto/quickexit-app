@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useLocale } from "next-intl";
 import { supabase } from "@/lib/supabase";
 import { getAuthCallbackUrl } from "@/lib/siteUrl";
 
@@ -10,6 +11,7 @@ interface AuthModalProps {
 }
 
 export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
+  const locale = useLocale();
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState<{ text: string; type: "error" | "success" | "" }>({ text: "", type: "" });
@@ -34,10 +36,12 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
     localStorage.setItem("quickexit_email", email);
 
+    const emailRedirectTo = getAuthCallbackUrl("/dashboard", locale);
+
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
-        emailRedirectTo: getAuthCallbackUrl("/dashboard"),
+        emailRedirectTo,
       },
     });
 
@@ -50,10 +54,12 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   };
 
   const handleGoogleLogin = async () => {
+    const redirectTo = getAuthCallbackUrl("/dashboard", locale);
+
     await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: getAuthCallbackUrl("/dashboard"),
+        redirectTo,
       },
     });
   };

@@ -836,6 +836,15 @@ export default function AdminHQ() {
             </button>
           ))}
           <Link
+            href="/hq-admin/lead-agent"
+            className="rounded-full border-2 border-black/20 bg-[#FDFCF8] px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-neutral-700 transition-colors hover:border-black hover:bg-[#FFD100] hover:text-black"
+          >
+            Lead Agent
+            <span className="ml-2 text-[9px] font-semibold normal-case tracking-normal text-neutral-600">
+              Inbox lead-uri, scoring și outreach manual.
+            </span>
+          </Link>
+          <Link
             href="/hq-admin/bmk-lab"
             className="rounded-full border-2 border-black/20 bg-[#FDFCF8] px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-neutral-700 transition-colors hover:border-black hover:bg-[#FFD100] hover:text-black"
           >
