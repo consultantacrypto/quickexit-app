@@ -9,9 +9,13 @@ import {
   LEAD_STATUSES,
   LEAD_TYPES,
   type LeadEventRow,
+  type LeadMessageRow,
   type LeadRow,
   type LeadType,
 } from "@/lib/leadAgent";
+
+type AiChannel = "whatsapp" | "linkedin" | "email" | "phone";
+type AiTone = "natural" | "premium" | "direct";
 
 const ADMIN_EMAILS = ["consultantacrypto.ro@gmail.com"];
 
@@ -170,6 +174,30 @@ async function leadsApi<T>(
   return data;
 }
 
+async function leadsAiApi<T>(body: Record<string, unknown>): Promise<T> {
+  const token = await getAccessToken();
+  if (!token) throw new Error("Sesiune expirată. Reautentifică-te.");
+
+  const res = await fetch("/api/hq/leads/ai", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(body),
+  });
+
+  const data = (await res.json()) as T & { success?: boolean; error?: string };
+  if (!res.ok || data.success === false) {
+    throw new Error(
+      typeof data.error === "string" && data.error.trim()
+        ? data.error
+        : `Cerere AI eșuată (${res.status}).`,
+    );
+  }
+  return data;
+}
+
 function formatDate(value: string | null | undefined): string {
   if (!value) return "—";
   try {
@@ -202,6 +230,19 @@ const STATUS_CHIP_OPTIONS = LEAD_STATUSES.map((s) => ({
   label: STATUS_LABELS[s] ?? s,
 }));
 
+const AI_CHANNEL_OPTIONS: { value: AiChannel; label: string }[] = [
+  { value: "whatsapp", label: "WhatsApp" },
+  { value: "linkedin", label: "LinkedIn" },
+  { value: "email", label: "Email" },
+  { value: "phone", label: "Telefon" },
+];
+
+const AI_TONE_OPTIONS: { value: AiTone; label: string }[] = [
+  { value: "natural", label: "Natural" },
+  { value: "premium", label: "Premium" },
+  { value: "direct", label: "Direct" },
+];
+
 export default function LeadAgentClient() {
   const [gate, setGate] = useState<GateState>("loading");
   const [operatorEmail, setOperatorEmail] = useState("");
@@ -214,7 +255,11 @@ export default function LeadAgentClient() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detail, setDetail] = useState<LeadRow | null>(null);
   const [events, setEvents] = useState<LeadEventRow[]>([]);
+  const [messages, setMessages] = useState<LeadMessageRow[]>([]);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [aiBusy, setAiBusy] = useState(false);
+  const [aiChannel, setAiChannel] = useState<AiChannel>("whatsapp");
+  const [aiTone, setAiTone] = useState<AiTone>("natural");
 
   const [showCreate, setShowCreate] = useState(false);
   const [showImport, setShowImport] = useState(false);
@@ -309,9 +354,14 @@ export default function LeadAgentClient() {
     setActionError(null);
     try {
       const params = new URLSearchParams({ id });
-      const data = await leadsApi<{ lead: LeadRow; events: LeadEventRow[] }>("GET", { params });
+      const data = await leadsApi<{
+        lead: LeadRow;
+        events: LeadEventRow[];
+        messages: LeadMessageRow[];
+      }>("GET", { params });
       setDetail(data.lead);
       setEvents(data.events ?? []);
+      setMessages(data.messages ?? []);
       setEditForm({
         status: data.lead.status,
         notes: data.lead.notes ?? "",
@@ -324,6 +374,7 @@ export default function LeadAgentClient() {
       setActionError(err instanceof Error ? err.message : "Eroare la încărcarea detaliilor.");
       setDetail(null);
       setEvents([]);
+      setMessages([]);
     } finally {
       setDetailLoading(false);
     }
@@ -333,6 +384,7 @@ export default function LeadAgentClient() {
     if (!selectedId) {
       setDetail(null);
       setEvents([]);
+      setMessages([]);
       return;
     }
     void loadDetail(selectedId);
@@ -342,6 +394,78 @@ export default function LeadAgentClient() {
     () => leads.find((l) => l.id === selectedId) ?? detail,
     [leads, selectedId, detail],
   );
+
+  const latestAiMessage = useMemo(
+    () =>
+      messages.find((m) => m.generated_by_ai && m.direction === "outbound") ?? null,
+    [messages],
+  );
+
+  const handleAiScore = async () => {
+    if (!selectedId) return;
+    setAiBusy(true);
+    setActionError(null);
+    try {
+      const data = await leadsAiApi<{
+        lead: LeadRow;
+        score: {
+          score: number;
+          reason: string;
+          recommended_channel: string;
+          suggested_next_action: string;
+          risk_notes: string;
+        };
+      }>({ leadId: selectedId, mode: "score" });
+      setDetail(data.lead);
+      setLeads((prev) => prev.map((l) => (l.id === data.lead.id ? data.lead : l)));
+      setEditForm((f) => ({
+        ...f,
+        next_action: f.next_action?.trim() ? f.next_action : (data.lead.next_action ?? ""),
+      }));
+      await loadDetail(selectedId);
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : "Scor AI eșuat.");
+    } finally {
+      setAiBusy(false);
+    }
+  };
+
+  const handleAiMessage = async () => {
+    if (!selectedId) return;
+    setAiBusy(true);
+    setActionError(null);
+    try {
+      const data = await leadsAiApi<{ message: LeadMessageRow }>({
+        leadId: selectedId,
+        mode: "message",
+        channel: aiChannel,
+        tone: aiTone,
+      });
+      setMessages((prev) => [data.message, ...prev]);
+      await loadDetail(selectedId);
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : "Generare mesaj AI eșuată.");
+    } finally {
+      setAiBusy(false);
+    }
+  };
+
+  const handleCopyMessage = async (message: LeadMessageRow) => {
+    if (!selectedId || !message.body?.trim()) return;
+    try {
+      await navigator.clipboard.writeText(message.body.trim());
+      await leadsApi("PATCH", {
+        body: {
+          id: selectedId,
+          log_event: "message_copied",
+          message_id: message.id,
+        },
+      });
+      await loadDetail(selectedId);
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : "Copiere mesaj eșuată.");
+    }
+  };
 
   const handleCreate = async () => {
     setActionBusy(true);
@@ -959,6 +1083,92 @@ export default function LeadAgentClient() {
                   >
                     Arhivează
                   </button>
+                </div>
+
+                <div className="space-y-4 rounded-xl border-[3px] border-[#FFD100] bg-[#F7F4EC] p-4 text-black">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-black">
+                    AI Assistant
+                  </p>
+                  <p className="text-[11px] leading-relaxed text-neutral-700">
+                    Draft-uri și scoruri pentru outreach manual. Nimic nu se trimite automat.
+                  </p>
+
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      disabled={aiBusy || actionBusy}
+                      onClick={() => void handleAiScore()}
+                      className="rounded-xl border-[3px] border-black bg-black px-4 py-2 text-[10px] font-black uppercase text-[#FFD100] disabled:opacity-50"
+                    >
+                      {aiBusy ? "Se procesează..." : "Generează scor AI"}
+                    </button>
+                  </div>
+
+                  {selectedLead.ai_score != null && (
+                    <div className="rounded-lg border-2 border-black bg-white p-3">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-neutral-600">
+                        Scor AI
+                      </p>
+                      <p className="mt-1 text-2xl font-black text-black">{selectedLead.ai_score}/100</p>
+                      {selectedLead.ai_score_reason && (
+                        <p className="mt-2 text-xs leading-relaxed text-neutral-800">
+                          {selectedLead.ai_score_reason}
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  <ChipSelector
+                    label="Canal mesaj"
+                    value={aiChannel}
+                    options={AI_CHANNEL_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
+                    onChange={(v) => setAiChannel(v as AiChannel)}
+                    ariaLabel="Canal mesaj AI"
+                    compact
+                  />
+                  <ChipSelector
+                    label="Ton mesaj"
+                    value={aiTone}
+                    options={AI_TONE_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
+                    onChange={(v) => setAiTone(v as AiTone)}
+                    ariaLabel="Ton mesaj AI"
+                    compact
+                  />
+
+                  <button
+                    type="button"
+                    disabled={aiBusy || actionBusy}
+                    onClick={() => void handleAiMessage()}
+                    className="rounded-xl border-[3px] border-black bg-[#FFD100] px-4 py-2 text-[10px] font-black uppercase text-black disabled:opacity-50"
+                  >
+                    {aiBusy ? "Se generează..." : "Generează mesaj AI"}
+                  </button>
+
+                  {latestAiMessage && (
+                    <div className="rounded-lg border-2 border-black bg-white p-3">
+                      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-neutral-600">
+                          Draft mesaj · {latestAiMessage.channel}
+                        </p>
+                        {latestAiMessage.model && (
+                          <span className="text-[9px] uppercase text-neutral-500">
+                            {latestAiMessage.model}
+                          </span>
+                        )}
+                      </div>
+                      <pre className="whitespace-pre-wrap font-sans text-xs leading-relaxed text-black">
+                        {latestAiMessage.body}
+                      </pre>
+                      <button
+                        type="button"
+                        onClick={() => void handleCopyMessage(latestAiMessage)}
+                        className="mt-3 inline-flex items-center gap-1.5 rounded-lg border-2 border-black bg-[#F7F4EC] px-3 py-1.5 text-[10px] font-black uppercase text-black hover:bg-white"
+                      >
+                        <Copy className="h-3 w-3" />
+                        Copiază mesaj
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 <div>

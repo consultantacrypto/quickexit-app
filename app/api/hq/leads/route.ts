@@ -290,6 +290,47 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ success: false, error: "id obligatoriu." }, { status: 400 });
   }
 
+  const logEvent = typeof body.log_event === "string" ? body.log_event.trim() : "";
+  if (logEvent === "message_copied") {
+    const messageId = typeof body.message_id === "string" ? body.message_id.trim() : "";
+    if (!messageId) {
+      return NextResponse.json({ success: false, error: "message_id obligatoriu." }, { status: 400 });
+    }
+
+    const { data: existingLead, error: fetchLeadError } = await supabase
+      .from("leads")
+      .select("id")
+      .eq("id", id)
+      .maybeSingle();
+
+    if (fetchLeadError) {
+      return NextResponse.json({ success: false, error: fetchLeadError.message }, { status: 500 });
+    }
+    if (!existingLead) {
+      return NextResponse.json({ success: false, error: "Lead negăsit." }, { status: 404 });
+    }
+
+    const copiedAt = new Date().toISOString();
+    const { error: copyUpdateError } = await supabase
+      .from("lead_messages")
+      .update({ copied_at: copiedAt })
+      .eq("id", messageId)
+      .eq("lead_id", id);
+
+    if (copyUpdateError) {
+      return NextResponse.json({ success: false, error: copyUpdateError.message }, { status: 500 });
+    }
+
+    await logLeadEvent(supabase, {
+      leadId: id,
+      eventType: "message_copied",
+      payload: { message_id: messageId, copied_at: copiedAt },
+      actorEmail: userEmail,
+    });
+
+    return NextResponse.json({ success: true, copied_at: copiedAt });
+  }
+
   const { data: existing, error: fetchError } = await supabase
     .from("leads")
     .select("*")
