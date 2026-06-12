@@ -1,13 +1,24 @@
 import type { Metadata } from "next";
-import { buildPageMetadata } from "@/lib/seo";
+import { PAGE_METADATA_COPY } from "@/lib/pageMetadataCopy";
+import { buildPageMetadata, resolvePageLocale } from "@/lib/seo";
 import EvaluareClient from "./EvaluareClient";
 
-export const metadata: Metadata = buildPageMetadata({
-  title: "Evaluare rapidă active | Quick Exit",
-  description:
-    "Evaluează rapid un activ și află dacă se potrivește pentru o vânzare rapidă prin Quick Exit.",
-  path: "/evaluare",
-});
+type PageProps = {
+  params: Promise<{ locale: string }>;
+};
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { locale } = await params;
+  const loc = resolvePageLocale(locale);
+  const copy = PAGE_METADATA_COPY.evaluare[loc];
+
+  return buildPageMetadata({
+    locale: loc,
+    title: copy.title,
+    description: copy.description,
+    path: "/evaluare",
+  });
+}
 
 export default function EvaluationPage() {
   return <EvaluareClient />;

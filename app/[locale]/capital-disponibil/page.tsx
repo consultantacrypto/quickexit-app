@@ -1,13 +1,24 @@
 import type { Metadata } from "next";
-import { buildPageMetadata } from "@/lib/seo";
+import { PAGE_METADATA_COPY } from "@/lib/pageMetadataCopy";
+import { buildPageMetadata, resolvePageLocale } from "@/lib/seo";
 import CapitalDisponibilClient from "./CapitalDisponibilClient";
 
-export const metadata: Metadata = buildPageMetadata({
-  title: "Capital disponibil și cereri active | Quick Exit",
-  description:
-    "Descoperă cumpărători activi și cereri de cumpărare pentru oportunități reale.",
-  path: "/capital-disponibil",
-});
+type PageProps = {
+  params: Promise<{ locale: string }>;
+};
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { locale } = await params;
+  const loc = resolvePageLocale(locale);
+  const copy = PAGE_METADATA_COPY.capitalDisponibil[loc];
+
+  return buildPageMetadata({
+    locale: loc,
+    title: copy.title,
+    description: copy.description,
+    path: "/capital-disponibil",
+  });
+}
 
 export default function CapitalDirectoryPage() {
   return <CapitalDisponibilClient />;

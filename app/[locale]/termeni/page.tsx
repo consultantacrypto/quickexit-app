@@ -1,14 +1,26 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { companyInfo, formatRegisteredOfficeFull } from "@/lib/company";
-import { buildPageMetadata } from "@/lib/seo";
+import { buildPageMetadata, resolvePageLocale } from "@/lib/seo";
 
-export const metadata: Metadata = buildPageMetadata({
-  title: "Termeni si conditii",
-  description:
-    "Termenii si conditiile Quick Exit pentru utilizarea platformei, evaluari, plati si rolul serviciului.",
-  path: "/termeni",
-});
+type PageProps = {
+  params: Promise<{ locale: string }>;
+};
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { locale } = await params;
+  const loc = resolvePageLocale(locale);
+
+  return buildPageMetadata({
+    locale: loc,
+    title: loc === "en" ? "Terms and conditions | Quick Exit" : "Termeni si conditii",
+    description:
+      loc === "en"
+        ? "Quick Exit terms and conditions for using the platform, valuations, payments, and the role of the service."
+        : "Termenii si conditiile Quick Exit pentru utilizarea platformei, evaluari, plati si rolul serviciului.",
+    path: "/termeni",
+  });
+}
 
 export default function TermeniSiConditii() {
   return (

@@ -1,5 +1,9 @@
 import type { Metadata } from "next";
-import { buildPageMetadata } from "@/lib/seo";
+import {
+  getCategoryMetadataCopy,
+  getUnavailableCategoryMetadata,
+} from "@/lib/pageMetadataCopy";
+import { buildPageMetadata, resolvePageLocale } from "@/lib/seo";
 import { getSiteUrl } from "@/lib/siteUrl";
 import CategorieClient from "./CategorieClient";
 
@@ -14,47 +18,52 @@ const categoryMetaMap: Record<string, CategoryMeta> = {
   business: { label: "Business" },
 };
 
-export function generateMetadata({
+export async function generateMetadata({
   params,
 }: {
-  params: Promise<{ slug: string }>;
+  params: Promise<{ locale: string; slug: string }>;
 }): Promise<Metadata> {
-  return params.then(({ slug }) => {
-    const category = categoryMetaMap[slug];
+  const { locale, slug } = await params;
+  const loc = resolvePageLocale(locale);
+  const category = categoryMetaMap[slug];
+
   if (!category) {
-    const siteUrl = getSiteUrl();
-    const canonical = `${siteUrl}/categorii`;
-    return {
-      title: { absolute: "Categorie indisponibilă | Quick Exit" },
-      description: "Categoria solicitată nu este disponibilă public.",
-      alternates: { canonical },
+    const unavailable = getUnavailableCategoryMetadata(loc);
+    return buildPageMetadata({
+      locale: loc,
+      title: unavailable.title,
+      description: unavailable.description,
+      path: `/categorii/${slug}`,
       robots: { index: false, follow: false },
-      openGraph: {
-        title: "Categorie indisponibilă | Quick Exit",
-        description: "Categoria solicitată nu este disponibilă public.",
-        url: canonical,
-        type: "website",
-        siteName: "Quick Exit",
-        locale: "ro_RO",
-      },
-    };
+    });
+  }
+
+  const copy = getCategoryMetadataCopy(slug, loc);
+  if (!copy) {
+    const unavailable = getUnavailableCategoryMetadata(loc);
+    return buildPageMetadata({
+      locale: loc,
+      title: unavailable.title,
+      description: unavailable.description,
+      path: `/categorii/${slug}`,
+      robots: { index: false, follow: false },
+    });
   }
 
   return buildPageMetadata({
-    title: `Active ${category.label} sub prețul pieței | Quick Exit`,
-    description:
-      `Descoperă active din categoria ${category.label} listate pe Quick Exit cu preț de exit și oportunități pentru cumpărători/investitori.`,
+    locale: loc,
+    title: copy.title,
+    description: copy.description,
     path: `/categorii/${slug}`,
-  });
   });
 }
 
 type PageProps = {
-  params: Promise<{ slug: string }>;
+  params: Promise<{ locale: string; slug: string }>;
 };
 
 export default async function CategoryPage({ params }: PageProps) {
-  const { slug } = await params;
+  const { locale, slug } = await params;
   const category = categoryMetaMap[slug];
   const siteUrl = getSiteUrl();
   const breadcrumbJsonLd =
@@ -67,19 +76,19 @@ export default async function CategoryPage({ params }: PageProps) {
               "@type": "ListItem",
               position: 1,
               name: "Quick Exit",
-              item: siteUrl,
+              item: `${siteUrl}/${locale}`,
             },
             {
               "@type": "ListItem",
               position: 2,
               name: "Categorii",
-              item: `${siteUrl}/categorii`,
+              item: `${siteUrl}/${locale}/categorii/${slug}`,
             },
             {
               "@type": "ListItem",
               position: 3,
               name: category.label,
-              item: `${siteUrl}/categorii/${slug}`,
+              item: `${siteUrl}/${locale}/categorii/${slug}`,
             },
           ],
         }

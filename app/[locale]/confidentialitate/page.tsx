@@ -1,14 +1,26 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { companyInfo, formatRegisteredOfficeFull } from "@/lib/company";
-import { buildPageMetadata } from "@/lib/seo";
+import { buildPageMetadata, resolvePageLocale } from "@/lib/seo";
 
-export const metadata: Metadata = buildPageMetadata({
-  title: "Confidentialitate",
-  description:
-    "Politica de confidentialitate Quick Exit: ce date sunt prelucrate, in ce scop si cum iti poti exercita drepturile.",
-  path: "/confidentialitate",
-});
+type PageProps = {
+  params: Promise<{ locale: string }>;
+};
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { locale } = await params;
+  const loc = resolvePageLocale(locale);
+
+  return buildPageMetadata({
+    locale: loc,
+    title: loc === "en" ? "Privacy policy | Quick Exit" : "Confidentialitate",
+    description:
+      loc === "en"
+        ? "Quick Exit privacy policy: what data is processed, for what purpose, and how you can exercise your rights."
+        : "Politica de confidentialitate Quick Exit: ce date sunt prelucrate, in ce scop si cum iti poti exercita drepturile.",
+    path: "/confidentialitate",
+  });
+}
 
 export default function Confidentialitate() {
   return (

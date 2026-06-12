@@ -4,6 +4,9 @@ import { getSiteUrl } from "@/lib/siteUrl";
 
 export const revalidate = 3600;
 
+const LOCALES = ["ro", "en"] as const;
+const DEFAULT_LISTING_LOCALE = "ro";
+
 type ListingSitemapRow = {
   id: string | null;
   created_at: string | null;
@@ -17,11 +20,19 @@ function getEnv(name: string): string | null {
   return value.trim();
 }
 
+function localizedUrl(siteUrl: string, locale: string, path: string): string {
+  const normalized = path.startsWith("/") ? path : `/${path}`;
+  if (normalized === "/") {
+    return `${siteUrl}/${locale}`;
+  }
+  return `${siteUrl}/${locale}${normalized}`;
+}
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const siteUrl = getSiteUrl();
   const now = new Date();
 
-  const staticRoutes = [
+  const staticPaths = [
     "/",
     "/evaluare",
     "/pune-anunt",
@@ -31,6 +42,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     "/ghid/exit-price",
     "/ghid/active-sub-pretul-pietei",
     "/capital-disponibil",
+    "/licitatii",
     "/tarife",
     "/cum-functioneaza",
     "/contact",
@@ -39,7 +51,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     "/cookies",
   ];
 
-  const categoryRoutes = [
+  const categoryPaths = [
     "/categorii/auto",
     "/categorii/imobiliare",
     "/categorii/lux",
@@ -48,12 +60,25 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     "/categorii/business",
   ];
 
-  const entries: MetadataRoute.Sitemap = [...staticRoutes, ...categoryRoutes].map((route) => ({
-    url: `${siteUrl}${route}`,
-    lastModified: now,
-    changeFrequency: route.startsWith("/ghid/") ? "monthly" : "daily",
-    priority: route === "/" ? 1 : route.startsWith("/ghid/") ? 0.7 : 0.8,
-  }));
+  const staticEntries: MetadataRoute.Sitemap = LOCALES.flatMap((locale) =>
+    staticPaths.map((path) => ({
+      url: localizedUrl(siteUrl, locale, path),
+      lastModified: now,
+      changeFrequency: path.startsWith("/ghid/") ? ("monthly" as const) : ("daily" as const),
+      priority: path === "/" ? 1 : path.startsWith("/ghid/") ? 0.7 : 0.8,
+    })),
+  );
+
+  const categoryEntries: MetadataRoute.Sitemap = LOCALES.flatMap((locale) =>
+    categoryPaths.map((path) => ({
+      url: localizedUrl(siteUrl, locale, path),
+      lastModified: now,
+      changeFrequency: "daily" as const,
+      priority: 0.8,
+    })),
+  );
+
+  const entries: MetadataRoute.Sitemap = [...staticEntries, ...categoryEntries];
 
   const supabaseUrl = getEnv("NEXT_PUBLIC_SUPABASE_URL");
   const supabaseAnonKey = getEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY");
@@ -98,9 +123,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         const lastModified = createdAt ? new Date(createdAt) : now;
 
         return {
-          url: `${siteUrl}/anunt/${id}`,
+          url: `${siteUrl}/${DEFAULT_LISTING_LOCALE}/anunt/${id}`,
           lastModified: Number.isNaN(lastModified.getTime()) ? now : lastModified,
-          changeFrequency: "daily",
+          changeFrequency: "daily" as const,
           priority: 0.8,
         };
       });

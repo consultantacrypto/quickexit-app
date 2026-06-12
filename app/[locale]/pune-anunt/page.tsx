@@ -1,18 +1,26 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { buildPageMetadata } from "@/lib/seo";
+import { PAGE_METADATA_COPY } from "@/lib/pageMetadataCopy";
+import { buildPageMetadata, resolvePageLocale } from "@/lib/seo";
 import PuneAnuntClient from "./PuneAnuntClient";
 
-export const metadata: Metadata = buildPageMetadata({
-  title: "Publică anunț de vânzare rapidă | Quick Exit",
-  description:
-    "Listează un activ pentru vânzare rapidă și conectează-te cu cumpărători pregătiți.",
-  path: "/pune-anunt",
-});
-
 type PageProps = {
+  params: Promise<{ locale: string }>;
   searchParams: Promise<{ package?: string }>;
 };
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { locale } = await params;
+  const loc = resolvePageLocale(locale);
+  const copy = PAGE_METADATA_COPY.puneAnunt[loc];
+
+  return buildPageMetadata({
+    locale: loc,
+    title: copy.title,
+    description: copy.description,
+    path: "/pune-anunt",
+  });
+}
 
 export default async function PostAdPage({ searchParams }: PageProps) {
   const { package: pkg } = await searchParams;

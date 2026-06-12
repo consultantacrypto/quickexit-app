@@ -1,14 +1,29 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { buildPageMetadata } from "@/lib/seo";
+import { buildPageMetadata, resolvePageLocale } from "@/lib/seo";
 import TrackedLink from "@/app/components/TrackedLink";
 
-export const metadata: Metadata = buildPageMetadata({
-  title: "Active sub prețul pieței | Ghid pentru cumpărători",
-  description:
-    "Activele sub prețul pieței pot apărea când vânzătorii caută lichiditate rapidă. Află cum să le analizezi prudent pe Quick Exit.",
-  path: "/ghid/active-sub-pretul-pietei",
-});
+type PageProps = {
+  params: Promise<{ locale: string }>;
+};
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { locale } = await params;
+  const loc = resolvePageLocale(locale);
+
+  return buildPageMetadata({
+    locale: loc,
+    title:
+      loc === "en"
+        ? "Below-market assets | Buyer guide on Quick Exit"
+        : "Active sub prețul pieței | Ghid pentru cumpărători",
+    description:
+      loc === "en"
+        ? "Below-market assets may appear when sellers need fast liquidity. Learn how to analyze them carefully on Quick Exit."
+        : "Activele sub prețul pieței pot apărea când vânzătorii caută lichiditate rapidă. Află cum să le analizezi prudent pe Quick Exit.",
+    path: "/ghid/active-sub-pretul-pietei",
+  });
+}
 
 export default function ActiveSubPretGuidePage() {
   const faqJsonLd = {

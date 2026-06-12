@@ -1,18 +1,29 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import AdCard from "@/app/components/AdCard";
-import { buildPageMetadata } from "@/lib/seo";
+import { PAGE_METADATA_COPY } from "@/lib/pageMetadataCopy";
+import { buildPageMetadata, resolvePageLocale } from "@/lib/seo";
 import { supabase } from "@/lib/supabase";
 import { normalizeSaleType } from "@/utils/normalizeSaleType";
 
 export const revalidate = 60;
 
-export const metadata: Metadata = buildPageMetadata({
-  title: "Licitații active | Quick Exit",
-  description:
-    "Descoperă licitații deschise pe Quick Exit: oferte timp de până la 30 de zile, vânzătorul alege manual oferta potrivită.",
-  path: "/licitatii",
-});
+type PageProps = {
+  params: Promise<{ locale: string }>;
+};
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { locale } = await params;
+  const loc = resolvePageLocale(locale);
+  const copy = PAGE_METADATA_COPY.licitatii[loc];
+
+  return buildPageMetadata({
+    locale: loc,
+    title: copy.title,
+    description: copy.description,
+    path: "/licitatii",
+  });
+}
 
 const FALLBACK_IMAGE =
   "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=800&q=80";

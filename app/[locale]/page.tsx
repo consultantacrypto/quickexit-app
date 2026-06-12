@@ -4,7 +4,7 @@ import type { Metadata } from "next";
 import TrackedLink from "@/app/components/TrackedLink";
 import GlobalStats from "@/app/components/GlobalStats";
 import { supabase } from "@/lib/supabase";
-import { buildPageMetadata } from "@/lib/seo";
+import { buildPageMetadata, resolvePageLocale } from "@/lib/seo";
 import { getSiteUrl } from "@/lib/siteUrl";
 import { normalizeSaleType } from "@/utils/normalizeSaleType";
 import { getTranslations, setRequestLocale } from "next-intl/server";
@@ -97,9 +97,10 @@ export async function generateMetadata({ params }: HomePageProps): Promise<Metad
   const tHome = await getTranslations({ locale, namespace: "Home" });
 
   return buildPageMetadata({
+    locale: resolvePageLocale(locale),
     title: tHome("metaTitle"),
     description: tHome("metaDescription"),
-    path: `/${locale}`,
+    path: "/",
   });
 }
 

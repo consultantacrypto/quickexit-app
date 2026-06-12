@@ -1,14 +1,26 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { companyInfo } from "@/lib/company";
-import { buildPageMetadata } from "@/lib/seo";
+import { buildPageMetadata, resolvePageLocale } from "@/lib/seo";
 
-export const metadata: Metadata = buildPageMetadata({
-  title: "Politica cookies",
-  description:
-    "Politica cookies Quick Exit: ce module cookie folosim, scopul lor si cum le poti controla.",
-  path: "/cookies",
-});
+type PageProps = {
+  params: Promise<{ locale: string }>;
+};
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { locale } = await params;
+  const loc = resolvePageLocale(locale);
+
+  return buildPageMetadata({
+    locale: loc,
+    title: loc === "en" ? "Cookie policy | Quick Exit" : "Politica cookies",
+    description:
+      loc === "en"
+        ? "Quick Exit cookie policy: what cookies we use, why, and how you can control them."
+        : "Politica cookies Quick Exit: ce module cookie folosim, scopul lor si cum le poti controla.",
+    path: "/cookies",
+  });
+}
 
 export default function CookiesPage() {
   return (

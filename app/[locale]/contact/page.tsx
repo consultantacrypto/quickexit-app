@@ -1,14 +1,26 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { companyInfo, formatRegisteredOfficeFull } from "@/lib/company";
-import { buildPageMetadata } from "@/lib/seo";
+import { buildPageMetadata, resolvePageLocale } from "@/lib/seo";
 
-export const metadata: Metadata = buildPageMetadata({
-  title: "Contact",
-  description:
-    "Contact Quick Exit pentru suport utilizatori, parteneriate si informatii legale ale companiei.",
-  path: "/contact",
-});
+type PageProps = {
+  params: Promise<{ locale: string }>;
+};
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { locale } = await params;
+  const loc = resolvePageLocale(locale);
+
+  return buildPageMetadata({
+    locale: loc,
+    title: loc === "en" ? "Contact | Quick Exit" : "Contact",
+    description:
+      loc === "en"
+        ? "Contact Quick Exit for user support, partnerships, and legal company information."
+        : "Contact Quick Exit pentru suport utilizatori, parteneriate si informatii legale ale companiei.",
+    path: "/contact",
+  });
+}
 
 export default function Contact() {
   return (

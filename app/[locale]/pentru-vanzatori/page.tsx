@@ -1,14 +1,25 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { buildPageMetadata } from "@/lib/seo";
+import { PAGE_METADATA_COPY } from "@/lib/pageMetadataCopy";
+import { buildPageMetadata, resolvePageLocale } from "@/lib/seo";
 import TrackedLink from "@/app/components/TrackedLink";
 
-export const metadata: Metadata = buildPageMetadata({
-  title: "Pentru vânzători | Vinde rapid active pe Quick Exit",
-  description:
-    "Publică active pe Quick Exit cu preț de exit, evaluare orientativă și acces la cumpărători sau investitori interesați de oportunități rapide.",
-  path: "/pentru-vanzatori",
-});
+type PageProps = {
+  params: Promise<{ locale: string }>;
+};
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { locale } = await params;
+  const loc = resolvePageLocale(locale);
+  const copy = PAGE_METADATA_COPY.pentruVanzatori[loc];
+
+  return buildPageMetadata({
+    locale: loc,
+    title: copy.title,
+    description: copy.description,
+    path: "/pentru-vanzatori",
+  });
+}
 
 export default function PentruVanzatoriPage() {
   const faqJsonLd = {

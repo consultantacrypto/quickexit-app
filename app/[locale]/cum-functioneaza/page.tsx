@@ -1,13 +1,24 @@
 import { Link } from "@/src/i18n/navigation";
 import type { Metadata } from "next";
-import { buildPageMetadata } from "@/lib/seo";
+import { PAGE_METADATA_COPY } from "@/lib/pageMetadataCopy";
+import { buildPageMetadata, resolvePageLocale } from "@/lib/seo";
 
-export const metadata: Metadata = buildPageMetadata({
-  title: "Cum functioneaza",
-  description:
-    "Vezi pas cu pas cum functioneaza Quick Exit pentru vanzatori si cumparatori, de la evaluare la tranzactie.",
-  path: "/cum-functioneaza",
-});
+type PageProps = {
+  params: Promise<{ locale: string }>;
+};
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { locale } = await params;
+  const loc = resolvePageLocale(locale);
+  const copy = PAGE_METADATA_COPY.cumFunctioneaza[loc];
+
+  return buildPageMetadata({
+    locale: loc,
+    title: copy.title,
+    description: copy.description,
+    path: "/cum-functioneaza",
+  });
+}
 
 function StepCard({
   index,

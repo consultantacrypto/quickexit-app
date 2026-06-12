@@ -30,7 +30,7 @@ export const metadata: Metadata = {
     "evaluare active",
   ],
   alternates: {
-    canonical: "/",
+    canonical: `${siteUrl}/ro`,
   },
   openGraph: {
     title: "Quick Exit | Vinde acum. Lichiditate rapida.",
@@ -41,12 +41,6 @@ export const metadata: Metadata = {
     type: "website",
     locale: "ro_RO",
     images: [{ url: "/logo.png" }],
-  },
-  twitter: {
-    card: "summary",
-    title: "Quick Exit | Platforma de lichiditate rapida",
-    description:
-      "Conectam activele premium cu investitori pregatiti pentru achizitii rapide.",
   },
   robots: {
     index: true,

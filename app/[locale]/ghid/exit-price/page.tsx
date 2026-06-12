@@ -1,14 +1,29 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { buildPageMetadata } from "@/lib/seo";
+import { buildPageMetadata, resolvePageLocale } from "@/lib/seo";
 import TrackedLink from "@/app/components/TrackedLink";
 
-export const metadata: Metadata = buildPageMetadata({
-  title: "Ce este prețul de exit | Ghid Quick Exit",
-  description:
-    "Prețul de exit este un preț orientat spre vânzare rapidă, folosit când proprietarul acceptă un discount față de piață pentru lichiditate mai rapidă.",
-  path: "/ghid/exit-price",
-});
+type PageProps = {
+  params: Promise<{ locale: string }>;
+};
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { locale } = await params;
+  const loc = resolvePageLocale(locale);
+
+  return buildPageMetadata({
+    locale: loc,
+    title:
+      loc === "en"
+        ? "What is an exit price | Quick Exit guide"
+        : "Ce este prețul de exit | Ghid Quick Exit",
+    description:
+      loc === "en"
+        ? "The exit price is oriented toward a faster sale, often below market estimate, when the owner accepts a discount for quicker liquidity."
+        : "Prețul de exit este un preț orientat spre vânzare rapidă, folosit când proprietarul acceptă un discount față de piață pentru lichiditate mai rapidă.",
+    path: "/ghid/exit-price",
+  });
+}
 
 export default function ExitPriceGuidePage() {
   const faqJsonLd = {
