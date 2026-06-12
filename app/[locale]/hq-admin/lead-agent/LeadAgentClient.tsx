@@ -13,6 +13,11 @@ import {
   type LeadRow,
   type LeadType,
 } from "@/lib/leadAgent";
+import {
+  MESSAGE_FEEDBACK_LABELS,
+  MESSAGE_FEEDBACK_VALUES,
+  type MessageFeedback,
+} from "@/lib/leadAgentPlaybook";
 
 type AiChannel = "whatsapp" | "linkedin" | "email" | "phone";
 type AiTone = "natural" | "premium" | "direct";
@@ -198,6 +203,41 @@ async function leadsAiApi<T>(body: Record<string, unknown>): Promise<T> {
   return data;
 }
 
+async function leadsMessagesApi<T>(body: Record<string, unknown>): Promise<T> {
+  const token = await getAccessToken();
+  if (!token) throw new Error("Sesiune expirată. Reautentifică-te.");
+
+  const res = await fetch("/api/hq/leads/messages", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(body),
+  });
+
+  const data = (await res.json()) as T & { success?: boolean; error?: string };
+  if (!res.ok || data.success === false) {
+    throw new Error(
+      typeof data.error === "string" && data.error.trim()
+        ? data.error
+        : `Cerere mesaje eșuată (${res.status}).`,
+    );
+  }
+  return data;
+}
+
+function syncDraftFromMessages(msgs: LeadMessageRow[]): {
+  text: string;
+  messageId: string | null;
+} {
+  const preferred = msgs.find((m) => m.direction === "outbound" && !m.generated_by_ai);
+  const latestAi = msgs.find((m) => m.direction === "outbound" && m.generated_by_ai);
+  const source = preferred ?? latestAi;
+  if (!source) return { text: "", messageId: null };
+  return { text: source.body, messageId: source.id };
+}
+
 function formatDate(value: string | null | undefined): string {
   if (!value) return "—";
   try {
@@ -260,6 +300,9 @@ export default function LeadAgentClient() {
   const [aiBusy, setAiBusy] = useState(false);
   const [aiChannel, setAiChannel] = useState<AiChannel>("whatsapp");
   const [aiTone, setAiTone] = useState<AiTone>("natural");
+  const [draftText, setDraftText] = useState("");
+  const [activeMessageId, setActiveMessageId] = useState<string | null>(null);
+  const [messageActionBusy, setMessageActionBusy] = useState(false);
 
   const [showCreate, setShowCreate] = useState(false);
   const [showImport, setShowImport] = useState(false);
@@ -361,7 +404,11 @@ export default function LeadAgentClient() {
       }>("GET", { params });
       setDetail(data.lead);
       setEvents(data.events ?? []);
-      setMessages(data.messages ?? []);
+      const loadedMessages = data.messages ?? [];
+      setMessages(loadedMessages);
+      const synced = syncDraftFromMessages(loadedMessages);
+      setDraftText(synced.text);
+      setActiveMessageId(synced.messageId);
       setEditForm({
         status: data.lead.status,
         notes: data.lead.notes ?? "",
@@ -375,6 +422,8 @@ export default function LeadAgentClient() {
       setDetail(null);
       setEvents([]);
       setMessages([]);
+      setDraftText("");
+      setActiveMessageId(null);
     } finally {
       setDetailLoading(false);
     }
@@ -385,6 +434,8 @@ export default function LeadAgentClient() {
       setDetail(null);
       setEvents([]);
       setMessages([]);
+      setDraftText("");
+      setActiveMessageId(null);
       return;
     }
     void loadDetail(selectedId);
@@ -395,11 +446,18 @@ export default function LeadAgentClient() {
     [leads, selectedId, detail],
   );
 
-  const latestAiMessage = useMemo(
-    () =>
-      messages.find((m) => m.generated_by_ai && m.direction === "outbound") ?? null,
+  const preferredMessage = useMemo(
+    () => messages.find((m) => m.direction === "outbound" && !m.generated_by_ai) ?? null,
     [messages],
   );
+
+  const activeMessage = useMemo(
+    () => messages.find((m) => m.id === activeMessageId) ?? null,
+    [messages, activeMessageId],
+  );
+
+  const isShowingFinalMessage =
+    Boolean(preferredMessage) && activeMessageId === preferredMessage?.id;
 
   const handleAiScore = async () => {
     if (!selectedId) return;
@@ -441,8 +499,9 @@ export default function LeadAgentClient() {
         channel: aiChannel,
         tone: aiTone,
       });
-      setMessages((prev) => [data.message, ...prev]);
       await loadDetail(selectedId);
+      setDraftText(data.message.body);
+      setActiveMessageId(data.message.id);
     } catch (err) {
       setActionError(err instanceof Error ? err.message : "Generare mesaj AI eșuată.");
     } finally {
@@ -450,15 +509,54 @@ export default function LeadAgentClient() {
     }
   };
 
-  const handleCopyMessage = async (message: LeadMessageRow) => {
-    if (!selectedId || !message.body?.trim()) return;
+  const handleSaveFinalMessage = async () => {
+    if (!selectedId || !draftText.trim()) return;
+    setMessageActionBusy(true);
+    setActionError(null);
     try {
-      await navigator.clipboard.writeText(message.body.trim());
+      await leadsMessagesApi<{ message: LeadMessageRow }>({
+        action: "save_final",
+        leadId: selectedId,
+        channel: aiChannel,
+        body: draftText.trim(),
+        source_message_id: activeMessageId,
+      });
+      await loadDetail(selectedId);
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : "Salvare mesaj final eșuată.");
+    } finally {
+      setMessageActionBusy(false);
+    }
+  };
+
+  const handleMessageFeedback = async (feedback: MessageFeedback) => {
+    if (!selectedId || !activeMessageId) return;
+    setMessageActionBusy(true);
+    setActionError(null);
+    try {
+      await leadsMessagesApi({
+        action: "feedback",
+        leadId: selectedId,
+        message_id: activeMessageId,
+        feedback,
+      });
+      await loadDetail(selectedId);
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : "Feedback mesaj eșuat.");
+    } finally {
+      setMessageActionBusy(false);
+    }
+  };
+
+  const handleCopyMessage = async () => {
+    if (!selectedId || !draftText.trim() || !activeMessageId) return;
+    try {
+      await navigator.clipboard.writeText(draftText.trim());
       await leadsApi("PATCH", {
         body: {
           id: selectedId,
           log_event: "message_copied",
-          message_id: message.id,
+          message_id: activeMessageId,
         },
       });
       await loadDetail(selectedId);
@@ -1144,29 +1242,69 @@ export default function LeadAgentClient() {
                     {aiBusy ? "Se generează..." : "Generează mesaj AI"}
                   </button>
 
-                  {latestAiMessage && (
+                  {(draftText || activeMessage) && (
                     <div className="rounded-lg border-2 border-black bg-white p-3">
                       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
                         <p className="text-[10px] font-black uppercase tracking-widest text-neutral-600">
-                          Draft mesaj · {latestAiMessage.channel}
+                          {isShowingFinalMessage ? "Mesaj final" : "Draft mesaj"} · {aiChannel}
                         </p>
-                        {latestAiMessage.model && (
+                        {activeMessage?.generated_by_ai && activeMessage.model && (
                           <span className="text-[9px] uppercase text-neutral-500">
-                            {latestAiMessage.model}
+                            AI · {activeMessage.model}
+                          </span>
+                        )}
+                        {activeMessage && !activeMessage.generated_by_ai && (
+                          <span className="text-[9px] font-bold uppercase text-neutral-600">
+                            Salvat de operator
                           </span>
                         )}
                       </div>
-                      <pre className="whitespace-pre-wrap font-sans text-xs leading-relaxed text-black">
-                        {latestAiMessage.body}
-                      </pre>
-                      <button
-                        type="button"
-                        onClick={() => void handleCopyMessage(latestAiMessage)}
-                        className="mt-3 inline-flex items-center gap-1.5 rounded-lg border-2 border-black bg-[#F7F4EC] px-3 py-1.5 text-[10px] font-black uppercase text-black hover:bg-white"
-                      >
-                        <Copy className="h-3 w-3" />
-                        Copiază mesaj
-                      </button>
+                      <textarea
+                        className={`${textareaClass} min-h-[120px] text-xs`}
+                        value={draftText}
+                        onChange={(e) => setDraftText(e.target.value)}
+                        placeholder="Generează sau editează mesajul aici..."
+                      />
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          disabled={messageActionBusy || aiBusy || !draftText.trim()}
+                          onClick={() => void handleSaveFinalMessage()}
+                          className="rounded-lg border-2 border-black bg-black px-3 py-1.5 text-[10px] font-black uppercase text-[#FFD100] disabled:opacity-50"
+                        >
+                          Salvează mesaj final
+                        </button>
+                        <button
+                          type="button"
+                          disabled={!draftText.trim() || !activeMessageId}
+                          onClick={() => void handleCopyMessage()}
+                          className="inline-flex items-center gap-1.5 rounded-lg border-2 border-black bg-[#F7F4EC] px-3 py-1.5 text-[10px] font-black uppercase text-black hover:bg-white disabled:opacity-50"
+                        >
+                          <Copy className="h-3 w-3" />
+                          Copiază mesaj
+                        </button>
+                      </div>
+
+                      {activeMessageId && (
+                        <div className="mt-4 border-t border-black/10 pt-3">
+                          <p className="mb-2 text-[10px] font-black uppercase tracking-widest text-neutral-600">
+                            Feedback mesaj
+                          </p>
+                          <div className="flex flex-wrap gap-1">
+                            {MESSAGE_FEEDBACK_VALUES.map((fb) => (
+                              <button
+                                key={fb}
+                                type="button"
+                                disabled={messageActionBusy}
+                                onClick={() => void handleMessageFeedback(fb)}
+                                className={chipClass}
+                              >
+                                {MESSAGE_FEEDBACK_LABELS[fb]}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

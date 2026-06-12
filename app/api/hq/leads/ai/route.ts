@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { assertHqAdminFromBearer, extractBearerToken } from "@/lib/hqAdminAuth";
 import type { LeadRow } from "@/lib/leadAgent";
+import { getCampaignPlaybookRules, getDanielVoiceRules } from "@/lib/leadAgentPlaybook";
 
 export const runtime = "nodejs";
 
@@ -183,21 +184,46 @@ function toneInstruction(tone: AiTone): string {
 
 function buildMessagePrompt(lead: LeadRow, channel: AiChannel, tone: AiTone): string {
   const lang = lead.language === "en" ? "English" : "Romanian";
+  const campaignRules = getCampaignPlaybookRules(lead.campaign_key);
+  const danielVoice = getDanielVoiceRules(lead.language);
+  const preferredChannel = lead.preferred_channel?.trim() || channel;
+
+  const campaignBlock = campaignRules
+    ? `\nReguli campanie (campaign_key=${lead.campaign_key}):\n${campaignRules}`
+    : lead.campaign_key
+      ? `\nCampanie: ${lead.campaign_key} (fără playbook dedicat — folosește lead_type, category și notes).`
+      : "";
+
+  const danielBlock = danielVoice ? `\n${danielVoice}` : "";
+
   return `
 Generează un draft de outreach MANUAL pentru QuickExit (platformă care poate ajuta la conectarea activelor cu cumpărători/investitori — nu promite cumpărători garantați).
 Limba mesajului: ${lang}.
+Canal selectat: ${channel}. Canal preferat lead: ${preferredChannel}.
 ${channelInstruction(channel)}
 ${toneInstruction(tone)}
+${campaignBlock}
+${danielBlock}
+
+Context lead de folosit (nu inventa în afara acestor câmpuri):
+- lead_type: ${lead.lead_type}
+- category: ${lead.category ?? "—"}
+- campaign_key: ${lead.campaign_key ?? "—"}
+- language: ${lead.language}
+- asset_summary: ${lead.asset_summary ?? "—"}
+- est_value_eur: ${lead.est_value_eur ?? "—"}
+- notes: ${lead.notes ? String(lead.notes).slice(0, 500) : "—"}
 
 Reguli stricte:
 - Nu suna spammy.
 - Nu promite randamente garantate.
 - Nu spune că QuickExit are deja cumpărători garantați.
 - Dacă lipsesc date, fii prudent; nu inventa fapte despre activ sau persoană.
-- Personalizează doar cu datele disponibile din lead.
+- Personalizează cu lead_type, category, campaign_key, asset_summary, notes și valoare estimată când există.
 - Nu include email sau telefon în mesaj.
+- Evită formulări generice de vânzări; fii specific pentru contextul de mai sus.
 
-Lead (JSON):
+Lead complet (JSON):
 ${JSON.stringify(leadPromptSnapshot(lead))}
 
 Răspunde DOAR cu JSON valid, fără markdown:
