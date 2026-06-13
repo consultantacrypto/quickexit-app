@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 import { createClient } from "@supabase/supabase-js";
+import { AI_ANSWER_LANDING_PATHS } from "@/lib/aiAnswerLanding";
 import { getSiteUrl } from "@/lib/siteUrl";
 
 export const revalidate = 3600;
@@ -49,6 +50,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     "/termeni",
     "/confidentialitate",
     "/cookies",
+    ...AI_ANSWER_LANDING_PATHS,
   ];
 
   const categoryPaths = [
@@ -61,12 +63,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ];
 
   const staticEntries: MetadataRoute.Sitemap = LOCALES.flatMap((locale) =>
-    staticPaths.map((path) => ({
-      url: localizedUrl(siteUrl, locale, path),
-      lastModified: now,
-      changeFrequency: path.startsWith("/ghid/") ? ("monthly" as const) : ("daily" as const),
-      priority: path === "/" ? 1 : path.startsWith("/ghid/") ? 0.7 : 0.8,
-    })),
+    staticPaths.map((path) => {
+      const isAiLanding = AI_ANSWER_LANDING_PATHS.includes(
+        path as (typeof AI_ANSWER_LANDING_PATHS)[number],
+      );
+      const isGuide = path.startsWith("/ghid/");
+
+      return {
+        url: localizedUrl(siteUrl, locale, path),
+        lastModified: now,
+        changeFrequency: isGuide || isAiLanding ? ("monthly" as const) : ("daily" as const),
+        priority: path === "/" ? 1 : isGuide ? 0.7 : isAiLanding ? 0.75 : 0.8,
+      };
+    }),
   );
 
   const categoryEntries: MetadataRoute.Sitemap = LOCALES.flatMap((locale) =>
