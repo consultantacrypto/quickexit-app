@@ -3,6 +3,9 @@
 export const GA_MEASUREMENT_ID =
   process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID || "G-8LLK172SCX";
 
+export const TIKTOK_PIXEL_ID =
+  process.env.NEXT_PUBLIC_TIKTOK_PIXEL_ID || "D8MJJNJC77U4U91BBCT0";
+
 type EventParams = Record<string, string | number | boolean | null | undefined>;
 type AttributionData = {
   utm_source?: string;
@@ -21,8 +24,30 @@ declare global {
   interface Window {
     dataLayer?: unknown[];
     gtag?: (...args: unknown[]) => void;
+    ttq?: {
+      track?: (eventName: string, params?: Record<string, unknown>) => void;
+      page?: () => void;
+    };
   }
 }
+
+const TIKTOK_EVENT_MAP: Record<string, string> = {
+  checkout_listing_started: "InitiateCheckout",
+  checkout_demand_started: "InitiateCheckout",
+  checkout_listing_success: "CompletePayment",
+  checkout_demand_success: "CompletePayment",
+  payment_success_from_evaluation: "CompletePayment",
+  view_listing: "ViewContent",
+  view_capital_disponibil: "ViewContent",
+  start_post_listing: "Lead",
+  start_post_demand: "Lead",
+  submit_demand_offer: "Lead",
+  evaluation_success: "Lead",
+  click_pricing_package: "ClickButton",
+  click_post_listing: "ClickButton",
+  click_evaluate: "ClickButton",
+  click_send_demand_offer: "ClickButton",
+};
 
 export function isAnalyticsEnabled(): boolean {
   return Boolean(GA_MEASUREMENT_ID);
@@ -126,11 +151,34 @@ export function pageview(url: string): void {
   window.gtag("config", GA_MEASUREMENT_ID, { page_path: url });
 }
 
+function trackTikTokEvent(eventName: string, params?: EventParams): void {
+  if (typeof window === "undefined") return;
+  if (!TIKTOK_PIXEL_ID) return;
+
+  const tiktokEvent = TIKTOK_EVENT_MAP[eventName];
+  if (!tiktokEvent) return;
+  if (typeof window.ttq?.track !== "function") return;
+
+  try {
+    const payload = Object.fromEntries(
+      Object.entries(params ?? {}).filter(([, value]) => value != null),
+    ) as Record<string, unknown>;
+    window.ttq.track(tiktokEvent, payload);
+  } catch {
+    // TikTok tracking is best-effort; never break runtime
+  }
+}
+
 export function trackEvent(eventName: string, params?: EventParams): void {
   if (typeof window === "undefined") return;
-  if (!GA_MEASUREMENT_ID) return;
-  if (typeof window.gtag !== "function") return;
+
   captureAttribution();
-  window.gtag("event", eventName, appendAttributionParams(params));
+  const enrichedParams = appendAttributionParams(params);
+
+  if (GA_MEASUREMENT_ID && typeof window.gtag === "function") {
+    window.gtag("event", eventName, enrichedParams);
+  }
+
+  trackTikTokEvent(eventName, enrichedParams);
 }
 
