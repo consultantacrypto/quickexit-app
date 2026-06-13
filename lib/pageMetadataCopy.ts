@@ -17,14 +17,14 @@ export const PAGE_METADATA_COPY = {
   },
   capitalDisponibil: {
     ro: {
-      title: "Capital disponibil și cereri active | Quick Exit",
+      title: "Capital disponibil — cereri de cumpărare active | Quick Exit",
       description:
-        "Descoperă cumpărători activi și cereri de cumpărare pentru oportunități reale.",
+        "Vezi cereri reale de cumpărare publicate de cumpărători cu buget disponibil: mașini, imobile, business-uri și alte active. Răspunde direct unei intenții existente.",
     },
     en: {
-      title: "Available capital and active buyer requests | Quick Exit",
+      title: "Available capital — active buyer requests | Quick Exit",
       description:
-        "Discover active buyers and purchase requests looking for real opportunities on Quick Exit.",
+        "Browse real buyer requests from people with available capital: cars, real estate, businesses and other assets. Respond directly to existing purchase intent.",
     },
   },
   posteazaCerere: {
