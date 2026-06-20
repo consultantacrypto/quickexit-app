@@ -7,6 +7,11 @@ import {
   getListingPackageById,
   toStripeAmountRon,
 } from '@/lib/pricing';
+import {
+  activateRow,
+  extractCheckoutIds,
+  resolveActivationPlan,
+} from '@/lib/stripeWebhookActivation';
 
 export async function POST(req: Request) {
   try {
@@ -91,11 +96,81 @@ export async function POST(req: Request) {
       }
 
       if (type === 'listing') {
-        const listingId = String(session.metadata?.listingId ?? '').trim();
-        const packageId = String(session.metadata?.packageId ?? '').trim();
+        const listingId = String(
+          session.metadata?.listingId ??
+            session.metadata?.listing_id ??
+            session.metadata?.listing ??
+            ''
+        ).trim();
+        const packageId = String(
+          session.metadata?.packageId ?? session.metadata?.package_id ?? ''
+        ).trim();
+        const priceId = String(
+          session.metadata?.priceId ?? session.metadata?.price_id ?? ''
+        ).trim();
+
+        // Flux nou: /api/stripe/checkout trimite priceId (fără packageId).
+        if (listingId && priceId && !packageId) {
+          const activation = await resolveActivationPlan(stripe, session, 'listing');
+          if (activation.source !== 'none') {
+            const { data: listing, error: listingError } = await supabase
+              .from('listings')
+              .select('id, status')
+              .eq('id', listingId)
+              .single();
+            if (listingError || !listing) {
+              console.error('[webhook] listing not found (priceId flow)', {
+                sessionId: session.id,
+                listingId,
+                reason: listingError?.message,
+                code: listingError?.code,
+              });
+              return NextResponse.json({ received: true, skipped: 'listing_not_found' });
+            }
+            if (listing.status === 'active') {
+              console.log('[webhook] listing deja activ - idempotent (priceId flow)', {
+                sessionId: session.id,
+                listingId,
+              });
+              return NextResponse.json({ received: true, idempotent: true, type: 'listing' });
+            }
+
+            const updateError = await activateRow(
+              supabase,
+              'listings',
+              listingId,
+              activation.expiresAt,
+              '[webhook]'
+            );
+            if (updateError) {
+              console.error('[webhook] Eroare activare listing (priceId flow) — RECUPERARE MANUALĂ:', {
+                sessionId: session.id,
+                listingId,
+                activation,
+                supabase: updateError.supabase,
+                error: updateError.message,
+              });
+              return new NextResponse('Eroare activare listing', { status: 500 });
+            }
+            console.log('[webhook] listing activat (priceId flow)', {
+              sessionId: session.id,
+              listingId,
+              activation,
+              paidAmount,
+            });
+            return NextResponse.json({ received: true, type: 'listing' });
+          }
+        }
+
         const pkg = getListingPackageById(packageId);
         if (!listingId || !pkg) {
-          console.error('[webhook] listing metadata invalid', { sessionId: session.id, listingId, packageId });
+          console.error('[webhook] listing metadata invalid', {
+            sessionId: session.id,
+            listingId,
+            packageId,
+            priceId,
+            metadata: session.metadata,
+          });
           return NextResponse.json({ received: true, skipped: 'listing_metadata_invalid' });
         }
         const expectedServerAmount = toStripeAmountRon(pkg.priceRon);
@@ -142,7 +217,57 @@ export async function POST(req: Request) {
       }
 
       if (type === 'demand') {
-        const demandId = String(session.metadata?.demandId ?? '').trim();
+        const demandId = String(
+          session.metadata?.demandId ??
+            session.metadata?.demand_id ??
+            session.metadata?.demand ??
+            ''
+        ).trim();
+        const priceId = String(
+          session.metadata?.priceId ?? session.metadata?.price_id ?? ''
+        ).trim();
+
+        // Flux nou: /api/stripe/checkout pentru cereri de capital.
+        if (demandId && priceId) {
+          const activation = await resolveActivationPlan(stripe, session, 'demand');
+          if (activation.source !== 'none') {
+            const { data: demand, error: demandError } = await supabase
+              .from('demands')
+              .select('id, status')
+              .eq('id', demandId)
+              .single();
+            if (demandError || !demand) {
+              console.error('[webhook] demand not found (priceId flow)', {
+                sessionId: session.id,
+                demandId,
+                reason: demandError?.message,
+              });
+              return NextResponse.json({ received: true, skipped: 'demand_not_found' });
+            }
+            if (demand.status === 'active') {
+              return NextResponse.json({ received: true, idempotent: true, type: 'demand' });
+            }
+
+            const updateError = await activateRow(
+              supabase,
+              'demands',
+              demandId,
+              activation.expiresAt,
+              '[webhook]'
+            );
+            if (updateError) {
+              console.error('[webhook] Eroare activare demand (priceId flow):', {
+                sessionId: session.id,
+                demandId,
+                supabase: updateError.supabase,
+                error: updateError.message,
+              });
+              return new NextResponse('Eroare activare demand', { status: 500 });
+            }
+            console.log('[webhook] demand activata (priceId flow)', { sessionId: session.id, demandId });
+            return NextResponse.json({ received: true, type: 'demand' });
+          }
+        }
         const expectedServerAmount = toStripeAmountRon(getDemandCheckoutPrice());
         if (!demandId) {
           console.error('[webhook] demand metadata invalid', { sessionId: session.id });
@@ -190,8 +315,13 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json({ received: true });
-  } catch (error: any) {
-    console.error("Eroare generală Webhook:", error);
+  } catch (error: unknown) {
+    const err = error instanceof Error ? error : new Error(String(error));
+    console.error('[webhook] Eroare generală neprevăzută:', {
+      message: err.message,
+      name: err.name,
+      stack: err.stack,
+    });
     return new NextResponse('Eroare internă', { status: 500 });
   }
 }

@@ -295,6 +295,7 @@ export default function AdminHQ() {
   const [copilotAnalyticsAvailable, setCopilotAnalyticsAvailable] = useState<boolean | null>(null);
   const [copilotGaLookbackDays, setCopilotGaLookbackDays] = useState<number | null>(null);
   const [copilotGaWarnings, setCopilotGaWarnings] = useState<string[]>([]);
+  const [listingsPendingOnly, setListingsPendingOnly] = useState(false);
 
   const loadAdminData = useCallback(async () => {
     setLoadNote(null);
@@ -413,6 +414,16 @@ export default function AdminHQ() {
   const activeOperationalRisks = useMemo(
     () => detectedRisks.filter((r) => !resolvedRiskKeys.has(r.risk_key)),
     [detectedRisks, resolvedRiskKeys]
+  );
+
+  const pendingPaymentListings = useMemo(
+    () => allListings.filter((l) => l.status === "pending_payment" && l.is_seed !== true),
+    [allListings]
+  );
+
+  const visibleListings = useMemo(
+    () => (listingsPendingOnly ? pendingPaymentListings : allListings),
+    [allListings, listingsPendingOnly, pendingPaymentListings]
   );
 
   const resolveOperationalRisk = async (risk: OperationalRiskItem) => {
@@ -568,18 +579,143 @@ export default function AdminHQ() {
     }
   };
 
-  const activateListingManual = async (id: string) => {
-    const ok = window.confirm(
-      "Activezi manual acest anunț fără plată? Folosește doar pentru testeri, parteneri sau cazuri verificate."
+  const getAccessToken = async (): Promise<string | null> => {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    return session?.access_token ?? null;
+  };
+
+  const callForceActivateApi = async (
+    body: Record<string, string>
+  ): Promise<{ ok: true; message: string } | { ok: false; error: string }> => {
+    const token = await getAccessToken();
+    if (!token) {
+      return { ok: false, error: "Sesiunea a expirat. Reautentifică-te." };
+    }
+
+    const res = await fetch("/api/admin/force-activate", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(body),
+    });
+
+    const payload = await res.json().catch(() => null);
+    if (!res.ok) {
+      return {
+        ok: false,
+        error: payload?.error || `Force activate eșuat (HTTP ${res.status}).`,
+      };
+    }
+
+    if (payload?.wasAlreadyActive) {
+      return { ok: true, message: "Listarea era deja activă (idempotent)." };
+    }
+
+    const expiryNote = payload?.expiresAt
+      ? ` Expiră: ${new Date(payload.expiresAt).toLocaleString("ro-RO")}.`
+      : "";
+    return {
+      ok: true,
+      message: `Listare activată (pachet: ${payload?.packageId ?? "—"}).${expiryNote}`,
+    };
+  };
+
+  const forceSyncListingFromStripe = async (listing: { id: string; title?: string | null }) => {
+    const sessionId = window.prompt(
+      `Force Sync Stripe pentru „${String(listing.title || listing.id).slice(0, 80)}”.\n\nLipește session_id (cs_...) din Stripe Dashboard → Payments → Checkout session:`
     );
-    if (!ok) return;
+    if (!sessionId?.trim()) return;
+
     setActionError(null);
-    const { error } = await supabase.from("listings").update({ status: "active" }).eq("id", id);
-    if (error) {
-      setActionError(`Nu am putut activa anunțul: ${error.message}`);
+    const result = await callForceActivateApi({
+      listingId: listing.id,
+      mode: "stripe_sync",
+      stripeSessionId: sessionId.trim(),
+    });
+    if (!result.ok) {
+      setActionError(`Force Sync eșuat: ${result.error}`);
       return;
     }
-    setAllListings((prev) => prev.map((l) => (l.id === id ? { ...l, status: "active" } : l)));
+    setLoadNote(result.message);
+    await loadAdminData();
+  };
+
+  const activateListingManual = async (listing: {
+    id: string;
+    title?: string | null;
+    sale_strategy?: string | null;
+  }) => {
+    const reason = window.prompt(
+      `Activare manuală (fără verificare Stripe) pentru „${String(listing.title || listing.id).slice(0, 80)}”.\n\nMotiv obligatoriu (min. 8 caractere) — ex: plată confirmată offline, partener beta:`
+    );
+    if (!reason || reason.trim().length < 8) {
+      if (reason !== null) setActionError("Motivul trebuie să aibă cel puțin 8 caractere.");
+      return;
+    }
+
+    setActionError(null);
+    const pkg = String(listing.sale_strategy ?? "").trim();
+
+    const result = await callForceActivateApi({
+      listingId: listing.id,
+      mode: "manual",
+      reason: reason.trim(),
+      ...(pkg ? { packageId: pkg } : {}),
+    });
+    if (!result.ok) {
+      setActionError(`Activare manuală eșuată: ${result.error}`);
+      return;
+    }
+    setLoadNote(result.message);
+    await loadAdminData();
+  };
+
+  const forceSyncDemandFromStripe = async (demand: { id: string; target_asset?: string | null }) => {
+    const sessionId = window.prompt(
+      `Force Sync Stripe pentru cererea „${String(demand.target_asset || demand.id).slice(0, 80)}”.\n\nLipește session_id (cs_...) din Stripe Dashboard:`
+    );
+    if (!sessionId?.trim()) return;
+
+    setActionError(null);
+    const result = await callForceActivateApi({
+      demandId: demand.id,
+      mode: "stripe_sync",
+      stripeSessionId: sessionId.trim(),
+    });
+    if (!result.ok) {
+      setActionError(`Force Sync cerere eșuat: ${result.error}`);
+      return;
+    }
+    setLoadNote(result.message);
+    await loadAdminData();
+  };
+
+  const activateDemandManual = async (demand: { id: string; target_asset?: string | null }) => {
+    const reason = window.prompt(
+      `Activare manuală cerere capital pentru „${String(demand.target_asset || demand.id).slice(0, 80)}”.\n\nMotiv obligatoriu (min. 8 caractere):`
+    );
+    if (!reason || reason.trim().length < 8) {
+      if (reason !== null) setActionError("Motivul trebuie să aibă cel puțin 8 caractere.");
+      return;
+    }
+
+    setActionError(null);
+    const result = await callForceActivateApi({
+      demandId: demand.id,
+      mode: "manual",
+      reason: reason.trim(),
+      packageId: "demand",
+    });
+    if (!result.ok) {
+      setActionError(`Activare cerere eșuată: ${result.error}`);
+      return;
+    }
+    setLoadNote(result.message);
+    await loadAdminData();
   };
 
   const softHideListing = async (id: string) => {
@@ -622,20 +758,6 @@ export default function AdminHQ() {
     }
   };
 
-  const activateDemandManual = async (id: string) => {
-    const ok = window.confirm(
-      "Activezi manual această cerere fără plată? Folosește doar pentru cazuri verificate. Statusul va deveni activ."
-    );
-    if (!ok) return;
-    setActionError(null);
-    const { error } = await supabase.from("demands").update({ status: "active" }).eq("id", id);
-    if (error) {
-      setActionError(`Nu am putut activa cererea: ${error.message}`);
-      return;
-    }
-    setAllDemands((prev) => prev.map((d) => (d.id === id ? { ...d, status: "active" } : d)));
-  };
-
   const softHideDemand = async (id: string) => {
     const ok = window.confirm("Ascunzi această cerere din zona publică?");
     if (!ok) return;
@@ -646,14 +768,6 @@ export default function AdminHQ() {
       return;
     }
     setAllDemands((prev) => prev.map((d) => (d.id === id ? { ...d, status: "suspended" } : d)));
-  };
-
-  // Trimite access token-ul la Server Actions; acolo se reverifică identitatea + rolul de admin.
-  const getAccessToken = async (): Promise<string | null> => {
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    return session?.access_token ?? null;
   };
 
   const forcePublishRow = async (id: string, table: AdminTable) => {
@@ -1081,7 +1195,26 @@ export default function AdminHQ() {
 
           {activeTab === "listings" && (
             <div className="overflow-x-auto">
-              <h2 className="mb-6 text-xl font-black uppercase italic tracking-tight text-black">Listări</h2>
+              <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <h2 className="text-xl font-black uppercase italic tracking-tight text-black">Listări</h2>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="rounded-full border-2 border-black bg-[#FFD100] px-3 py-1 text-[10px] font-black uppercase text-black">
+                    {stats.listingsPending} așteaptă plata
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setListingsPendingOnly((v) => !v)}
+                    className={`rounded-lg border-2 border-black px-3 py-1.5 text-[10px] font-black uppercase ${
+                      listingsPendingOnly ? "bg-black text-white" : "bg-white text-black hover:bg-neutral-50"
+                    }`}
+                  >
+                    {listingsPendingOnly ? "Toate listările" : "Doar pending_payment"}
+                  </button>
+                </div>
+              </div>
+              {listingsPendingOnly && pendingPaymentListings.length === 0 && (
+                <p className="mb-4 text-sm font-medium text-neutral-600">Nicio listare în așteptarea plății.</p>
+              )}
               <table className="w-full min-w-[900px] text-left text-sm">
                 <thead>
                   <tr className="border-b-[3px] border-black">
@@ -1097,7 +1230,7 @@ export default function AdminHQ() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-black/10">
-                  {allListings.map((listing) => {
+                  {visibleListings.map((listing) => {
                     const canManualActivate =
                       listing.status === "pending_payment" && listing.is_seed !== true;
                     return (
@@ -1136,13 +1269,22 @@ export default function AdminHQ() {
                             </button>
                           )}
                           {canManualActivate && (
-                            <button
-                              type="button"
-                              onClick={() => void activateListingManual(listing.id)}
-                              className="block w-full rounded-lg border-[3px] border-black bg-[#FFD100] px-2 py-1.5 text-[9px] font-black uppercase text-black"
-                            >
-                              Activează manual
-                            </button>
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => void forceSyncListingFromStripe(listing)}
+                                className="block w-full rounded-lg border-[3px] border-black bg-blue-600 px-2 py-1.5 text-[9px] font-black uppercase text-white hover:bg-blue-700"
+                              >
+                                Force Sync Stripe
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => void activateListingManual(listing)}
+                                className="block w-full rounded-lg border-[3px] border-black bg-[#FFD100] px-2 py-1.5 text-[9px] font-black uppercase text-black"
+                              >
+                                Activare manuală
+                              </button>
+                            </>
                           )}
                           <button
                             type="button"
@@ -1215,13 +1357,22 @@ export default function AdminHQ() {
                         </td>
                         <td className="p-3 space-y-1">
                           {canActivate && (
-                            <button
-                              type="button"
-                              onClick={() => void activateDemandManual(d.id)}
-                              className="block w-full rounded-lg border-[3px] border-black bg-[#FFD100] px-2 py-1.5 text-[9px] font-black uppercase text-black"
-                            >
-                              Activează manual (fără plată)
-                            </button>
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => void forceSyncDemandFromStripe(d)}
+                                className="block w-full rounded-lg border-[3px] border-black bg-blue-600 px-2 py-1.5 text-[9px] font-black uppercase text-white hover:bg-blue-700"
+                              >
+                                Force Sync Stripe
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => void activateDemandManual(d)}
+                                className="block w-full rounded-lg border-[3px] border-black bg-[#FFD100] px-2 py-1.5 text-[9px] font-black uppercase text-black"
+                              >
+                                Activare manuală
+                              </button>
+                            </>
                           )}
                           <button
                             type="button"

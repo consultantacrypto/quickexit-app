@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import { getPackageByPriceId, getExpiryIsoForPackage } from "@/lib/stripePackages";
+import { createClient } from "@supabase/supabase-js";
+import {
+  activateRow,
+  extractCheckoutIds,
+  resolveActivationPlan,
+} from "@/lib/stripeWebhookActivation";
 
 // Webhook-ul are nevoie de runtime Node.js (crypto) pentru verificarea semnăturii
 // și de body-ul brut (necacheabil) pentru constructEvent.
@@ -40,52 +44,57 @@ export async function POST(req: Request) {
     let event: Stripe.Event;
     try {
       event = stripe.webhooks.constructEvent(rawBody, signature, webhookSecret);
-    } catch (err: any) {
-      console.error(`[stripe/webhook] Semnătură invalidă: ${err?.message}`);
-      return new NextResponse(`Eroare semnătură: ${err?.message}`, { status: 400 });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error("[stripe/webhook] Semnătură invalidă:", { message });
+      return new NextResponse(`Eroare semnătură: ${message}`, { status: 400 });
     }
 
     if (event.type === "checkout.session.completed") {
       const session = event.data.object as Stripe.Checkout.Session;
+      const paymentStatus = String(session.payment_status ?? "").toLowerCase();
 
-      // Procesăm doar plățile efectiv încasate.
-      if (String(session.payment_status ?? "").toLowerCase() !== "paid") {
+      if (paymentStatus !== "paid") {
+        console.error("[stripe/webhook] checkout.session.completed ignorat: plata nu e finalizată.", {
+          sessionId: session.id,
+          paymentStatus,
+          metadata: session.metadata,
+        });
         return NextResponse.json({ received: true, skipped: "not_paid" });
       }
 
-      // Tipul obiectului de activat: "listing" (anunț) sau "demand" (cerere de capital).
-      // Implicit "listing" pentru compatibilitate cu sesiunile vechi.
-      const type = session.metadata?.type === "demand" ? "demand" : "listing";
-      const listingId = String(session.metadata?.listingId ?? "").trim();
-      const demandId = String(session.metadata?.demandId ?? "").trim();
-      const userId = String(session.metadata?.userId ?? "").trim();
-      const priceId = String(session.metadata?.priceId ?? "").trim();
-
+      const { type, listingId, demandId, userId, objectId, metadata } = extractCheckoutIds(session);
       const table = type === "demand" ? "demands" : "listings";
-      const objectId = type === "demand" ? demandId : listingId;
 
       if (!objectId) {
-        console.error("[stripe/webhook] id lipsește din metadata.", { sessionId: session.id, type });
+        console.error("[stripe/webhook] listingId/demandId lipsește din metadata.", {
+          sessionId: session.id,
+          type,
+          listingId,
+          demandId,
+          metadata,
+          clientReferenceId: session.client_reference_id,
+        });
         return NextResponse.json({ received: true, skipped: "missing_object_id" });
       }
 
-      // priceId-ul trebuie să fie un pachet cunoscut pentru a calcula expirarea.
-      const pkg = getPackageByPriceId(priceId);
-      if (!pkg) {
-        console.error("[stripe/webhook] priceId necunoscut în metadata.", {
+      const activation = await resolveActivationPlan(stripe, session, type);
+      if (activation.source === "none") {
+        console.error("[stripe/webhook] Nu am putut rezolva pachetul (priceId/packageId).", {
           sessionId: session.id,
-          priceId,
+          type,
+          objectId,
+          metadata,
+          priceId: metadata.priceId ?? metadata.price_id ?? null,
+          packageId: metadata.packageId ?? metadata.package_id ?? null,
         });
         return NextResponse.json({ received: true, skipped: "unknown_price_id" });
       }
-
-      const expiresAt = getExpiryIsoForPackage(pkg);
 
       const supabase = createClient(supabaseUrl, serviceRoleKey, {
         auth: { persistSession: false, autoRefreshToken: false },
       });
 
-      // Idempotență: dacă obiectul e deja activ, nu refacem update-ul.
       const { data: existing, error: fetchError } = await supabase
         .from(table)
         .select("id, status")
@@ -93,26 +102,54 @@ export async function POST(req: Request) {
         .maybeSingle();
 
       if (fetchError) {
-        console.error(`[stripe/webhook] Eroare citire ${table}:`, fetchError.message);
+        console.error("[stripe/webhook] Eroare citire din Supabase:", {
+          sessionId: session.id,
+          table,
+          objectId,
+          message: fetchError.message,
+          code: fetchError.code,
+          details: fetchError.details,
+          hint: fetchError.hint,
+        });
         return new NextResponse(`Eroare citire ${table}.`, { status: 500 });
       }
       if (!existing) {
-        console.error("[stripe/webhook] Obiect inexistent.", { sessionId: session.id, table, objectId });
+        console.error("[stripe/webhook] Obiect inexistent în Supabase.", {
+          sessionId: session.id,
+          table,
+          objectId,
+          listingId,
+          demandId,
+        });
         return NextResponse.json({ received: true, skipped: "object_not_found" });
       }
       if ((existing as { status?: string }).status === "active") {
+        console.log("[stripe/webhook] Obiect deja activ (idempotent).", {
+          sessionId: session.id,
+          table,
+          objectId,
+        });
         return NextResponse.json({ received: true, idempotent: true });
       }
 
-      const updateError = await activateRow(supabase, table, objectId, expiresAt);
+      const updateError = await activateRow(
+        supabase,
+        table,
+        objectId,
+        activation.expiresAt,
+        "[stripe/webhook]"
+      );
       if (updateError) {
-        // Plata a reușit deja; activarea a eșuat → log detaliat pentru RECUPERARE MANUALĂ.
         console.error("[stripe/webhook] Eroare activare — RECUPERARE MANUALĂ:", {
           sessionId: session.id,
           type,
           table,
           objectId,
-          priceId,
+          listingId,
+          demandId,
+          userId: userId || null,
+          activation,
+          supabase: updateError.supabase,
           error: updateError.message,
         });
         return new NextResponse(`Eroare activare ${table}.`, { status: 500 });
@@ -124,66 +161,24 @@ export async function POST(req: Request) {
         table,
         objectId,
         userId: userId || null,
-        priceId,
-        expiresAt,
+        activation,
       });
-      return NextResponse.json({ received: true, activated: objectId, type, expiresAt });
+      return NextResponse.json({
+        received: true,
+        activated: objectId,
+        type,
+        expiresAt: activation.expiresAt,
+      });
     }
 
-    // Alte evenimente: confirmăm recepția ca Stripe să nu mai reîncerce.
     return NextResponse.json({ received: true });
-  } catch (error: any) {
-    console.error("[stripe/webhook] Eroare generală:", error?.message ?? error);
+  } catch (error: unknown) {
+    const err = error instanceof Error ? error : new Error(String(error));
+    console.error("[stripe/webhook] Eroare generală neprevăzută:", {
+      message: err.message,
+      name: err.name,
+      stack: err.stack,
+    });
     return new NextResponse("Eroare internă.", { status: 500 });
   }
-}
-
-// Activează un rând (listing/demand) cu degradare elegantă a coloanelor opționale.
-// Încearcă întâi cu `paid` + `expires_at`; dacă o coloană lipsește din schemă
-// (PostgREST PGRST204), o scoate și reîncearcă, până rămâne doar `status: active`.
-async function activateRow(
-  supabase: SupabaseClient,
-  table: string,
-  id: string,
-  expiresAt: string | null
-): Promise<{ message: string } | null> {
-  const payload: Record<string, unknown> = { status: "active", paid: true };
-  if (expiresAt) payload.expires_at = expiresAt;
-
-  // Maxim 3 reîncercări: scoatem pe rând `paid`, apoi `expires_at`.
-  for (let attempt = 0; attempt < 3; attempt++) {
-    const { error } = await supabase
-      .from(table)
-      .update(payload)
-      .eq("id", id)
-      .neq("status", "active");
-
-    if (!error) return null;
-
-    // Scoatem coloana care lipsește din schemă și reîncercăm; altfel, eroare reală.
-    let removed = false;
-    for (const col of ["paid", "expires_at"]) {
-      if (col in payload && isMissingColumnError(error, col)) {
-        delete payload[col];
-        removed = true;
-        break;
-      }
-    }
-    if (!removed) return error;
-  }
-
-  return { message: "Update eșuat după mai multe încercări de fallback." };
-}
-
-// Detectează eroarea PostgREST de coloană inexistentă (ex: lipsește `paid`),
-// ca să putem face fallback fără acel câmp.
-function isMissingColumnError(
-  error: { code?: string; message?: string } | null,
-  column: string
-): boolean {
-  if (!error) return false;
-  // PGRST204 = coloană negăsită în cache-ul de schemă; mesajul conține numele coloanei.
-  if (error.code === "PGRST204") return true;
-  const msg = (error.message ?? "").toLowerCase();
-  return msg.includes(column.toLowerCase()) && msg.includes("column");
 }

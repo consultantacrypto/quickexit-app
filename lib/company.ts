@@ -27,7 +27,7 @@ export const companyInfo = {
   },
   authorizedPerson: "Mihai Daniel",
   manager: "Mihai Daniel",
-  publicEmail: "vip@quickexit.ro",
+  publicEmail: "office@quickexit.ro",
   copyright: "© 2026 QuickExit, LLC. Toate drepturile rezervate.",
 } as const;
 
