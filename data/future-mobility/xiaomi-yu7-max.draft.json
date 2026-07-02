@@ -1,0 +1,207 @@
+{
+  "pack_version": "1.0",
+  "model_id": "xiaomi-yu7-max",
+  "commercial_status": "pending_partner_confirmation",
+  "listing": {
+    "title": "Xiaomi YU7 Max — SUV electric premium",
+    "description_short": "SUV electric dual-motor AWD cu 690 PS, autonomie declarată 760 km CLTC și baterie 101,7 kWh. Încărcare 10–80% în 12 minute. Disponibil la comandă prin QuickExit × AutoConsul.",
+    "description_long": "Xiaomi YU7 Max este SUV-ul electric premium al gamei, cu tracțiune integrală dual-motor AWD. Puterea maximă declarată este de 690 PS (508 kW), cu accelerație 0–100 km/h în 3,23 secunde (2,98 s fără one-foot rollout) și viteză maximă de 253 km/h.\n\nBateria de 101,7 kWh oferă o autonomie declarată de 760 km în ciclu CLTC — nu WLTP. Încărcarea rapidă permite 10–80% în aproximativ 12 minute, cu până la 620 km CLTC adăugați în 15 minute de încărcare, la rată maximă de 5,2C.\n\nDisponibil prin parteneriatul QuickExit × AutoConsul. QuickExit facilitează prezentarea și solicitarea inițială. Oferta comercială, contractarea, avansul, importul și livrarea sunt gestionate de AutoConsul.",
+    "category": "Auto & Moto",
+    "market_price": null,
+    "exit_price": null,
+    "discount": null,
+    "deal_score": null,
+    "sale_strategy": "standard",
+    "status": "draft",
+    "is_seed": false,
+    "images": []
+  },
+  "details": {
+    "collection": "future_mobility",
+    "model_slug": "xiaomi-yu7-max",
+    "make": "Xiaomi",
+    "model": "YU7 Max",
+    "year": null,
+    "fuel": "Electric",
+    "transmission": "Automatic",
+    "bodyType": "SUV",
+    "drivetrain": "AWD dual-motor",
+    "availability_type": "on_order",
+    "delivery_estimate": "REPLACE_WITH_AUTOCONSUL_CONFIRMED_VALUE",
+    "delivery_note": "Termenul de livrare se confirmă împreună cu AutoConsul după configurarea finală.",
+    "price_display": "from",
+    "price_from_eur": null,
+    "cta_title": "Solicită ofertă personalizată",
+    "cta_description": "Configurația și prețul final se confirmă împreună cu partenerul.",
+    "badges": ["FUTURE_COLLECTION", "IMPORT_PREMIUM", "EV_PREMIUM", "CONFIGURABIL"],
+    "ev_specs": {
+      "power_hp": 690,
+      "power_kw": 508,
+      "torque_nm": null,
+      "battery_kwh": 101.7,
+      "range_km_wltp": null,
+      "range_km_cltc": 760,
+      "acceleration_0_100": "3.23 s (2.98 s fără one-foot rollout)",
+      "top_speed_kmh": 253,
+      "charging_dc_kw": null,
+      "charging_10_80": "12 min (10–80%, 5.2C); +620 km CLTC în 15 min încărcare"
+    },
+    "dimensions": {
+      "length_mm": null,
+      "width_mm": null,
+      "height_mm": null,
+      "wheelbase_mm": null
+    },
+    "variants": [
+      {
+        "id": "yu7-max",
+        "name": "YU7 Max",
+        "price_from_eur": null,
+        "highlights": [
+          "Dual-motor AWD",
+          "690 PS / 508 kW",
+          "Baterie 101,7 kWh",
+          "760 km CLTC (declarat)"
+        ]
+      }
+    ],
+    "colors": [],
+    "options": [],
+    "battery_packs": [
+      {
+        "id": "yu7-max-battery",
+        "name": "101.7 kWh",
+        "included": true
+      }
+    ],
+    "dealer_partner": {
+      "id": "autoconsul",
+      "name": "AutoConsul",
+      "logo_url": null,
+      "website": "REPLACE_WITH_AUTOCONSUL_CONFIRMED_VALUE",
+      "contact_email": "REPLACE_WITH_AUTOCONSUL_CONFIRMED_VALUE",
+      "contact_phone": "REPLACE_WITH_AUTOCONSUL_CONFIRMED_VALUE",
+      "description": "Disponibil prin parteneriatul QuickExit × AutoConsul. QuickExit facilitează prezentarea și solicitarea inițială. Oferta comercială, contractarea, avansul, importul și livrarea sunt gestionate de AutoConsul."
+    },
+    "videos": [],
+    "hero_story": {
+      "headline": "SUV electric premium — spațiu, autonomie CLTC, performanță",
+      "body": "YU7 Max combină 690 PS cu o baterie de 101,7 kWh. Autonomia declarată este în standard CLTC, nu WLTP. Configurația și prețul se confirmă cu AutoConsul."
+    },
+    "competitors": [],
+    "faq": [
+      {
+        "q": "Autonomia de 760 km este WLTP?",
+        "a": "Nu. Valoarea de 760 km este autonomie declarată în ciclu CLTC, conform specificațiilor oficiale Xiaomi YU7 Max. Nu publicăm echivalență WLTP fără confirmare."
+      },
+      {
+        "q": "Care este prețul în România?",
+        "a": "Prețul orientativ pentru România nu este publicat până la confirmarea AutoConsul. Solicită ofertă personalizată."
+      },
+      {
+        "q": "Cât durează livrarea?",
+        "a": "REPLACE_WITH_AUTOCONSUL_CONFIRMED_VALUE — termenul se confirmă la ofertare."
+      },
+      {
+        "q": "Ce versiuni sunt disponibile?",
+        "a": "Pachetul curent documentează varianta Max. Alte versiuni sau echipări pentru import se confirmă cu partenerul."
+      },
+      {
+        "q": "Cine gestionează contractul?",
+        "a": "QuickExit facilitează prezentarea și solicitarea inițială. Contractarea, avansul, importul și livrarea sunt gestionate de AutoConsul."
+      },
+      {
+        "q": "Ce înseamnă încărcarea +620 km CLTC în 15 minute?",
+        "a": "Este o valoare declarată oficial pentru autonomie CLTC adăugată într-o sesiune de încărcare de 15 minute, în condiții de testare producător. Rezultatele reale variază."
+      },
+      {
+        "q": "Există garanție în România?",
+        "a": "Condițiile de garanție și service în România sunt de confirmat cu AutoConsul — REPLACE_WITH_AUTOCONSUL_CONFIRMED_VALUE."
+      }
+    ],
+    "warranty": {
+      "summary": "REPLACE_WITH_AUTOCONSUL_CONFIRMED_VALUE",
+      "months": null,
+      "km_limit": null
+    },
+    "import": {
+      "type": "la comandă",
+      "origin_market": "REPLACE_WITH_AUTOCONSUL_CONFIRMED_VALUE",
+      "homologation_note": "REPLACE_WITH_AUTOCONSUL_CONFIRMED_VALUE"
+    },
+    "seo": {
+      "meta_title_ro": "Xiaomi YU7 Max la comandă | Future Mobility QuickExit",
+      "meta_description_ro": "SUV electric premium 690 PS, 760 km CLTC declarat, disponibil la comandă prin QuickExit × AutoConsul. Solicită ofertă personalizată.",
+      "meta_title_en": "Xiaomi YU7 Max on order | Future Mobility QuickExit",
+      "meta_description_en": "Premium electric SUV, 690 PS, 760 km CLTC stated range, on order via QuickExit × AutoConsul. Request a personalized quote."
+    }
+  },
+  "content": {
+    "subtitle": "SUV electric premium — dual-motor AWD",
+    "benefits": [
+      "690 PS / 508 kW — performanță SUV premium",
+      "Baterie 101,7 kWh",
+      "760 km autonomie declarată CLTC (nu WLTP)",
+      "0–100 km/h în 3,23 s",
+      "Încărcare 10–80% în 12 minute",
+      "+620 km CLTC în 15 minute încărcare (declarat)",
+      "Viteză maximă 253 km/h",
+      "Proces comercial prin AutoConsul"
+    ],
+    "for_whom": "Pentru familii și profesioniști care doresc un SUV electric spațios, cu autonomie declarată ridicată în standard CLTC și configurare la comandă."
+  },
+  "image_manifest": {
+    "hero_exterior": { "status": "missing", "source_required": "official_press_kit_or_partner", "rights_status": "pending" },
+    "front_3_4": { "status": "missing", "source_required": "official_press_kit_or_partner", "rights_status": "pending" },
+    "rear_3_4": { "status": "missing", "source_required": "official_press_kit_or_partner", "rights_status": "pending" },
+    "lateral": { "status": "missing", "source_required": "official_press_kit_or_partner", "rights_status": "pending" },
+    "interior_dashboard": { "status": "missing", "source_required": "official_press_kit_or_partner", "rights_status": "pending" },
+    "rear_seats": { "status": "missing", "source_required": "official_press_kit_or_partner", "rights_status": "pending" },
+    "charging_engine_area": { "status": "missing", "source_required": "official_press_kit_or_partner", "rights_status": "pending" },
+    "detail_technology": { "status": "missing", "source_required": "official_press_kit_or_partner", "rights_status": "pending" },
+    "color_previews": { "status": "missing", "source_required": "official_press_kit_or_partner", "rights_status": "pending" }
+  },
+  "internal_validation": {
+    "technical_data_status": "partial",
+    "commercial_data_status": "pending",
+    "image_rights_status": "pending",
+    "legal_copy_status": "draft",
+    "ready_for_seed": false,
+    "blocking_fields": [
+      "commercial_status",
+      "listing.exit_price",
+      "listing.images",
+      "details.delivery_estimate",
+      "details.price_from_eur",
+      "details.colors (empty — paletă de confirmat)",
+      "details.dimensions (incomplete)",
+      "details.dealer_partner.contact_*",
+      "details.warranty.summary",
+      "image_manifest"
+    ]
+  },
+  "source_registry": [
+    { "field": "details.ev_specs.power_hp", "value": "690 PS", "source_type": "oem_official", "source_name": "Xiaomi YU7 Max — specificații oficiale", "publication_date": null, "verification_status": "confirmed", "notes": null },
+    { "field": "details.ev_specs.power_kw", "value": "508 kW", "source_type": "oem_official", "source_name": "Xiaomi YU7 Max — specificații oficiale", "publication_date": null, "verification_status": "confirmed", "notes": null },
+    { "field": "details.ev_specs.range_km_cltc", "value": "760 km", "source_type": "oem_official", "source_name": "Xiaomi YU7 Max — specificații oficiale", "publication_date": null, "verification_status": "confirmed", "notes": "Explicit CLTC — nu WLTP" },
+    { "field": "details.ev_specs.battery_kwh", "value": "101.7 kWh", "source_type": "oem_official", "source_name": "Xiaomi YU7 Max — specificații oficiale", "publication_date": null, "verification_status": "confirmed", "notes": null },
+    { "field": "details.ev_specs.acceleration_0_100", "value": "3.23 s / 2.98 s fără one-foot", "source_type": "oem_official", "source_name": "Xiaomi YU7 Max — specificații oficiale", "publication_date": null, "verification_status": "confirmed", "notes": null },
+    { "field": "details.ev_specs.charging_10_80", "value": "12 min, +620 km CLTC / 15 min", "source_type": "oem_official", "source_name": "Xiaomi YU7 Max — specificații oficiale", "publication_date": null, "verification_status": "confirmed", "notes": "Toate valorile CLTC" },
+    { "field": "details.ev_specs.range_km_wltp", "value": null, "source_type": "n/a", "source_name": "n/a", "publication_date": null, "verification_status": "intentionally_omitted", "notes": "Menționat explicit în copy că nu e WLTP" },
+    { "field": "details.colors", "value": "[]", "source_type": "oem_official", "source_name": "Xiaomi YU7 Max — paletă", "publication_date": null, "verification_status": "pending", "notes": "Culori oficiale neincluse în brief Sprint 1B — de completat din press kit" }
+  ],
+  "commercial_confirmation": {
+    "public_price": "REPLACE_WITH_AUTOCONSUL_CONFIRMED_VALUE",
+    "deposit": "REPLACE_WITH_AUTOCONSUL_CONFIRMED_VALUE",
+    "delivery_estimate": "REPLACE_WITH_AUTOCONSUL_CONFIRMED_VALUE",
+    "included_costs": "REPLACE_WITH_AUTOCONSUL_CONFIRMED_VALUE",
+    "warranty_romania": "REPLACE_WITH_AUTOCONSUL_CONFIRMED_VALUE",
+    "service_romania": "REPLACE_WITH_AUTOCONSUL_CONFIRMED_VALUE",
+    "homologation": "REPLACE_WITH_AUTOCONSUL_CONFIRMED_VALUE",
+    "available_configurations": "REPLACE_WITH_AUTOCONSUL_CONFIRMED_VALUE",
+    "available_colors": "REPLACE_WITH_AUTOCONSUL_CONFIRMED_VALUE",
+    "partner_contact": "REPLACE_WITH_AUTOCONSUL_CONFIRMED_VALUE",
+    "contract_entity": "REPLACE_WITH_AUTOCONSUL_CONFIRMED_VALUE",
+    "invoice_entity": "REPLACE_WITH_AUTOCONSUL_CONFIRMED_VALUE"
+  }
+}

@@ -57,7 +57,10 @@ function buildEvSpecRows(
   if (fm.bodyType) push(t("futureMobility.fields.bodyType"), fm.bodyType);
   if (fm.drivetrain) push(t("futureMobility.fields.drivetrain"), fm.drivetrain);
 
-  if (ev.power_hp !== undefined) push(t("futureMobility.fields.powerHp"), `${ev.power_hp} CP`);
+  if (ev.power_hp !== undefined) {
+    const formattedPower = ev.power_hp.toLocaleString(numberLocale);
+    push(t("futureMobility.fields.powerPsMax"), `${formattedPower} PS`);
+  }
   if (ev.power_kw !== undefined) push(t("futureMobility.fields.powerKw"), `${ev.power_kw} kW`);
   if (ev.torque_nm !== undefined) push(t("futureMobility.fields.torque"), `${ev.torque_nm} Nm`);
   if (ev.battery_kwh !== undefined) push(t("futureMobility.fields.battery"), `${ev.battery_kwh} kWh`);
@@ -361,7 +364,9 @@ export default function FutureMobilitySections({ fm }: FutureMobilitySectionsPro
                 <tr key={row.name} className="border-b border-neutral-200">
                   <td className="py-3 pr-4 font-bold text-black">{row.name}</td>
                   <td className="py-3 pr-4 text-neutral-800">
-                    {row.power_hp !== undefined ? `${row.power_hp} CP` : "—"}
+                    {row.power_hp !== undefined
+                      ? `${row.power_hp.toLocaleString(numberLocale)} PS`
+                      : "—"}
                   </td>
                   <td className="py-3 pr-4 text-neutral-800">{row.acceleration_0_100 ?? "—"}</td>
                   <td className="py-3 text-neutral-800">

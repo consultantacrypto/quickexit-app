@@ -497,6 +497,7 @@
         "bodyType": "Body type",
         "drivetrain": "Drivetrain",
         "powerHp": "Power",
+        "powerPsMax": "Maximum power",
         "powerKw": "Power kW",
         "torque": "Torque",
         "battery": "Battery",

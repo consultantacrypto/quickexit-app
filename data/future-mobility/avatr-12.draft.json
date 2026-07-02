@@ -1,0 +1,225 @@
+{
+  "pack_version": "1.0",
+  "model_id": "avatr-12",
+  "commercial_status": "pending_partner_confirmation",
+  "listing": {
+    "title": "AVATR 12 — Futuristic Luxury Gran Coupe",
+    "description_short": "Gran coupe de lux cu ecran panoramic 35.4\" 4K, audio Meridian 7.1.4 și integrare tehnologică Huawei Qiankun. Disponibil la comandă — versiunea EV/REEV și specificațiile de performanță se confirmă cu AutoConsul.",
+    "description_long": "AVATR 12 este poziționat ca Futuristic Luxury Gran Coupe: proporții de 5020 × 1999 × 1460 mm și ampatament de 3020 mm, cu un habitaclu centrat pe tehnologie și material premium.\n\nEcranul panoramic Star Ring Display de 35.4 inch în rezoluție 4K și sistemul audio Meridian cu 25 de difuzoare și Dolby Atmos 7.1.4 definesc experiența la bord. Integrarea Huawei Qiankun este documentată conform paginii oficiale AVATR.\n\nPuterea, bateria, autonomia și accelerația depind de versiunea (EV și/sau REEV) efectiv importată de AutoConsul — nu publicăm o singură valoare până la confirmarea variantei comerciale.\n\nDisponibil prin parteneriatul QuickExit × AutoConsul. QuickExit facilitează prezentarea și solicitarea inițială. Oferta comercială, contractarea, avansul, importul și livrarea sunt gestionate de AutoConsul.",
+    "category": "Auto & Moto",
+    "market_price": null,
+    "exit_price": null,
+    "discount": null,
+    "deal_score": null,
+    "sale_strategy": "standard",
+    "status": "draft",
+    "is_seed": false,
+    "images": []
+  },
+  "details": {
+    "collection": "future_mobility",
+    "model_slug": "avatr-12",
+    "make": "AVATR",
+    "model": "12",
+    "year": null,
+    "fuel": "REPLACE_WITH_AUTOCONSUL_CONFIRMED_VALUE",
+    "transmission": "Automatic",
+    "bodyType": "Gran Coupe",
+    "drivetrain": "REPLACE_WITH_AUTOCONSUL_CONFIRMED_VALUE",
+    "availability_type": "on_order",
+    "delivery_estimate": "REPLACE_WITH_AUTOCONSUL_CONFIRMED_VALUE",
+    "delivery_note": "Versiunea (EV / REEV) și termenul de livrare se confirmă cu AutoConsul.",
+    "price_display": "from",
+    "price_from_eur": null,
+    "cta_title": "Solicită ofertă personalizată",
+    "cta_description": "Configurația și prețul final se confirmă împreună cu partenerul.",
+    "badges": ["FUTURE_COLLECTION", "IMPORT_PREMIUM", "CONFIGURABIL"],
+    "ev_specs": {
+      "power_hp": null,
+      "power_kw": null,
+      "torque_nm": null,
+      "battery_kwh": null,
+      "range_km_wltp": null,
+      "range_km_cltc": null,
+      "acceleration_0_100": null,
+      "top_speed_kmh": null,
+      "charging_dc_kw": null,
+      "charging_10_80": null
+    },
+    "dimensions": {
+      "length_mm": 5020,
+      "width_mm": 1999,
+      "height_mm": 1460,
+      "wheelbase_mm": 3020
+    },
+    "variants": [
+      {
+        "id": "ev",
+        "name": "EV (variant-dependent)",
+        "price_from_eur": null,
+        "highlights": ["Specificații de confirmat cu AutoConsul pentru versiunea importată"]
+      },
+      {
+        "id": "reev",
+        "name": "REEV (variant-dependent)",
+        "price_from_eur": null,
+        "highlights": ["Disponibilitate comercială de confirmat cu AutoConsul"]
+      }
+    ],
+    "colors": [
+      { "id": "glossy-white", "name": "Glossy White", "hex": null, "image": null },
+      { "id": "glossy-grey", "name": "Glossy Grey", "hex": null, "image": null },
+      { "id": "glossy-black", "name": "Glossy Black", "hex": null, "image": null },
+      { "id": "misty-purple", "name": "Misty Purple", "hex": null, "image": null },
+      { "id": "polar-light-grey", "name": "Polar Light Grey", "hex": null, "image": null },
+      { "id": "dual-tone-grey-black", "name": "Glossy Grey / Glossy Black Dual-Tone", "hex": null, "image": null }
+    ],
+    "options": [
+      "Sistem audio Meridian — 25 difuzoare, Dolby Atmos 7.1.4",
+      "Ecran panoramic 35.4-inch 4K Star Ring Display",
+      "Integrare tehnologică Huawei Qiankun (conform paginii oficiale)"
+    ],
+    "battery_packs": [],
+    "dealer_partner": {
+      "id": "autoconsul",
+      "name": "AutoConsul",
+      "logo_url": null,
+      "website": "REPLACE_WITH_AUTOCONSUL_CONFIRMED_VALUE",
+      "contact_email": "REPLACE_WITH_AUTOCONSUL_CONFIRMED_VALUE",
+      "contact_phone": "REPLACE_WITH_AUTOCONSUL_CONFIRMED_VALUE",
+      "description": "Disponibil prin parteneriatul QuickExit × AutoConsul. QuickExit facilitează prezentarea și solicitarea inițială. Oferta comercială, contractarea, avansul, importul și livrarea sunt gestionate de AutoConsul."
+    },
+    "videos": [],
+    "hero_story": {
+      "headline": "Lux futurist — tehnologie panoramică și audio de referință",
+      "body": "AVATR 12 combină proporții de gran coupe cu un ecosistem digital Huawei Qiankun. Versiunea și specificațiile de performanță se stabilesc la ofertare cu AutoConsul."
+    },
+    "competitors": [],
+    "faq": [
+      {
+        "q": "AVATR 12 este electric sau hibrid?",
+        "a": "Modelul este disponibil în configurații EV și/sau REEV în funcție de piață. Versiunea importată prin AutoConsul se confirmă la ofertare — nu alegem o singură variantă în acest pachet."
+      },
+      {
+        "q": "Care sunt puterea și autonomia?",
+        "a": "Specificațiile de putere, baterie, autonomie și accelerație sunt variant-dependent și rămân nepublicate până la confirmarea versiunii aduse de AutoConsul."
+      },
+      {
+        "q": "Ce include ecranul Star Ring Display?",
+        "a": "Ecran panoramic de 35,4 inch în rezoluție 4K, conform documentației oficiale AVATR 12."
+      },
+      {
+        "q": "Ce sistem audio este disponibil?",
+        "a": "Sistem Meridian cu 25 de difuzoare, configurare 7.1.4 Dolby Atmos, conform specificațiilor oficiale de echipare disponibile."
+      },
+      {
+        "q": "Ce culori pot alege?",
+        "a": "Paleta oficială afișată include Glossy White, Glossy Grey, Glossy Black, Misty Purple, Polar Light Grey și varianta Dual-Tone Grey/Black. Disponibilitatea pentru comanda ta se confirmă cu partenerul."
+      },
+      {
+        "q": "Ce înseamnă integrarea Huawei Qiankun?",
+        "a": "Este ecosistemul tehnologic documentat pe pagina oficială AVATR pentru conectivitate și experiență digitală la bord. Funcțiile exacte pentru piața importului se confirmă comercial."
+      },
+      {
+        "q": "Care este prețul în România?",
+        "a": "REPLACE_WITH_AUTOCONSUL_CONFIRMED_VALUE — solicită ofertă personalizată."
+      },
+      {
+        "q": "Cine gestionează livrarea?",
+        "a": "AutoConsul gestionează oferta comercială, contractarea, avansul, importul și livrarea. QuickExit facilitează doar prezentarea și solicitarea inițială."
+      }
+    ],
+    "warranty": {
+      "summary": "REPLACE_WITH_AUTOCONSUL_CONFIRMED_VALUE",
+      "months": null,
+      "km_limit": null
+    },
+    "import": {
+      "type": "la comandă",
+      "origin_market": "REPLACE_WITH_AUTOCONSUL_CONFIRMED_VALUE",
+      "homologation_note": "REPLACE_WITH_AUTOCONSUL_CONFIRMED_VALUE"
+    },
+    "seo": {
+      "meta_title_ro": "AVATR 12 la comandă | Future Mobility QuickExit",
+      "meta_description_ro": "Futuristic Luxury Gran Coupe — ecran 35.4\" 4K, audio Meridian, disponibil la comandă prin QuickExit × AutoConsul. Solicită ofertă personalizată.",
+      "meta_title_en": "AVATR 12 on order | Future Mobility QuickExit",
+      "meta_description_en": "Futuristic Luxury Gran Coupe with 35.4\" 4K display and Meridian audio, on order via QuickExit × AutoConsul. Request a personalized quote."
+    }
+  },
+  "content": {
+    "subtitle": "Futuristic Luxury Gran Coupe",
+    "benefits": [
+      "Proporții premium: 5020 mm lungime, ampatament 3020 mm",
+      "Ecran panoramic 35.4-inch 4K Star Ring Display",
+      "Audio Meridian — 25 difuzoare, Dolby Atmos 7.1.4",
+      "Integrare Huawei Qiankun (conform OEM)",
+      "Șase opțiuni de culoare oficiale documentate",
+      "Structură pregătită pentru variante EV și REEV",
+      "Import și ofertare prin AutoConsul"
+    ],
+    "for_whom": "Pentru clienți care caută un gran coupe de lux, cu accent pe tehnologie la bord și personalizare la comandă, fără compromisuri pe transparența procesului comercial."
+  },
+  "image_manifest": {
+    "hero_exterior": { "status": "missing", "source_required": "official_press_kit_or_partner", "rights_status": "pending" },
+    "front_3_4": { "status": "missing", "source_required": "official_press_kit_or_partner", "rights_status": "pending" },
+    "rear_3_4": { "status": "missing", "source_required": "official_press_kit_or_partner", "rights_status": "pending" },
+    "lateral": { "status": "missing", "source_required": "official_press_kit_or_partner", "rights_status": "pending" },
+    "interior_dashboard": { "status": "missing", "source_required": "official_press_kit_or_partner", "rights_status": "pending" },
+    "rear_seats": { "status": "missing", "source_required": "official_press_kit_or_partner", "rights_status": "pending" },
+    "charging_engine_area": { "status": "missing", "source_required": "official_press_kit_or_partner", "rights_status": "pending" },
+    "detail_technology": { "status": "missing", "source_required": "official_press_kit_or_partner", "rights_status": "pending" },
+    "color_previews": { "status": "missing", "source_required": "official_press_kit_or_partner", "rights_status": "pending" }
+  },
+  "internal_validation": {
+    "technical_data_status": "partial",
+    "commercial_data_status": "pending",
+    "image_rights_status": "pending",
+    "legal_copy_status": "draft",
+    "ready_for_seed": false,
+    "blocking_fields": [
+      "commercial_status",
+      "details.fuel (variant-dependent)",
+      "details.drivetrain (variant-dependent)",
+      "details.ev_specs (all null — variant-dependent)",
+      "listing.exit_price",
+      "listing.images",
+      "details.delivery_estimate",
+      "details.dealer_partner.contact_*",
+      "commercial_confirmation (all fields)"
+    ],
+    "variant_dependent_fields": [
+      "details.fuel",
+      "details.drivetrain",
+      "details.ev_specs.power_hp",
+      "details.ev_specs.power_kw",
+      "details.ev_specs.battery_kwh",
+      "details.ev_specs.range_km_wltp",
+      "details.ev_specs.range_km_cltc",
+      "details.ev_specs.acceleration_0_100",
+      "details.battery_packs"
+    ]
+  },
+  "source_registry": [
+    { "field": "details.dimensions", "value": "5020×1999×1460 mm, WB 3020 mm", "source_type": "oem_official", "source_name": "AVATR 12 — pagină oficială model", "publication_date": null, "verification_status": "confirmed", "notes": null },
+    { "field": "details.options[display]", "value": "35.4-inch 4K Star Ring Display", "source_type": "oem_official", "source_name": "AVATR 12 — pagină oficială model", "publication_date": null, "verification_status": "confirmed", "notes": null },
+    { "field": "details.options[audio]", "value": "Meridian 25 speakers 7.1.4 Atmos", "source_type": "oem_official", "source_name": "AVATR 12 — pagină oficială model", "publication_date": null, "verification_status": "confirmed", "notes": null },
+    { "field": "details.options[qiankun]", "value": "Huawei Qiankun integration", "source_type": "oem_official", "source_name": "AVATR 12 — pagină oficială model", "publication_date": null, "verification_status": "confirmed", "notes": "Conform paginii oficiale" },
+    { "field": "details.colors", "value": "6 culori oficiale", "source_type": "oem_official", "source_name": "AVATR 12 — configurator oficial", "publication_date": null, "verification_status": "confirmed", "notes": "Disponibilitate RO de confirmat" },
+    { "field": "details.ev_specs", "value": null, "source_type": "partner_commercial", "source_name": "AutoConsul — versiune import", "publication_date": null, "verification_status": "pending", "notes": "Nu alegem EV vs REEV specs până la confirmare" },
+    { "field": "details.variants", "value": "EV / REEV placeholders", "source_type": "internal_structure", "source_name": "Sprint 1B content pack", "publication_date": null, "verification_status": "draft", "notes": "Pregătit pentru completare post-confirmare" }
+  ],
+  "commercial_confirmation": {
+    "public_price": "REPLACE_WITH_AUTOCONSUL_CONFIRMED_VALUE",
+    "deposit": "REPLACE_WITH_AUTOCONSUL_CONFIRMED_VALUE",
+    "delivery_estimate": "REPLACE_WITH_AUTOCONSUL_CONFIRMED_VALUE",
+    "included_costs": "REPLACE_WITH_AUTOCONSUL_CONFIRMED_VALUE",
+    "warranty_romania": "REPLACE_WITH_AUTOCONSUL_CONFIRMED_VALUE",
+    "service_romania": "REPLACE_WITH_AUTOCONSUL_CONFIRMED_VALUE",
+    "homologation": "REPLACE_WITH_AUTOCONSUL_CONFIRMED_VALUE",
+    "available_configurations": "REPLACE_WITH_AUTOCONSUL_CONFIRMED_VALUE",
+    "available_colors": "REPLACE_WITH_AUTOCONSUL_CONFIRMED_VALUE",
+    "partner_contact": "REPLACE_WITH_AUTOCONSUL_CONFIRMED_VALUE",
+    "contract_entity": "REPLACE_WITH_AUTOCONSUL_CONFIRMED_VALUE",
+    "invoice_entity": "REPLACE_WITH_AUTOCONSUL_CONFIRMED_VALUE"
+  }
+}

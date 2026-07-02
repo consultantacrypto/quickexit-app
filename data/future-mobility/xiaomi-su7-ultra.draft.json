@@ -1,0 +1,211 @@
+{
+  "pack_version": "1.0",
+  "model_id": "xiaomi-su7-ultra",
+  "commercial_status": "pending_partner_confirmation",
+  "listing": {
+    "title": "Xiaomi SU7 Ultra — sedan electric de performanță",
+    "description_short": "Sedan electric tri-motor AWD cu 1.548 PS, conform specificațiilor producătorului, accelerație 0–100 km/h în 1,98 s (fără one-foot rollout) și baterie CATL Qilin 2.0 optimizată pentru track. Disponibil la comandă prin parteneriatul QuickExit × AutoConsul.",
+    "description_long": "Xiaomi SU7 Ultra reprezintă vârful gamei SU7: un sedan electric de performanță cu tracțiune integrală tri-motor, conceput pentru performanță ridicată și încărcare rapidă. Puterea maximă declarată este de 1.548 PS, conform specificațiilor producătorului, cu accelerație 0–100 km/h în 1,98 secunde fără one-foot rollout și viteză maximă proiectată de 350 km/h. Bateria CATL Qilin 2.0, optimizată pentru utilizare intensă, suportă încărcare 10–80% în aproximativ 11 minute, în condițiile declarate de producător, la rată maximă de încărcare de până la 5,2C, conform producătorului.\n\nDisponibil prin parteneriatul QuickExit × AutoConsul. QuickExit facilitează prezentarea și solicitarea inițială; oferta comercială, contractarea, avansul, importul și livrarea sunt gestionate de AutoConsul.\n\nConfigurația finală, culorile disponibile pentru piața țintă, prețul orientativ și termenul de livrare se confirmă împreună cu partenerul înainte de contractare.",
+    "category": "Auto & Moto",
+    "market_price": null,
+    "exit_price": null,
+    "discount": null,
+    "deal_score": null,
+    "sale_strategy": "standard",
+    "status": "draft",
+    "is_seed": false,
+    "images": []
+  },
+  "details": {
+    "collection": "future_mobility",
+    "model_slug": "xiaomi-su7-ultra",
+    "make": "Xiaomi",
+    "model": "SU7 Ultra",
+    "year": null,
+    "fuel": "Electric",
+    "transmission": "Automatic",
+    "bodyType": "Sedan",
+    "drivetrain": "AWD tri-motor",
+    "availability_type": "on_order",
+    "delivery_estimate": null,
+    "delivery_note": "Termenul estimat de livrare este confirmat de AutoConsul după alegerea configurației și verificarea disponibilității.",
+    "price_display": "from",
+    "price_from_eur": null,
+    "cta_title": "Solicită ofertă personalizată",
+    "cta_description": "Configurația și prețul final se confirmă împreună cu partenerul.",
+    "badges": ["FUTURE_COLLECTION", "IMPORT_PREMIUM", "EV_PREMIUM", "CONFIGURABIL"],
+    "ev_specs": {
+      "power_hp": 1548,
+      "power_kw": null,
+      "torque_nm": null,
+      "battery_kwh": null,
+      "range_km_wltp": null,
+      "range_km_cltc": null,
+      "acceleration_0_100": "1,98 s (fără one-foot rollout)",
+      "top_speed_kmh": 350,
+      "charging_dc_kw": null,
+      "charging_10_80": "aproximativ 11 minute (10–80%), în condițiile declarate de producător; până la 5,2C"
+    },
+    "dimensions": {
+      "length_mm": 5115,
+      "width_mm": 1970,
+      "height_mm": 1465,
+      "wheelbase_mm": 3000,
+      "braking_100_0_m": 30.8
+    },
+    "variants": [
+      {
+        "id": "su7-ultra",
+        "name": "SU7 Ultra",
+        "price_from_eur": null,
+        "highlights": [
+          "Tri-motor AWD",
+          "1.548 PS, conform specificațiilor producătorului",
+          "Baterie CATL Qilin 2.0 track-optimized"
+        ]
+      }
+    ],
+    "colors": [
+      { "id": "lightning-yellow", "name": "Lightning Yellow", "hex": null, "image": null },
+      { "id": "space-silver", "name": "Space Silver", "hex": null, "image": null },
+      { "id": "verdant-green", "name": "Verdant Green", "hex": null, "image": null },
+      { "id": "pearl-white", "name": "Pearl White", "hex": null, "image": null },
+      { "id": "obsidian-black", "name": "Obsidian Black", "hex": null, "image": null }
+    ],
+    "options": [
+      "Racing Package — opțiune prezentată oficial de producător. Disponibilitatea pentru vehiculul importat se confirmă înainte de comandă."
+    ],
+    "battery_packs": [
+      {
+        "id": "catl-qilin-2-track",
+        "name": "CATL Qilin 2.0 — track-optimized",
+        "included": true
+      }
+    ],
+    "dealer_partner": {
+      "id": "autoconsul",
+      "name": "AutoConsul",
+      "description": "Partener comercial pentru ofertă, contract, import și livrare."
+    },
+    "videos": [],
+    "hero_story": {
+      "headline": "Performanță electrică de vârf — Xiaomi SU7 Ultra",
+      "body": "Sedan electric tri-motor cu 1.548 PS, conform specificațiilor producătorului, și performanțe de accelerație și putere de vârf de gamă, conform specificațiilor producătorului. Configurația, culorile și prețul final se stabilesc împreună cu AutoConsul."
+    },
+    "competitors": [],
+    "faq": [
+      {
+        "q": "Este mașina disponibilă imediat?",
+        "a": "Modelul este disponibil la comandă. Termenul estimat de livrare este confirmat de AutoConsul după alegerea configurației și verificarea disponibilității."
+      },
+      {
+        "q": "Care este prețul în România?",
+        "a": "Prețul orientativ pentru piața România nu este publicat până la confirmarea comercială AutoConsul. Solicită o ofertă personalizată pentru o propunere actualizată."
+      },
+      {
+        "q": "Ce include Racing Package?",
+        "a": "Racing Package este o opțiune prezentată oficial de producător. Conținutul exact și disponibilitatea pentru vehiculul importat se confirmă înainte de comandă."
+      },
+      {
+        "q": "Ce autonomie are SU7 Ultra?",
+        "a": "Autonomia WLTP nu este publicată fără confirmare oficială pentru versiunea importată. Nu folosim estimări neconfirmate."
+      },
+      {
+        "q": "Cine gestionează contractul și livrarea?",
+        "a": "QuickExit facilitează prezentarea și solicitarea inițială. Oferta comercială, contractarea, avansul, importul și livrarea sunt gestionate de AutoConsul."
+      },
+      {
+        "q": "Pot alege culoarea?",
+        "a": "Paleta oficială include Lightning Yellow, Space Silver, Verdant Green, Pearl White și Obsidian Black. Paleta oficială a modelului. Disponibilitatea fiecărei culori pentru comenzile din România se confirmă de AutoConsul."
+      },
+      {
+        "q": "Ce garanție primesc în România?",
+        "a": "Condițiile de garanție aplicabile în România vor fi comunicate în oferta comercială emisă de AutoConsul, în funcție de configurația și piața de proveniență a vehiculului."
+      },
+      {
+        "q": "Cum se face înmatricularea în România?",
+        "a": "Procedura și documentele necesare pentru înmatricularea în România vor fi confirmate în oferta finală emisă de AutoConsul."
+      },
+      {
+        "q": "Cum funcționează solicitarea de pe QuickExit?",
+        "a": "Completezi cererea de ofertă personalizată. Datele tale de contact sunt transmise pentru a primi o propunere comercială de la AutoConsul."
+      }
+    ],
+    "import": {
+      "type": "la comandă"
+    },
+    "seo": {
+      "meta_title_ro": "Xiaomi SU7 Ultra la comandă | Future Mobility QuickExit",
+      "meta_description_ro": "Sedan electric tri-motor 1.548 PS, disponibil la comandă prin QuickExit × AutoConsul. Solicită ofertă personalizată — configurație și preț confirmate cu partenerul.",
+      "meta_title_en": "Xiaomi SU7 Ultra on order | Future Mobility QuickExit",
+      "meta_description_en": "Tri-motor electric performance sedan, 1,548 PS, available on order via QuickExit × AutoConsul. Request a personalized quote — configuration and price confirmed with the partner."
+    }
+  },
+  "content": {
+    "subtitle": "Sedan electric de performanță — tri-motor AWD",
+    "benefits": [
+      "1.548 PS, conform specificațiilor producătorului",
+      "0–100 km/h în 1,98 s fără one-foot rollout",
+      "Viteză maximă proiectată de 350 km/h",
+      "Baterie CATL Qilin 2.0 optimizată pentru track",
+      "Încărcare 10–80% în aproximativ 11 minute, în condițiile declarate de producător",
+      "Rată maximă de încărcare de până la 5,2C, conform producătorului",
+      "Frânare 100–0 km/h în 30,8 m (conform producătorului)",
+      "Paleta oficială de cinci culori; Racing Package opțional — disponibilitate confirmată de AutoConsul"
+    ],
+    "for_whom": "Pentru clienți care caută un sedan electric premium la comandă, cu performanțe de vârf de gamă documentate de producător și proces comercial transparent prin AutoConsul."
+  },
+  "image_manifest": {
+    "hero_exterior": { "status": "missing", "source_required": "official_press_kit_or_partner", "rights_status": "pending" },
+    "front_3_4": { "status": "missing", "source_required": "official_press_kit_or_partner", "rights_status": "pending" },
+    "rear_3_4": { "status": "missing", "source_required": "official_press_kit_or_partner", "rights_status": "pending" },
+    "lateral": { "status": "missing", "source_required": "official_press_kit_or_partner", "rights_status": "pending" },
+    "interior_dashboard": { "status": "missing", "source_required": "official_press_kit_or_partner", "rights_status": "pending" },
+    "rear_seats": { "status": "missing", "source_required": "official_press_kit_or_partner", "rights_status": "pending" },
+    "charging_engine_area": { "status": "missing", "source_required": "official_press_kit_or_partner", "rights_status": "pending" },
+    "detail_technology": { "status": "missing", "source_required": "official_press_kit_or_partner", "rights_status": "pending" },
+    "color_previews": { "status": "missing", "source_required": "official_press_kit_or_partner", "rights_status": "pending" }
+  },
+  "internal_validation": {
+    "technical_data_status": "partial",
+    "commercial_data_status": "pending",
+    "image_rights_status": "pending",
+    "legal_copy_status": "draft",
+    "ready_for_seed": false,
+    "blocking_fields": [
+      "commercial_status",
+      "listing.exit_price",
+      "listing.market_price",
+      "listing.images",
+      "details.price_from_eur",
+      "image_manifest (all positions)"
+    ]
+  },
+  "source_registry": [
+    { "field": "details.ev_specs.power_hp", "value": "1548 PS", "source_type": "oem_official", "source_name": "Xiaomi SU7 Ultra — specificații oficiale model", "publication_date": null, "verification_status": "confirmed", "notes": "Putere maximă declarată în PS" },
+    { "field": "details.ev_specs.acceleration_0_100", "value": "1.98 s fără one-foot rollout", "source_type": "oem_official", "source_name": "Xiaomi SU7 Ultra — specificații oficiale model", "publication_date": null, "verification_status": "confirmed", "notes": null },
+    { "field": "details.ev_specs.top_speed_kmh", "value": "350 km/h proiectată", "source_type": "oem_official", "source_name": "Xiaomi SU7 Ultra — specificații oficiale model", "publication_date": null, "verification_status": "confirmed", "notes": "Viteză maximă proiectată" },
+    { "field": "details.ev_specs.charging_10_80", "value": "11 min, 5.2C", "source_type": "oem_official", "source_name": "Xiaomi SU7 Ultra — specificații oficiale model", "publication_date": null, "verification_status": "confirmed", "notes": null },
+    { "field": "details.dimensions.braking_100_0_m", "value": "30.8 m", "source_type": "oem_official", "source_name": "Xiaomi SU7 Ultra — specificații oficiale model", "publication_date": null, "verification_status": "confirmed", "notes": "Nu este randat în UI runtime curent" },
+    { "field": "details.battery_packs", "value": "CATL Qilin 2.0 track-optimized", "source_type": "oem_official", "source_name": "Xiaomi SU7 Ultra — specificații oficiale model", "publication_date": null, "verification_status": "confirmed", "notes": "Capacitate kWh nepublicată oficial în brief" },
+    { "field": "details.dimensions", "value": "5115×1970×1465 mm, ampatament 3000 mm", "source_type": "oem_official", "source_name": "Xiaomi SU7 Ultra — specificații oficiale model", "publication_date": null, "verification_status": "confirmed", "notes": "Câmp dimensions nu este în FutureMobilityDetails parser" },
+    { "field": "details.colors", "value": "5 culori oficiale", "source_type": "oem_official", "source_name": "Xiaomi SU7 Ultra — paletă oficială", "publication_date": null, "verification_status": "confirmed", "notes": "Disponibilitate comercială RO de confirmat" },
+    { "field": "details.options", "value": "Racing Package", "source_type": "oem_official", "source_name": "Xiaomi SU7 Ultra — opțiuni oficiale", "publication_date": null, "verification_status": "confirmed", "notes": "Disponibilitate import de confirmat" },
+    { "field": "details.ev_specs.range_km_wltp", "value": null, "source_type": "n/a", "source_name": "n/a", "publication_date": null, "verification_status": "intentionally_omitted", "notes": "Fără WLTP confirmat — nu inventat" },
+    { "field": "listing.exit_price", "value": null, "source_type": "partner_commercial", "source_name": "AutoConsul", "publication_date": null, "verification_status": "pending", "notes": "Preț România neconfirmat" }
+  ],
+  "commercial_confirmation": {
+    "public_price": "REPLACE_WITH_AUTOCONSUL_CONFIRMED_VALUE",
+    "deposit": "REPLACE_WITH_AUTOCONSUL_CONFIRMED_VALUE",
+    "delivery_estimate": "REPLACE_WITH_AUTOCONSUL_CONFIRMED_VALUE",
+    "included_costs": "REPLACE_WITH_AUTOCONSUL_CONFIRMED_VALUE",
+    "warranty_romania": "REPLACE_WITH_AUTOCONSUL_CONFIRMED_VALUE",
+    "service_romania": "REPLACE_WITH_AUTOCONSUL_CONFIRMED_VALUE",
+    "homologation": "REPLACE_WITH_AUTOCONSUL_CONFIRMED_VALUE",
+    "available_configurations": "REPLACE_WITH_AUTOCONSUL_CONFIRMED_VALUE",
+    "available_colors": "REPLACE_WITH_AUTOCONSUL_CONFIRMED_VALUE",
+    "partner_contact": "REPLACE_WITH_AUTOCONSUL_CONFIRMED_VALUE",
+    "contract_entity": "REPLACE_WITH_AUTOCONSUL_CONFIRMED_VALUE",
+    "invoice_entity": "REPLACE_WITH_AUTOCONSUL_CONFIRMED_VALUE"
+  }
+}

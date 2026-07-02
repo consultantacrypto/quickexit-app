@@ -1,0 +1,184 @@
+{
+  "pack_version": "1.0",
+  "model_id": "zeekr-9x",
+  "commercial_status": "pending_partner_confirmation",
+  "listing": {
+    "title": "ZEEKR 9X — flagship SUV Super Hybrid",
+    "description_short": "SUV flagship full-size cu tehnologie Super Hybrid — poziționare luxury technology flagship. Nu este EV pur. Disponibil la comandă; specificațiile de performanță se confirmă cu AutoConsul.",
+    "description_long": "ZEEKR 9X este prezentat ca SUV flagship full-size, cu tehnologie Super Hybrid și poziționare luxury technology flagship. Nu este comercializat ca vehicul electric pur (BEV).\n\nÎn acest pachet nu publicăm putere, baterie, autonomie, accelerație, consum, preț sau termen de livrare — toate rămân în așteptarea unei fișe tehnice oficiale pentru versiunea efectiv importată de AutoConsul.\n\nDisponibil prin parteneriatul QuickExit × AutoConsul. QuickExit facilitează prezentarea și solicitarea inițială. Oferta comercială, contractarea, avansul, importul și livrarea sunt gestionate de AutoConsul.",
+    "category": "Auto & Moto",
+    "market_price": null,
+    "exit_price": null,
+    "discount": null,
+    "deal_score": null,
+    "sale_strategy": "standard",
+    "status": "draft",
+    "is_seed": false,
+    "images": []
+  },
+  "details": {
+    "collection": "future_mobility",
+    "model_slug": "zeekr-9x",
+    "make": "ZEEKR",
+    "model": "9X",
+    "year": null,
+    "fuel": "Super Hybrid",
+    "transmission": "Automatic",
+    "bodyType": "SUV",
+    "drivetrain": "REPLACE_WITH_AUTOCONSUL_CONFIRMED_VALUE",
+    "availability_type": "on_order",
+    "delivery_estimate": "REPLACE_WITH_AUTOCONSUL_CONFIRMED_VALUE",
+    "delivery_note": "Specificațiile și termenul pentru versiunea importată se confirmă cu AutoConsul.",
+    "price_display": "from",
+    "price_from_eur": null,
+    "cta_title": "Solicită ofertă personalizată",
+    "cta_description": "Configurația și prețul final se confirmă împreună cu partenerul.",
+    "badges": ["FUTURE_COLLECTION", "IMPORT_PREMIUM", "CONFIGURABIL"],
+    "ev_specs": null,
+    "dimensions": {
+      "length_mm": null,
+      "width_mm": null,
+      "height_mm": null,
+      "wheelbase_mm": null
+    },
+    "variants": [
+      {
+        "id": "9x-super-hybrid",
+        "name": "9X Super Hybrid",
+        "price_from_eur": null,
+        "highlights": ["Specificații tehnice de confirmat din fișa oficială versiune import"]
+      }
+    ],
+    "colors": [],
+    "options": [],
+    "battery_packs": [],
+    "dealer_partner": {
+      "id": "autoconsul",
+      "name": "AutoConsul",
+      "logo_url": null,
+      "website": "REPLACE_WITH_AUTOCONSUL_CONFIRMED_VALUE",
+      "contact_email": "REPLACE_WITH_AUTOCONSUL_CONFIRMED_VALUE",
+      "contact_phone": "REPLACE_WITH_AUTOCONSUL_CONFIRMED_VALUE",
+      "description": "Disponibil prin parteneriatul QuickExit × AutoConsul. QuickExit facilitează prezentarea și solicitarea inițială. Oferta comercială, contractarea, avansul, importul și livrarea sunt gestionate de AutoConsul."
+    },
+    "videos": [],
+    "hero_story": {
+      "headline": "Luxury technology flagship — Super Hybrid",
+      "body": "ZEEKR 9X aduce tehnologia Super Hybrid într-un SUV flagship full-size. Detaliile tehnice și comerciale se confirmă odată cu versiunea importată prin AutoConsul."
+    },
+    "competitors": [],
+    "faq": [
+      {
+        "q": "ZEEKR 9X este electric pur?",
+        "a": "Nu. Modelul este prezentat cu tehnologie Super Hybrid, nu ca EV pur (BEV)."
+      },
+      {
+        "q": "Care este puterea și autonomia?",
+        "a": "Nu publicăm aceste valori în absența unei fișe tehnice oficiale pentru versiunea importată. Solicită ofertă personalizată după confirmarea AutoConsul."
+      },
+      {
+        "q": "Ce înseamnă Super Hybrid?",
+        "a": "Este denumirea tehnologiei de propulsie comunicată oficial pentru ZEEKR 9X. Detaliile de sistem (capacitate baterie, motor termic, autonomie electrică) se confirmă la ofertare."
+      },
+      {
+        "q": "Care este prețul?",
+        "a": "REPLACE_WITH_AUTOCONSUL_CONFIRMED_VALUE"
+      },
+      {
+        "q": "Când pot primi mașina?",
+        "a": "REPLACE_WITH_AUTOCONSUL_CONFIRMED_VALUE"
+      },
+      {
+        "q": "Ce culori și versiuni sunt disponibile?",
+        "a": "REPLACE_WITH_AUTOCONSUL_CONFIRMED_VALUE — configurațiile disponibile pentru import se confirmă cu AutoConsul."
+      },
+      {
+        "q": "Cine gestionează contractul?",
+        "a": "AutoConsul gestionează oferta, contractarea, avansul, importul și livrarea. QuickExit facilitează prezentarea și cererea inițială."
+      }
+    ],
+    "warranty": {
+      "summary": "REPLACE_WITH_AUTOCONSUL_CONFIRMED_VALUE",
+      "months": null,
+      "km_limit": null
+    },
+    "import": {
+      "type": "la comandă",
+      "origin_market": "REPLACE_WITH_AUTOCONSUL_CONFIRMED_VALUE",
+      "homologation_note": "REPLACE_WITH_AUTOCONSUL_CONFIRMED_VALUE"
+    },
+    "seo": {
+      "meta_title_ro": "ZEEKR 9X Super Hybrid la comandă | Future Mobility QuickExit",
+      "meta_description_ro": "SUV flagship Super Hybrid, disponibil la comandă prin QuickExit × AutoConsul. Solicită ofertă personalizată — specificații confirmate cu partenerul.",
+      "meta_title_en": "ZEEKR 9X Super Hybrid on order | Future Mobility QuickExit",
+      "meta_description_en": "Full-size flagship Super Hybrid SUV, on order via QuickExit × AutoConsul. Request a personalized quote — specs confirmed with the partner."
+    }
+  },
+  "content": {
+    "subtitle": "Full-size flagship SUV — Super Hybrid",
+    "benefits": [
+      "Poziționare luxury technology flagship",
+      "Tehnologie Super Hybrid (nu BEV pur)",
+      "Segment SUV full-size premium",
+      "Configurabil la comandă prin AutoConsul",
+      "Proces comercial transparent QuickExit × AutoConsul",
+      "Specificații tehnice publicate doar după confirmare oficială"
+    ],
+    "for_whom": "Pentru clienți care doresc un SUV flagship cu tehnologie Super Hybrid, pregătiți să confirme configurația și oferta comercială direct cu partenerul AutoConsul."
+  },
+  "content_pack_notes": {
+    "recommended_badges_not_in_runtime_schema": ["NEW_ENERGY", "SUPER_HYBRID"],
+    "runtime_badges_used": ["FUTURE_COLLECTION", "IMPORT_PREMIUM", "CONFIGURABIL"],
+    "ev_premium_excluded": true
+  },
+  "image_manifest": {
+    "hero_exterior": { "status": "missing", "source_required": "official_press_kit_or_partner", "rights_status": "pending" },
+    "front_3_4": { "status": "missing", "source_required": "official_press_kit_or_partner", "rights_status": "pending" },
+    "rear_3_4": { "status": "missing", "source_required": "official_press_kit_or_partner", "rights_status": "pending" },
+    "lateral": { "status": "missing", "source_required": "official_press_kit_or_partner", "rights_status": "pending" },
+    "interior_dashboard": { "status": "missing", "source_required": "official_press_kit_or_partner", "rights_status": "pending" },
+    "rear_seats": { "status": "missing", "source_required": "official_press_kit_or_partner", "rights_status": "pending" },
+    "charging_engine_area": { "status": "missing", "source_required": "official_press_kit_or_partner", "rights_status": "pending" },
+    "detail_technology": { "status": "missing", "source_required": "official_press_kit_or_partner", "rights_status": "pending" },
+    "color_previews": { "status": "missing", "source_required": "official_press_kit_or_partner", "rights_status": "pending" }
+  },
+  "internal_validation": {
+    "technical_data_status": "pending",
+    "commercial_data_status": "pending",
+    "image_rights_status": "pending",
+    "legal_copy_status": "draft",
+    "ready_for_seed": false,
+    "blocking_fields": [
+      "commercial_status",
+      "details.drivetrain",
+      "details.dimensions (all null)",
+      "details.colors (empty)",
+      "details.ev_specs / hybrid_specs (none published)",
+      "listing.exit_price",
+      "listing.images",
+      "all commercial_confirmation fields",
+      "official tech sheet for imported version"
+    ]
+  },
+  "source_registry": [
+    { "field": "details.fuel", "value": "Super Hybrid", "source_type": "oem_official", "source_name": "ZEEKR 9X — poziționare oficială model", "publication_date": null, "verification_status": "confirmed", "notes": "Nu este prezentat ca EV pur" },
+    { "field": "details.bodyType", "value": "SUV flagship full-size", "source_type": "oem_official", "source_name": "ZEEKR 9X — poziționare oficială model", "publication_date": null, "verification_status": "confirmed", "notes": null },
+    { "field": "details.ev_specs", "value": null, "source_type": "n/a", "source_name": "Fișă tehnică versiune import", "publication_date": null, "verification_status": "pending", "notes": "Nu inventat — așteaptă confirmare AutoConsul" },
+    { "field": "details.ev_specs.power_hp", "value": null, "source_type": "n/a", "source_name": "n/a", "publication_date": null, "verification_status": "pending", "notes": "Explicit interzis în brief Sprint 1B" },
+    { "field": "content_pack_notes.recommended_badges", "value": "NEW_ENERGY, SUPER_HYBRID", "source_type": "internal_guidance", "source_name": "Sprint 1B brief", "publication_date": null, "verification_status": "schema_gap", "notes": "Badge-urile nu există în FutureMobilityBadgeId runtime" }
+  ],
+  "commercial_confirmation": {
+    "public_price": "REPLACE_WITH_AUTOCONSUL_CONFIRMED_VALUE",
+    "deposit": "REPLACE_WITH_AUTOCONSUL_CONFIRMED_VALUE",
+    "delivery_estimate": "REPLACE_WITH_AUTOCONSUL_CONFIRMED_VALUE",
+    "included_costs": "REPLACE_WITH_AUTOCONSUL_CONFIRMED_VALUE",
+    "warranty_romania": "REPLACE_WITH_AUTOCONSUL_CONFIRMED_VALUE",
+    "service_romania": "REPLACE_WITH_AUTOCONSUL_CONFIRMED_VALUE",
+    "homologation": "REPLACE_WITH_AUTOCONSUL_CONFIRMED_VALUE",
+    "available_configurations": "REPLACE_WITH_AUTOCONSUL_CONFIRMED_VALUE",
+    "available_colors": "REPLACE_WITH_AUTOCONSUL_CONFIRMED_VALUE",
+    "partner_contact": "REPLACE_WITH_AUTOCONSUL_CONFIRMED_VALUE",
+    "contract_entity": "REPLACE_WITH_AUTOCONSUL_CONFIRMED_VALUE",
+    "invoice_entity": "REPLACE_WITH_AUTOCONSUL_CONFIRMED_VALUE"
+  }
+}

@@ -497,6 +497,7 @@
         "bodyType": "Caroserie",
         "drivetrain": "Tracțiune",
         "powerHp": "Putere",
+        "powerPsMax": "Putere maximă",
         "powerKw": "Putere kW",
         "torque": "Cuplu",
         "battery": "Baterie",
