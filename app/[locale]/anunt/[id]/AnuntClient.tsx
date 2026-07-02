@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import { useTranslations, useLocale } from "next-intl";
@@ -25,6 +25,17 @@ import type {
   PublicListingRow,
 } from "@/lib/listingSeo";
 import { labelBase, type ListingModalId } from "./listingModalShared";
+import {
+  getFutureMobilityDetails,
+  isFutureMobilityOrderLike,
+  type FutureMobilityBadgeId,
+} from "@/lib/futureMobility";
+import FutureMobilitySections, {
+  FutureMobilityAvailabilityLine,
+  FutureMobilityBadgePills,
+  FutureMobilityDealerCard,
+  FutureMobilityVideoSection,
+} from "./FutureMobilitySections";
 
 const ListingModals = dynamic(() => import("./ListingModals"), {
   ssr: false,
@@ -262,6 +273,31 @@ export default function AnuntClient({
   const [similarAds] = useState<PublicListingRow[]>(initialSimilar);
   const [offerPrice, setOfferPrice] = useState(Number(initialListing.exit_price) || 0);
 
+  const fm = useMemo(
+    () => getFutureMobilityDetails(adData.details),
+    [adData.details],
+  );
+  const isFmOrderLike = fm ? isFutureMobilityOrderLike(fm) : false;
+  const hasValidFmPrice =
+    typeof adData.exit_price === "number" &&
+    Number.isFinite(adData.exit_price) &&
+    adData.exit_price > 0;
+
+  const fmBadgeLabelsForCard = (details: unknown): string[] | undefined => {
+    const parsed = getFutureMobilityDetails(details);
+    if (!parsed?.badges?.length) return undefined;
+    const labelMap: Record<FutureMobilityBadgeId, string> = {
+      FUTURE_COLLECTION: t("futureMobility.badges.futureCollection"),
+      IMPORT_PREMIUM: t("futureMobility.badges.importPremium"),
+      EV_PREMIUM: t("futureMobility.badges.evPremium"),
+      CONFIGURABIL: t("futureMobility.badges.configurable"),
+    };
+    const labels = parsed.badges
+      .map((badge) => labelMap[badge])
+      .filter((label): label is string => Boolean(label));
+    return labels.length > 0 ? labels : undefined;
+  };
+
   const [sellerProfile] = useState(initialSeller.profile);
   const [sellerOtherListings] = useState<PublicListingRow[]>(initialSeller.otherListings);
   const [sellerActiveCount] = useState<number | null>(initialSeller.activeCount);
@@ -403,8 +439,15 @@ export default function AnuntClient({
       listing_id: adData.id,
       category: adData.category || "unknown",
       status: "active",
+      ...(fm
+        ? {
+            collection: "future_mobility",
+            ...(fm.model_slug ? { model_slug: fm.model_slug } : {}),
+            ...(fm.availability_type ? { availability_type: fm.availability_type } : {}),
+          }
+        : {}),
     });
-  }, [adData]);
+  }, [adData, fm]);
 
   useEffect(() => {
     setCanQuickShare(typeof navigator !== "undefined" && typeof navigator.share === "function");
@@ -758,6 +801,8 @@ export default function AnuntClient({
               )}
             </div>
 
+            {fm ? <FutureMobilityVideoSection fm={fm} /> : null}
+
             <div className="rounded-[2rem] border-[3px] border-black bg-white p-6 shadow-[8px_8px_0_0_rgba(0,0,0,0.12)] md:p-10 md:shadow-[10px_10px_0_0_#FFD100]">
               <div className="mb-3 flex flex-wrap items-center gap-2">
                 <span className="rounded-full border-2 border-black bg-[#F7F4EC] px-3 py-1 text-[10px] font-black uppercase tracking-wider">
@@ -767,9 +812,15 @@ export default function AnuntClient({
                   ID: {typeof adData.id === "string" ? adData.id.split("-")[0] : ""}
                 </span>
               </div>
+              {fm ? (
+                <div className="mb-4">
+                  <FutureMobilityBadgePills fm={fm} />
+                </div>
+              ) : null}
               <h1 className="text-3xl font-black uppercase italic leading-[0.95] tracking-tighter text-black md:text-4xl lg:text-5xl">
                 {renderTitle(listingTitle)}
               </h1>
+              {fm ? <FutureMobilityAvailabilityLine fm={fm} /> : null}
 
               {isAuctionDetail && (
                 <div className="mt-5 space-y-2 rounded-xl border-[3px] border-black bg-[#FFFEF6] p-4">
@@ -797,7 +848,7 @@ export default function AnuntClient({
                 </div>
               )}
 
-              {renderTechnicalDetails()}
+              {fm ? <FutureMobilitySections fm={fm} /> : renderTechnicalDetails()}
 
               <div className="mt-8 flex flex-wrap gap-2.5">
                 <button
@@ -820,16 +871,18 @@ export default function AnuntClient({
                   </span>
                   {t("trust.documentFile")}
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveModal("ai-score")}
-                  className="flex items-center gap-1.5 rounded-xl border-[3px] border-black bg-[#FFD100] px-4 py-2 font-black uppercase text-[9px] tracking-wider shadow-[3px_3px_0_0_rgba(0,0,0,1)] transition hover:brightness-105"
-                >
-                  <span className="text-sm" aria-hidden>
-                    ⚡
-                  </span>
-                  {t("trust.liquidityScore", { score: adData.deal_score ?? "—" })}
-                </button>
+                {!isFmOrderLike ? (
+                  <button
+                    type="button"
+                    onClick={() => setActiveModal("ai-score")}
+                    className="flex items-center gap-1.5 rounded-xl border-[3px] border-black bg-[#FFD100] px-4 py-2 font-black uppercase text-[9px] tracking-wider shadow-[3px_3px_0_0_rgba(0,0,0,1)] transition hover:brightness-105"
+                  >
+                    <span className="text-sm" aria-hidden>
+                      ⚡
+                    </span>
+                    {t("trust.liquidityScore", { score: adData.deal_score ?? "—" })}
+                  </button>
+                ) : null}
               </div>
 
               <div className="mt-8 border-t-[3px] border-black pt-6">
@@ -847,62 +900,102 @@ export default function AnuntClient({
           <div className="lg:col-span-4">
             <div className="sticky top-24 space-y-6">
               <div className="rounded-[2rem] border-[3px] border-black bg-white p-6 shadow-[10px_10px_0_0_rgba(0,0,0,0.95)] md:shadow-[12px_12px_0_0_#FFD100]">
-                <div className="mb-6 flex flex-col justify-center rounded-[1.25rem] border-[3px] border-black bg-[#FFD100] p-5 shadow-[4px_4px_0_0_#000]">
-                  <p className={`${labelBase} mb-1 text-black/60`}>{t("pricing.potentialProfit")}</p>
-                  <p className="break-words font-black italic leading-none text-black uppercase [font-size:clamp(1.75rem,4vw,2.75rem)]">
-                    {formatPrice((adData.market_price ?? 0) - (adData.exit_price ?? 0))}
-                  </p>
-                </div>
+                {!isFmOrderLike ? (
+                  <div className="mb-6 flex flex-col justify-center rounded-[1.25rem] border-[3px] border-black bg-[#FFD100] p-5 shadow-[4px_4px_0_0_#000]">
+                    <p className={`${labelBase} mb-1 text-black/60`}>{t("pricing.potentialProfit")}</p>
+                    <p className="break-words font-black italic leading-none text-black uppercase [font-size:clamp(1.75rem,4vw,2.75rem)]">
+                      {formatPrice((adData.market_price ?? 0) - (adData.exit_price ?? 0))}
+                    </p>
+                  </div>
+                ) : null}
 
                 <div className="mb-8 space-y-4">
-                  <div className="flex flex-wrap items-center justify-between gap-2 border-b-2 border-neutral-100 pb-2">
-                    <span className="text-[10px] font-black uppercase tracking-wide text-neutral-500">
-                      {t("pricing.marketPrice")}
-                    </span>
-                    <span className="font-black italic opacity-35 line-through [font-size:clamp(1rem,3vw,1.35rem)]">
-                      {formatPrice(adData.market_price ?? 0)}
-                    </span>
-                  </div>
-                  <div className="flex w-full flex-col gap-1">
-                    <span className="text-[10px] font-black uppercase tracking-wide text-neutral-700">
-                      {t("pricing.exitPrice")}
-                    </span>
-                    <span className="w-full break-words font-black italic leading-none [font-size:clamp(2rem,5vw,3rem)]">
-                      {formatPrice(adData.exit_price ?? 0)}
-                    </span>
-                  </div>
-                  <div className="inline-flex rounded-lg border-2 border-black bg-black px-3 py-1 text-[10px] font-black uppercase tracking-wider text-[#FFD100]">
-                    {t("pricing.discountFromMarket", { percent: adData.discount ?? 0 })}
-                  </div>
+                  {!isFmOrderLike ? (
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-b-2 border-neutral-100 pb-2">
+                      <span className="text-[10px] font-black uppercase tracking-wide text-neutral-500">
+                        {t("pricing.marketPrice")}
+                      </span>
+                      <span className="font-black italic opacity-35 line-through [font-size:clamp(1rem,3vw,1.35rem)]">
+                        {formatPrice(adData.market_price ?? 0)}
+                      </span>
+                    </div>
+                  ) : null}
+                  {hasValidFmPrice || !isFmOrderLike ? (
+                    <div className="flex w-full flex-col gap-1">
+                      <span className="text-[10px] font-black uppercase tracking-wide text-neutral-700">
+                        {isFmOrderLike && hasValidFmPrice
+                          ? t("futureMobility.guidancePriceFrom")
+                          : t("pricing.exitPrice")}
+                      </span>
+                      <span className="w-full break-words font-black italic leading-none [font-size:clamp(2rem,5vw,3rem)]">
+                        {formatPrice(adData.exit_price ?? 0)}
+                      </span>
+                    </div>
+                  ) : null}
+                  {!isFmOrderLike ? (
+                    <div className="inline-flex rounded-lg border-2 border-black bg-black px-3 py-1 text-[10px] font-black uppercase tracking-wider text-[#FFD100]">
+                      {t("pricing.discountFromMarket", { percent: adData.discount ?? 0 })}
+                    </div>
+                  ) : null}
+                  {isFmOrderLike ? (
+                    <p className="text-xs font-medium leading-relaxed text-neutral-600">
+                      {t("futureMobility.partnerConfirmNote")}
+                    </p>
+                  ) : null}
                 </div>
 
                 <div className="space-y-3">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setActiveModal("accept");
-                      setAcceptSuccess(false);
-                      setAcceptActionMessage(null);
-                    }}
-                    className="w-full rounded-2xl border-[3px] border-black bg-black py-4 font-black uppercase tracking-wider text-[#FFD100] shadow-[6px_6px_0_0_#000] transition hover:brightness-110 md:py-5 md:text-sm"
-                  >
-                    {t("actions.acceptExitPrice")}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      trackEvent("click_listing_offer", {
-                        listing_id: adData.id,
-                        category: adData.category || "unknown",
-                      });
-                      setActiveModal("offer");
-                      setOfferSuccess(false);
-                      setOfferActionMessage(null);
-                    }}
-                    className="w-full rounded-2xl border-[3px] border-black bg-white py-4 font-black uppercase tracking-wider text-black shadow-[4px_4px_0_0_#000] transition hover:bg-neutral-50 md:text-xs"
-                  >
-                    {t("actions.submitOffer")}
-                  </button>
+                  {!isFmOrderLike ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveModal("accept");
+                        setAcceptSuccess(false);
+                        setAcceptActionMessage(null);
+                      }}
+                      className="w-full rounded-2xl border-[3px] border-black bg-black py-4 font-black uppercase tracking-wider text-[#FFD100] shadow-[6px_6px_0_0_#000] transition hover:brightness-110 md:py-5 md:text-sm"
+                    >
+                      {t("actions.acceptExitPrice")}
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        trackEvent("click_request_personalized_offer", {
+                          listing_id: adData.id,
+                          category: adData.category || "unknown",
+                          collection: "future_mobility",
+                          ...(fm?.model_slug ? { model_slug: fm.model_slug } : {}),
+                          ...(fm?.availability_type
+                            ? { availability_type: fm.availability_type }
+                            : {}),
+                        });
+                        setActiveModal("offer");
+                        setOfferSuccess(false);
+                        setOfferActionMessage(null);
+                      }}
+                      className="w-full rounded-2xl border-[3px] border-black bg-black py-4 font-black uppercase tracking-wider text-[#FFD100] shadow-[6px_6px_0_0_#000] transition hover:brightness-110 md:py-5 md:text-sm"
+                    >
+                      {t("futureMobility.requestPersonalizedOffer")}
+                    </button>
+                  )}
+                  {!isFmOrderLike ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        trackEvent("click_listing_offer", {
+                          listing_id: adData.id,
+                          category: adData.category || "unknown",
+                        });
+                        setActiveModal("offer");
+                        setOfferSuccess(false);
+                        setOfferActionMessage(null);
+                      }}
+                      className="w-full rounded-2xl border-[3px] border-black bg-white py-4 font-black uppercase tracking-wider text-black shadow-[4px_4px_0_0_#000] transition hover:bg-neutral-50 md:text-xs"
+                    >
+                      {t("actions.submitOffer")}
+                    </button>
+                  ) : null}
                   <button
                     type="button"
                     onClick={openNegotiationRoom}
@@ -977,6 +1070,8 @@ export default function AnuntClient({
                   </p>
                 </div>
               )}
+
+              {fm ? <FutureMobilityDealerCard fm={fm} /> : null}
 
               {canShowShareKit && socialKit && (
                 <div className="rounded-[2rem] border-[3px] border-black bg-[#FFFEF7] p-6 shadow-[8px_8px_0_0_rgba(0,0,0,0.65)]">
@@ -1092,6 +1187,7 @@ export default function AnuntClient({
                     discount={item.discount?.toString() || "0"}
                     score={item.deal_score ? item.deal_score / 10 : 9.0}
                     type={st}
+                    extraBadges={fmBadgeLabelsForCard(item.details)}
                     {...(st === "auction"
                       ? {
                           offerCount: parseListingOfferCount(item.offer_count),
@@ -1136,6 +1232,7 @@ export default function AnuntClient({
                   discount={item.discount?.toString() || "0"}
                   score={item.deal_score ? item.deal_score / 10 : 9.0}
                   type={st}
+                  extraBadges={fmBadgeLabelsForCard(item.details)}
                   {...(st === "auction"
                     ? {
                         offerCount: parseListingOfferCount(item.offer_count),

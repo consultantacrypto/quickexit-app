@@ -26,6 +26,7 @@ interface AdCardProps {
   offerCount?: number | null;
   highestOffer?: number | string | null;
   expiresAt?: string | null;
+  extraBadges?: string[];
 }
 
 const TYPE_LABEL: Record<AdCardProps["type"], string> = {
@@ -48,6 +49,7 @@ export default function AdCard({
   offerCount,
   highestOffer,
   expiresAt,
+  extraBadges,
 }: AdCardProps) {
   const { cards } = ro;
   const [isFavorite, setIsFavorite] = useState(false);
@@ -57,6 +59,7 @@ export default function AdCard({
   const highestLabel = formatHighestOfferEURLabel(highestOffer ?? null);
   const timeLeft = formatAuctionCardTimeLeft(expiresAt ?? null);
   const discountNum = Number(discount) || 0;
+  const showExtraBadges = Array.isArray(extraBadges) && extraBadges.length > 0;
 
   return (
     <article className="group relative flex flex-col overflow-hidden rounded-3xl border border-line/70 bg-surface shadow-[0_1px_3px_rgba(0,0,0,0.04)] transition-all duration-500 ease-out hover:-translate-y-1 hover:border-neutral-300/80 hover:shadow-[0_28px_50px_-16px_rgba(0,0,0,0.22)]">
@@ -83,6 +86,19 @@ export default function AdCard({
         <span className="absolute left-4 top-4 rounded-full border border-white/20 bg-black/55 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-white backdrop-blur-md">
           {TYPE_LABEL[type]}
         </span>
+
+        {showExtraBadges ? (
+          <div className="absolute bottom-4 left-4 z-[2] flex max-w-[70%] flex-wrap gap-1.5">
+            {extraBadges.map((badge) => (
+              <span
+                key={badge}
+                className="rounded-full border border-black/20 bg-[#FFD100]/95 px-2 py-0.5 text-[8px] font-black uppercase tracking-wide text-black"
+              >
+                {badge}
+              </span>
+            ))}
+          </div>
+        ) : null}
 
         {/* DISCOUNT — accentul vizual principal */}
         {discountNum > 0 && (

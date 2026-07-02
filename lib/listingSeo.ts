@@ -9,6 +9,7 @@ export type ListingSeoRow = {
   description: string | null;
   status: string | null;
   is_seed: boolean | null;
+  details?: Record<string, unknown> | null;
 };
 
 export type PublicListingRow = ListingSeoRow & {
@@ -39,7 +40,7 @@ export type ListingSellerContext = {
 };
 
 const LISTING_CARD_FIELDS =
-  "id,title,images,market_price,exit_price,discount,deal_score,sale_strategy,offer_count,highest_offer,expires_at,status,is_seed,category,user_id,description,created_at";
+  "id,title,images,market_price,exit_price,discount,deal_score,sale_strategy,offer_count,highest_offer,expires_at,status,is_seed,category,user_id,description,created_at,details";
 
 function getEnv(name: string): string | null {
   const v = process.env[name];
@@ -86,6 +87,7 @@ export async function fetchPublicListingSeoRow(id: string): Promise<ListingSeoRo
         "description",
         "status",
         "is_seed",
+        "details",
       ].join(",")
     )
     .eq("id", listingId)
@@ -178,6 +180,29 @@ export async function fetchSimilarListings(
     .eq("is_seed", false)
     .neq("id", listingId)
     .limit(3);
+
+  return (data ?? []) as PublicListingRow[];
+}
+
+export async function fetchFutureMobilityListings(): Promise<PublicListingRow[]> {
+  const supabase = createServerSupabase();
+  if (!supabase) return [];
+
+  const { data, error } = await supabase
+    .from("listings")
+    .select(LISTING_CARD_FIELDS)
+    .eq("status", "active")
+    .eq("is_seed", false)
+    .filter("details->>collection", "eq", "future_mobility")
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.warn("listingSeo.fetchFutureMobilityListings failed", {
+      code: error.code ?? null,
+      message: error.message ?? null,
+    });
+    return [];
+  }
 
   return (data ?? []) as PublicListingRow[];
 }

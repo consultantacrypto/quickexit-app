@@ -134,6 +134,12 @@
     "metaTitle": "Quick Exit | Rapid liquidity platform for assets",
     "metaDescription": "Quick Exit connects sellers seeking fast liquidity with buyers and investors ready to acquire assets.",
     "categoriesTitle": "Choose a Category",
+    "futureMobility": {
+      "title": "Future Mobility",
+      "line1": "Premium on-order import for next-generation electric vehicles.",
+      "line2": "Final configuration and price are confirmed together with the partner.",
+      "cta": "Explore the collection"
+    },
     "listings": {
       "title": "Active sale listings",
       "titleHighlight": "sale listings",
@@ -443,6 +449,65 @@
       "similarHighlight": "opportunities",
       "noSimilar": "No other assets are currently available in the \"{category}\" category."
     },
+    "futureMobility": {
+      "seoAvailableOnOrder": "Available on order on Quick Exit.",
+      "seoDeliveryEstimate": "Estimated delivery: {estimate}.",
+      "badges": {
+        "futureCollection": "⚡ Future Collection",
+        "importPremium": "Import Premium",
+        "evPremium": "EV Premium",
+        "configurable": "Configurable"
+      },
+      "availability": {
+        "inStock": "In stock",
+        "onOrder": "Available on order",
+        "preorder": "Pre-order"
+      },
+      "deliveryEstimate": "Estimated delivery: {estimate}",
+      "guidancePriceFrom": "Guidance price from",
+      "requestPersonalizedOffer": "Request a personalized offer",
+      "partnerConfirmNote": "Final configuration and price are confirmed together with the partner.",
+      "videoTitle": "Video review",
+      "variantsTitle": "Available trims",
+      "colorsTitle": "Colors",
+      "optionsTitle": "Options",
+      "batteryTitle": "Battery packs",
+      "included": "included",
+      "warrantyTitle": "Warranty",
+      "warrantyMonths": "{months} months warranty",
+      "importTitle": "Import",
+      "importOrigin": "Origin market: {market}",
+      "competitorsTitle": "Indicative comparison",
+      "competitors": {
+        "model": "Model",
+        "power": "Power",
+        "acceleration": "0–60",
+        "range": "Range"
+      },
+      "faqTitle": "Frequently asked questions",
+      "dealerTitle": "Import partner",
+      "dealerWebsite": "Visit partner website",
+      "priceFrom": "From {price}",
+      "fields": {
+        "make": "Make",
+        "model": "Model",
+        "year": "Year",
+        "fuel": "Fuel",
+        "transmission": "Transmission",
+        "bodyType": "Body type",
+        "drivetrain": "Drivetrain",
+        "powerHp": "Power",
+        "powerKw": "Power kW",
+        "torque": "Torque",
+        "battery": "Battery",
+        "rangeWltp": "WLTP range",
+        "rangeCltc": "CLTC range",
+        "acceleration": "0–100 km/h",
+        "topSpeed": "Top speed",
+        "chargingDc": "DC charging",
+        "charging1080": "10–80%"
+      }
+    },
     "modals": {
       "closeDialog": "Close dialog",
       "close": "Close",
@@ -500,6 +565,22 @@
         "submitting": "Submitting...",
         "submit": "Submit offer"
       }
+    }
+  },
+  "FutureMobility": {
+    "metaTitle": "Future Mobility | Quick Exit",
+    "metaDescription": "Premium electric vehicles available on order through Quick Exit — premium import with configuration and final price confirmed with the partner.",
+    "eyebrow": "Future Mobility Collection",
+    "title": "Future Mobility",
+    "subtitle": "Premium electric vehicles, available on order.",
+    "subtitleLine2": "Premium on-order import. Final configuration and price are confirmed together with the partner.",
+    "emptyTitle": "The collection is being prepared",
+    "emptyDescription": "Future Mobility models will appear here as soon as they are published. Check back soon or contact us for availability.",
+    "badges": {
+      "futureCollection": "⚡ Future Collection",
+      "importPremium": "Import Premium",
+      "evPremium": "EV Premium",
+      "configurable": "Configurable"
     }
   }
 }

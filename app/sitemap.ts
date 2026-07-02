@@ -46,6 +46,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     "/licitatii",
     "/tarife",
     "/cum-functioneaza",
+    "/future-mobility",
     "/contact",
     "/termeni",
     "/confidentialitate",

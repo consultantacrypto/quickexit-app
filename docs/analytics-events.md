@@ -48,6 +48,16 @@ Evenimentele GA4 din Quick Exit sunt folosite pentru:
 | `click_pricing_package` | `app/tarife/page.tsx` | click pe CTA pachet | `package_id`, `price` | măsoară interesul pe pachete și prețuri |
 | `hq_copilot_run` | `app/hq-admin/page.tsx` | la rulare HQ Copilot | `mode` | măsoară utilizarea funcției admin/copilot |
 
+## Future Mobility events (Sprint 1A)
+
+| event_name | pagină | moment declanșare | parametri | scop business |
+|---|---|---|---|---|
+| `view_future_mobility` | `app/[locale]/future-mobility/page.tsx` | la încărcare hub | `page_path` | măsoară trafic pe colecția Future Mobility |
+| `click_future_mobility_model` | `app/[locale]/future-mobility/FutureMobilityListingGrid.tsx` | click card model | `listing_id`, `model_slug`, `availability_type` | măsoară interes pe modele din colecție |
+| `click_request_personalized_offer` | `app/[locale]/anunt/[id]/AnuntClient.tsx` | CTA FM la comandă | `listing_id`, `category`, `collection`, `model_slug`, `availability_type` | măsoară intenția de ofertă personalizată |
+
+`view_listing` poate include opțional: `collection`, `model_slug`, `availability_type` pentru listări FM.
+
 ## Acquisition CTA events
 
 | event_name | pagină | destination | scop business |

@@ -47,6 +47,9 @@ const TIKTOK_EVENT_MAP: Record<string, string> = {
   click_post_listing: "ClickButton",
   click_evaluate: "ClickButton",
   click_send_demand_offer: "ClickButton",
+  view_future_mobility: "ViewContent",
+  click_future_mobility_model: "ClickButton",
+  click_request_personalized_offer: "Lead",
 };
 
 export function isAnalyticsEnabled(): boolean {

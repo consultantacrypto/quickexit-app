@@ -11,6 +11,7 @@ import {
   fetchSimilarListings,
   type ListingSeoRow,
 } from "@/lib/listingSeo";
+import { getFutureMobilityDetails, getJsonLdAvailability } from "@/lib/futureMobility";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 
 export const dynamic = "force-dynamic";
@@ -30,6 +31,7 @@ async function buildListingDescription(
   locale: string,
 ): Promise<string> {
   const t = await getTranslations({ locale, namespace: "ListingDetail.meta" });
+  const tFm = await getTranslations({ locale, namespace: "ListingDetail.futureMobility" });
   const title = resolveListingField(
     listing,
     "title",
@@ -37,6 +39,7 @@ async function buildListingDescription(
     t("assetFallback"),
   );
   const category = listing.category?.trim();
+  const fm = getFutureMobilityDetails(listing.details);
 
   const parts: string[] = [];
   if (category) {
@@ -47,6 +50,12 @@ async function buildListingDescription(
   parts.push(t("seoCta"));
   const exitPrice = formatEurPrice(listing.exit_price, locale);
   if (exitPrice) parts.push(t("seoExitPrice", { price: exitPrice }));
+  if (fm?.availability_type === "on_order" || fm?.availability_type === "preorder") {
+    parts.push(tFm("seoAvailableOnOrder"));
+    if (fm.delivery_estimate) {
+      parts.push(tFm("seoDeliveryEstimate", { estimate: fm.delivery_estimate }));
+    }
+  }
   return parts.join(" ");
 }
 
@@ -144,6 +153,8 @@ export default async function ListingPage({ params }: PageProps) {
     Number.isFinite(listing.exit_price) &&
     listing.exit_price > 0;
 
+  const fmForJsonLd = getFutureMobilityDetails(listing.details);
+
   const listingTitle = resolveListingField(listing, "title", locale, t("listingFallback"));
   const listingDescription =
     resolveListingField(listing, "description", locale, "") ||
@@ -173,7 +184,9 @@ export default async function ListingPage({ params }: PageProps) {
                   url: canonicalAbs,
                   price: listing.exit_price,
                   priceCurrency: "EUR",
-                  availability: "https://schema.org/InStock",
+                  availability: fmForJsonLd
+                    ? getJsonLdAvailability(fmForJsonLd.availability_type)
+                    : "https://schema.org/InStock",
                 },
               }
             : {}),

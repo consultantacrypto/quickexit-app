@@ -134,6 +134,12 @@
     "metaTitle": "Quick Exit | Platformă de lichiditate rapidă pentru active",
     "metaDescription": "Quick Exit conectează vânzătorii care vor lichiditate rapidă cu cumpărători și investitori pregătiți pentru achiziții.",
     "categoriesTitle": "Alege Categoria",
+    "futureMobility": {
+      "title": "Future Mobility",
+      "line1": "Import premium la comandă pentru automobile electrice de ultimă generație.",
+      "line2": "Configurația și prețul final se confirmă împreună cu partenerul.",
+      "cta": "Descoperă colecția"
+    },
     "listings": {
       "title": "Anunțuri vânzări active",
       "titleHighlight": "vânzări active",
@@ -443,6 +449,65 @@
       "similarHighlight": "similare",
       "noSimilar": "Nu există alte active disponibile momentan în categoria „{category}”."
     },
+    "futureMobility": {
+      "seoAvailableOnOrder": "Disponibil la comandă pe Quick Exit.",
+      "seoDeliveryEstimate": "Livrare estimată: {estimate}.",
+      "badges": {
+        "futureCollection": "⚡ Future Collection",
+        "importPremium": "Import Premium",
+        "evPremium": "EV Premium",
+        "configurable": "Configurabil"
+      },
+      "availability": {
+        "inStock": "În stoc",
+        "onOrder": "Disponibil la comandă",
+        "preorder": "Precomandă"
+      },
+      "deliveryEstimate": "Livrare estimată: {estimate}",
+      "guidancePriceFrom": "Preț orientativ de la",
+      "requestPersonalizedOffer": "Solicită ofertă personalizată",
+      "partnerConfirmNote": "Configurația și prețul final se confirmă împreună cu partenerul.",
+      "videoTitle": "Video review",
+      "variantsTitle": "Versiuni disponibile",
+      "colorsTitle": "Culori",
+      "optionsTitle": "Opțiuni",
+      "batteryTitle": "Pachete baterie",
+      "included": "inclus",
+      "warrantyTitle": "Garanție",
+      "warrantyMonths": "{months} luni garanție",
+      "importTitle": "Import",
+      "importOrigin": "Piață origine: {market}",
+      "competitorsTitle": "Comparație orientativă",
+      "competitors": {
+        "model": "Model",
+        "power": "Putere",
+        "acceleration": "0–100",
+        "range": "Autonomie"
+      },
+      "faqTitle": "Întrebări frecvente",
+      "dealerTitle": "Partener import",
+      "dealerWebsite": "Vizitează site-ul partenerului",
+      "priceFrom": "De la {price}",
+      "fields": {
+        "make": "Marcă",
+        "model": "Model",
+        "year": "An",
+        "fuel": "Combustibil",
+        "transmission": "Transmisie",
+        "bodyType": "Caroserie",
+        "drivetrain": "Tracțiune",
+        "powerHp": "Putere",
+        "powerKw": "Putere kW",
+        "torque": "Cuplu",
+        "battery": "Baterie",
+        "rangeWltp": "Autonomie WLTP",
+        "rangeCltc": "Autonomie CLTC",
+        "acceleration": "0–100 km/h",
+        "topSpeed": "Viteză maximă",
+        "chargingDc": "Încărcare DC",
+        "charging1080": "10–80%"
+      }
+    },
     "modals": {
       "closeDialog": "Închide dialogul",
       "close": "Închide",
@@ -500,6 +565,22 @@
         "submitting": "Se trimite...",
         "submit": "Trimite oferta"
       }
+    }
+  },
+  "FutureMobility": {
+    "metaTitle": "Future Mobility | Quick Exit",
+    "metaDescription": "Automobile premium electrice disponibile la comandă prin Quick Exit — import premium cu confirmare configurație și preț împreună cu partenerul.",
+    "eyebrow": "Future Mobility Collection",
+    "title": "Future Mobility",
+    "subtitle": "Automobile premium electrice, disponibile la comandă.",
+    "subtitleLine2": "Import premium la comandă. Configurația și prețul final se confirmă împreună cu partenerul.",
+    "emptyTitle": "Colecția este în pregătire",
+    "emptyDescription": "Modelele Future Mobility vor apărea aici imediat ce sunt publicate. Revino în curând sau contactează-ne pentru disponibilitate.",
+    "badges": {
+      "futureCollection": "⚡ Future Collection",
+      "importPremium": "Import Premium",
+      "evPremium": "EV Premium",
+      "configurable": "Configurabil"
     }
   }
 }

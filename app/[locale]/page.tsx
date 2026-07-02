@@ -272,6 +272,28 @@ export default async function Home({ params }: HomePageProps) {
         </div>
       </section>
 
+      <section className="border-t border-gray-100 bg-[#FDFCF8] px-4 py-10 md:py-12">
+        <div className="mx-auto flex max-w-6xl flex-col items-start justify-between gap-6 md:flex-row md:items-center">
+          <div className="max-w-2xl">
+            <h2 className="text-2xl font-black uppercase italic tracking-tight text-black md:text-3xl">
+              ⚡ {tHome("futureMobility.title")}
+            </h2>
+            <p className="mt-3 text-sm font-bold leading-relaxed text-neutral-700">
+              {tHome("futureMobility.line1")}
+            </p>
+            <p className="mt-1 text-sm font-medium leading-relaxed text-neutral-600">
+              {tHome("futureMobility.line2")}
+            </p>
+          </div>
+          <Link
+            href="/future-mobility"
+            className="inline-flex shrink-0 items-center justify-center rounded-2xl border-[3px] border-black bg-white px-6 py-3 text-[11px] font-black uppercase tracking-widest text-black shadow-[6px_6px_0_0_rgba(0,0,0,1)] transition hover:-translate-y-0.5 hover:shadow-[6px_6px_0_0_#FFD100] md:text-xs"
+          >
+            {tHome("futureMobility.cta")}
+          </Link>
+        </div>
+      </section>
+
       <section className="border-t border-gray-100 bg-white py-12 pb-16 md:py-14 md:pb-20">
         <div className="mx-auto max-w-6xl px-4 text-center md:text-left">
           <h2 className="mb-10 inline-block border-b-[6px] border-[#FFD100] pb-3 text-sm font-black uppercase italic tracking-[0.35em] text-black md:mb-12 md:text-lg">
