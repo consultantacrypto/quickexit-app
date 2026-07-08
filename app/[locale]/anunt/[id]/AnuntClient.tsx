@@ -43,6 +43,9 @@ import FutureMobilitySections, {
   FutureMobilityDealerCard,
   FutureMobilityVideoSection,
 } from "./FutureMobilitySections";
+import { isPremiumSellerListing } from "@/lib/listingPremium";
+import PremiumSellerCard from "./PremiumSellerCard";
+import StickyContactBar from "./StickyContactBar";
 
 const ListingModals = dynamic(() => import("./ListingModals"), {
   ssr: false,
@@ -287,6 +290,10 @@ export default function AnuntClient({
   const fm = useMemo(
     () => getFutureMobilityDetails(adData.details),
     [adData.details],
+  );
+  const showPremiumSeller = useMemo(
+    () => isPremiumSellerListing(adData),
+    [adData],
   );
   const pricingMode = getPricingMode(adData.details);
   const isEvaluatedPricing = pricingMode === "evaluated";
@@ -752,7 +759,11 @@ export default function AnuntClient({
 
   return (
     <div className="min-h-screen bg-[#F7F4EC] font-sans text-black selection:bg-[#FFD100]/40 selection:text-black antialiased">
-      <div className="mx-auto max-w-[1400px] px-4 pb-20 pt-6 md:px-8 md:py-10">
+      <div
+        className={`mx-auto max-w-[1400px] px-4 pt-6 md:px-8 md:py-10 ${
+          showPremiumSeller ? "pb-28 md:pb-20" : "pb-20"
+        }`}
+      >
         <div className="mb-8 flex items-center justify-between gap-4">
           <Link
             href="/"
@@ -1072,46 +1083,58 @@ export default function AnuntClient({
                 </p>
               </div>
 
-              {adData.user_id && (
-                <div className="rounded-[2rem] border-[3px] border-black bg-white p-6 shadow-[8px_8px_0_0_rgba(0,0,0,0.85)]">
-                  <h3 className="mb-4 text-sm font-black uppercase italic tracking-tight text-black">
-                    {t("seller.title")}
-                  </h3>
-                  <ul className="space-y-3 text-sm font-medium text-neutral-800">
-                    <li>
-                      <span className={labelBase}>{t("seller.displayName")}</span>
-                      <span className="mt-1 block font-bold text-black">{sellerDisplayName}</span>
-                    </li>
-                    <li>
-                      <span className={labelBase}>{t("seller.status")}</span>
-                      <span className="mt-1 block font-bold text-black">
-                        {kycStatusLabel(sellerProfile?.kyc_status ?? null)}
-                      </span>
-                    </li>
-                    {sellerMemberSince && (
+              {adData.user_id &&
+                (showPremiumSeller ? (
+                  <PremiumSellerCard
+                    listingId={adData.id}
+                    sellerProfile={sellerProfile}
+                    activeListingCount={displayedActiveListingCount}
+                    sellerMemberSince={sellerMemberSince}
+                    category={adData.category ?? null}
+                    details={adData.details}
+                  />
+                ) : (
+                  <div className="rounded-[2rem] border-[3px] border-black bg-white p-6 shadow-[8px_8px_0_0_rgba(0,0,0,0.85)]">
+                    <h3 className="mb-4 text-sm font-black uppercase italic tracking-tight text-black">
+                      {t("seller.title")}
+                    </h3>
+                    <ul className="space-y-3 text-sm font-medium text-neutral-800">
                       <li>
-                        <span className={labelBase}>{t("seller.memberSince")}</span>
-                        <span className="mt-1 block font-bold capitalize text-black">
-                          {sellerMemberSince}
+                        <span className={labelBase}>{t("seller.displayName")}</span>
+                        <span className="mt-1 block font-bold text-black">{sellerDisplayName}</span>
+                      </li>
+                      <li>
+                        <span className={labelBase}>{t("seller.status")}</span>
+                        <span className="mt-1 block font-bold text-black">
+                          {kycStatusLabel(sellerProfile?.kyc_status ?? null)}
                         </span>
                       </li>
-                    )}
-                    <li>
-                      <span className={labelBase}>{t("seller.activeListings")}</span>
-                      <span className="mt-1 block font-bold text-black">{displayedActiveListingCount}</span>
-                    </li>
-                    <li>
-                      <span className={labelBase}>{t("seller.role")}</span>
-                      <span className="mt-1 block font-bold text-black">
-                        {userTypeLabel(sellerProfile?.user_type ?? null)}
-                      </span>
-                    </li>
-                  </ul>
-                  <p className="mt-5 border-t border-neutral-200 pt-4 text-xs font-medium leading-relaxed text-neutral-600">
-                    {t("seller.contactHint")}
-                  </p>
-                </div>
-              )}
+                      {sellerMemberSince && (
+                        <li>
+                          <span className={labelBase}>{t("seller.memberSince")}</span>
+                          <span className="mt-1 block font-bold capitalize text-black">
+                            {sellerMemberSince}
+                          </span>
+                        </li>
+                      )}
+                      <li>
+                        <span className={labelBase}>{t("seller.activeListings")}</span>
+                        <span className="mt-1 block font-bold text-black">
+                          {displayedActiveListingCount}
+                        </span>
+                      </li>
+                      <li>
+                        <span className={labelBase}>{t("seller.role")}</span>
+                        <span className="mt-1 block font-bold text-black">
+                          {userTypeLabel(sellerProfile?.user_type ?? null)}
+                        </span>
+                      </li>
+                    </ul>
+                    <p className="mt-5 border-t border-neutral-200 pt-4 text-xs font-medium leading-relaxed text-neutral-600">
+                      {t("seller.contactHint")}
+                    </p>
+                  </div>
+                ))}
 
               {fm ? <FutureMobilityDealerCard fm={fm} /> : null}
 
@@ -1331,6 +1354,8 @@ export default function AnuntClient({
           />
         ) : null}
       </div>
+
+      {showPremiumSeller ? <StickyContactBar listingId={adData.id} /> : null}
 
       {imageLightboxOpen ? (
         <div

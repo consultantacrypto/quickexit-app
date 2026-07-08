@@ -6,15 +6,19 @@ import { useTranslations } from "next-intl";
 import { supabase } from "@/lib/supabase";
 import { Save, ArrowLeft, Loader2 } from "lucide-react";
 import { getPricingMode, type PricingMode } from "@/lib/pricingMode";
+import { premiumSellerConfig } from "@/lib/premiumSeller";
+import { LISTING_AUTO_CATEGORY } from "@/lib/listingPremium";
 
 export default function EditAdPage() {
   const tPost = useTranslations("PostListing");
+  const tPremium = useTranslations("ListingDetail.premiumSeller");
   const params = useParams();
   const id = params.id as string;
   const router = useRouter();
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   
   const [category, setCategory] = useState("");
   const [adTitle, setAdTitle] = useState("");
@@ -24,8 +28,15 @@ export default function EditAdPage() {
   const [initialPricingMode, setInitialPricingMode] = useState<PricingMode>("evaluated");
   const [formData, setFormData] = useState<any>({});
 
+  const isOwner = currentUserId === premiumSellerConfig.ownerUserId;
+
   useEffect(() => {
     async function fetchAd() {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      setCurrentUserId(user?.id ?? null);
+
       const { data, error } = await supabase
         .from('listings')
         .select('*')
@@ -57,6 +68,15 @@ export default function EditAdPage() {
   const handleUpdate = async () => {
     setIsSaving(true);
     const trimmedExit = exitPrice.trim();
+    const mergedDetails: Record<string, unknown> = { ...formData, pricing_mode: pricingMode };
+
+    if (isOwner) {
+      mergedDetails.premium_seller_enabled = formData.premium_seller_enabled === true;
+      if (category === LISTING_AUTO_CATEGORY) {
+        mergedDetails.vehicle_reviewed = formData.vehicle_reviewed === true;
+      }
+    }
+
     const updatePayload: {
       title: string;
       description: string;
@@ -68,7 +88,7 @@ export default function EditAdPage() {
     } = {
       title: adTitle,
       description: description,
-      details: { ...formData, pricing_mode: pricingMode },
+      details: mergedDetails,
     };
 
     if (pricingMode === "evaluated") {
@@ -109,7 +129,11 @@ export default function EditAdPage() {
   };
 
   const updateField = (key: string, value: string) => {
-    setFormData((prev: any) => ({ ...prev, [key]: value }));
+    setFormData((prev: Record<string, unknown>) => ({ ...prev, [key]: value }));
+  };
+
+  const updateBooleanField = (key: string, value: boolean) => {
+    setFormData((prev: Record<string, unknown>) => ({ ...prev, [key]: value }));
   };
 
   if (isLoading) return (
@@ -288,6 +312,44 @@ export default function EditAdPage() {
               <label className="text-[10px] font-black uppercase text-gray-400">Descriere & Condiții</label>
               <textarea rows={6} value={description} onChange={(e) => setDescription(e.target.value)} className="w-full mt-1 p-4 border-2 border-black rounded-xl font-bold italic resize-none focus:border-[#FFD100] outline-none" />
             </div>
+
+            {isOwner ? (
+              <div className="md:col-span-2 rounded-xl border-[3px] border-black bg-[#FFFEF7] p-5">
+                <h2 className="mb-4 text-sm font-black uppercase italic tracking-tight text-black">
+                  {tPremium("title")}
+                </h2>
+                <div className="space-y-3">
+                  <label className="flex cursor-pointer items-start gap-3">
+                    <input
+                      type="checkbox"
+                      checked={formData.premium_seller_enabled === true}
+                      onChange={(e) =>
+                        updateBooleanField("premium_seller_enabled", e.target.checked)
+                      }
+                      className="mt-0.5 h-4 w-4 shrink-0 accent-black"
+                    />
+                    <span className="text-sm font-semibold leading-snug text-neutral-800">
+                      {tPremium("enableProfile")}
+                    </span>
+                  </label>
+                  {category === LISTING_AUTO_CATEGORY ? (
+                    <label className="flex cursor-pointer items-start gap-3">
+                      <input
+                        type="checkbox"
+                        checked={formData.vehicle_reviewed === true}
+                        onChange={(e) =>
+                          updateBooleanField("vehicle_reviewed", e.target.checked)
+                        }
+                        className="mt-0.5 h-4 w-4 shrink-0 accent-black"
+                      />
+                      <span className="text-sm font-semibold leading-snug text-neutral-800">
+                        {tPremium("vehicleReviewed")}
+                      </span>
+                    </label>
+                  ) : null}
+                </div>
+              </div>
+            ) : null}
 
             <button 
               onClick={handleUpdate}

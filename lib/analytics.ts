@@ -50,6 +50,9 @@ const TIKTOK_EVENT_MAP: Record<string, string> = {
   view_future_mobility: "ViewContent",
   click_future_mobility_model: "ClickButton",
   click_request_personalized_offer: "Lead",
+  click_premium_seller_phone: "ClickButton",
+  click_premium_seller_whatsapp: "ClickButton",
+  click_premium_seller_tiktok: "ClickButton",
 };
 
 export function isAnalyticsEnabled(): boolean {

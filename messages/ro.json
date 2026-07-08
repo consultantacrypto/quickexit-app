@@ -445,6 +445,18 @@
       "contactHint": "Datele de contact se transmit doar prin ofertă, pentru protecția ambelor părți.",
       "transactionHistory": "Istoricul de tranzacții va fi disponibil după primele vânzări confirmate pe platformă."
     },
+    "premiumSeller": {
+      "title": "Profil profesional QuickExit",
+      "enableProfile": "Activează profilul meu profesional pe acest anunț",
+      "vehicleReviewed": "Am filmat și testat personal acest vehicul",
+      "verifiedProfile": "Profil verificat",
+      "vehicleReviewedBadge": "Filmat și testat personal",
+      "call": "Sună",
+      "whatsapp": "WhatsApp",
+      "followTikTok": "Urmărește pe TikTok",
+      "memberSince": "Membru din",
+      "activeListings": "Anunțuri active listate"
+    },
     "userType": {
       "buyer": "Cumpărător",
       "seller": "Vânzător",
