@@ -10,6 +10,8 @@ import { normalizeSaleType } from "@/utils/normalizeSaleType";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/src/i18n/navigation";
 import { categoryPath } from "@/src/i18n/paths";
+import { getNumberLocale } from "@/lib/i18n/format";
+import { adCardPricingProps } from "@/lib/listingPrice";
 
 export const revalidate = 60;
 
@@ -114,6 +116,7 @@ export default async function Home({ params }: HomePageProps) {
   const tCat = await getTranslations("Categories");
 
   const siteUrl = getSiteUrl();
+  const numberLocale = getNumberLocale(locale);
   const heroLine1 = splitHighlightedPhrase(tHero("titleLine1"), tHero("titleLine1Highlight"));
   const heroLine2 = splitHighlightedPhrase(tHero("titleLine2"), tHero("titleLine2Highlight"));
   const evaluateCta = tHero("evaluateCta");
@@ -136,7 +139,7 @@ export default async function Home({ params }: HomePageProps) {
   const { data: realListings } = await supabase
     .from("listings")
     .select(
-      "id,title,images,market_price,exit_price,discount,deal_score,sale_strategy,offer_count,highest_offer,expires_at,status,is_seed,created_at",
+      "id,title,images,market_price,exit_price,discount,deal_score,sale_strategy,offer_count,highest_offer,expires_at,status,is_seed,created_at,details",
     )
     .eq("status", "active")
     .eq("is_seed", false)
@@ -359,10 +362,7 @@ export default async function Home({ params }: HomePageProps) {
                     item.images?.[0] ||
                     "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=800&q=80"
                   }
-                  marketPrice={`€${item.market_price.toLocaleString("ro-RO")}`}
-                  exitPrice={`€${item.exit_price.toLocaleString("ro-RO")}`}
-                  discount={item.discount?.toString() || "0"}
-                  score={item.deal_score ? item.deal_score / 10 : 9.0}
+                  {...adCardPricingProps(item, numberLocale)}
                   type={normalizeSaleType(item.sale_strategy)}
                 />
               ))
@@ -469,10 +469,7 @@ export default async function Home({ params }: HomePageProps) {
                     item.images?.[0] ||
                     "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=800&q=80"
                   }
-                  marketPrice={`€${item.market_price.toLocaleString("ro-RO")}`}
-                  exitPrice={`€${item.exit_price.toLocaleString("ro-RO")}`}
-                  discount={item.discount?.toString() || "0"}
-                  score={item.deal_score ? item.deal_score / 10 : 9.5}
+                  {...adCardPricingProps(item, numberLocale)}
                   type="auction"
                   offerCount={item.offer_count}
                   highestOffer={item.highest_offer}

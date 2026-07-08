@@ -19,6 +19,13 @@ import {
   formatMemberSince,
   getNumberLocale,
 } from "@/lib/i18n/format";
+import {
+  adCardPricingProps,
+  dealScoreForCard,
+  hasValidMarketComparison,
+  isValidPrice,
+} from "@/lib/listingPrice";
+import { getPricingMode } from "@/lib/pricingMode";
 import { resolveListingField } from "@/lib/i18n/listingContent";
 import type {
   ListingSellerContext,
@@ -263,7 +270,11 @@ export default function AnuntClient({
   );
 
   const formatPrice = (value: number | null | undefined) =>
-    formatEurAmount(Number(value ?? 0), locale);
+    formatEurAmount(Number(value), locale);
+  const formatListingPrice = (value: unknown) => {
+    if (!isValidPrice(value)) return null;
+    return formatEurAmount(Number(value), locale);
+  };
   const [isFavorite, setIsFavorite] = useState(false);
   const [activeModal, setActiveModal] = useState<ListingModalId | null>(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -277,11 +288,23 @@ export default function AnuntClient({
     () => getFutureMobilityDetails(adData.details),
     [adData.details],
   );
+  const pricingMode = getPricingMode(adData.details);
+  const isEvaluatedPricing = pricingMode === "evaluated";
+  const isPriceOnRequest = pricingMode === "price_on_request";
   const isFmOrderLike = fm ? isFutureMobilityOrderLike(fm) : false;
   const hasValidFmPrice =
     typeof adData.exit_price === "number" &&
     Number.isFinite(adData.exit_price) &&
     adData.exit_price > 0;
+  const showDiscount =
+    !isFmOrderLike &&
+    isEvaluatedPricing &&
+    Number.isFinite(Number(adData.discount)) &&
+    Number(adData.discount) > 0;
+  const showLiquidityScore =
+    !isFmOrderLike && isEvaluatedPricing && dealScoreForCard(adData.deal_score) !== null;
+  const hasValidExitPrice = isValidPrice(adData.exit_price);
+  const canUseClassicOfferFlow = !isPriceOnRequest && hasValidExitPrice;
 
   const fmBadgeLabelsForCard = (details: unknown): string[] | undefined => {
     const parsed = getFutureMobilityDetails(details);
@@ -871,7 +894,7 @@ export default function AnuntClient({
                   </span>
                   {t("trust.documentFile")}
                 </button>
-                {!isFmOrderLike ? (
+                {showLiquidityScore ? (
                   <button
                     type="button"
                     onClick={() => setActiveModal("ai-score")}
@@ -880,7 +903,7 @@ export default function AnuntClient({
                     <span className="text-sm" aria-hidden>
                       ⚡
                     </span>
-                    {t("trust.liquidityScore", { score: adData.deal_score ?? "—" })}
+                    {t("trust.liquidityScore", { score: Number(adData.deal_score) })}
                   </button>
                 ) : null}
               </div>
@@ -900,27 +923,31 @@ export default function AnuntClient({
           <div className="lg:col-span-4">
             <div className="sticky top-24 space-y-6">
               <div className="rounded-[2rem] border-[3px] border-black bg-white p-6 shadow-[10px_10px_0_0_rgba(0,0,0,0.95)] md:shadow-[12px_12px_0_0_#FFD100]">
-                {!isFmOrderLike ? (
+                {!isFmOrderLike &&
+                isEvaluatedPricing &&
+                hasValidMarketComparison(adData.market_price, adData.exit_price) ? (
                   <div className="mb-6 flex flex-col justify-center rounded-[1.25rem] border-[3px] border-black bg-[#FFD100] p-5 shadow-[4px_4px_0_0_#000]">
                     <p className={`${labelBase} mb-1 text-black/60`}>{t("pricing.potentialProfit")}</p>
                     <p className="break-words font-black italic leading-none text-black uppercase [font-size:clamp(1.75rem,4vw,2.75rem)]">
-                      {formatPrice((adData.market_price ?? 0) - (adData.exit_price ?? 0))}
+                      {formatListingPrice(
+                        Number(adData.market_price) - Number(adData.exit_price),
+                      )}
                     </p>
                   </div>
                 ) : null}
 
                 <div className="mb-8 space-y-4">
-                  {!isFmOrderLike ? (
+                  {!isFmOrderLike && isEvaluatedPricing && isValidPrice(adData.market_price) ? (
                     <div className="flex flex-wrap items-center justify-between gap-2 border-b-2 border-neutral-100 pb-2">
                       <span className="text-[10px] font-black uppercase tracking-wide text-neutral-500">
                         {t("pricing.marketPrice")}
                       </span>
                       <span className="font-black italic opacity-35 line-through [font-size:clamp(1rem,3vw,1.35rem)]">
-                        {formatPrice(adData.market_price ?? 0)}
+                        {formatListingPrice(adData.market_price)}
                       </span>
                     </div>
                   ) : null}
-                  {hasValidFmPrice || !isFmOrderLike ? (
+                  {(hasValidFmPrice || (!isFmOrderLike && hasValidExitPrice)) ? (
                     <div className="flex w-full flex-col gap-1">
                       <span className="text-[10px] font-black uppercase tracking-wide text-neutral-700">
                         {isFmOrderLike && hasValidFmPrice
@@ -928,13 +955,15 @@ export default function AnuntClient({
                           : t("pricing.exitPrice")}
                       </span>
                       <span className="w-full break-words font-black italic leading-none [font-size:clamp(2rem,5vw,3rem)]">
-                        {formatPrice(adData.exit_price ?? 0)}
+                        {formatListingPrice(adData.exit_price)}
                       </span>
                     </div>
                   ) : null}
-                  {!isFmOrderLike ? (
+                  {showDiscount ? (
                     <div className="inline-flex rounded-lg border-2 border-black bg-black px-3 py-1 text-[10px] font-black uppercase tracking-wider text-[#FFD100]">
-                      {t("pricing.discountFromMarket", { percent: adData.discount ?? 0 })}
+                      {t("pricing.discountFromMarket", {
+                        percent: Math.round(Number(adData.discount)),
+                      })}
                     </div>
                   ) : null}
                   {isFmOrderLike ? (
@@ -945,7 +974,7 @@ export default function AnuntClient({
                 </div>
 
                 <div className="space-y-3">
-                  {!isFmOrderLike ? (
+                  {!isFmOrderLike && canUseClassicOfferFlow ? (
                     <button
                       type="button"
                       onClick={() => {
@@ -957,7 +986,7 @@ export default function AnuntClient({
                     >
                       {t("actions.acceptExitPrice")}
                     </button>
-                  ) : (
+                  ) : isFmOrderLike ? (
                     <button
                       type="button"
                       onClick={() => {
@@ -978,8 +1007,21 @@ export default function AnuntClient({
                     >
                       {t("futureMobility.requestPersonalizedOffer")}
                     </button>
-                  )}
-                  {!isFmOrderLike ? (
+                  ) : isPriceOnRequest ? (
+                    <button
+                      type="button"
+                      disabled
+                      title={
+                        process.env.NODE_ENV !== "production"
+                          ? "Sprint B: contact modal fără slider pentru price_on_request."
+                          : undefined
+                      }
+                      className="w-full rounded-2xl border-[3px] border-black bg-white py-4 font-black uppercase tracking-wider text-black shadow-[4px_4px_0_0_#000] opacity-60"
+                    >
+                      {t("pricing.requestDetails")}
+                    </button>
+                  ) : null}
+                  {!isFmOrderLike && canUseClassicOfferFlow ? (
                     <button
                       type="button"
                       onClick={() => {
@@ -1182,10 +1224,7 @@ export default function AnuntClient({
                       item.images?.[0] ||
                       "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=800&q=80"
                     }
-                    marketPrice={formatPrice(item.market_price ?? 0)}
-                    exitPrice={formatPrice(item.exit_price ?? 0)}
-                    discount={item.discount?.toString() || "0"}
-                    score={item.deal_score ? item.deal_score / 10 : 9.0}
+                    {...adCardPricingProps(item, getNumberLocale(locale))}
                     type={st}
                     extraBadges={fmBadgeLabelsForCard(item.details)}
                     {...(st === "auction"
@@ -1227,10 +1266,7 @@ export default function AnuntClient({
                     item.images?.[0] ||
                     "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=800&q=80"
                   }
-                  marketPrice={formatPrice(item.market_price ?? 0)}
-                  exitPrice={formatPrice(item.exit_price ?? 0)}
-                  discount={item.discount?.toString() || "0"}
-                  score={item.deal_score ? item.deal_score / 10 : 9.0}
+                  {...adCardPricingProps(item, getNumberLocale(locale))}
                   type={st}
                   extraBadges={fmBadgeLabelsForCard(item.details)}
                   {...(st === "auction"

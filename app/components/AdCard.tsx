@@ -20,7 +20,7 @@ interface AdCardProps {
   marketPrice: string;
   exitPrice: string;
   discount: string;
-  score: number;
+  score?: number | null;
   type: "urgent" | "extreme" | "standard" | "auction";
   priority?: boolean;
   offerCount?: number | null;
@@ -60,6 +60,10 @@ export default function AdCard({
   const timeLeft = formatAuctionCardTimeLeft(expiresAt ?? null);
   const discountNum = Number(discount) || 0;
   const showExtraBadges = Array.isArray(extraBadges) && extraBadges.length > 0;
+  const showMarketPrice = marketPrice.trim().length > 0;
+  const showExitPrice = exitPrice.trim().length > 0;
+  const showLiquidityScore =
+    score != null && Number.isFinite(score);
 
   return (
     <article className="group relative flex flex-col overflow-hidden rounded-3xl border border-line/70 bg-surface shadow-[0_1px_3px_rgba(0,0,0,0.04)] transition-all duration-500 ease-out hover:-translate-y-1 hover:border-neutral-300/80 hover:shadow-[0_28px_50px_-16px_rgba(0,0,0,0.22)]">
@@ -138,10 +142,12 @@ export default function AdCard({
       {/* CONȚINUT */}
       <div className="pointer-events-none relative z-[1] flex flex-1 flex-col gap-5 p-7">
         <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-muted">
-            Scor Lichiditate · {score}
-          </p>
-          <h3 className="mt-2 line-clamp-2 text-lg font-semibold leading-snug tracking-tight text-ink">
+          {showLiquidityScore ? (
+            <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-muted">
+              Scor Lichiditate · {score}
+            </p>
+          ) : null}
+          <h3 className={`line-clamp-2 text-lg font-semibold leading-snug tracking-tight text-ink ${showLiquidityScore ? "mt-2" : ""}`}>
             {title}
           </h3>
         </div>
@@ -157,13 +163,17 @@ export default function AdCard({
         {/* PREȚ — bloc curat, mult aer */}
         <div className="mt-auto flex items-end justify-between border-t border-line/60 pt-5">
           <div>
-            <p className="text-[11px] font-medium uppercase tracking-wider text-muted">
-              {cards?.marketPrice || "Preț piață"}:{" "}
-              <span className="line-through decoration-neutral-300">{marketPrice}</span>
-            </p>
-            <p className="mt-1 text-[28px] font-bold leading-none tracking-tight text-ink">
-              {exitPrice}
-            </p>
+            {showMarketPrice ? (
+              <p className="text-[11px] font-medium uppercase tracking-wider text-muted">
+                {cards?.marketPrice || "Preț piață"}:{" "}
+                <span className="line-through decoration-neutral-300">{marketPrice}</span>
+              </p>
+            ) : null}
+            {showExitPrice ? (
+              <p className={`text-[28px] font-bold leading-none tracking-tight text-ink ${showMarketPrice ? "mt-1" : ""}`}>
+                {exitPrice}
+              </p>
+            ) : null}
           </div>
           <span className="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-ink transition-colors group-hover:text-gold-deep">
             Detalii

@@ -7,6 +7,7 @@ import { companyInfo } from "@/lib/company";
 import { buildSocialShareKit } from "@/lib/socialShare";
 import { trackEvent } from "@/lib/analytics";
 import { adminDeleteListing, adminForcePublish, type AdminTable } from "@/app/actions/adminActions";
+import { formatAdminPriceCell } from "@/lib/listingPrice";
 
 const ADMIN_EMAILS = ["consultantacrypto.ro@gmail.com"];
 
@@ -1249,10 +1250,10 @@ export default function AdminHQ() {
                         </td>
                         <td className="p-3 text-neutral-600">{listing.is_seed === true ? "Da" : "Nu"}</td>
                         <td className="p-3 font-semibold tabular-nums">
-                          €{Number(listing.market_price || 0).toLocaleString("ro-RO")}
+                          {formatAdminPriceCell(listing.market_price)}
                         </td>
                         <td className="p-3 font-semibold tabular-nums">
-                          €{Number(listing.exit_price || 0).toLocaleString("ro-RO")}
+                          {formatAdminPriceCell(listing.exit_price)}
                         </td>
                         <td className="p-3 text-xs text-neutral-600">
                           {listing.created_at ? new Date(listing.created_at).toLocaleString("ro-RO") : "—"}

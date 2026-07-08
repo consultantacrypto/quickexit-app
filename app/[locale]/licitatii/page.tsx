@@ -5,6 +5,8 @@ import { PAGE_METADATA_COPY } from "@/lib/pageMetadataCopy";
 import { buildPageMetadata, resolvePageLocale } from "@/lib/seo";
 import { supabase } from "@/lib/supabase";
 import { normalizeSaleType } from "@/utils/normalizeSaleType";
+import { getNumberLocale } from "@/lib/i18n/format";
+import { adCardPricingProps } from "@/lib/listingPrice";
 
 export const revalidate = 60;
 
@@ -28,11 +30,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 const FALLBACK_IMAGE =
   "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=800&q=80";
 
-export default async function LicitatiiPage() {
+export default async function LicitatiiPage({ params }: PageProps) {
+  const { locale } = await params;
+  const numberLocale = getNumberLocale(locale);
   const { data: listings } = await supabase
     .from("listings")
     .select(
-      "id,title,images,market_price,exit_price,discount,deal_score,sale_strategy,offer_count,highest_offer,expires_at,status,is_seed,created_at",
+      "id,title,images,market_price,exit_price,discount,deal_score,sale_strategy,offer_count,highest_offer,expires_at,status,is_seed,created_at,details",
     )
     .eq("status", "active")
     .eq("is_seed", false)
@@ -77,10 +81,7 @@ export default async function LicitatiiPage() {
                   id={item.id}
                   title={item.title}
                   image={item.images?.[0] || FALLBACK_IMAGE}
-                  marketPrice={`€${item.market_price.toLocaleString("ro-RO")}`}
-                  exitPrice={`€${item.exit_price.toLocaleString("ro-RO")}`}
-                  discount={item.discount?.toString() || "0"}
-                  score={item.deal_score ? item.deal_score / 10 : 9.5}
+                  {...adCardPricingProps(item, numberLocale)}
                   type="auction"
                   priority={index < 4}
                   offerCount={item.offer_count}

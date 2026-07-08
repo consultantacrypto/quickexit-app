@@ -12,6 +12,9 @@ import {
 } from "@/lib/evaluationTracking";
 import AdCard from "@/app/components/AdCard";
 import { normalizeSaleType } from "@/utils/normalizeSaleType";
+import { useLocale } from "next-intl";
+import { getNumberLocale } from "@/lib/i18n/format";
+import { adCardPricingProps } from "@/lib/listingPrice";
 import { Wallet, Inbox, PlusCircle, Search, Settings, Power, Play, PiggyBank, ClipboardList } from "lucide-react";
 import KycBanner from "@/app/components/KycBanner";
 
@@ -26,6 +29,8 @@ const DIDIT_HOSTED_VERIFICATION_URL =
 function DashboardContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const locale = useLocale();
+  const numberLocale = getNumberLocale(locale);
   
   const paymentStatus = searchParams.get("payment");
   const listingId = searchParams.get("listing");
@@ -838,10 +843,7 @@ function DashboardContent() {
                         item.images?.[0] ||
                         "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=800&q=80"
                       }
-                      marketPrice={`€${item.market_price?.toLocaleString('ro-RO')}`}
-                      exitPrice={`€${item.exit_price?.toLocaleString('ro-RO')}`}
-                      discount={item.discount?.toString() || "0"}
-                      score={item.deal_score ? item.deal_score / 10 : 9.0}
+                      {...adCardPricingProps(item, numberLocale)}
                       type={normalizeSaleType(item.sale_strategy)}
                       {...(normalizeSaleType(item.sale_strategy) === "auction"
                         ? {
