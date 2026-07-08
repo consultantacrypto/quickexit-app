@@ -445,6 +445,18 @@
       "contactHint": "Contact details are shared only through an offer, to protect both parties.",
       "transactionHistory": "Transaction history will be available after the first confirmed sales on the platform."
     },
+    "premiumSeller": {
+      "title": "QuickExit professional profile",
+      "enableProfile": "Enable my professional profile on this listing",
+      "vehicleReviewed": "I personally filmed and tested this vehicle",
+      "verifiedProfile": "Verified profile",
+      "vehicleReviewedBadge": "Personally filmed and tested",
+      "call": "Call",
+      "whatsapp": "WhatsApp",
+      "followTikTok": "Follow on TikTok",
+      "memberSince": "Member since",
+      "activeListings": "Active listings"
+    },
     "userType": {
       "buyer": "Buyer",
       "seller": "Seller",
