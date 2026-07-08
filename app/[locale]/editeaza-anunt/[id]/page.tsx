@@ -31,7 +31,13 @@ export default function EditAdPage() {
         setCategory(data.category);
         setAdTitle(data.title);
         setDescription(data.description);
-        setExitPrice(data.exit_price.toString());
+        setExitPrice(
+          data.exit_price != null &&
+            Number.isFinite(Number(data.exit_price)) &&
+            Number(data.exit_price) > 0
+            ? String(data.exit_price)
+            : "",
+        );
         setFormData(data.details || {});
       }
       setIsLoading(false);
@@ -41,14 +47,28 @@ export default function EditAdPage() {
 
   const handleUpdate = async () => {
     setIsSaving(true);
+    const trimmedExit = exitPrice.trim();
+    const updatePayload: {
+      title: string;
+      description: string;
+      details: Record<string, unknown>;
+      exit_price?: number | null;
+    } = {
+      title: adTitle,
+      description: description,
+      details: formData,
+    };
+    if (trimmedExit) {
+      const parsed = Number(trimmedExit);
+      if (Number.isFinite(parsed) && parsed > 0) {
+        updatePayload.exit_price = parsed;
+      }
+    } else {
+      updatePayload.exit_price = null;
+    }
     const { error } = await supabase
       .from('listings')
-      .update({
-        title: adTitle,
-        description: description,
-        exit_price: Number(exitPrice),
-        details: formData
-      })
+      .update(updatePayload)
       .eq('id', id);
 
     if (error) {
