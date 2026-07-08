@@ -1,4 +1,5 @@
 import { getNumberLocale } from "@/lib/i18n/format";
+import { getPricingMode } from "@/lib/pricingMode";
 
 /** True when value is a finite number strictly greater than zero. */
 export function isValidPrice(value: unknown): value is number {
@@ -48,6 +49,7 @@ export function dealScoreForCard(dealScore: unknown): number | null {
 
 export function adCardPricingProps(
   item: {
+    details?: unknown;
     market_price?: unknown;
     exit_price?: unknown;
     discount?: unknown;
@@ -55,11 +57,17 @@ export function adCardPricingProps(
   },
   numberLocale: string,
 ) {
+  const pricingMode = getPricingMode(item.details);
+  const isEvaluated = pricingMode === "evaluated";
+  const isPriceOnRequest = pricingMode === "price_on_request";
+  const onRequestLabel = numberLocale === "en-GB" ? "Price on request" : "Preț la cerere";
   return {
-    marketPrice: formatPriceOrNull(item.market_price, numberLocale) ?? "",
-    exitPrice: formatPriceOrNull(item.exit_price, numberLocale) ?? "",
-    discount: discountStringForCard(item.discount),
-    score: dealScoreForCard(item.deal_score),
+    marketPrice: isEvaluated ? (formatPriceOrNull(item.market_price, numberLocale) ?? "") : "",
+    exitPrice: isPriceOnRequest
+      ? onRequestLabel
+      : (formatPriceOrNull(item.exit_price, numberLocale) ?? ""),
+    discount: isEvaluated ? discountStringForCard(item.discount) : "0",
+    score: isEvaluated ? dealScoreForCard(item.deal_score) : null,
   };
 }
 

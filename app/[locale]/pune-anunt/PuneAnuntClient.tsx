@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { supabase } from "@/lib/supabase";
 import { Loader2, Search, Star, X } from "lucide-react";
 import { trackEvent } from "@/lib/analytics";
@@ -29,6 +30,7 @@ import {
   toEvaluationTrackingEventParams,
   type EvaluationTrackingContext,
 } from "@/lib/evaluationTracking";
+import { type PricingMode } from "@/lib/pricingMode";
 
 type PackageIdParam = "economy" | "standard" | "urgent" | "auction";
 
@@ -61,6 +63,7 @@ type PuneAnuntClientProps = {
 };
 
 export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps) {
+  const tPost = useTranslations("PostListing");
   const searchParams = useSearchParams();
   const initialPkg = normalizeInitialPackage(initialPackage);
   const prefillTrackedRef = useRef(false);
@@ -83,6 +86,8 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
   const [analyzedItems, setAnalyzedItems] = useState(0);
 
   const [exitPrice, setExitPrice] = useState("");
+  const [pricingMode, setPricingMode] = useState<PricingMode | null>(null);
+  const [isExitPriceManuallyEdited, setIsExitPriceManuallyEdited] = useState(false);
   const [evaluationPrefillActive, setEvaluationPrefillActive] = useState(false);
   const [evaluationPrefillMessage, setEvaluationPrefillMessage] = useState<string | null>(null);
   const [evaluationHandoffActive, setEvaluationHandoffActive] = useState(false);
@@ -140,6 +145,7 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
   useEffect(() => {
     const source = searchParams.get("source")?.trim().toLowerCase();
     if (source !== "evaluation") return;
+    setPricingMode("evaluated");
 
     let didPrefill = false;
     let hasExitPrice = false;
@@ -169,6 +175,7 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
 
       if (draft.selectedExitPrice) {
         setExitPrice(String(draft.selectedExitPrice));
+        setIsExitPriceManuallyEdited(true);
         hasExitPrice = true;
         priceLockedFromEvaluationRef.current = true;
         didPrefill = true;
@@ -218,6 +225,7 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
       const parsedExitPrice = parseEvaluationExitPrice(searchParams.get("exit_price"));
       if (parsedExitPrice !== null) {
         setExitPrice(String(parsedExitPrice));
+          setIsExitPriceManuallyEdited(true);
         hasExitPrice = true;
         priceLockedFromEvaluationRef.current = true;
         didPrefill = true;
@@ -358,6 +366,46 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
     setSaleStrategy(PACKAGE_TO_STRATEGY[pkg]);
   }
 
+  function switchPricingMode(nextMode: PricingMode) {
+    if (nextMode === pricingMode) return;
+    const prevMode = pricingMode;
+    setPricingMode(nextMode);
+    if (nextMode === "evaluated") {
+      // Resetăm starea evaluatorului înainte să ruleze (doar utilizatorul alege explicit).
+      setEvaluationResult(null);
+      setMarketPrice(0);
+      setAnalyzedItems(0);
+      setManualMarketPrice("");
+      setEvaluationPrefillActive(false);
+      setEvaluationPrefillMessage(null);
+      if (prevMode === "fixed_price") {
+        priceLockedFromEvaluationRef.current = true;
+        setIsExitPriceManuallyEdited(true);
+      } else {
+        priceLockedFromEvaluationRef.current = false;
+        setIsExitPriceManuallyEdited(false);
+      }
+
+      void generateAiPricing();
+      return;
+    }
+    setEvaluationResult(null);
+    setMarketPrice(0);
+    setAnalyzedItems(0);
+    setManualMarketPrice("");
+    priceLockedFromEvaluationRef.current = false;
+    if (nextMode === "price_on_request") {
+      setExitPrice("");
+      setIsExitPriceManuallyEdited(false);
+    }
+    if (nextMode === "fixed_price") {
+      // Păstrăm exit_price doar dacă a fost introdus explicit de utilizator.
+      if (!isExitPriceManuallyEdited) {
+        setExitPrice("");
+      }
+    }
+  }
+
   function validatePrimaryAssetFields(): string | null {
     if (!adTitle.trim()) return "Completează titlul anunțului.";
     if (category === "Auto & Moto") {
@@ -469,6 +517,7 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
         setAnalyzedItems(0);
       }
       if (!priceLockedFromEvaluationRef.current) {
+        setIsExitPriceManuallyEdited(false);
         setExitPrice("");
       }
       setFlowError(null);
@@ -549,6 +598,7 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
           setAnalyzedItems(data.comparable_count || 0);
 
           if (!priceLockedFromEvaluationRef.current) {
+            setIsExitPriceManuallyEdited(false);
             if (data.strong_exit_price) {
               setExitPrice(data.strong_exit_price.toString());
             } else {
@@ -623,9 +673,18 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
 
   // Putem avansa de la pasul de preț doar dacă prețul de vânzare e completat,
   // iar în modul premium/rar și prețul de piață introdus manual.
-  const canProceedFromPrice = isLowConfidence
-    ? Boolean(exitPrice) && manualMarketPriceNum > 0
-    : Boolean(exitPrice);
+  const hasValidExitPriceInput =
+    Number.isFinite(Number(exitPrice)) && Number(exitPrice) > 0;
+  const canProceedFromPrice =
+    pricingMode === null
+      ? false
+      : pricingMode === "price_on_request"
+        ? true
+        : pricingMode === "fixed_price"
+          ? hasValidExitPriceInput
+          : isLowConfidence
+            ? Boolean(exitPrice) && manualMarketPriceNum > 0
+            : Boolean(exitPrice);
 
   // Trimite utilizatorul către Stripe Checkout pentru un anunț deja creat.
   const handleCheckout = async (priceId: string, listingId: string, userId?: string) => {
@@ -650,6 +709,7 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
         checkout_type: "listing",
         listing_id: listingId,
         package_id: selectedPackage,
+        pricing_mode: pricingMode,
         amount: packagePrices[selectedPackage],
         status: "created",
         category: categoryLabelToTrackingKey(category),
@@ -662,16 +722,34 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
 
   const handleFinalSubmit = async () => {
     setFlowError(null);
+    if (pricingMode === null) {
+      setFlowError(tPost("pricingMode.validation.selectOptionToContinue"));
+      return;
+    }
     trackEvent(
       "listing_submit_attempt",
       toEvaluationTrackingEventParams(evaluationTrackingRef.current, {
         category: categoryLabelToTrackingKey(category),
         package_id: selectedPackage,
+        pricing_mode: pricingMode,
         status: "started",
       }),
     );
     trackListingStepCompleted(4);
     setIsSaving(true);
+    if (pricingMode === "fixed_price") {
+      if (!hasValidExitPriceInput) {
+        setFlowError(tPost("pricingMode.validation.fixedPriceRequired"));
+        setIsSaving(false);
+        return;
+      }
+    } else if (pricingMode === "evaluated") {
+      if (!canProceedFromPrice) {
+        setFlowError(tPost("pricingMode.validation.evaluatedNeedsPrice"));
+        setIsSaving(false);
+        return;
+      }
+    }
     try {
       const {
         data: { user },
@@ -682,6 +760,7 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
           toEvaluationTrackingEventParams(evaluationTrackingRef.current, {
             category: categoryLabelToTrackingKey(category),
             package_id: selectedPackage,
+            pricing_mode: pricingMode,
             status: "failed",
             reason: "auth_required",
           }),
@@ -715,14 +794,28 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
         }
       }
 
-      const finalMarketPrice = isLowConfidence
-        ? manualMarketPriceNum > 0
-          ? manualMarketPriceNum
-          : baseRequestedPrice
-        : marketPrice > 0
-          ? marketPrice
-          : baseRequestedPrice;
-      const dealScore = Math.min(Math.round(currentDiscountPercent * 1.5), 99);
+      const finalMarketPrice =
+        pricingMode === "evaluated"
+          ? isLowConfidence
+            ? manualMarketPriceNum > 0
+              ? manualMarketPriceNum
+              : baseRequestedPrice
+            : marketPrice > 0
+              ? marketPrice
+              : baseRequestedPrice
+          : null;
+      const finalExitPrice =
+        pricingMode === "price_on_request"
+          ? null
+          : pricingMode === "fixed_price"
+            ? Number(exitPrice)
+            : finalCalculatedExitPrice;
+      const finalDiscount =
+        pricingMode === "evaluated" ? currentDiscountPercent : null;
+      const dealScore =
+        pricingMode === "evaluated"
+          ? Math.min(Math.round(currentDiscountPercent * 1.5), 99)
+          : null;
 
       // 1. Salvăm anunțul ca "PENDING_PAYMENT" și îl returnăm din baza de date
       const { data: insertedData, error } = await supabase
@@ -733,17 +826,18 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
           category: category,
           description: description || "Anunț detaliat.",
           market_price: finalMarketPrice,
-          exit_price: finalCalculatedExitPrice,
+          exit_price: finalExitPrice,
           sale_strategy: selectedPackage,
           status: "pending_payment", // Anunțul este reținut până se confirmă plata
           is_seed: false,
           deal_score: dealScore,
-          discount: currentDiscountPercent,
+          discount: finalDiscount,
           images: uploadedImageUrls,
           details: {
             ...formData,
             package: selectedPackage,
             strategy: saleStrategy,
+            pricing_mode: pricingMode,
             ...buildListingAcquisitionDetails(evaluationTrackingRef.current),
           },
         })
@@ -757,6 +851,7 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
           toEvaluationTrackingEventParams(evaluationTrackingRef.current, {
             category: categoryLabelToTrackingKey(category),
             package_id: selectedPackage,
+            pricing_mode: pricingMode,
             status: "failed",
             reason: "save_error",
           }),
@@ -780,6 +875,7 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
         toEvaluationTrackingEventParams(evaluationTrackingRef.current, {
           category: categoryLabelToTrackingKey(category),
           package_id: selectedPackage,
+          pricing_mode: pricingMode,
           sale_strategy: saleStrategy,
           amount: packagePrices[selectedPackage],
           checkout_type: "listing",
@@ -795,6 +891,7 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
         toEvaluationTrackingEventParams(evaluationTrackingRef.current, {
           category: categoryLabelToTrackingKey(category),
           package_id: selectedPackage,
+          pricing_mode: pricingMode,
           status: "failed",
           reason:
             typeof error?.message === "string" && error.message === "upload_failed"
@@ -1640,10 +1737,18 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                 </button>
                 <button
                   type="button"
-                  onClick={() => void generateAiPricing()}
+                  onClick={() => {
+                    if (pricingMode === "evaluated") {
+                      void generateAiPricing();
+                      return;
+                    }
+                    setFlowError(null);
+                    trackListingStepCompleted(2);
+                    setStep(3);
+                  }}
                   className="w-full rounded-2xl border-[3px] border-black bg-black py-4 text-xs font-black uppercase tracking-widest text-[#FFD100] shadow-[6px_6px_0_0_#000] transition hover:bg-neutral-900 sm:flex-1"
                 >
-                  Continuă către estimarea pe piață →
+                  {tPost("pricingMode.actions.continueToPricing")}
                 </button>
               </div>
             </div>
@@ -1683,14 +1788,84 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                   )}
                   <div>
                     <h2 className="text-xl font-black uppercase italic tracking-tight text-black md:text-2xl">
-                      3. Preț de vânzare
+                      {tPost("pricingMode.step3Title")}
                     </h2>
                     <p className="mt-2 text-sm font-medium text-neutral-600">
-                      Folosește estimarea ca reper, apoi stabilește prețul la care vrei să
-                      vinzi rapid.
+                      {tPost("pricingMode.step3Body")}
                     </p>
                   </div>
 
+                  <div className="rounded-2xl border-[3px] border-black bg-[#F7F4EC]/80 p-5 md:p-6">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-neutral-500">
+                      {tPost("pricingMode.question")}
+                    </p>
+                    <div className="mt-4 grid gap-3 md:grid-cols-2">
+                      {(["evaluated", "fixed_price"] as const).map((mode) => (
+                        <button
+                          key={mode}
+                          type="button"
+                          onClick={() => switchPricingMode(mode)}
+                          className={`rounded-xl border-[3px] p-4 text-left transition ${
+                            pricingMode === mode
+                              ? "border-black bg-[#FFD100] shadow-[4px_4px_0_0_#000]"
+                              : "border-black bg-white hover:bg-[#FFF9E8]"
+                          }`}
+                        >
+                          <p className="text-xs font-black uppercase tracking-wide">
+                            {tPost(`pricingMode.options.${mode}.title`)}
+                          </p>
+                          <p className="mt-2 text-[11px] font-semibold leading-relaxed text-neutral-700 normal-case">
+                            {tPost(`pricingMode.options.${mode}.description`)}
+                          </p>
+                        </button>
+                      ))}
+                    </div>
+                    {pricingMode === null ? (
+                      <p className="mt-4 text-xs font-medium leading-relaxed text-neutral-600">
+                        {tPost("pricingMode.selectToContinue")}
+                      </p>
+                    ) : null}
+                  </div>
+
+                  {pricingMode === "fixed_price" ? (
+                    <div className="rounded-2xl border-[3px] border-black bg-[#F7F4EC]/80 p-6">
+                      <label className="text-[10px] font-bold uppercase tracking-widest text-neutral-500">
+                        {tPost("pricingMode.fixedPriceInputLabel")}
+                      </label>
+                      <div className="relative mt-2">
+                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl font-black text-neutral-900">
+                          €
+                        </span>
+                        <input
+                          type="number"
+                          value={exitPrice}
+                          onChange={(e) => {
+                            setIsExitPriceManuallyEdited(true);
+                            setExitPrice(e.target.value);
+                          }}
+                          placeholder="ex. 45000"
+                          className={`${inputBase} pl-11 text-2xl font-black italic tabular-nums focus:bg-white md:text-3xl`}
+                        />
+                      </div>
+                      <p className="mt-3 text-xs font-medium text-neutral-500">
+                        {tPost("pricingMode.fixedPriceNote")}
+                      </p>
+                    </div>
+                  ) : null}
+
+                  {pricingMode === "price_on_request" ? (
+                    <div className="rounded-2xl border-[3px] border-black bg-[#FFF9E8] p-6 text-sm font-semibold text-neutral-800">
+                      {tPost("pricingMode.priceOnRequestNote")}
+                    </div>
+                  ) : null}
+
+                  {pricingMode === "evaluated" ? (
+                  <>
+                    <div>
+                      <p className="mt-2 text-sm font-medium text-neutral-600">
+                        {tPost("pricingMode.evaluatedIntro")}
+                      </p>
+                    </div>
                   {isLowConfidence ? (
                     /* Active premium/rare: ascundem estimarea automată și afișăm atenționarea. */
                     <div className="rounded-[2rem] border-[3px] border-amber-500 bg-amber-50 p-6 text-left shadow-[8px_8px_0_0_rgba(217,119,6,0.25)] md:p-8">
@@ -1791,6 +1966,7 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                             value={exitPrice}
                             onChange={(e) => {
                               priceLockedFromEvaluationRef.current = false;
+                              setIsExitPriceManuallyEdited(true);
                               setExitPrice(e.target.value);
                             }}
                             placeholder={marketPrice > 0 ? marketPrice.toString() : "ex. 45000"}
@@ -1833,6 +2009,8 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                       urgent vrei oferte.
                     </p>
                   </div>
+                  </>
+                  ) : null}
 
                   <div className="flex flex-col gap-3 border-t border-neutral-200 pt-6 sm:flex-row sm:gap-4">
                     <button

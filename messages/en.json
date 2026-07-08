@@ -277,6 +277,40 @@
       "paymentFailed": "We couldn't initialize payment. Please try again.",
       "uploadFailed": "We couldn't upload your images. Check your files and try again.",
       "genericFailed": "We couldn't complete your request or start checkout. Please try again."
+    },
+    "pricingMode": {
+      "question": "How do you want to present the price?",
+      "step3Title": "3. Price and offer method",
+      "step3Body": "Choose how you want the price to be presented in the listing.",
+      "selectToContinue": "Select one of the options to continue.",
+      "fixedPriceInputLabel": "Sale price (EUR)",
+      "fixedPriceNote": "The price will be displayed without evaluation or automatic market comparison.",
+      "priceOnRequestNote": "The price will not be displayed publicly. Interested buyers will be able to request the complete offer.",
+      "evaluatedIntro": "Use the estimate as a reference, then set the price at which you want to sell quickly.",
+      "changeWarning": "Changing the pricing mode may remove the existing valuation, discount and deal score.",
+      "actions": {
+        "continueToEvaluation": "Continue to market evaluation →",
+        "continueToPricing": "Continue to pricing"
+      },
+      "validation": {
+        "fixedPriceRequired": "Enter a valid sale price greater than 0.",
+        "evaluatedNeedsPrice": "Enter a sale price to continue.",
+        "selectOptionToContinue": "Select one of the pricing options to continue."
+      },
+      "options": {
+        "evaluated": {
+          "title": "QuickExit valuation",
+          "description": "QuickExit estimates the market price and highlights the gap versus your sale price."
+        },
+        "fixed_price": {
+          "title": "Fixed price",
+          "description": "You set the sale price directly, without valuation and without automatic market comparison."
+        },
+        "price_on_request": {
+          "title": "Price on request",
+          "description": "The price is not publicly displayed. Interested users request the full offer."
+        }
+      }
     }
   },
   "ListingDetail": {
@@ -381,7 +415,8 @@
       "potentialProfit": "Potential profit",
       "marketPrice": "Estimated market price",
       "exitPrice": "Fast sale price",
-      "discountFromMarket": "Discount vs market: −{percent}%"
+      "discountFromMarket": "Discount vs market: −{percent}%",
+      "requestDetails": "Request details"
     },
     "actions": {
       "acceptExitPrice": "Accept fast sale price",

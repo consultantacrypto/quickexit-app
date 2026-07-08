@@ -25,6 +25,7 @@ import {
   hasValidMarketComparison,
   isValidPrice,
 } from "@/lib/listingPrice";
+import { getPricingMode } from "@/lib/pricingMode";
 import { resolveListingField } from "@/lib/i18n/listingContent";
 import type {
   ListingSellerContext,
@@ -287,6 +288,9 @@ export default function AnuntClient({
     () => getFutureMobilityDetails(adData.details),
     [adData.details],
   );
+  const pricingMode = getPricingMode(adData.details);
+  const isEvaluatedPricing = pricingMode === "evaluated";
+  const isPriceOnRequest = pricingMode === "price_on_request";
   const isFmOrderLike = fm ? isFutureMobilityOrderLike(fm) : false;
   const hasValidFmPrice =
     typeof adData.exit_price === "number" &&
@@ -294,10 +298,13 @@ export default function AnuntClient({
     adData.exit_price > 0;
   const showDiscount =
     !isFmOrderLike &&
+    isEvaluatedPricing &&
     Number.isFinite(Number(adData.discount)) &&
     Number(adData.discount) > 0;
   const showLiquidityScore =
-    !isFmOrderLike && dealScoreForCard(adData.deal_score) !== null;
+    !isFmOrderLike && isEvaluatedPricing && dealScoreForCard(adData.deal_score) !== null;
+  const hasValidExitPrice = isValidPrice(adData.exit_price);
+  const canUseClassicOfferFlow = !isPriceOnRequest && hasValidExitPrice;
 
   const fmBadgeLabelsForCard = (details: unknown): string[] | undefined => {
     const parsed = getFutureMobilityDetails(details);
@@ -917,6 +924,7 @@ export default function AnuntClient({
             <div className="sticky top-24 space-y-6">
               <div className="rounded-[2rem] border-[3px] border-black bg-white p-6 shadow-[10px_10px_0_0_rgba(0,0,0,0.95)] md:shadow-[12px_12px_0_0_#FFD100]">
                 {!isFmOrderLike &&
+                isEvaluatedPricing &&
                 hasValidMarketComparison(adData.market_price, adData.exit_price) ? (
                   <div className="mb-6 flex flex-col justify-center rounded-[1.25rem] border-[3px] border-black bg-[#FFD100] p-5 shadow-[4px_4px_0_0_#000]">
                     <p className={`${labelBase} mb-1 text-black/60`}>{t("pricing.potentialProfit")}</p>
@@ -929,7 +937,7 @@ export default function AnuntClient({
                 ) : null}
 
                 <div className="mb-8 space-y-4">
-                  {!isFmOrderLike && isValidPrice(adData.market_price) ? (
+                  {!isFmOrderLike && isEvaluatedPricing && isValidPrice(adData.market_price) ? (
                     <div className="flex flex-wrap items-center justify-between gap-2 border-b-2 border-neutral-100 pb-2">
                       <span className="text-[10px] font-black uppercase tracking-wide text-neutral-500">
                         {t("pricing.marketPrice")}
@@ -939,7 +947,7 @@ export default function AnuntClient({
                       </span>
                     </div>
                   ) : null}
-                  {(hasValidFmPrice || (!isFmOrderLike && isValidPrice(adData.exit_price))) ? (
+                  {(hasValidFmPrice || (!isFmOrderLike && hasValidExitPrice)) ? (
                     <div className="flex w-full flex-col gap-1">
                       <span className="text-[10px] font-black uppercase tracking-wide text-neutral-700">
                         {isFmOrderLike && hasValidFmPrice
@@ -966,7 +974,7 @@ export default function AnuntClient({
                 </div>
 
                 <div className="space-y-3">
-                  {!isFmOrderLike ? (
+                  {!isFmOrderLike && canUseClassicOfferFlow ? (
                     <button
                       type="button"
                       onClick={() => {
@@ -978,7 +986,7 @@ export default function AnuntClient({
                     >
                       {t("actions.acceptExitPrice")}
                     </button>
-                  ) : (
+                  ) : isFmOrderLike ? (
                     <button
                       type="button"
                       onClick={() => {
@@ -999,8 +1007,21 @@ export default function AnuntClient({
                     >
                       {t("futureMobility.requestPersonalizedOffer")}
                     </button>
-                  )}
-                  {!isFmOrderLike ? (
+                  ) : isPriceOnRequest ? (
+                    <button
+                      type="button"
+                      disabled
+                      title={
+                        process.env.NODE_ENV !== "production"
+                          ? "Sprint B: contact modal fără slider pentru price_on_request."
+                          : undefined
+                      }
+                      className="w-full rounded-2xl border-[3px] border-black bg-white py-4 font-black uppercase tracking-wider text-black shadow-[4px_4px_0_0_#000] opacity-60"
+                    >
+                      {t("pricing.requestDetails")}
+                    </button>
+                  ) : null}
+                  {!isFmOrderLike && canUseClassicOfferFlow ? (
                     <button
                       type="button"
                       onClick={() => {

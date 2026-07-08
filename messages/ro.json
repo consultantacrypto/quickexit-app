@@ -277,6 +277,40 @@
       "paymentFailed": "Nu am putut inițializa plata. Te rugăm să încerci din nou.",
       "uploadFailed": "Nu am putut încărca imaginile. Verifică fișierele și încearcă din nou.",
       "genericFailed": "Nu am putut finaliza solicitarea sau pornirea plății. Te rugăm să încerci din nou."
+    },
+    "pricingMode": {
+      "question": "Cum dorești să prezinți prețul?",
+      "step3Title": "3. Preț și modalitate de ofertare",
+      "step3Body": "Alege cum dorești să prezinți prețul în anunț.",
+      "selectToContinue": "Selectează una dintre opțiuni pentru a continua.",
+      "fixedPriceInputLabel": "Preț de vânzare (EUR)",
+      "fixedPriceNote": "Prețul va fi afișat fără evaluare sau comparație automată cu piața.",
+      "priceOnRequestNote": "Prețul nu va fi afișat public. Persoanele interesate vor putea solicita oferta completă.",
+      "evaluatedIntro": "Folosește estimarea ca reper, apoi stabilește prețul la care vrei să vinzi rapid.",
+      "changeWarning": "Schimbarea modului de preț poate elimina evaluarea, discountul și scorul existente.",
+      "actions": {
+        "continueToEvaluation": "Continuă către estimarea pe piață →",
+        "continueToPricing": "Continuă către stabilirea prețului"
+      },
+      "validation": {
+        "fixedPriceRequired": "Introdu un preț de vânzare valid, mai mare decât 0.",
+        "evaluatedNeedsPrice": "Completează prețul de vânzare pentru a continua.",
+        "selectOptionToContinue": "Selectează una dintre opțiuni pentru a continua."
+      },
+      "options": {
+        "evaluated": {
+          "title": "Evaluare QuickExit",
+          "description": "QuickExit estimează prețul de piață și evidențiază diferența față de prețul tău de vânzare."
+        },
+        "fixed_price": {
+          "title": "Preț fix",
+          "description": "Stabilești direct prețul de vânzare, fără evaluare și fără comparație automată cu piața."
+        },
+        "price_on_request": {
+          "title": "Preț la cerere",
+          "description": "Prețul nu este afișat public. Persoanele interesate solicită oferta completă."
+        }
+      }
     }
   },
   "ListingDetail": {
@@ -381,7 +415,8 @@
       "potentialProfit": "Profit potențial",
       "marketPrice": "Preț estimat de piață",
       "exitPrice": "Preț de vânzare rapidă",
-      "discountFromMarket": "Reducere față de piață: −{percent}%"
+      "discountFromMarket": "Reducere față de piață: −{percent}%",
+      "requestDetails": "Solicită detalii"
     },
     "actions": {
       "acceptExitPrice": "Accept prețul de vânzare rapidă",

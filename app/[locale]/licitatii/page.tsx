@@ -36,7 +36,7 @@ export default async function LicitatiiPage({ params }: PageProps) {
   const { data: listings } = await supabase
     .from("listings")
     .select(
-      "id,title,images,market_price,exit_price,discount,deal_score,sale_strategy,offer_count,highest_offer,expires_at,status,is_seed,created_at",
+      "id,title,images,market_price,exit_price,discount,deal_score,sale_strategy,offer_count,highest_offer,expires_at,status,is_seed,created_at,details",
     )
     .eq("status", "active")
     .eq("is_seed", false)
