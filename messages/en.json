@@ -457,6 +457,27 @@
       "memberSince": "Member since",
       "activeListings": "Active listings"
     },
+    "financing": {
+      "calculateCta": "Calculate monthly payment",
+      "title": "Estimated financing",
+      "partnerLabel": "Financing partner",
+      "vehiclePrice": "Vehicle price",
+      "deposit": "Down payment",
+      "depositAmount": "Down payment amount",
+      "financedAmount": "Financed amount",
+      "annualInterest": "Annual interest",
+      "term": "Term",
+      "months": "months",
+      "monthlyPayment": "Estimated monthly payment",
+      "totalInterest": "Estimated total interest",
+      "totalInstallments": "Total installments",
+      "totalCost": "Total cost including down payment",
+      "disclaimer": "This is an estimate only. It is not a binding financing offer. Final terms depend on the financing partner and application review.",
+      "close": "Close",
+      "editTitle": "Vehicle financing",
+      "enableCalculator": "Enable financing calculator",
+      "unavailable": "The calculator is not available for these values."
+    },
     "userType": {
       "buyer": "Buyer",
       "seller": "Seller",

@@ -44,10 +44,20 @@ import FutureMobilitySections, {
   FutureMobilityVideoSection,
 } from "./FutureMobilitySections";
 import { isPremiumSellerListing } from "@/lib/listingPremium";
+import {
+  getFinancingVehiclePrice,
+  isFinancingCalculatorEnabled,
+} from "@/lib/listingFinancing";
+import { financingConfig } from "@/lib/financingConfig";
 import PremiumSellerCard from "./PremiumSellerCard";
 import StickyContactBar from "./StickyContactBar";
 
 const ListingModals = dynamic(() => import("./ListingModals"), {
+  ssr: false,
+  loading: () => null,
+});
+
+const FinancingCalculatorModal = dynamic(() => import("./FinancingCalculatorModal"), {
   ssr: false,
   loading: () => null,
 });
@@ -282,6 +292,7 @@ export default function AnuntClient({
   const [activeModal, setActiveModal] = useState<ListingModalId | null>(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [imageLightboxOpen, setImageLightboxOpen] = useState(false);
+  const [financingModalOpen, setFinancingModalOpen] = useState(false);
 
   const [adData] = useState<PublicListingRow>(initialListing);
   const [similarAds] = useState<PublicListingRow[]>(initialSimilar);
@@ -294,6 +305,14 @@ export default function AnuntClient({
   const showPremiumSeller = useMemo(
     () => isPremiumSellerListing(adData),
     [adData],
+  );
+  const showFinancingCalculator = useMemo(
+    () => isFinancingCalculatorEnabled(adData),
+    [adData],
+  );
+  const financingVehiclePrice = useMemo(
+    () => (showFinancingCalculator ? getFinancingVehiclePrice(adData) : null),
+    [adData, showFinancingCalculator],
   );
   const pricingMode = getPricingMode(adData.details);
   const isEvaluatedPricing = pricingMode === "evaluated";
@@ -984,6 +1003,22 @@ export default function AnuntClient({
                   ) : null}
                 </div>
 
+                {showFinancingCalculator && financingVehiclePrice ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      trackEvent("open_financing_calculator", {
+                        listing_id: adData.id,
+                        partner: financingConfig.partnerId,
+                      });
+                      setFinancingModalOpen(true);
+                    }}
+                    className="mb-3 w-full rounded-2xl border-[3px] border-black bg-[#FDFCF8] py-3 font-black uppercase tracking-wider text-black shadow-[4px_4px_0_0_#000] transition hover:bg-white md:mb-4 md:text-xs"
+                  >
+                    {t("financing.calculateCta")}
+                  </button>
+                ) : null}
+
                 <div className="space-y-3">
                   {!isFmOrderLike && canUseClassicOfferFlow ? (
                     <button
@@ -1356,6 +1391,15 @@ export default function AnuntClient({
       </div>
 
       {showPremiumSeller ? <StickyContactBar listingId={adData.id} /> : null}
+
+      {financingModalOpen && financingVehiclePrice ? (
+        <FinancingCalculatorModal
+          open={financingModalOpen}
+          onClose={() => setFinancingModalOpen(false)}
+          listingId={adData.id}
+          vehiclePrice={financingVehiclePrice}
+        />
+      ) : null}
 
       {imageLightboxOpen ? (
         <div

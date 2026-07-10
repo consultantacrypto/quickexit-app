@@ -457,6 +457,27 @@
       "memberSince": "Membru din",
       "activeListings": "Anunțuri active listate"
     },
+    "financing": {
+      "calculateCta": "Calculează rata",
+      "title": "Finanțare estimativă",
+      "partnerLabel": "Partener finanțare",
+      "vehiclePrice": "Preț vehicul",
+      "deposit": "Avans",
+      "depositAmount": "Valoare avans",
+      "financedAmount": "Sumă finanțată",
+      "annualInterest": "Dobândă anuală",
+      "term": "Perioadă",
+      "months": "luni",
+      "monthlyPayment": "Rată lunară estimată",
+      "totalInterest": "Dobândă totală estimată",
+      "totalInstallments": "Total rate",
+      "totalCost": "Cost total inclusiv avans",
+      "disclaimer": "Calcul estimativ. Nu reprezintă o ofertă contractuală de finanțare. Condițiile finale depind de partenerul financiar și de evaluarea dosarului.",
+      "close": "Închide",
+      "editTitle": "Finanțare auto",
+      "enableCalculator": "Activează calculatorul de finanțare",
+      "unavailable": "Calculatorul nu este disponibil pentru aceste valori."
+    },
     "userType": {
       "buyer": "Cumpărător",
       "seller": "Vânzător",
