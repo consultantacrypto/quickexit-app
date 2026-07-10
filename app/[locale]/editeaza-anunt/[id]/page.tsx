@@ -7,11 +7,13 @@ import { supabase } from "@/lib/supabase";
 import { Save, ArrowLeft, Loader2 } from "lucide-react";
 import { getPricingMode, type PricingMode } from "@/lib/pricingMode";
 import { premiumSellerConfig } from "@/lib/premiumSeller";
+import { financingConfig } from "@/lib/financingConfig";
 import { LISTING_AUTO_CATEGORY } from "@/lib/listingPremium";
 
 export default function EditAdPage() {
   const tPost = useTranslations("PostListing");
   const tPremium = useTranslations("ListingDetail.premiumSeller");
+  const tFinancing = useTranslations("ListingDetail.financing");
   const params = useParams();
   const id = params.id as string;
   const router = useRouter();
@@ -74,6 +76,10 @@ export default function EditAdPage() {
       mergedDetails.premium_seller_enabled = formData.premium_seller_enabled === true;
       if (category === LISTING_AUTO_CATEGORY) {
         mergedDetails.vehicle_reviewed = formData.vehicle_reviewed === true;
+        mergedDetails.financing_enabled = formData.financing_enabled === true;
+        if (formData.financing_enabled === true) {
+          mergedDetails.financing_partner = financingConfig.partnerId;
+        }
       }
     }
 
@@ -348,6 +354,27 @@ export default function EditAdPage() {
                     </label>
                   ) : null}
                 </div>
+              </div>
+            ) : null}
+
+            {isOwner && category === LISTING_AUTO_CATEGORY ? (
+              <div className="md:col-span-2 rounded-xl border-[3px] border-black bg-[#F7F4EC] p-5">
+                <h2 className="mb-4 text-sm font-black uppercase italic tracking-tight text-black">
+                  {tFinancing("editTitle")}
+                </h2>
+                <label className="flex cursor-pointer items-start gap-3">
+                  <input
+                    type="checkbox"
+                    checked={formData.financing_enabled === true}
+                    onChange={(e) =>
+                      updateBooleanField("financing_enabled", e.target.checked)
+                    }
+                    className="mt-0.5 h-4 w-4 shrink-0 accent-black"
+                  />
+                  <span className="text-sm font-semibold leading-snug text-neutral-800">
+                    {tFinancing("enableCalculator")}
+                  </span>
+                </label>
               </div>
             ) : null}
 

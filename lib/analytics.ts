@@ -53,6 +53,10 @@ const TIKTOK_EVENT_MAP: Record<string, string> = {
   click_premium_seller_phone: "ClickButton",
   click_premium_seller_whatsapp: "ClickButton",
   click_premium_seller_tiktok: "ClickButton",
+  open_financing_calculator: "ClickButton",
+  change_financing_interest: "ClickButton",
+  change_financing_deposit: "ClickButton",
+  change_financing_term: "ClickButton",
 };
 
 export function isAnalyticsEnabled(): boolean {
