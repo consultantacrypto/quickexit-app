@@ -2,12 +2,18 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { supabase } from "@/lib/supabase";
 import { companyInfo } from "@/lib/company";
 import { buildSocialShareKit } from "@/lib/socialShare";
 import { trackEvent } from "@/lib/analytics";
 import { adminDeleteListing, adminForcePublish, type AdminTable } from "@/app/actions/adminActions";
 import { formatAdminPriceCell } from "@/lib/listingPrice";
+import { LISTING_AUTO_CATEGORY } from "@/lib/listingPremium";
+import {
+  getListingFinancingEligibility,
+  isListingFinancingActive,
+} from "@/lib/listingFinancingAdmin";
 
 const ADMIN_EMAILS = ["consultantacrypto.ro@gmail.com"];
 
@@ -270,6 +276,7 @@ const TAB_LABELS: { id: TabId; label: string }[] = [
 ];
 
 export default function AdminHQ() {
+  const tFinancing = useTranslations("HqAdmin.financing");
   const [gate, setGate] = useState<"loading" | "anon" | "forbidden" | "ready">("loading");
   const [activeTab, setActiveTab] = useState<TabId>("overview");
 
@@ -297,6 +304,10 @@ export default function AdminHQ() {
   const [copilotGaLookbackDays, setCopilotGaLookbackDays] = useState<number | null>(null);
   const [copilotGaWarnings, setCopilotGaWarnings] = useState<string[]>([]);
   const [listingsPendingOnly, setListingsPendingOnly] = useState(false);
+  const [financingActionListingId, setFinancingActionListingId] = useState<string | null>(null);
+  const [financingFeedbackById, setFinancingFeedbackById] = useState<
+    Record<string, { type: "success" | "error"; message: string }>
+  >({});
 
   const loadAdminData = useCallback(async () => {
     setLoadNote(null);
@@ -585,6 +596,78 @@ export default function AdminHQ() {
       data: { session },
     } = await supabase.auth.getSession();
     return session?.access_token ?? null;
+  };
+
+  const patchListingFinancing = async (
+    listingId: string,
+    enabled: boolean,
+  ): Promise<{ ok: true } | { ok: false; error: string }> => {
+    const token = await getAccessToken();
+    if (!token) {
+      return { ok: false, error: "Sesiunea a expirat. Reautentifică-te." };
+    }
+
+    setFinancingActionListingId(listingId);
+    setFinancingFeedbackById((prev) => {
+      const next = { ...prev };
+      delete next[listingId];
+      return next;
+    });
+
+    try {
+      const res = await fetch("/api/hq/listings/financing", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ listingId, enabled }),
+      });
+
+      const payload = await res.json().catch(() => null);
+      if (!res.ok) {
+        return {
+          ok: false,
+          error: payload?.error || tFinancing("error"),
+        };
+      }
+
+      setAllListings((prev) =>
+        prev.map((listing) =>
+          listing.id === listingId
+            ? { ...listing, details: payload?.details ?? listing.details }
+            : listing,
+        ),
+      );
+
+      setFinancingFeedbackById((prev) => ({
+        ...prev,
+        [listingId]: {
+          type: "success",
+          message: enabled ? tFinancing("successEnabled") : tFinancing("successDisabled"),
+        },
+      }));
+
+      return { ok: true };
+    } catch {
+      return { ok: false, error: tFinancing("error") };
+    } finally {
+      setFinancingActionListingId(null);
+    }
+  };
+
+  const handleListingFinancingToggle = async (listing: {
+    id: string;
+    details?: unknown;
+  }) => {
+    const isActive = isListingFinancingActive(listing.details);
+    const result = await patchListingFinancing(listing.id, !isActive);
+    if (!result.ok) {
+      setFinancingFeedbackById((prev) => ({
+        ...prev,
+        [listing.id]: { type: "error", message: result.error },
+      }));
+    }
   };
 
   const callForceActivateApi = async (
@@ -1260,6 +1343,62 @@ export default function AdminHQ() {
                         </td>
                         <td className="p-3 font-mono text-[10px] text-neutral-500">{listing.user_id || "—"}</td>
                         <td className="p-3 space-y-1">
+                          {(() => {
+                            const isAuto =
+                              String(listing.category ?? "").trim() === LISTING_AUTO_CATEGORY;
+                            const financingActive = isListingFinancingActive(listing.details);
+                            const eligibility = isAuto
+                              ? getListingFinancingEligibility(listing)
+                              : null;
+                            const financingLoading = financingActionListingId === listing.id;
+                            const financingFeedback = financingFeedbackById[listing.id];
+
+                            if (!isAuto) {
+                              return null;
+                            }
+
+                            return (
+                              <div className="mb-2 space-y-1 border-b border-black/10 pb-2">
+                                {financingActive ? (
+                                  <span className="inline-block rounded-full border-2 border-black bg-[#FFD100] px-2 py-0.5 text-[9px] font-black uppercase text-black">
+                                    {tFinancing("activeBadge")}
+                                  </span>
+                                ) : null}
+                                {eligibility?.eligible || financingActive ? (
+                                  <button
+                                    type="button"
+                                    disabled={financingLoading}
+                                    onClick={() => void handleListingFinancingToggle(listing)}
+                                    className="block w-full rounded-lg border-2 border-black bg-white px-2 py-1.5 text-[9px] font-black uppercase text-neutral-900 hover:bg-[#FFD100]/40 disabled:cursor-wait disabled:opacity-60"
+                                  >
+                                    {financingLoading
+                                      ? "..."
+                                      : financingActive
+                                        ? tFinancing("disable")
+                                        : tFinancing("enable")}
+                                  </button>
+                                ) : (
+                                  <p className="text-[9px] font-bold uppercase leading-snug text-neutral-500">
+                                    {tFinancing("ineligible")}:{" "}
+                                    {tFinancing(
+                                      `ineligibleReason.${eligibility?.reason ?? "not_active"}`,
+                                    )}
+                                  </p>
+                                )}
+                                {financingFeedback ? (
+                                  <p
+                                    className={`text-[9px] font-semibold leading-snug ${
+                                      financingFeedback.type === "success"
+                                        ? "text-green-800"
+                                        : "text-red-800"
+                                    }`}
+                                  >
+                                    {financingFeedback.message}
+                                  </p>
+                                ) : null}
+                              </div>
+                            );
+                          })()}
                           {listing.status === "active" && listing.is_seed !== true && (
                             <button
                               type="button"

@@ -473,6 +473,7 @@
       "totalInstallments": "Total rate",
       "totalCost": "Cost total inclusiv avans",
       "disclaimer": "Calcul estimativ. Nu reprezintă o ofertă contractuală de finanțare. Condițiile finale depind de partenerul financiar și de evaluarea dosarului.",
+      "partnerAvailable": "Finanțare disponibilă printr-un partener QuickExit",
       "close": "Închide",
       "editTitle": "Finanțare auto",
       "enableCalculator": "Activează calculatorul de finanțare",
@@ -633,6 +634,24 @@
         "submitting": "Se trimite...",
         "submit": "Trimite oferta"
       }
+    }
+  },
+  "HqAdmin": {
+    "financing": {
+      "activeBadge": "Finanțare activă",
+      "enable": "Activează finanțarea",
+      "disable": "Dezactivează finanțarea",
+      "ineligible": "Neeligibil",
+      "ineligibleReason": {
+        "not_auto": "Doar Auto & Moto",
+        "not_active": "Nu este activ",
+        "invalid_price": "Preț invalid",
+        "price_on_request": "Preț la cerere",
+        "auction": "Licitație"
+      },
+      "successEnabled": "Finanțarea a fost activată.",
+      "successDisabled": "Finanțarea a fost dezactivată.",
+      "error": "Nu am putut actualiza finanțarea."
     }
   },
   "FutureMobility": {

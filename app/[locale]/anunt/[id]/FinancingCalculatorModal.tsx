@@ -165,7 +165,10 @@ export default function FinancingCalculatorModal({
             >
               {t("title")}
             </h2>
-            <p className="mt-2 text-[10px] font-bold uppercase tracking-widest text-neutral-500">
+            <p className="mt-2 text-xs font-semibold text-neutral-600">
+              {t("partnerAvailable")}
+            </p>
+            <p className="mt-1 text-[10px] font-bold uppercase tracking-widest text-neutral-500">
               {t("partnerLabel")}: {financingConfig.partnerName}
             </p>
           </div>

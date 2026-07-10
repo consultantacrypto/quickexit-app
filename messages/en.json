@@ -473,6 +473,7 @@
       "totalInstallments": "Total installments",
       "totalCost": "Total cost including down payment",
       "disclaimer": "This is an estimate only. It is not a binding financing offer. Final terms depend on the financing partner and application review.",
+      "partnerAvailable": "Financing available through a QuickExit partner",
       "close": "Close",
       "editTitle": "Vehicle financing",
       "enableCalculator": "Enable financing calculator",
@@ -633,6 +634,24 @@
         "submitting": "Submitting...",
         "submit": "Submit offer"
       }
+    }
+  },
+  "HqAdmin": {
+    "financing": {
+      "activeBadge": "Financing active",
+      "enable": "Enable financing",
+      "disable": "Disable financing",
+      "ineligible": "Ineligible",
+      "ineligibleReason": {
+        "not_auto": "Auto & Moto only",
+        "not_active": "Not active",
+        "invalid_price": "Invalid price",
+        "price_on_request": "Price on request",
+        "auction": "Auction"
+      },
+      "successEnabled": "Financing has been enabled.",
+      "successDisabled": "Financing has been disabled.",
+      "error": "Could not update financing."
     }
   },
   "FutureMobility": {
