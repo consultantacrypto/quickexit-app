@@ -57,6 +57,10 @@ const TIKTOK_EVENT_MAP: Record<string, string> = {
   change_financing_interest: "ClickButton",
   change_financing_deposit: "ClickButton",
   change_financing_term: "ClickButton",
+  open_financing_request_form: "ClickButton",
+  submit_financing_request: "Lead",
+  financing_request_success: "Lead",
+  financing_request_error: "ClickButton",
 };
 
 export function isAnalyticsEnabled(): boolean {
