@@ -323,7 +323,7 @@ export default async function Home({ params }: HomePageProps) {
       </section>
 
       <section className="border-t border-gray-100 bg-white px-4 pt-20 pb-16 md:pt-28 md:pb-24">
-        <div className="mx-auto max-w-7xl">
+        <div className="mx-auto max-w-[1440px]">
           <div className="mb-4 flex flex-col items-start justify-between gap-5 md:flex-row md:items-end">
             <h2 className="text-3xl font-black uppercase italic tracking-tight text-black md:text-4xl">
               {listingsTitle.before}
@@ -351,7 +351,7 @@ export default async function Home({ params }: HomePageProps) {
             {tHome("listings.accountHint")}
           </p>
 
-          <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3 lg:gap-10">
+          <div className="grid grid-cols-1 gap-8 md:grid-cols-2 xl:grid-cols-3 lg:gap-10">
             {standardListings && standardListings.length > 0 ? (
               standardListings.slice(0, 9).map((item) => (
                 <AdCard
@@ -459,7 +459,7 @@ export default async function Home({ params }: HomePageProps) {
           </div>
 
           {auctionsHome.length > 0 ? (
-            <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
               {auctionsHome.map((item) => (
                 <AdCard
                   key={item.id}
