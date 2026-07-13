@@ -6,8 +6,9 @@ import { supabase } from "@/lib/supabase";
 import { companyInfo } from "@/lib/company";
 import { buildSocialShareKit } from "@/lib/socialShare";
 import { trackEvent } from "@/lib/analytics";
-import { adminDeleteListing, adminForcePublish, type AdminTable } from "@/app/actions/adminActions";
+import { adminDeleteListing, adminForcePublish, adminRenewAuctionExpiry, type AdminTable } from "@/app/actions/adminActions";
 import { formatAdminPriceCell } from "@/lib/listingPrice";
+import { normalizeSaleType } from "@/utils/normalizeSaleType";
 
 const ADMIN_EMAILS = ["consultantacrypto.ro@gmail.com"];
 
@@ -285,6 +286,7 @@ export default function AdminHQ() {
 
   const [loadNote, setLoadNote] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [renewingAuctionId, setRenewingAuctionId] = useState<string | null>(null);
   const [copilotLoading, setCopilotLoading] = useState(false);
   const [copilotError, setCopilotError] = useState<string | null>(null);
   const [copilotWarnings, setCopilotWarnings] = useState<string[]>([]);
@@ -794,6 +796,38 @@ export default function AdminHQ() {
     await loadAdminData();
   };
 
+  const renewAuctionExpiryRow = async (listingId: string) => {
+    const ok = window.confirm(
+      "PRELUNGIRE LICITAȚIE: se setează o nouă expirare la exact 90 de zile de acum (înlocuiește data curentă, fără a modifica status sau paid). Continui?"
+    );
+    if (!ok) return;
+    if (renewingAuctionId) return;
+
+    setActionError(null);
+    setRenewingAuctionId(listingId);
+
+    try {
+      const token = await getAccessToken();
+      if (!token) {
+        setActionError("Sesiunea a expirat. Reautentifică-te și încearcă din nou.");
+        return;
+      }
+
+      const res = await adminRenewAuctionExpiry(listingId, token);
+      if (!res.ok) {
+        setActionError(`Prelungire licitație eșuată: ${res.error}`);
+        return;
+      }
+
+      setLoadNote(
+        `Licitația a fost prelungită cu 90 de zile. Expiră: ${new Date(res.newExpiresAt).toLocaleString("ro-RO")}.`
+      );
+      await loadAdminData();
+    } finally {
+      setRenewingAuctionId(null);
+    }
+  };
+
   const deleteRow = async (id: string, table: AdminTable) => {
     const ok = window.confirm(
       "ȘTERGERE DEFINITIVĂ: rândul va fi eliminat permanent din baza de date. Acțiunea este IREVERSIBILĂ. Ești sigur?"
@@ -1294,6 +1328,19 @@ export default function AdminHQ() {
                           >
                             Ascunde
                           </button>
+                          {listing.status === "active" &&
+                            normalizeSaleType(listing.sale_strategy) === "auction" && (
+                              <button
+                                type="button"
+                                disabled={renewingAuctionId === listing.id}
+                                onClick={() => void renewAuctionExpiryRow(listing.id)}
+                                className="block w-full rounded-lg border-[3px] border-black bg-amber-500 px-2 py-1.5 text-[9px] font-black uppercase text-black hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-60"
+                              >
+                                {renewingAuctionId === listing.id
+                                  ? "Se prelungește..."
+                                  : "Prelungește licitația cu 90 zile"}
+                              </button>
+                            )}
                           <button
                             type="button"
                             onClick={() => void forcePublishRow(listing.id, "listings")}
