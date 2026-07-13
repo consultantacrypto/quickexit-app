@@ -2,8 +2,8 @@
 
 import Image from "next/image";
 import { Link } from "@/src/i18n/navigation";
-import { useState } from "react";
-import { ro } from "../../locales/ro";
+import { useLocale, useTranslations } from "next-intl";
+import { useMemo, useState } from "react";
 import supabaseImageLoader from "@/lib/supabase-image-loader";
 import { listingDetailPath } from "@/src/i18n/paths";
 import {
@@ -11,6 +11,7 @@ import {
   formatAuctionCardTimeLeft,
   formatHighestOfferEURLabel,
   parseListingOfferCount,
+  type AuctionCardCopy,
 } from "@/utils/auctionListingUi";
 
 interface AdCardProps {
@@ -29,13 +30,6 @@ interface AdCardProps {
   extraBadges?: string[];
 }
 
-const TYPE_LABEL: Record<AdCardProps["type"], string> = {
-  standard: "Lichiditate",
-  urgent: "Urgență",
-  extreme: "Oportunitate",
-  auction: "Licitație",
-};
-
 export default function AdCard({
   id,
   title,
@@ -51,27 +45,36 @@ export default function AdCard({
   expiresAt,
   extraBadges,
 }: AdCardProps) {
-  const { cards } = ro;
+  const t = useTranslations("AdCard");
+  const locale = useLocale();
   const [isFavorite, setIsFavorite] = useState(false);
   const listingHref = listingDetailPath(id);
 
+  const auctionCopy: AuctionCardCopy = useMemo(
+    () => ({
+      expired: t("auction.expired"),
+      closesToday: t("auction.closesToday"),
+      closesInOneDay: t("auction.closesInOneDay"),
+      closesInDays: (days) => t("auction.closesInDays", { days }),
+      firstOffer: t("auction.firstOffer"),
+      oneOffer: t("auction.oneOffer"),
+      manyOffers: (count) => t("auction.manyOffers", { count }),
+    }),
+    [t],
+  );
+
   const nOffers = parseListingOfferCount(offerCount ?? null);
-  const highestLabel = formatHighestOfferEURLabel(highestOffer ?? null);
-  const timeLeft = formatAuctionCardTimeLeft(expiresAt ?? null);
+  const highestLabel = formatHighestOfferEURLabel(highestOffer ?? null, locale);
+  const timeLeft = formatAuctionCardTimeLeft(expiresAt ?? null, auctionCopy);
   const discountNum = Number(discount) || 0;
   const showExtraBadges = Array.isArray(extraBadges) && extraBadges.length > 0;
   const showMarketPrice = marketPrice.trim().length > 0;
   const showExitPrice = exitPrice.trim().length > 0;
-  const showLiquidityScore =
-    score != null && Number.isFinite(score);
+  const showLiquidityScore = score != null && Number.isFinite(score);
 
   return (
     <article className="group relative flex flex-col overflow-hidden rounded-3xl border border-line/70 bg-surface shadow-[0_1px_3px_rgba(0,0,0,0.04)] transition-all duration-500 ease-out hover:-translate-y-1 hover:border-neutral-300/80 hover:shadow-[0_28px_50px_-16px_rgba(0,0,0,0.22)]">
-      <Link
-        href={listingHref}
-        aria-label={title}
-        className="absolute inset-0 z-[1]"
-      />
+      <Link href={listingHref} aria-label={title} className="absolute inset-0 z-[1]" />
 
       {/* IMAGINEA — eroul cardului */}
       <div className="pointer-events-none relative aspect-[4/3] w-full overflow-hidden bg-neutral-100">
@@ -88,7 +91,7 @@ export default function AdCard({
 
         {/* tip — glass pill discret */}
         <span className="absolute left-4 top-4 rounded-full border border-white/20 bg-black/55 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-white backdrop-blur-md">
-          {TYPE_LABEL[type]}
+          {t(`type.${type}`)}
         </span>
 
         {showExtraBadges ? (
@@ -116,7 +119,7 @@ export default function AdCard({
           type="button"
           onClick={() => setIsFavorite(!isFavorite)}
           aria-label={
-            isFavorite ? `Elimină „${title}” din favorite` : `Adaugă „${title}” la favorite`
+            isFavorite ? t("favoriteRemove", { title }) : t("favoriteAdd", { title })
           }
           aria-pressed={isFavorite}
           className="pointer-events-auto absolute bottom-4 right-4 z-[2] flex h-10 w-10 items-center justify-center rounded-full border border-white/25 bg-black/50 text-white backdrop-blur-md transition hover:bg-black/70"
@@ -144,18 +147,24 @@ export default function AdCard({
         <div>
           {showLiquidityScore ? (
             <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-muted">
-              Scor Lichiditate · {score}
+              {t("liquidityScore")} · {score}
             </p>
           ) : null}
-          <h3 className={`line-clamp-2 text-lg font-semibold leading-snug tracking-tight text-ink ${showLiquidityScore ? "mt-2" : ""}`}>
+          <h3
+            className={`line-clamp-2 text-lg font-semibold leading-snug tracking-tight text-ink ${showLiquidityScore ? "mt-2" : ""}`}
+          >
             {title}
           </h3>
         </div>
 
         {type === "auction" && (
           <div className="space-y-1 text-[11px] font-medium leading-tight text-muted">
-            <p>{auctionOfferLineForCard(nOffers)}</p>
-            {highestLabel ? <p>Cea mai mare ofertă: {highestLabel}</p> : null}
+            <p>{auctionOfferLineForCard(nOffers, auctionCopy)}</p>
+            {highestLabel ? (
+              <p>
+                {t("highestOffer")}: {highestLabel}
+              </p>
+            ) : null}
             {timeLeft ? <p>{timeLeft}</p> : null}
           </div>
         )}
@@ -165,18 +174,20 @@ export default function AdCard({
           <div>
             {showMarketPrice ? (
               <p className="text-[11px] font-medium uppercase tracking-wider text-muted">
-                {cards?.marketPrice || "Preț piață"}:{" "}
+                {t("marketPrice")}:{" "}
                 <span className="line-through decoration-neutral-300">{marketPrice}</span>
               </p>
             ) : null}
             {showExitPrice ? (
-              <p className={`text-[28px] font-bold leading-none tracking-tight text-ink ${showMarketPrice ? "mt-1" : ""}`}>
+              <p
+                className={`text-[28px] font-bold leading-none tracking-tight text-ink ${showMarketPrice ? "mt-1" : ""}`}
+              >
                 {exitPrice}
               </p>
             ) : null}
           </div>
           <span className="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-ink transition-colors group-hover:text-gold-deep">
-            Detalii
+            {t("details")}
             <span className="transition-transform duration-300 group-hover:translate-x-1">→</span>
           </span>
         </div>

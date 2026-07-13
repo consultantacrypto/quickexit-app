@@ -10,8 +10,9 @@ import { normalizeSaleType } from "@/utils/normalizeSaleType";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/src/i18n/navigation";
 import { categoryPath } from "@/src/i18n/paths";
-import { getNumberLocale } from "@/lib/i18n/format";
+import { getNumberLocale, formatEurAmount } from "@/lib/i18n/format";
 import { adCardPricingProps } from "@/lib/listingPrice";
+import { isPublicAuctionOpen } from "@/lib/auctionOpen";
 
 export const revalidate = 60;
 
@@ -136,6 +137,8 @@ export default async function Home({ params }: HomePageProps) {
   );
   const safetyTips = tHome.raw("safety.tips") as string[];
 
+  const nowIso = new Date().toISOString();
+
   const { data: realListings } = await supabase
     .from("listings")
     .select(
@@ -146,19 +149,34 @@ export default async function Home({ params }: HomePageProps) {
     .order("created_at", { ascending: false })
     .limit(48);
 
-  const { data: realDemands } = await supabase
+  const { data: openAuctionListings } = await supabase
+    .from("listings")
+    .select(
+      "id,title,images,market_price,exit_price,discount,deal_score,sale_strategy,offer_count,highest_offer,expires_at,status,is_seed,created_at,details",
+    )
+    .eq("status", "active")
+    .eq("is_seed", false)
+    .gt("expires_at", nowIso)
+    .in("sale_strategy", ["auction", "licitatie"])
+    .order("expires_at", { ascending: true })
+    .limit(12);
+
+  const { data: premiumDemands } = await supabase
     .from("demands")
     .select("id,target_asset,category,budget,description,status,created_at")
     .eq("status", "active")
+    .gte("budget", 10000)
+    .order("budget", { ascending: false })
     .order("created_at", { ascending: false })
-    .limit(9);
+    .limit(6);
 
   const auctionsHome = (
-    realListings?.filter((item) => normalizeSaleType(item.sale_strategy) === "auction") ?? []
+    openAuctionListings?.filter((item) => isPublicAuctionOpen(item)) ?? []
   ).slice(0, 4);
   const standardListings = (
     realListings?.filter((item) => normalizeSaleType(item.sale_strategy) !== "auction") ?? []
   ).slice(0, 9);
+  const showPremiumCapital = (premiumDemands?.length ?? 0) >= 3;
   const itemListElements = standardListings
     .filter((item) => {
       const id = typeof item?.id === "string" ? item.id.trim() : "";
@@ -347,9 +365,6 @@ export default async function Home({ params }: HomePageProps) {
               </Link>
             </div>
           </div>
-          <p className="mb-12 max-w-2xl text-sm font-bold leading-relaxed text-neutral-600">
-            {tHome("listings.accountHint")}
-          </p>
 
           <div className="grid grid-cols-1 gap-8 md:grid-cols-2 xl:grid-cols-3 lg:gap-10">
             {standardListings && standardListings.length > 0 ? (
@@ -399,20 +414,41 @@ export default async function Home({ params }: HomePageProps) {
           </div>
 
           <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3 lg:gap-10">
-            {realDemands && realDemands.length > 0 ? (
-              realDemands.slice(0, 9).map((demand) => (
+            {showPremiumCapital ? (
+              premiumDemands!.map((demand) => (
                 <DemandCard
                   key={demand.id}
                   id={demand.id}
                   targetAsset={demand.target_asset}
                   category={demand.category}
-                  budget={demand.budget?.toLocaleString("ro-RO")}
+                  budget={formatEurAmount(Number(demand.budget ?? 0), locale)}
                   description={demand.description}
                 />
               ))
             ) : (
-              <div className="col-span-full rounded-2xl border-[3px] border-dashed border-black bg-white py-16 text-center shadow-[6px_6px_0_0_rgba(0,0,0,1)]">
-                <p className="text-sm font-bold text-neutral-600">{tHome("capital.empty")}</p>
+              <div className="col-span-full rounded-2xl border-[3px] border-dashed border-black bg-white py-16 px-8 text-center shadow-[6px_6px_0_0_rgba(0,0,0,1)]">
+                <h3 className="text-lg font-black uppercase italic tracking-tight text-black">
+                  {tHome("capital.fallbackTitle")}
+                </h3>
+                <p className="mx-auto mt-4 max-w-xl text-sm font-bold leading-relaxed text-neutral-600">
+                  {tHome("capital.fallbackText")}
+                </p>
+                <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
+                  <Link
+                    href="/posteaza-cerere"
+                    className="inline-flex items-center justify-center rounded-2xl border-[3px] border-black bg-white px-6 py-3 text-[11px] font-black uppercase tracking-widest text-black shadow-[6px_6px_0_0_rgba(0,0,0,1)] transition hover:-translate-y-0.5 hover:shadow-[6px_6px_0_0_#FFD100] md:text-xs"
+                  >
+                    {tHome("capital.fallbackPrimaryCta")}
+                  </Link>
+                  <TrackedLink
+                    href="/capital-disponibil"
+                    eventName="click_capital_available"
+                    eventParams={{ source: "home_capital_fallback" }}
+                    className="border-b-2 border-transparent text-[11px] font-black uppercase tracking-widest text-neutral-600 underline-offset-4 transition hover:border-black hover:text-black md:text-xs"
+                  >
+                    {tHome("capital.fallbackSecondaryCta")}
+                  </TrackedLink>
+                </div>
               </div>
             )}
           </div>
@@ -520,7 +556,7 @@ export default async function Home({ params }: HomePageProps) {
         </div>
       </section>
 
-      <GlobalStats />
+      <GlobalStats locale={locale} />
 
       <section className="bg-ink px-4 py-16 md:py-20">
         <div className="mx-auto max-w-5xl">

@@ -146,7 +146,7 @@
       "postListing": "Post listing",
       "viewAll": "View all listings →",
       "accountHint": "Browse without an account. To publish, submit offers, and access the Negotiation Room, you'll need a simple account.",
-      "empty": "The terminal is scanning for new assets..."
+      "empty": "No active listings at the moment."
     },
     "capital": {
       "title": "Available capital",
@@ -155,7 +155,11 @@
       "description": "Buyer requests with stated budgets — verify details directly with each counterparty.",
       "empty": "No capital requests registered at the moment.",
       "viewAllFooter": "View all available capital",
-      "addOffer": "Add capital offer"
+      "addOffer": "Add capital offer",
+      "fallbackTitle": "Buyers with available capital",
+      "fallbackText": "Publish the asset you want to acquire or explore active buyer requests.",
+      "fallbackPrimaryCta": "Publish a request",
+      "fallbackSecondaryCta": "View all requests"
     },
     "auctions": {
       "title": "Open auctions",
@@ -186,7 +190,9 @@
       "activeListingsLabel": "Listings for sale",
       "activeListingsSub": "Assets available right now",
       "soldLabel": "Completed sales",
-      "soldSub": "Successfully closed transactions"
+      "soldSub": "Successfully closed transactions",
+      "activeCategoriesLabel": "Active categories",
+      "activeCategoriesSub": "Distinct domains with active listings"
     }
   },
   "Categories": {
@@ -197,6 +203,37 @@
     "gadgets": "Gadgets",
     "photoAudio": "Photo & Audio",
     "gadgetsTech": "Gadgets & Tech"
+  },
+  "AdCard": {
+    "type": {
+      "standard": "Liquidity",
+      "urgent": "Urgent",
+      "extreme": "Opportunity",
+      "auction": "Auction"
+    },
+    "details": "Details",
+    "marketPrice": "Market price",
+    "liquidityScore": "Liquidity score",
+    "highestOffer": "Highest offer",
+    "favoriteAdd": "Add \"{title}\" to favorites",
+    "favoriteRemove": "Remove \"{title}\" from favorites",
+    "auction": {
+      "expired": "Expired",
+      "closesToday": "Closes today",
+      "closesInOneDay": "Closes in 1 day",
+      "closesInDays": "Closes in {days} days",
+      "firstOffer": "Be the first to submit an offer",
+      "oneOffer": "1 offer",
+      "manyOffers": "{count} offers"
+    }
+  },
+  "DemandCard": {
+    "declaredBudget": "Declared budget",
+    "generalCategory": "General",
+    "budgetDisclaimer": "The budget is stated by the buyer and must be verified directly between parties.",
+    "maxBudget": "Maximum budget",
+    "sellCta": "Sell them your asset",
+    "sellCtaAria": "Sell your asset for the request: {targetAsset}"
   },
   "Footer": {
     "brandName": "QUICK EXIT",

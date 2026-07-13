@@ -1,6 +1,7 @@
 "use client";
 
 import { Link } from "@/src/i18n/navigation";
+import { useTranslations } from "next-intl";
 import { demandOfferPath } from "@/src/i18n/paths";
 
 interface DemandCardProps {
@@ -11,16 +12,24 @@ interface DemandCardProps {
   description: string;
 }
 
-export default function DemandCard({ id, targetAsset, category, budget, description }: DemandCardProps) {
+export default function DemandCard({
+  id,
+  targetAsset,
+  category,
+  budget,
+  description,
+}: DemandCardProps) {
+  const t = useTranslations("DemandCard");
+
   return (
     <div className="group flex h-full flex-col justify-between rounded-3xl border border-line/70 bg-surface p-8 shadow-[0_1px_3px_rgba(0,0,0,0.04)] transition-all duration-500 ease-out hover:-translate-y-1 hover:border-neutral-300/80 hover:shadow-[0_28px_50px_-16px_rgba(0,0,0,0.22)]">
       <div>
         <div className="mb-6 flex items-center justify-between">
           <span className="rounded-full border border-line bg-canvas px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">
-            Buget declarat
+            {t("declaredBudget")}
           </span>
           <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-gold-deep">
-            {category || "General"}
+            {category || t("generalCategory")}
           </span>
         </div>
 
@@ -29,7 +38,7 @@ export default function DemandCard({ id, targetAsset, category, budget, descript
         </h3>
 
         <p className="mb-6 text-xs font-medium leading-relaxed text-muted">
-          Bugetul este declarat de cumpărător și trebuie verificat direct între părți.
+          {t("budgetDisclaimer")}
         </p>
 
         <p className="line-clamp-3 text-sm font-normal italic leading-relaxed text-neutral-500">
@@ -39,16 +48,16 @@ export default function DemandCard({ id, targetAsset, category, budget, descript
 
       <div className="mt-8 border-t border-line/60 pt-6">
         <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-muted">
-          Buget maxim
+          {t("maxBudget")}
         </p>
-        <p className="mb-8 break-words text-4xl font-bold tracking-tight text-ink">€{budget}</p>
+        <p className="mb-8 break-words text-4xl font-bold tracking-tight text-ink">{budget}</p>
 
         <Link
           href={demandOfferPath(id)}
-          aria-label={`Vinde-i activul tău pentru cererea: ${targetAsset}`}
+          aria-label={t("sellCtaAria", { targetAsset })}
           className="block w-full rounded-2xl bg-ink py-4 text-center text-[11px] font-semibold uppercase tracking-[0.2em] text-white transition-colors duration-300 hover:bg-gold hover:text-ink md:text-xs"
         >
-          Vinde-i activul tău
+          {t("sellCta")}
         </Link>
       </div>
     </div>

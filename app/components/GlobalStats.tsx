@@ -1,8 +1,20 @@
 import { getTranslations } from "next-intl/server";
 import { supabase } from "@/lib/supabase";
+import { formatRoundedEurAmount } from "@/lib/i18n/format";
+
+function countDistinctActiveCategories(
+  rows: { category?: string | null }[] | null | undefined,
+): number {
+  const seen = new Set<string>();
+  for (const row of rows ?? []) {
+    const cat = typeof row.category === "string" ? row.category.trim() : "";
+    if (cat) seen.add(cat);
+  }
+  return seen.size;
+}
 
 async function fetchPlatformStats() {
-  const [listingsRes, demandsRes, soldRes] = await Promise.all([
+  const [listingsRes, demandsRes, soldRes, categoriesRes] = await Promise.all([
     supabase
       .from("listings")
       .select("exit_price, market_price")
@@ -13,6 +25,11 @@ async function fetchPlatformStats() {
       .from("listings")
       .select("id", { count: "exact", head: true })
       .eq("status", "sold"),
+    supabase
+      .from("listings")
+      .select("category")
+      .eq("status", "active")
+      .eq("is_seed", false),
   ]);
 
   if (listingsRes.error) {
@@ -23,6 +40,9 @@ async function fetchPlatformStats() {
   }
   if (soldRes.error) {
     console.error("[GlobalStats] sold count:", soldRes.error.message);
+  }
+  if (categoriesRes.error) {
+    console.error("[GlobalStats] categories:", categoriesRes.error.message);
   }
 
   const listings = listingsRes.data ?? [];
@@ -42,12 +62,18 @@ async function fetchPlatformStats() {
     activeDemands: demands.length,
     totalValue: valoareVanzari + valoareCumparari,
     soldItems: soldRes.count ?? 0,
+    activeCategories: countDistinctActiveCategories(categoriesRes.data),
   };
 }
 
-export default async function GlobalStats() {
+type GlobalStatsProps = {
+  locale: string;
+};
+
+export default async function GlobalStats({ locale }: GlobalStatsProps) {
   const t = await getTranslations("Home.globalStats");
   const stats = await fetchPlatformStats();
+  const showSoldKpi = stats.soldItems > 0;
 
   return (
     <section className="relative z-20 border-t-8 border-black bg-black py-10 font-sans md:py-12">
@@ -58,7 +84,7 @@ export default async function GlobalStats() {
               {t("declaredValueLabel")}
             </p>
             <p className="text-4xl font-black italic tracking-tighter text-[#FFD100] md:text-5xl">
-              {stats.totalValue > 0 ? `€${stats.totalValue.toLocaleString("ro-RO")}` : "—"}
+              {stats.totalValue > 0 ? formatRoundedEurAmount(stats.totalValue, locale) : "—"}
             </p>
             {stats.totalValue > 0 ? (
               <p className="mt-2 text-[9px] font-bold uppercase tracking-widest text-gray-600">
@@ -97,13 +123,13 @@ export default async function GlobalStats() {
 
           <div className="w-full flex-1 pb-4 pt-6 text-center md:px-6 md:pb-0 md:pt-0">
             <p className="mb-1 text-[10px] font-black uppercase italic tracking-[0.2em] text-gray-500 md:mb-2 md:text-xs">
-              {t("soldLabel")}
+              {showSoldKpi ? t("soldLabel") : t("activeCategoriesLabel")}
             </p>
             <p className="text-3xl font-black italic tracking-tighter text-white md:text-4xl">
-              {stats.soldItems}
+              {showSoldKpi ? stats.soldItems : stats.activeCategories}
             </p>
             <p className="mt-2 text-[9px] font-bold uppercase tracking-widest text-gray-600">
-              {t("soldSub")}
+              {showSoldKpi ? t("soldSub") : t("activeCategoriesSub")}
             </p>
           </div>
         </div>

@@ -4,7 +4,7 @@ import AdCard from "@/app/components/AdCard";
 import { PAGE_METADATA_COPY } from "@/lib/pageMetadataCopy";
 import { buildPageMetadata, resolvePageLocale } from "@/lib/seo";
 import { supabase } from "@/lib/supabase";
-import { normalizeSaleType } from "@/utils/normalizeSaleType";
+import { isPublicAuctionOpen } from "@/lib/auctionOpen";
 import { getNumberLocale } from "@/lib/i18n/format";
 import { adCardPricingProps } from "@/lib/listingPrice";
 
@@ -44,7 +44,7 @@ export default async function LicitatiiPage({ params }: PageProps) {
     .limit(100);
 
   const auctions =
-    listings?.filter((item) => normalizeSaleType(item.sale_strategy) === "auction") ?? [];
+    listings?.filter((item) => isPublicAuctionOpen(item)) ?? [];
 
   return (
     <div className="min-h-screen bg-canvas font-sans text-ink selection:bg-gold selection:text-ink">
