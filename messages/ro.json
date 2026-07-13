@@ -146,7 +146,7 @@
       "postListing": "Pune anunț",
       "viewAll": "Vezi toate anunțurile →",
       "accountHint": "Poți naviga fără cont. Pentru publicare, trimitere oferte și Camera de Negociere ai nevoie de un cont simplu.",
-      "empty": "Momentan terminalul scanează noi active..."
+      "empty": "Momentan nu există anunțuri active."
     },
     "capital": {
       "title": "Capital disponibil",
@@ -155,7 +155,11 @@
       "description": "Cereri publicate de cumpărători cu buget comunicat în anunț — verifică detaliile direct cu fiecare ofertant.",
       "empty": "Nicio cerere de capital înregistrată momentan.",
       "viewAllFooter": "Vezi tot capitalul disponibil",
-      "addOffer": "Adaugă ofertă de capital"
+      "addOffer": "Adaugă ofertă de capital",
+      "fallbackTitle": "Cumpărători cu capital disponibil",
+      "fallbackText": "Publică activul pe care îl cauți sau descoperă cererile active ale cumpărătorilor.",
+      "fallbackPrimaryCta": "Publică o cerere",
+      "fallbackSecondaryCta": "Vezi toate cererile"
     },
     "auctions": {
       "title": "Licitații deschise",
@@ -186,7 +190,9 @@
       "activeListingsLabel": "Anunțuri la vânzare",
       "activeListingsSub": "Active disponibile chiar acum",
       "soldLabel": "Vânzări finalizate",
-      "soldSub": "Tranzacții încheiate cu succes"
+      "soldSub": "Tranzacții încheiate cu succes",
+      "activeCategoriesLabel": "Categorii active",
+      "activeCategoriesSub": "Domenii distincte cu anunțuri active"
     }
   },
   "Categories": {
@@ -197,6 +203,37 @@
     "gadgets": "Gadgets",
     "photoAudio": "Foto & Audio",
     "gadgetsTech": "Gadgets & Tech"
+  },
+  "AdCard": {
+    "type": {
+      "standard": "Lichiditate",
+      "urgent": "Urgență",
+      "extreme": "Oportunitate",
+      "auction": "Licitație"
+    },
+    "details": "Detalii",
+    "marketPrice": "Preț piață",
+    "liquidityScore": "Scor Lichiditate",
+    "highestOffer": "Cea mai mare ofertă",
+    "favoriteAdd": "Adaugă „{title}” la favorite",
+    "favoriteRemove": "Elimină „{title}” din favorite",
+    "auction": {
+      "expired": "Expirată",
+      "closesToday": "Se închide azi",
+      "closesInOneDay": "Se închide în 1 zi",
+      "closesInDays": "Se închide în {days} zile",
+      "firstOffer": "Fii primul care trimite ofertă",
+      "oneOffer": "1 ofertă",
+      "manyOffers": "{count} oferte"
+    }
+  },
+  "DemandCard": {
+    "declaredBudget": "Buget declarat",
+    "generalCategory": "General",
+    "budgetDisclaimer": "Bugetul este declarat de cumpărător și trebuie verificat direct între părți.",
+    "maxBudget": "Buget maxim",
+    "sellCta": "Vinde-i activul tău",
+    "sellCtaAria": "Vinde-i activul tău pentru cererea: {targetAsset}"
   },
   "Footer": {
     "brandName": "QUICK EXIT",

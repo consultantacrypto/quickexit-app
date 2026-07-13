@@ -8,6 +8,18 @@ export function formatEurAmount(value: number, appLocale: string): string {
   return `€${n.toLocaleString(getNumberLocale(appLocale))}`;
 }
 
+/** Display-only EUR total without fractional digits (e.g. GlobalStats KPI). */
+export function formatRoundedEurAmount(value: number, appLocale: string): string {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return "€0";
+  return new Intl.NumberFormat(getNumberLocale(appLocale), {
+    style: "currency",
+    currency: "EUR",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(Math.round(n));
+}
+
 export function formatMemberSince(
   createdAt: string | null | undefined,
   appLocale: string,
