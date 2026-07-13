@@ -1,11 +1,29 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { normalizeSaleType } from "@/utils/normalizeSaleType";
 
 // Tabelele pe care le poate administra adminul prin aceste acțiuni.
 export type AdminTable = "listings" | "demands";
 
 export type AdminActionResult = { ok: true } | { ok: false; error: string };
+
+export type AdminRenewAuctionExpiryResult =
+  | { ok: true; newExpiresAt: string; previousExpiresAt: string | null }
+  | { ok: false; error: string };
+
+const AUCTION_RENEWAL_DAYS = 90;
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
+function revalidateAuctionListingPages(listingId: string): void {
+  for (const locale of ["ro", "en"] as const) {
+    revalidatePath(`/${locale}`);
+    revalidatePath(`/${locale}/licitatii`);
+    revalidatePath(`/${locale}/anunt/${listingId}`);
+    revalidatePath(`/${locale}/hq-admin`);
+  }
+}
 
 // Allowlist de admini — aliniat cu restul aplicației (HQ Copilot / hq-admin).
 // Suprascriere prin env: HQ_ADMIN_EMAILS="a@x.com,b@y.com".
@@ -219,6 +237,81 @@ export async function adminForcePublish(
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : "Eroare necunoscută.";
     console.error("[adminForcePublish] excepție:", msg);
+    return { ok: false, error: msg };
+  }
+}
+
+/**
+ * Prelungește expirarea unei licitații active cu exact 90 de zile de la momentul acțiunii.
+ * Actualizează exclusiv `expires_at` — fără modificări la status, paid sau alte câmpuri.
+ */
+export async function adminRenewAuctionExpiry(
+  id: string,
+  accessToken: string,
+): Promise<AdminRenewAuctionExpiryResult> {
+  try {
+    if (!id || typeof id !== "string") {
+      return { ok: false, error: "ID listing invalid." };
+    }
+
+    const supabase = await assertAdminAndGetServiceClient(accessToken);
+
+    const { data: listing, error: fetchError } = await supabase
+      .from("listings")
+      .select("id, title, status, sale_strategy, expires_at")
+      .eq("id", id)
+      .maybeSingle();
+
+    if (fetchError) {
+      console.error("[adminRenewAuctionExpiry] eroare citire:", { id, error: fetchError.message });
+      return { ok: false, error: "Nu am putut încărca listarea." };
+    }
+
+    if (!listing) {
+      return { ok: false, error: "Listarea nu există." };
+    }
+
+    if (listing.status !== "active") {
+      return { ok: false, error: "Doar listările active pot fi prelungite." };
+    }
+
+    if (normalizeSaleType(listing.sale_strategy) !== "auction") {
+      return { ok: false, error: "Doar licitațiile pot fi prelungite cu această acțiune." };
+    }
+
+    const previousExpiresAt =
+      listing.expires_at == null || listing.expires_at === undefined
+        ? null
+        : String(listing.expires_at);
+
+    const newExpiresAt = new Date(Date.now() + AUCTION_RENEWAL_DAYS * MS_PER_DAY);
+
+    const { error: updateError } = await supabase
+      .from("listings")
+      .update({ expires_at: newExpiresAt.toISOString() })
+      .eq("id", id);
+
+    if (updateError) {
+      console.error("[adminRenewAuctionExpiry] eroare update:", { id, error: updateError.message });
+      return { ok: false, error: "Actualizarea expirării a eșuat." };
+    }
+
+    console.log("[adminRenewAuctionExpiry] auction_expiry_renewed", {
+      listing_id: id,
+      previous_expires_at: previousExpiresAt,
+      new_expires_at: newExpiresAt.toISOString(),
+    });
+
+    revalidateAuctionListingPages(id);
+
+    return {
+      ok: true,
+      newExpiresAt: newExpiresAt.toISOString(),
+      previousExpiresAt,
+    };
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : "Eroare necunoscută.";
+    console.error("[adminRenewAuctionExpiry] excepție:", msg);
     return { ok: false, error: msg };
   }
 }
