@@ -86,15 +86,25 @@ export function FutureMobilityBadgePills({ fm }: { fm: FutureMobilityDetails }) 
     CONFIGURABIL: t("futureMobility.badges.configurable"),
   } as const;
 
+  const priority: Array<keyof typeof labelMap> = [
+    "FUTURE_COLLECTION",
+    "EV_PREMIUM",
+    "IMPORT_PREMIUM",
+    "CONFIGURABIL",
+  ];
+  const ordered = priority
+    .filter((id) => fm.badges?.includes(id))
+    .slice(0, 4);
+
   return (
-    <div className="flex flex-wrap gap-2">
-      {fm.badges.map((badge) => {
+    <div className="flex flex-wrap gap-1.5">
+      {ordered.map((badge) => {
         const label = labelMap[badge];
         if (!label) return null;
         return (
           <span
             key={badge}
-            className="rounded-full border-2 border-black bg-[#FFD100] px-3 py-1 text-[9px] font-black uppercase tracking-wider text-black"
+            className="rounded-full border border-black/70 bg-[#FFD100]/90 px-2.5 py-0.5 text-[8px] font-black uppercase tracking-wider text-black"
           >
             {label}
           </span>
@@ -118,9 +128,9 @@ export function FutureMobilityAvailabilityLine({ fm }: { fm: FutureMobilityDetai
   if (!availabilityLabel && !fm.delivery_estimate && !fm.delivery_note) return null;
 
   return (
-    <div className="mt-4 space-y-1">
+    <div className="mt-2 space-y-1">
       {availabilityLabel ? (
-        <p className="text-[11px] font-black uppercase tracking-widest text-black">
+        <p className="text-[10px] font-black uppercase tracking-widest text-neutral-800">
           {availabilityLabel}
         </p>
       ) : null}

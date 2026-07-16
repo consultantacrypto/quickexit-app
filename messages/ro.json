@@ -494,6 +494,7 @@
         "quickExitPrice": "Preț QuickExit",
         "marketReference": "Referință piață",
         "estimatedSavings": "Economie estimată",
+        "savingsLabel": "Economisești",
         "positionedCopy": "Preț poziționat sub referința de piață disponibilă.",
         "disclaimer": "Referințele pot varia în funcție de configurație, taxe, disponibilitate și documente."
       },
@@ -510,6 +511,9 @@
         "title": "Încredere",
         "seller": "Vânzător",
         "status": "Status",
+        "premiumSeller": "Vânzător premium QuickExit",
+        "identityVerified": "Identitate verificată",
+        "verificationInProgress": "Verificare în curs",
         "contactHint": "Datele de contact se transmit prin canalele oficiale QuickExit.",
         "processHint": "Detaliile și documentele se confirmă direct înaintea tranzacției."
       }

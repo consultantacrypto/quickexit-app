@@ -494,6 +494,7 @@
         "quickExitPrice": "QuickExit price",
         "marketReference": "Market reference",
         "estimatedSavings": "Estimated savings",
+        "savingsLabel": "You save",
         "positionedCopy": "Price positioned below the available market reference.",
         "disclaimer": "References may vary by configuration, taxes, availability and documentation."
       },
@@ -510,6 +511,9 @@
         "title": "Trust",
         "seller": "Seller",
         "status": "Status",
+        "premiumSeller": "QuickExit Premium Seller",
+        "identityVerified": "Identity verified",
+        "verificationInProgress": "Verification in progress",
         "contactHint": "Contact details are shared through official QuickExit channels.",
         "processHint": "Details and documentation are confirmed directly before transaction."
       }
