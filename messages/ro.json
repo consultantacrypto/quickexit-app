@@ -455,6 +455,65 @@
       "discountFromMarket": "Reducere față de piață: −{percent}%",
       "requestDetails": "Solicită detalii"
     },
+    "detailV2": {
+      "keyFacts": {
+        "title": "Date cheie",
+        "compactSummary": "Pe scurt",
+        "labels": {
+          "year": "An",
+          "mileage": "Kilometraj",
+          "fuel": "Combustibil",
+          "power": "Putere",
+          "transmission": "Transmisie",
+          "bodyType": "Caroserie",
+          "drivetrain": "Tracțiune",
+          "range": "Autonomie",
+          "battery": "Baterie",
+          "surface": "Suprafață",
+          "landSurface": "Teren",
+          "rooms": "Camere",
+          "location": "Locație",
+          "pricePerSqm": "Preț/mp",
+          "brand": "Brand",
+          "model": "Model",
+          "condition": "Stare",
+          "fullSet": "Full set",
+          "material": "Material",
+          "revenue": "Venit",
+          "profit": "Profit",
+          "employees": "Angajați",
+          "warranty": "Garanție",
+          "storage": "Capacitate",
+          "offers": "Oferte",
+          "timeLeft": "Timp rămas"
+        }
+      },
+      "atGlanceTitle": "Pe scurt",
+      "priceAdvantage": {
+        "title": "Avantaj preț",
+        "quickExitPrice": "Preț QuickExit",
+        "marketReference": "Referință piață",
+        "estimatedSavings": "Economie estimată",
+        "positionedCopy": "Preț poziționat sub referința de piață disponibilă.",
+        "disclaimer": "Referințele pot varia în funcție de configurație, taxe, disponibilitate și documente."
+      },
+      "cta": {
+        "primaryRequestDetails": "Solicită detalii",
+        "primaryAuction": "Trimite ofertă",
+        "primaryOnOrder": "Solicită ofertă personalizată",
+        "secondarySendOffer": "Trimite ofertă",
+        "secondaryAuctionTerms": "Vezi condițiile licitației",
+        "secondaryFinancing": "Calculează rata",
+        "otherOptions": "Alte opțiuni"
+      },
+      "trust": {
+        "title": "Încredere",
+        "seller": "Vânzător",
+        "status": "Status",
+        "contactHint": "Datele de contact se transmit prin canalele oficiale QuickExit.",
+        "processHint": "Detaliile și documentele se confirmă direct înaintea tranzacției."
+      }
+    },
     "actions": {
       "acceptExitPrice": "Accept prețul de vânzare rapidă",
       "submitOffer": "Trimite ofertă",

@@ -455,6 +455,65 @@
       "discountFromMarket": "Discount vs market: −{percent}%",
       "requestDetails": "Request details"
     },
+    "detailV2": {
+      "keyFacts": {
+        "title": "Key facts",
+        "compactSummary": "At a glance",
+        "labels": {
+          "year": "Year",
+          "mileage": "Mileage",
+          "fuel": "Fuel",
+          "power": "Power",
+          "transmission": "Transmission",
+          "bodyType": "Body type",
+          "drivetrain": "Drivetrain",
+          "range": "Range",
+          "battery": "Battery",
+          "surface": "Surface",
+          "landSurface": "Land",
+          "rooms": "Rooms",
+          "location": "Location",
+          "pricePerSqm": "Price/sqm",
+          "brand": "Brand",
+          "model": "Model",
+          "condition": "Condition",
+          "fullSet": "Full set",
+          "material": "Material",
+          "revenue": "Revenue",
+          "profit": "Profit",
+          "employees": "Employees",
+          "warranty": "Warranty",
+          "storage": "Storage",
+          "offers": "Offers",
+          "timeLeft": "Time left"
+        }
+      },
+      "atGlanceTitle": "At a glance",
+      "priceAdvantage": {
+        "title": "Price advantage",
+        "quickExitPrice": "QuickExit price",
+        "marketReference": "Market reference",
+        "estimatedSavings": "Estimated savings",
+        "positionedCopy": "Price positioned below the available market reference.",
+        "disclaimer": "References may vary by configuration, taxes, availability and documentation."
+      },
+      "cta": {
+        "primaryRequestDetails": "Request details",
+        "primaryAuction": "Send offer",
+        "primaryOnOrder": "Request a personalised offer",
+        "secondarySendOffer": "Send offer",
+        "secondaryAuctionTerms": "View auction terms",
+        "secondaryFinancing": "Calculate financing",
+        "otherOptions": "Other options"
+      },
+      "trust": {
+        "title": "Trust",
+        "seller": "Seller",
+        "status": "Status",
+        "contactHint": "Contact details are shared through official QuickExit channels.",
+        "processHint": "Details and documentation are confirmed directly before transaction."
+      }
+    },
     "actions": {
       "acceptExitPrice": "Accept fast sale price",
       "submitOffer": "Submit offer",

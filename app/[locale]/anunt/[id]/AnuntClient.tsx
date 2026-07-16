@@ -19,10 +19,12 @@ import {
   formatMemberSince,
   getNumberLocale,
 } from "@/lib/i18n/format";
+import { getListingKeyFacts } from "@/lib/listingKeyFacts";
+import { getListingPriceAdvantage } from "@/lib/listingPriceAdvantage";
+import { getListingCtaMode } from "@/lib/listingCta";
 import {
   adCardPricingProps,
   dealScoreForCard,
-  hasValidMarketComparison,
   isValidPrice,
 } from "@/lib/listingPrice";
 import { getPricingMode } from "@/lib/pricingMode";
@@ -43,6 +45,9 @@ import FutureMobilitySections, {
   FutureMobilityDealerCard,
   FutureMobilityVideoSection,
 } from "./FutureMobilitySections";
+import ListingKeyFactsStrip from "./ListingKeyFactsStrip";
+import ListingPriceAdvantage from "./ListingPriceAdvantage";
+import ListingTrustSnapshot from "./ListingTrustSnapshot";
 import { isPremiumSellerListing } from "@/lib/listingPremium";
 import {
   getFinancingVehiclePrice,
@@ -650,6 +655,42 @@ export default function AnuntClient({
     return t("auction.biddingWindowUntil", { date: formatted });
   })();
   const sellerMemberSince = formatMemberSince(sellerProfile?.created_at, locale);
+  const keyFactLabels = {
+    year: t("detailV2.keyFacts.labels.year"),
+    mileage: t("detailV2.keyFacts.labels.mileage"),
+    fuel: t("detailV2.keyFacts.labels.fuel"),
+    power: t("detailV2.keyFacts.labels.power"),
+    transmission: t("detailV2.keyFacts.labels.transmission"),
+    bodyType: t("detailV2.keyFacts.labels.bodyType"),
+    drivetrain: t("detailV2.keyFacts.labels.drivetrain"),
+    range: t("detailV2.keyFacts.labels.range"),
+    battery: t("detailV2.keyFacts.labels.battery"),
+    surface: t("detailV2.keyFacts.labels.surface"),
+    landSurface: t("detailV2.keyFacts.labels.landSurface"),
+    rooms: t("detailV2.keyFacts.labels.rooms"),
+    location: t("detailV2.keyFacts.labels.location"),
+    pricePerSqm: t("detailV2.keyFacts.labels.pricePerSqm"),
+    brand: t("detailV2.keyFacts.labels.brand"),
+    model: t("detailV2.keyFacts.labels.model"),
+    condition: t("detailV2.keyFacts.labels.condition"),
+    fullSet: t("detailV2.keyFacts.labels.fullSet"),
+    material: t("detailV2.keyFacts.labels.material"),
+    revenue: t("detailV2.keyFacts.labels.revenue"),
+    profit: t("detailV2.keyFacts.labels.profit"),
+    employees: t("detailV2.keyFacts.labels.employees"),
+    warranty: t("detailV2.keyFacts.labels.warranty"),
+    storage: t("detailV2.keyFacts.labels.storage"),
+    offers: t("detailV2.keyFacts.labels.offers"),
+    timeLeft: t("detailV2.keyFacts.labels.timeLeft"),
+  };
+  const keyFacts = getListingKeyFacts(adData, locale, keyFactLabels);
+  const priceAdvantage = getListingPriceAdvantage(adData);
+  const ctaMode = getListingCtaMode({
+    category: adData.category ?? null,
+    details: adData.details,
+    sale_strategy: adData.sale_strategy ?? null,
+    isFinancingEnabled: showFinancingCalculator,
+  });
 
   const renderTitle = (title: string) => {
     if (!title) return null;
@@ -670,9 +711,15 @@ export default function AnuntClient({
     const defs =
       typeof adData.category === "string" ? DETAILS_BY_CATEGORY[adData.category] : undefined;
 
+    const coveredByKeyFacts = new Set(keyFacts.map((f) => f.key));
+    const hideOverlap = keyFacts.length >= 3;
+
     const rows: { label: string; display: string }[] = [];
     if (defs?.length) {
       for (const def of defs) {
+        if (hideOverlap && coveredByKeyFacts.has(def.labelKey as (typeof keyFacts)[number]["key"])) {
+          continue;
+        }
         const raw = pickFirstPresent(ad, def.keys);
         if (!detailValuePresent(raw)) continue;
         rows.push({
@@ -683,6 +730,7 @@ export default function AnuntClient({
     }
 
     if (rows.length === 0) {
+      if (hideOverlap) return null;
       return (
         <p className="mt-6 text-sm font-medium italic text-neutral-500">
           {t("details.empty")}
@@ -695,7 +743,7 @@ export default function AnuntClient({
         {rows.map(({ label, display }, idx) => (
           <div
             key={`${label}-${idx}`}
-            className="rounded-xl border-[3px] border-black bg-neutral-50/80 p-4 shadow-[3px_3px_0_0_rgba(0,0,0,0.08)] md:rounded-2xl"
+            className="rounded-xl border border-black/15 bg-neutral-50/80 p-4 md:rounded-2xl"
           >
             <p className="mb-1 text-[9px] font-black uppercase tracking-widest text-neutral-400">
               {label}
@@ -776,6 +824,190 @@ export default function AnuntClient({
     }
   };
 
+  const openOfferModal = () => {
+    setActiveModal("offer");
+    setOfferSuccess(false);
+    setOfferActionMessage(null);
+  };
+
+  const renderConversionPanel = () => (
+    <div className="rounded-[2rem] border-[3px] border-black bg-white p-6 shadow-[10px_10px_0_0_rgba(0,0,0,0.95)] md:shadow-[12px_12px_0_0_#FFD100]">
+      <div className="mb-8 space-y-4">
+        {!isFmOrderLike && isEvaluatedPricing && isValidPrice(adData.market_price) ? (
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b-2 border-neutral-100 pb-2">
+            <span className="text-[10px] font-black uppercase tracking-wide text-neutral-500">
+              {t("pricing.marketPrice")}
+            </span>
+            <span className="font-black italic opacity-35 line-through [font-size:clamp(1rem,3vw,1.35rem)]">
+              {formatListingPrice(adData.market_price)}
+            </span>
+          </div>
+        ) : null}
+        {(hasValidFmPrice || (!isFmOrderLike && hasValidExitPrice)) ? (
+          <div className="flex w-full flex-col gap-1">
+            <span className="text-[10px] font-black uppercase tracking-wide text-neutral-700">
+              {isFmOrderLike && hasValidFmPrice
+                ? t("futureMobility.guidancePriceFrom")
+                : t("pricing.exitPrice")}
+            </span>
+            <span className="w-full break-words font-black italic leading-none [font-size:clamp(2rem,5vw,3rem)]">
+              {formatListingPrice(adData.exit_price)}
+            </span>
+          </div>
+        ) : null}
+        {showDiscount ? (
+          <div className="inline-flex rounded-lg border-2 border-black bg-black px-3 py-1 text-[10px] font-black uppercase tracking-wider text-[#FFD100]">
+            {t("pricing.discountFromMarket", {
+              percent: Math.round(Number(adData.discount)),
+            })}
+          </div>
+        ) : null}
+        {isFmOrderLike ? (
+          <p className="text-xs font-medium leading-relaxed text-neutral-600">
+            {t("futureMobility.partnerConfirmNote")}
+          </p>
+        ) : null}
+      </div>
+
+      <ListingPriceAdvantage
+        data={priceAdvantage}
+        locale={locale}
+        labels={{
+          title: t("detailV2.priceAdvantage.title"),
+          quickExitPrice: t("detailV2.priceAdvantage.quickExitPrice"),
+          marketReference: t("detailV2.priceAdvantage.marketReference"),
+          estimatedSavings: t("detailV2.priceAdvantage.estimatedSavings"),
+          positionedCopy: t("detailV2.priceAdvantage.positionedCopy"),
+          disclaimer: t("detailV2.priceAdvantage.disclaimer"),
+        }}
+      />
+
+      <div className="space-y-3">
+        <button
+          type="button"
+          onClick={() => {
+            if (ctaMode === "on_order") {
+              trackEvent("click_request_personalized_offer", {
+                listing_id: adData.id,
+                category: adData.category || "unknown",
+                ...(fm
+                  ? {
+                      collection: "future_mobility",
+                      ...(fm.model_slug ? { model_slug: fm.model_slug } : {}),
+                      ...(fm.availability_type
+                        ? { availability_type: fm.availability_type }
+                        : {}),
+                    }
+                  : {}),
+              });
+            } else if (ctaMode !== "auction") {
+              trackEvent("click_listing_offer", {
+                listing_id: adData.id,
+                category: adData.category || "unknown",
+              });
+            }
+            openOfferModal();
+          }}
+          className="w-full rounded-2xl border-[3px] border-black bg-black py-4 font-black uppercase tracking-wider text-[#FFD100] shadow-[6px_6px_0_0_#000] transition hover:brightness-110 md:py-5 md:text-sm"
+        >
+          {ctaMode === "auction"
+            ? t("detailV2.cta.primaryAuction")
+            : ctaMode === "on_order"
+              ? t("detailV2.cta.primaryOnOrder")
+              : t("detailV2.cta.primaryRequestDetails")}
+        </button>
+
+        {(ctaMode === "auto_financing" || ctaMode === "on_order") &&
+        showFinancingCalculator &&
+        financingVehiclePrice ? (
+          <button
+            type="button"
+            onClick={() => {
+              trackEvent("open_financing_calculator", {
+                listing_id: adData.id,
+                partner: financingConfig.partnerId,
+              });
+              setFinancingModalOpen(true);
+            }}
+            className="w-full rounded-2xl border-[3px] border-black bg-white py-4 font-black uppercase tracking-wider text-black shadow-[4px_4px_0_0_#000] transition hover:bg-neutral-50 md:text-xs"
+          >
+            {t("detailV2.cta.secondaryFinancing")}
+          </button>
+        ) : null}
+
+        <div className="pt-1">
+          <p className="mb-2 text-[10px] font-black uppercase tracking-widest text-neutral-500">
+            {t("detailV2.cta.otherOptions")}
+          </p>
+          <div className="space-y-2">
+            {!isFmOrderLike && canUseClassicOfferFlow ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveModal("accept");
+                  setAcceptSuccess(false);
+                  setAcceptActionMessage(null);
+                }}
+                className="w-full rounded-xl border border-black/20 bg-transparent px-3 py-2.5 text-left text-[11px] font-bold uppercase tracking-wide text-neutral-800 transition hover:border-black hover:bg-neutral-50"
+              >
+                {t("actions.acceptExitPrice")}
+              </button>
+            ) : null}
+
+            {ctaMode === "auction" && canUseClassicOfferFlow ? (
+              <button
+                type="button"
+                onClick={() => setActiveModal("docs")}
+                className="w-full rounded-xl border border-black/20 bg-transparent px-3 py-2.5 text-left text-[11px] font-bold uppercase tracking-wide text-neutral-800 transition hover:border-black hover:bg-neutral-50"
+              >
+                {t("detailV2.cta.secondaryAuctionTerms")}
+              </button>
+            ) : null}
+
+            <button
+              type="button"
+              onClick={openNegotiationRoom}
+              disabled={isOpeningRoom}
+              className="flex w-full items-center gap-2 rounded-xl border border-black/20 bg-transparent px-3 py-2.5 text-left text-[11px] font-bold uppercase tracking-wide text-neutral-800 transition hover:border-black hover:bg-neutral-50 disabled:opacity-50"
+            >
+              {isOpeningRoom ? (
+                <>
+                  <Loader2 className="animate-spin" size={14} aria-hidden />
+                  {t("actions.openingRoom")}
+                </>
+              ) : (
+                <>
+                  <MessagesSquare size={14} aria-hidden />
+                  {t("actions.openNegotiation")}
+                </>
+              )}
+            </button>
+          </div>
+          {roomError ? (
+            <p className="mt-2 text-center text-[11px] font-black uppercase tracking-wide text-red-600">
+              {roomError}
+            </p>
+          ) : null}
+        </div>
+      </div>
+
+      <ListingTrustSnapshot
+        sellerName={sellerDisplayName}
+        statusValue={kycStatusLabel(sellerProfile?.kyc_status ?? null)}
+        contactHint={t("detailV2.trust.contactHint")}
+        compact={showPremiumSeller}
+      />
+
+      <p className="mt-3 max-w-none rounded-xl border border-neutral-200 bg-[#F7F4EC] px-3 py-2.5 text-left text-[11px] font-semibold leading-relaxed text-neutral-800 sm:mt-4 sm:px-4 sm:py-3 sm:text-xs">
+        {t("safety.warning")}
+      </p>
+
+      <p className="mt-4 text-center text-[10px] font-medium leading-relaxed text-neutral-500">
+        {t("safety.comingSoon")}
+      </p>
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-[#F7F4EC] font-sans text-black selection:bg-[#FFD100]/40 selection:text-black antialiased">
       <div
@@ -854,30 +1086,36 @@ export default function AnuntClient({
               )}
             </div>
 
-            {fm ? <FutureMobilityVideoSection fm={fm} /> : null}
-
-            <div className="rounded-[2rem] border-[3px] border-black bg-white p-6 shadow-[8px_8px_0_0_rgba(0,0,0,0.12)] md:p-10 md:shadow-[10px_10px_0_0_#FFD100]">
-              <div className="mb-3 flex flex-wrap items-center gap-2">
-                <span className="rounded-full border-2 border-black bg-[#F7F4EC] px-3 py-1 text-[10px] font-black uppercase tracking-wider">
+            <div className="space-y-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="rounded-full border-2 border-black bg-white px-3 py-1 text-[10px] font-black uppercase tracking-wider">
                   {adData.category}
                 </span>
                 <span className="text-[9px] font-bold uppercase tracking-widest text-neutral-500">
                   ID: {typeof adData.id === "string" ? adData.id.split("-")[0] : ""}
                 </span>
               </div>
-              {fm ? (
-                <div className="mb-4">
-                  <FutureMobilityBadgePills fm={fm} />
-                </div>
-              ) : null}
+              {fm ? <FutureMobilityBadgePills fm={fm} /> : null}
               <h1 className="text-3xl font-black uppercase italic leading-[0.95] tracking-tighter text-black md:text-4xl lg:text-5xl">
                 {renderTitle(listingTitle)}
               </h1>
               {fm ? <FutureMobilityAvailabilityLine fm={fm} /> : null}
+            </div>
 
+            <ListingKeyFactsStrip
+              facts={keyFacts}
+              title={t("detailV2.keyFacts.title")}
+              compactSummaryLabel={t("detailV2.keyFacts.compactSummary")}
+            />
+
+            <div className="lg:hidden">{renderConversionPanel()}</div>
+
+            {fm ? <FutureMobilityVideoSection fm={fm} /> : null}
+
+            <div className="rounded-[2rem] border-[3px] border-black bg-white p-6 shadow-[8px_8px_0_0_rgba(0,0,0,0.12)] md:p-10 md:shadow-[10px_10px_0_0_#FFD100]">
               {isAuctionDetail && (
-                <div className="mt-5 space-y-2 rounded-xl border-[3px] border-black bg-[#FFFEF6] p-4">
-                  <h2 className="text-[11px] font-black uppercase tracking-widest text-black border-b border-black/15 pb-2">
+                <div className="mb-6 space-y-2 rounded-xl border border-black/15 bg-[#FFFEF6] p-4">
+                  <h2 className="border-b border-black/15 pb-2 text-[11px] font-black uppercase tracking-widest text-black">
                     {t("auction.title")}
                   </h2>
                   {auctionOffersReceived ? (
@@ -938,12 +1176,12 @@ export default function AnuntClient({
                 ) : null}
               </div>
 
-              <div className="mt-8 border-t-[3px] border-black pt-6">
+              <div className="mt-8 border-t border-black/15 pt-6">
                 <h2 className="mb-3 text-lg font-black uppercase italic tracking-tight md:text-xl">
                   {t("about.title")}{" "}
                   <span className="text-neutral-500">{t("about.titleHighlight")}</span>
                 </h2>
-                <p className="max-w-3xl text-sm font-medium italic leading-relaxed text-neutral-800 md:text-base whitespace-pre-wrap">
+                <p className="max-w-3xl whitespace-pre-wrap text-sm font-medium italic leading-relaxed text-neutral-800 md:text-base">
                   {listingDescription}
                 </p>
               </div>
@@ -952,171 +1190,7 @@ export default function AnuntClient({
 
           <div className="lg:col-span-4">
             <div className="sticky top-24 space-y-6">
-              <div className="rounded-[2rem] border-[3px] border-black bg-white p-6 shadow-[10px_10px_0_0_rgba(0,0,0,0.95)] md:shadow-[12px_12px_0_0_#FFD100]">
-                {!isFmOrderLike &&
-                isEvaluatedPricing &&
-                hasValidMarketComparison(adData.market_price, adData.exit_price) ? (
-                  <div className="mb-6 flex flex-col justify-center rounded-[1.25rem] border-[3px] border-black bg-[#FFD100] p-5 shadow-[4px_4px_0_0_#000]">
-                    <p className={`${labelBase} mb-1 text-black/60`}>{t("pricing.potentialProfit")}</p>
-                    <p className="break-words font-black italic leading-none text-black uppercase [font-size:clamp(1.75rem,4vw,2.75rem)]">
-                      {formatListingPrice(
-                        Number(adData.market_price) - Number(adData.exit_price),
-                      )}
-                    </p>
-                  </div>
-                ) : null}
-
-                <div className="mb-8 space-y-4">
-                  {!isFmOrderLike && isEvaluatedPricing && isValidPrice(adData.market_price) ? (
-                    <div className="flex flex-wrap items-center justify-between gap-2 border-b-2 border-neutral-100 pb-2">
-                      <span className="text-[10px] font-black uppercase tracking-wide text-neutral-500">
-                        {t("pricing.marketPrice")}
-                      </span>
-                      <span className="font-black italic opacity-35 line-through [font-size:clamp(1rem,3vw,1.35rem)]">
-                        {formatListingPrice(adData.market_price)}
-                      </span>
-                    </div>
-                  ) : null}
-                  {(hasValidFmPrice || (!isFmOrderLike && hasValidExitPrice)) ? (
-                    <div className="flex w-full flex-col gap-1">
-                      <span className="text-[10px] font-black uppercase tracking-wide text-neutral-700">
-                        {isFmOrderLike && hasValidFmPrice
-                          ? t("futureMobility.guidancePriceFrom")
-                          : t("pricing.exitPrice")}
-                      </span>
-                      <span className="w-full break-words font-black italic leading-none [font-size:clamp(2rem,5vw,3rem)]">
-                        {formatListingPrice(adData.exit_price)}
-                      </span>
-                    </div>
-                  ) : null}
-                  {showDiscount ? (
-                    <div className="inline-flex rounded-lg border-2 border-black bg-black px-3 py-1 text-[10px] font-black uppercase tracking-wider text-[#FFD100]">
-                      {t("pricing.discountFromMarket", {
-                        percent: Math.round(Number(adData.discount)),
-                      })}
-                    </div>
-                  ) : null}
-                  {isFmOrderLike ? (
-                    <p className="text-xs font-medium leading-relaxed text-neutral-600">
-                      {t("futureMobility.partnerConfirmNote")}
-                    </p>
-                  ) : null}
-                </div>
-
-                {showFinancingCalculator && financingVehiclePrice ? (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      trackEvent("open_financing_calculator", {
-                        listing_id: adData.id,
-                        partner: financingConfig.partnerId,
-                      });
-                      setFinancingModalOpen(true);
-                    }}
-                    className="mb-3 w-full rounded-2xl border-[3px] border-black bg-[#FDFCF8] py-3 font-black uppercase tracking-wider text-black shadow-[4px_4px_0_0_#000] transition hover:bg-white md:mb-4 md:text-xs"
-                  >
-                    {t("financing.calculateCta")}
-                  </button>
-                ) : null}
-
-                <div className="space-y-3">
-                  {!isFmOrderLike && canUseClassicOfferFlow ? (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setActiveModal("accept");
-                        setAcceptSuccess(false);
-                        setAcceptActionMessage(null);
-                      }}
-                      className="w-full rounded-2xl border-[3px] border-black bg-black py-4 font-black uppercase tracking-wider text-[#FFD100] shadow-[6px_6px_0_0_#000] transition hover:brightness-110 md:py-5 md:text-sm"
-                    >
-                      {t("actions.acceptExitPrice")}
-                    </button>
-                  ) : isFmOrderLike ? (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        trackEvent("click_request_personalized_offer", {
-                          listing_id: adData.id,
-                          category: adData.category || "unknown",
-                          collection: "future_mobility",
-                          ...(fm?.model_slug ? { model_slug: fm.model_slug } : {}),
-                          ...(fm?.availability_type
-                            ? { availability_type: fm.availability_type }
-                            : {}),
-                        });
-                        setActiveModal("offer");
-                        setOfferSuccess(false);
-                        setOfferActionMessage(null);
-                      }}
-                      className="w-full rounded-2xl border-[3px] border-black bg-black py-4 font-black uppercase tracking-wider text-[#FFD100] shadow-[6px_6px_0_0_#000] transition hover:brightness-110 md:py-5 md:text-sm"
-                    >
-                      {t("futureMobility.requestPersonalizedOffer")}
-                    </button>
-                  ) : isPriceOnRequest ? (
-                    <button
-                      type="button"
-                      disabled
-                      title={
-                        process.env.NODE_ENV !== "production"
-                          ? "Sprint B: contact modal fără slider pentru price_on_request."
-                          : undefined
-                      }
-                      className="w-full rounded-2xl border-[3px] border-black bg-white py-4 font-black uppercase tracking-wider text-black shadow-[4px_4px_0_0_#000] opacity-60"
-                    >
-                      {t("pricing.requestDetails")}
-                    </button>
-                  ) : null}
-                  {!isFmOrderLike && canUseClassicOfferFlow ? (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        trackEvent("click_listing_offer", {
-                          listing_id: adData.id,
-                          category: adData.category || "unknown",
-                        });
-                        setActiveModal("offer");
-                        setOfferSuccess(false);
-                        setOfferActionMessage(null);
-                      }}
-                      className="w-full rounded-2xl border-[3px] border-black bg-white py-4 font-black uppercase tracking-wider text-black shadow-[4px_4px_0_0_#000] transition hover:bg-neutral-50 md:text-xs"
-                    >
-                      {t("actions.submitOffer")}
-                    </button>
-                  ) : null}
-                  <button
-                    type="button"
-                    onClick={openNegotiationRoom}
-                    disabled={isOpeningRoom}
-                    className="flex w-full items-center justify-center gap-2 rounded-2xl border-[3px] border-black bg-[#FFD100] py-4 font-black uppercase tracking-wider text-black shadow-[4px_4px_0_0_#000] transition hover:-translate-y-0.5 hover:shadow-[6px_6px_0_0_#000] active:translate-y-0.5 active:shadow-none disabled:opacity-50 md:text-xs"
-                  >
-                    {isOpeningRoom ? (
-                      <>
-                        <Loader2 className="animate-spin" size={16} aria-hidden />
-                        {t("actions.openingRoom")}
-                      </>
-                    ) : (
-                      <>
-                        <MessagesSquare size={16} aria-hidden />
-                        {t("actions.openNegotiation")}
-                      </>
-                    )}
-                  </button>
-                  {roomError ? (
-                    <p className="text-center text-[11px] font-black uppercase tracking-wide text-red-600">
-                      {roomError}
-                    </p>
-                  ) : null}
-                </div>
-
-                <p className="mt-3 max-w-none rounded-xl border border-neutral-200 bg-[#F7F4EC] px-3 py-2.5 text-left text-[11px] font-semibold leading-relaxed text-neutral-800 sm:mt-4 sm:px-4 sm:py-3 sm:text-xs">
-                  {t("safety.warning")}
-                </p>
-
-                <p className="mt-6 text-center text-[10px] font-medium leading-relaxed text-neutral-500">
-                  {t("safety.comingSoon")}
-                </p>
-              </div>
+              <div className="hidden lg:block">{renderConversionPanel()}</div>
 
               {adData.user_id &&
                 (showPremiumSeller ? (
