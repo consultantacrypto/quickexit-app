@@ -128,7 +128,7 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
           <StructuredData siteUrl={siteUrl} />
           <Header />
 
-          <main className="flex-grow pt-24 md:pt-44">{children}</main>
+          <main className="flex-grow pt-16 md:pt-32">{children}</main>
 
           <Footer />
         </NextIntlClientProvider>

@@ -23,7 +23,7 @@ export default function LanguageSwitcher({ className = "" }: LanguageSwitcherPro
     <div
       role="group"
       aria-label={t("languageSwitcher")}
-      className={`inline-flex items-center rounded-lg border-2 border-black bg-white p-0.5 shadow-[2px_2px_0_0_rgba(0,0,0,1)] ${className}`.trim()}
+      className={`inline-flex min-h-10 items-center rounded-lg border-2 border-black bg-white p-0.5 shadow-[2px_2px_0_0_rgba(0,0,0,1)] ${className}`.trim()}
     >
       {routing.locales.map((loc) => (
         <button
@@ -31,7 +31,7 @@ export default function LanguageSwitcher({ className = "" }: LanguageSwitcherPro
           type="button"
           onClick={() => switchLocale(loc)}
           aria-current={locale === loc ? "true" : undefined}
-          className={`rounded-md px-2.5 py-1 text-[10px] font-black uppercase tracking-widest transition ${
+          className={`min-h-9 rounded-md px-2.5 py-1.5 text-[11px] font-black uppercase tracking-widest transition ${
             locale === loc
               ? "bg-[#FFD100] text-black"
               : "text-neutral-500 hover:text-black"
