@@ -5,12 +5,9 @@ type ListingPriceAdvantageProps = {
   data: ListingPriceAdvantageType | null;
   locale: string;
   labels: {
-    title: string;
-    quickExitPrice: string;
     marketReference: string;
-    estimatedSavings: string;
-    positionedCopy: string;
     disclaimer: string;
+    savingsLabel: string;
   };
 };
 
@@ -22,28 +19,19 @@ export default function ListingPriceAdvantage({
   if (!data) return null;
 
   return (
-    <div className="rounded-2xl border-[3px] border-black bg-[#FFF9E8] p-4 shadow-[5px_5px_0_0_rgba(0,0,0,0.18)]">
-      <p className="text-[10px] font-black uppercase tracking-widest text-neutral-700">
-        {labels.title}
+    <div className="mb-5 border-t border-black/10 pt-3">
+      <p className="text-sm font-semibold leading-snug text-emerald-800/80">
+        <span className="font-black text-emerald-900/90">
+          {labels.savingsLabel} {formatEurAmount(data.savings, locale)} · {data.savingsPercent}%
+        </span>
       </p>
-      <div className="mt-3 space-y-1.5 text-sm font-semibold text-neutral-900">
-        <p>
-          {labels.quickExitPrice}:{" "}
-          <span className="font-black">{formatEurAmount(data.exitPrice, locale)}</span>
-        </p>
-        <p>
-          {labels.marketReference}:{" "}
-          <span className="font-black">{formatEurAmount(data.marketPrice, locale)}</span>
-        </p>
-        <p>
-          {labels.estimatedSavings}:{" "}
-          <span className="font-black">
-            {formatEurAmount(data.savings, locale)} ({data.savingsPercent}%)
-          </span>
-        </p>
-      </div>
-      <p className="mt-2 text-xs font-bold text-neutral-700">{labels.positionedCopy}</p>
-      <p className="mt-2 text-[11px] font-medium leading-relaxed text-neutral-600">
+      <p className="mt-1 text-[11px] font-medium leading-relaxed text-neutral-500">
+        {labels.marketReference}:{" "}
+        <span className="font-semibold text-neutral-600">
+          {formatEurAmount(data.marketPrice, locale)}
+        </span>
+      </p>
+      <p className="mt-1.5 text-[10px] font-medium leading-relaxed text-neutral-400">
         {labels.disclaimer}
       </p>
     </div>

@@ -831,32 +831,35 @@ export default function AnuntClient({
   };
 
   const renderConversionPanel = () => (
-    <div className="rounded-[2rem] border-[3px] border-black bg-white p-6 shadow-[10px_10px_0_0_rgba(0,0,0,0.95)] md:shadow-[12px_12px_0_0_#FFD100]">
-      <div className="mb-8 space-y-4">
-        {!isFmOrderLike && isEvaluatedPricing && isValidPrice(adData.market_price) ? (
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b-2 border-neutral-100 pb-2">
-            <span className="text-[10px] font-black uppercase tracking-wide text-neutral-500">
+    <div className="rounded-[2rem] border-[3px] border-black bg-white p-5 shadow-[10px_10px_0_0_rgba(0,0,0,0.95)] md:p-6 md:shadow-[12px_12px_0_0_#FFD100]">
+      <div className="mb-4 space-y-2.5">
+        {!priceAdvantage &&
+        !isFmOrderLike &&
+        isEvaluatedPricing &&
+        isValidPrice(adData.market_price) ? (
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-neutral-100 pb-2">
+            <span className="text-[10px] font-bold uppercase tracking-wide text-neutral-500">
               {t("pricing.marketPrice")}
             </span>
-            <span className="font-black italic opacity-35 line-through [font-size:clamp(1rem,3vw,1.35rem)]">
+            <span className="font-black italic opacity-35 line-through [font-size:clamp(1rem,3vw,1.25rem)]">
               {formatListingPrice(adData.market_price)}
             </span>
           </div>
         ) : null}
         {(hasValidFmPrice || (!isFmOrderLike && hasValidExitPrice)) ? (
-          <div className="flex w-full flex-col gap-1">
-            <span className="text-[10px] font-black uppercase tracking-wide text-neutral-700">
+          <div className="flex w-full flex-col gap-0.5">
+            <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-neutral-500">
               {isFmOrderLike && hasValidFmPrice
                 ? t("futureMobility.guidancePriceFrom")
                 : t("pricing.exitPrice")}
             </span>
-            <span className="w-full break-words font-black italic leading-none [font-size:clamp(2rem,5vw,3rem)]">
+            <span className="w-full break-words font-black italic leading-[0.95] tracking-tight [font-size:clamp(2rem,5vw,2.75rem)]">
               {formatListingPrice(adData.exit_price)}
             </span>
           </div>
         ) : null}
-        {showDiscount ? (
-          <div className="inline-flex rounded-lg border-2 border-black bg-black px-3 py-1 text-[10px] font-black uppercase tracking-wider text-[#FFD100]">
+        {showDiscount && !priceAdvantage ? (
+          <div className="inline-flex rounded-md border border-black/80 bg-black px-2.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-[#FFD100]">
             {t("pricing.discountFromMarket", {
               percent: Math.round(Number(adData.discount)),
             })}
@@ -873,16 +876,13 @@ export default function AnuntClient({
         data={priceAdvantage}
         locale={locale}
         labels={{
-          title: t("detailV2.priceAdvantage.title"),
-          quickExitPrice: t("detailV2.priceAdvantage.quickExitPrice"),
           marketReference: t("detailV2.priceAdvantage.marketReference"),
-          estimatedSavings: t("detailV2.priceAdvantage.estimatedSavings"),
-          positionedCopy: t("detailV2.priceAdvantage.positionedCopy"),
           disclaimer: t("detailV2.priceAdvantage.disclaimer"),
+          savingsLabel: t("detailV2.priceAdvantage.savingsLabel"),
         }}
       />
 
-      <div className="space-y-3">
+      <div className="space-y-2.5">
         <button
           type="button"
           onClick={() => {
@@ -908,7 +908,7 @@ export default function AnuntClient({
             }
             openOfferModal();
           }}
-          className="w-full rounded-2xl border-[3px] border-black bg-black py-4 font-black uppercase tracking-wider text-[#FFD100] shadow-[6px_6px_0_0_#000] transition hover:brightness-110 md:py-5 md:text-sm"
+          className="w-full rounded-2xl border-[3px] border-black bg-black py-3.5 font-black uppercase tracking-wider text-[#FFD100] shadow-[5px_5px_0_0_#000] transition duration-150 hover:brightness-110 motion-reduce:transition-none md:py-4 md:text-sm"
         >
           {ctaMode === "auction"
             ? t("detailV2.cta.primaryAuction")
@@ -929,17 +929,17 @@ export default function AnuntClient({
               });
               setFinancingModalOpen(true);
             }}
-            className="w-full rounded-2xl border-[3px] border-black bg-white py-4 font-black uppercase tracking-wider text-black shadow-[4px_4px_0_0_#000] transition hover:bg-neutral-50 md:text-xs"
+            className="w-full rounded-2xl border-[3px] border-black bg-white py-3 font-black uppercase tracking-wider text-black shadow-[3px_3px_0_0_#000] transition duration-150 hover:bg-neutral-50 motion-reduce:transition-none md:text-xs"
           >
             {t("detailV2.cta.secondaryFinancing")}
           </button>
         ) : null}
 
-        <div className="pt-1">
-          <p className="mb-2 text-[10px] font-black uppercase tracking-widest text-neutral-500">
+        <div className="pt-0.5">
+          <p className="mb-1.5 text-[9px] font-bold uppercase tracking-[0.16em] text-neutral-400">
             {t("detailV2.cta.otherOptions")}
           </p>
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             {!isFmOrderLike && canUseClassicOfferFlow ? (
               <button
                 type="button"
@@ -948,7 +948,7 @@ export default function AnuntClient({
                   setAcceptSuccess(false);
                   setAcceptActionMessage(null);
                 }}
-                className="w-full rounded-xl border border-black/20 bg-transparent px-3 py-2.5 text-left text-[11px] font-bold uppercase tracking-wide text-neutral-800 transition hover:border-black hover:bg-neutral-50"
+                className="w-full rounded-lg border border-black/15 bg-transparent px-3 py-2 text-left text-[10px] font-bold uppercase tracking-wide text-neutral-700 transition duration-150 hover:border-black/40 hover:bg-neutral-50 motion-reduce:transition-none"
               >
                 {t("actions.acceptExitPrice")}
               </button>
@@ -958,7 +958,7 @@ export default function AnuntClient({
               <button
                 type="button"
                 onClick={() => setActiveModal("docs")}
-                className="w-full rounded-xl border border-black/20 bg-transparent px-3 py-2.5 text-left text-[11px] font-bold uppercase tracking-wide text-neutral-800 transition hover:border-black hover:bg-neutral-50"
+                className="w-full rounded-lg border border-black/15 bg-transparent px-3 py-2 text-left text-[10px] font-bold uppercase tracking-wide text-neutral-700 transition duration-150 hover:border-black/40 hover:bg-neutral-50 motion-reduce:transition-none"
               >
                 {t("detailV2.cta.secondaryAuctionTerms")}
               </button>
@@ -968,16 +968,16 @@ export default function AnuntClient({
               type="button"
               onClick={openNegotiationRoom}
               disabled={isOpeningRoom}
-              className="flex w-full items-center gap-2 rounded-xl border border-black/20 bg-transparent px-3 py-2.5 text-left text-[11px] font-bold uppercase tracking-wide text-neutral-800 transition hover:border-black hover:bg-neutral-50 disabled:opacity-50"
+              className="flex w-full items-center gap-2 rounded-lg border border-black/15 bg-transparent px-3 py-2 text-left text-[10px] font-bold uppercase tracking-wide text-neutral-700 transition duration-150 hover:border-black/40 hover:bg-neutral-50 disabled:opacity-50 motion-reduce:transition-none"
             >
               {isOpeningRoom ? (
                 <>
-                  <Loader2 className="animate-spin" size={14} aria-hidden />
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
                   {t("actions.openingRoom")}
                 </>
               ) : (
                 <>
-                  <MessagesSquare size={14} aria-hidden />
+                  <MessagesSquare className="h-3.5 w-3.5" aria-hidden />
                   {t("actions.openNegotiation")}
                 </>
               )}
@@ -993,16 +993,22 @@ export default function AnuntClient({
 
       <ListingTrustSnapshot
         sellerName={sellerDisplayName}
-        statusValue={kycStatusLabel(sellerProfile?.kyc_status ?? null)}
+        statusValue={
+          showPremiumSeller
+            ? t("detailV2.trust.premiumSeller")
+            : sellerProfile?.kyc_status === "verified"
+              ? t("detailV2.trust.identityVerified")
+              : t("detailV2.trust.verificationInProgress")
+        }
         contactHint={t("detailV2.trust.contactHint")}
         compact={showPremiumSeller}
       />
 
-      <p className="mt-3 max-w-none rounded-xl border border-neutral-200 bg-[#F7F4EC] px-3 py-2.5 text-left text-[11px] font-semibold leading-relaxed text-neutral-800 sm:mt-4 sm:px-4 sm:py-3 sm:text-xs">
+      <p className="mt-3 max-w-none rounded-lg border border-neutral-200/80 bg-[#F7F4EC] px-3 py-2 text-left text-[11px] font-medium leading-relaxed text-neutral-700">
         {t("safety.warning")}
       </p>
 
-      <p className="mt-4 text-center text-[10px] font-medium leading-relaxed text-neutral-500">
+      <p className="mt-3 text-center text-[10px] font-medium leading-relaxed text-neutral-400">
         {t("safety.comingSoon")}
       </p>
     </div>
@@ -1035,8 +1041,8 @@ export default function AnuntClient({
           </button>
         </div>
 
-        <div className="mb-14 grid grid-cols-1 gap-10 lg:grid-cols-12 lg:gap-12">
-          <div className="space-y-8 lg:col-span-8">
+        <div className="mb-14 grid grid-cols-1 gap-8 lg:grid-cols-12 lg:gap-10 xl:gap-12">
+          <div className="space-y-6 lg:col-span-8">
             <div className="space-y-4">
               <button
                 type="button"
@@ -1086,9 +1092,9 @@ export default function AnuntClient({
               )}
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-2.5">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="rounded-full border-2 border-black bg-white px-3 py-1 text-[10px] font-black uppercase tracking-wider">
+                <span className="rounded-full border border-black/70 bg-white px-2.5 py-0.5 text-[9px] font-black uppercase tracking-wider">
                   {adData.category}
                 </span>
                 <span className="text-[9px] font-bold uppercase tracking-widest text-neutral-500">
@@ -1096,7 +1102,7 @@ export default function AnuntClient({
                 </span>
               </div>
               {fm ? <FutureMobilityBadgePills fm={fm} /> : null}
-              <h1 className="text-3xl font-black uppercase italic leading-[0.95] tracking-tighter text-black md:text-4xl lg:text-5xl">
+              <h1 className="text-[1.85rem] font-black uppercase italic leading-[1.02] tracking-tight text-black sm:text-3xl md:text-4xl lg:text-[2.75rem] lg:leading-[1.05]">
                 {renderTitle(listingTitle)}
               </h1>
               {fm ? <FutureMobilityAvailabilityLine fm={fm} /> : null}
@@ -1141,36 +1147,27 @@ export default function AnuntClient({
 
               {fm ? <FutureMobilitySections fm={fm} /> : renderTechnicalDetails()}
 
-              <div className="mt-8 flex flex-wrap gap-2.5">
+              <div className="mt-6 flex flex-wrap gap-2">
                 <button
                   type="button"
                   onClick={() => setActiveModal("verified")}
-                  className="flex items-center gap-1.5 rounded-xl border-[3px] border-black bg-black px-4 py-2 font-black uppercase text-[9px] tracking-wider text-[#FFD100] transition hover:brightness-110"
+                  className="flex items-center gap-1.5 rounded-lg border border-black/80 bg-black px-3 py-1.5 text-[9px] font-black uppercase tracking-wider text-[#FFD100] transition hover:brightness-110"
                 >
-                  <span className="text-sm" aria-hidden>
-                    ★
-                  </span>
                   <span className="leading-tight text-left normal-case">{trustKycChipLabel}</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setActiveModal("docs")}
-                  className="flex items-center gap-1.5 rounded-xl border-[3px] border-black bg-white px-4 py-2 font-black uppercase text-[9px] tracking-wider transition hover:bg-[#FFD100]"
+                  className="flex items-center gap-1.5 rounded-lg border border-black/60 bg-white px-3 py-1.5 text-[9px] font-black uppercase tracking-wider transition hover:bg-[#FFD100]/70"
                 >
-                  <span className="text-sm" aria-hidden>
-                    📁
-                  </span>
                   {t("trust.documentFile")}
                 </button>
                 {showLiquidityScore ? (
                   <button
                     type="button"
                     onClick={() => setActiveModal("ai-score")}
-                    className="flex items-center gap-1.5 rounded-xl border-[3px] border-black bg-[#FFD100] px-4 py-2 font-black uppercase text-[9px] tracking-wider shadow-[3px_3px_0_0_rgba(0,0,0,1)] transition hover:brightness-105"
+                    className="flex items-center gap-1.5 rounded-lg border border-black/60 bg-[#FFD100] px-3 py-1.5 text-[9px] font-black uppercase tracking-wider transition hover:brightness-105"
                   >
-                    <span className="text-sm" aria-hidden>
-                      ⚡
-                    </span>
                     {t("trust.liquidityScore", { score: Number(adData.deal_score) })}
                   </button>
                 ) : null}

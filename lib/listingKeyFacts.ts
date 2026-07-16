@@ -156,15 +156,16 @@ export function getListingKeyFacts(
   const facts: ListingFact[] = [];
 
   if (saleType === "auction") {
-    addFact(facts, labels, "offers", toText(listing.offer_count), 1);
-    addFact(facts, labels, "timeLeft", formatTimeLeft(listing.expires_at, locale), 2);
+    addFact(facts, labels, "offers", toText(listing.offer_count), 0);
+    addFact(facts, labels, "timeLeft", formatTimeLeft(listing.expires_at, locale), 0);
   }
 
   if (category.includes("auto")) {
-    addFact(facts, labels, "year", toText(pick(details, ["vehicle_year", "year"])), 1);
+    // Power first only when present (addFact skips empty). Then km → year → fuel…
+    addFact(facts, labels, "power", formatEngineOrPower(details), 1);
     addFact(facts, labels, "mileage", formatKm(pick(details, ["vehicle_km", "km"]), locale), 2);
-    addFact(facts, labels, "fuel", toText(pick(details, ["fuel"])), 3);
-    addFact(facts, labels, "power", formatEngineOrPower(details), 4);
+    addFact(facts, labels, "year", toText(pick(details, ["vehicle_year", "year"])), 3);
+    addFact(facts, labels, "fuel", toText(pick(details, ["fuel"])), 4);
     addFact(facts, labels, "transmission", toText(pick(details, ["transmission"])), 5);
     addFact(facts, labels, "bodyType", toText(pick(details, ["bodyType", "body_type"])), 6);
     addFact(facts, labels, "drivetrain", toText(pick(details, ["drivetrain", "traction"])), 7);
