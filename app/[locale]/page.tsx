@@ -211,16 +211,16 @@ export default async function Home({ params }: HomePageProps) {
         />
       )}
 
-      <section className="relative overflow-hidden bg-white pb-8 pt-12 text-center md:pb-10 md:pt-14 lg:pb-11 lg:pt-12 xl:pt-10 2xl:pt-9">
-        <div className="mx-auto max-w-7xl px-4">
+      <section className="relative overflow-hidden bg-white pb-6 pt-6 text-center md:pb-8 md:pt-8 lg:pb-9 lg:pt-7 xl:pt-6">
+        <div className="mx-auto max-w-[1440px] px-4 md:px-8">
           <div className="mx-auto max-w-4xl">
-            <h1 className="mb-5 font-black italic tracking-tighter text-black md:mb-6 lg:mb-7">
-              <span className="block text-6xl normal-case leading-[0.9] sm:text-7xl md:text-8xl md:leading-[0.85] lg:text-9xl">
+            <h1 className="mb-4 font-black italic tracking-tighter text-black md:mb-5 lg:mb-6">
+              <span className="block text-6xl normal-case leading-[0.9] sm:text-7xl md:text-8xl md:leading-[0.85] lg:text-9xl xl:text-[8.25rem] 2xl:text-[8.75rem] 2xl:leading-[0.82]">
                 {heroLine1.before}
                 <span className="quickexit-acum-pulse text-[#FFD100]">{heroLine1.highlight}</span>
                 {heroLine1.after}
               </span>
-              <span className="mt-1 block text-6xl normal-case leading-[0.9] sm:mt-0 sm:text-7xl md:text-8xl md:leading-[0.85] lg:text-9xl">
+              <span className="mt-1 block text-6xl normal-case leading-[0.9] sm:mt-0 sm:text-7xl md:text-8xl md:leading-[0.85] lg:text-9xl xl:text-[8.25rem] 2xl:text-[8.75rem] 2xl:leading-[0.82]">
                 {heroLine2.before}
                 <span className="quickexit-hero-sweep inline-block bg-[length:240%_100%] bg-clip-text text-transparent [background-image:linear-gradient(110deg,#E5E7EB_0%,#E5E7EB_42%,#FFF3A3_47%,#FFD100_50%,#FFF3A3_53%,#E5E7EB_58%,#E5E7EB_100%)]">
                   {heroLine2.highlight}
@@ -229,7 +229,7 @@ export default async function Home({ params }: HomePageProps) {
               </span>
             </h1>
 
-            <div className="mx-auto mb-5 max-w-[23rem] px-1.5 sm:max-w-3xl sm:px-2 md:mb-6 lg:mb-6 lg:max-w-[54rem]">
+            <div className="mx-auto mb-4 max-w-[23rem] px-1.5 sm:max-w-3xl sm:px-2 md:mb-5 lg:mb-5 lg:max-w-[54rem]">
               <p className="text-[13px] font-bold leading-[1.56] sm:text-[14px] sm:leading-[1.6] md:text-[17px] md:leading-[1.62] lg:text-[20px] lg:leading-[1.65]">
                 <span className="bg-[#FFD100] px-2.5 py-1.5 text-black box-decoration-clone sm:px-3 md:px-3.5 md:py-2">
                   {tHero("subtitle")}
@@ -237,12 +237,12 @@ export default async function Home({ params }: HomePageProps) {
               </p>
             </div>
 
-            <div className="mb-3 flex flex-col items-center md:mb-4 lg:mb-4">
+            <div className="mb-2 flex flex-col items-center md:mb-3 lg:mb-3">
               <TrackedLink
                 href="/evaluare"
                 eventName="click_evaluate"
                 eventParams={{ source: "home_hero" }}
-                className="group relative inline-flex items-center justify-center overflow-hidden whitespace-nowrap rounded-full border border-black/[0.12] bg-black/90 px-8 py-3.5 text-sm font-semibold uppercase tracking-[0.12em] text-[#FFD100] shadow-[0_14px_36px_-10px_rgba(0,0,0,0.45)] backdrop-blur-md transition-all duration-300 hover:border-[#FFD100]/35 hover:bg-black hover:shadow-[0_22px_48px_-14px_rgba(0,0,0,0.5)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#FFD100] md:px-10 md:py-4 md:text-[15px]"
+                className="group relative inline-flex items-center justify-center overflow-hidden whitespace-nowrap rounded-full border border-black/[0.12] bg-black/90 px-8 py-3.5 text-sm font-semibold uppercase tracking-[0.12em] text-[#FFD100] shadow-[0_14px_36px_-10px_rgba(0,0,0,0.45)] backdrop-blur-md transition-all duration-300 hover:border-[#FFD100]/35 hover:bg-black hover:shadow-[0_22px_48px_-14px_rgba(0,0,0,0.5)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#FFD100] md:px-11 md:py-4 md:text-base xl:px-12 xl:py-[1.125rem] xl:text-[17px]"
               >
                 <span className="relative z-10 whitespace-nowrap">
                   {evaluateCtaText}
@@ -260,14 +260,14 @@ export default async function Home({ params }: HomePageProps) {
             </div>
           </div>
 
-          <div className="mt-0.5 md:mt-1">
-            <div className="mb-2.5 text-center md:mb-3 lg:mb-4">
+          <div className="mt-1 md:mt-2">
+            <div className="mb-2.5 text-center md:mb-3 lg:mb-3.5">
               <h2 className="text-lg font-black uppercase italic tracking-tight text-black md:text-2xl">
                 {tHero("packagesSectionTitle")}
               </h2>
             </div>
 
-            <div className="mx-auto grid max-w-6xl grid-cols-2 gap-3 md:grid-cols-4 md:gap-4 lg:gap-5">
+            <div className="mx-auto grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4 lg:gap-5">
               {PACKAGE_IDS.map((packageId) => (
                 <Link
                   key={packageId}
@@ -293,31 +293,9 @@ export default async function Home({ params }: HomePageProps) {
         </div>
       </section>
 
-      <section className="border-t border-gray-100 bg-[#FDFCF8] px-4 py-10 md:py-12">
-        <div className="mx-auto flex max-w-6xl flex-col items-start justify-between gap-6 md:flex-row md:items-center">
-          <div className="max-w-2xl">
-            <h2 className="text-2xl font-black uppercase italic tracking-tight text-black md:text-3xl">
-              ⚡ {tHome("futureMobility.title")}
-            </h2>
-            <p className="mt-3 text-sm font-bold leading-relaxed text-neutral-700">
-              {tHome("futureMobility.line1")}
-            </p>
-            <p className="mt-1 text-sm font-medium leading-relaxed text-neutral-600">
-              {tHome("futureMobility.line2")}
-            </p>
-          </div>
-          <Link
-            href="/future-mobility"
-            className="inline-flex shrink-0 items-center justify-center rounded-2xl border-[3px] border-black bg-white px-6 py-3 text-[11px] font-black uppercase tracking-widest text-black shadow-[6px_6px_0_0_rgba(0,0,0,1)] transition hover:-translate-y-0.5 hover:shadow-[6px_6px_0_0_#FFD100] md:text-xs"
-          >
-            {tHome("futureMobility.cta")}
-          </Link>
-        </div>
-      </section>
-
-      <section className="border-t border-gray-100 bg-white py-12 pb-16 md:py-14 md:pb-20">
-        <div className="mx-auto max-w-6xl px-4 text-center md:text-left">
-          <h2 className="mb-10 inline-block border-b-[6px] border-[#FFD100] pb-3 text-sm font-black uppercase italic tracking-[0.35em] text-black md:mb-12 md:text-lg">
+      <section className="border-t border-gray-100 bg-white py-10 pb-12 md:py-12 md:pb-16">
+        <div className="mx-auto max-w-[1440px] px-4 text-center md:px-8 md:text-left">
+          <h2 className="mb-8 inline-block border-b-[6px] border-[#FFD100] pb-3 text-sm font-black uppercase italic tracking-[0.35em] text-black md:mb-10 md:text-lg">
             {tHome("categoriesTitle")}
           </h2>
 
@@ -340,8 +318,8 @@ export default async function Home({ params }: HomePageProps) {
         </div>
       </section>
 
-      <section className="border-t border-gray-100 bg-white px-4 pt-20 pb-16 md:pt-28 md:pb-24">
-        <div className="mx-auto max-w-[1440px]">
+      <section className="border-t border-gray-100 bg-white pt-16 pb-16 md:pt-20 md:pb-24">
+        <div className="mx-auto max-w-[1440px] px-4 md:px-8">
           <div className="mb-4 flex flex-col items-start justify-between gap-5 md:flex-row md:items-end">
             <h2 className="text-3xl font-black uppercase italic tracking-tight text-black md:text-4xl">
               {listingsTitle.before}
