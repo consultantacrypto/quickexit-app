@@ -12,6 +12,11 @@ import {
   extractCheckoutIds,
   resolveActivationPlan,
 } from '@/lib/stripeWebhookActivation';
+import {
+  classifyAlreadyActiveFulfillment,
+  mergeStripeFulfillmentIntoDetails,
+  storedCheckoutSessionId,
+} from '@/lib/stripeListingFulfillment';
 
 export async function POST(req: Request) {
   try {
@@ -115,7 +120,7 @@ export async function POST(req: Request) {
           if (activation.source !== 'none') {
             const { data: listing, error: listingError } = await supabase
               .from('listings')
-              .select('id, status')
+              .select('id, status, details')
               .eq('id', listingId)
               .single();
             if (listingError || !listing) {
@@ -125,9 +130,20 @@ export async function POST(req: Request) {
                 reason: listingError?.message,
                 code: listingError?.code,
               });
-              return NextResponse.json({ received: true, skipped: 'listing_not_found' });
+              return NextResponse.json({ received: false, error: 'object_not_found' }, { status: 500 });
             }
             if (listing.status === 'active') {
+              const already = classifyAlreadyActiveFulfillment(
+                storedCheckoutSessionId((listing as { details?: unknown }).details),
+                session.id,
+              );
+              if (already === 'conflicting_session') {
+                console.error('[webhook] conflicting session on active listing', {
+                  sessionId: session.id,
+                  listingId,
+                });
+                return NextResponse.json({ received: false, error: 'conflicting_session' }, { status: 409 });
+              }
               console.log('[webhook] listing deja activ - idempotent (priceId flow)', {
                 sessionId: session.id,
                 listingId,
@@ -140,7 +156,22 @@ export async function POST(req: Request) {
               'listings',
               listingId,
               activation.expiresAt,
-              '[webhook]'
+              '[webhook]',
+              {
+                details: mergeStripeFulfillmentIntoDetails((listing as { details?: unknown }).details, {
+                  event_id: event.id,
+                  checkout_session_id: session.id,
+                  payment_intent_id:
+                    typeof session.payment_intent === 'string'
+                      ? session.payment_intent
+                      : session.payment_intent?.id ?? null,
+                  amount: paidAmount,
+                  currency: paidCurrency,
+                  price_id: priceId || activation.priceId,
+                  fulfilled_at: new Date().toISOString(),
+                  result: 'activated',
+                }),
+              },
             );
             if (updateError) {
               console.error('[webhook] Eroare activare listing (priceId flow) — RECUPERARE MANUALĂ:', {
@@ -169,9 +200,8 @@ export async function POST(req: Request) {
             listingId,
             packageId,
             priceId,
-            metadata: session.metadata,
           });
-          return NextResponse.json({ received: true, skipped: 'listing_metadata_invalid' });
+          return NextResponse.json({ received: false, error: 'listing_metadata_invalid' }, { status: 422 });
         }
         const expectedServerAmount = toStripeAmountRon(pkg.priceRon);
         if (expectedServerAmount !== paidAmount || expectedFromMetadata !== paidAmount) {
@@ -183,33 +213,54 @@ export async function POST(req: Request) {
             expectedFromMetadata,
             paidAmount,
           });
-          return NextResponse.json({ received: true, skipped: 'listing_amount_mismatch' });
+          return NextResponse.json({ received: false, error: 'listing_amount_mismatch' }, { status: 422 });
         }
 
         const { data: listing, error: listingError } = await supabase
           .from('listings')
-          .select('id, status')
+          .select('id, status, details')
           .eq('id', listingId)
           .single();
         if (listingError || !listing) {
           console.error('[webhook] listing not found', { sessionId: session.id, listingId, reason: listingError?.message });
-          return NextResponse.json({ received: true, skipped: 'listing_not_found' });
+          return NextResponse.json({ received: false, error: 'object_not_found' }, { status: 500 });
         }
         if (listing.status === 'active') {
+          const already = classifyAlreadyActiveFulfillment(
+            storedCheckoutSessionId((listing as { details?: unknown }).details),
+            session.id,
+          );
+          if (already === 'conflicting_session') {
+            return NextResponse.json({ received: false, error: 'conflicting_session' }, { status: 409 });
+          }
           console.log('[webhook] listing deja activ - idempotent', { sessionId: session.id, listingId });
           return NextResponse.json({ received: true, idempotent: true, type: 'listing' });
         }
 
-        const { error } = await supabase
-          .from('listings')
-          .update({
-            status: 'active',
-            expires_at: getListingExpiryIso(pkg.id),
-          })
-          .eq('id', listingId)
-          .neq('status', 'active');
-        if (error) {
-          console.error('Eroare activare Listing:', error.message);
+        const legacyError = await activateRow(
+          supabase,
+          'listings',
+          listingId,
+          getListingExpiryIso(pkg.id),
+          '[webhook]',
+          {
+            details: mergeStripeFulfillmentIntoDetails((listing as { details?: unknown }).details, {
+              event_id: event.id,
+              checkout_session_id: session.id,
+              payment_intent_id:
+                typeof session.payment_intent === 'string'
+                  ? session.payment_intent
+                  : session.payment_intent?.id ?? null,
+              amount: paidAmount,
+              currency: paidCurrency,
+              price_id: priceId || null,
+              fulfilled_at: new Date().toISOString(),
+              result: 'activated',
+            }),
+          },
+        );
+        if (legacyError) {
+          console.error('Eroare activare Listing:', legacyError.message);
           return new NextResponse('Eroare activare listing', { status: 500 });
         }
         console.log('[webhook] listing activat', { sessionId: session.id, listingId, packageId, paidAmount });

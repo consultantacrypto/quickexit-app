@@ -6,11 +6,37 @@ import {
   extractCheckoutIds,
   resolveActivationPlan,
 } from "@/lib/stripeWebhookActivation";
+import {
+  CANONICAL_STRIPE_WEBHOOK_URL,
+  assertListingSaleIntentForFulfillment,
+  classifyAlreadyActiveFulfillment,
+  classifyPaidSessionAmount,
+  expectedMinorAmountForPriceId,
+  listingFulfillmentHttpStatus,
+  mergeStripeFulfillmentIntoDetails,
+  storedCheckoutSessionId,
+  type ListingFulfillmentFailureCode,
+  type StripeFulfillmentRecord,
+} from "@/lib/stripeListingFulfillment";
 
-// Webhook-ul are nevoie de runtime Node.js (crypto) pentru verificarea semnăturii
-// și de body-ul brut (necacheabil) pentru constructEvent.
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+function fail(
+  code: ListingFulfillmentFailureCode,
+  log: Record<string, unknown>,
+) {
+  const status = listingFulfillmentHttpStatus(code);
+  console.error("[stripe/webhook] fulfillment rejected", {
+    code,
+    httpStatus: status,
+    ...log,
+  });
+  if (status === 200) {
+    return NextResponse.json({ received: true, skipped: code });
+  }
+  return NextResponse.json({ received: false, error: code }, { status });
+}
 
 export async function POST(req: Request) {
   try {
@@ -33,7 +59,6 @@ export async function POST(req: Request) {
       apiVersion: "2023-10-16" as any,
     });
 
-    // Body brut + semnătura, obligatorii pentru validare.
     const rawBody = await req.text();
     const signature = req.headers.get("stripe-signature");
     if (!signature) {
@@ -50,134 +75,238 @@ export async function POST(req: Request) {
       return new NextResponse(`Eroare semnătură: ${message}`, { status: 400 });
     }
 
-    if (event.type === "checkout.session.completed") {
-      const session = event.data.object as Stripe.Checkout.Session;
-      const paymentStatus = String(session.payment_status ?? "").toLowerCase();
+    if (event.livemode === false) {
+      return fail("test_mode", { eventId: event.id, type: event.type });
+    }
 
-      if (paymentStatus !== "paid") {
-        console.error("[stripe/webhook] checkout.session.completed ignorat: plata nu e finalizată.", {
-          sessionId: session.id,
-          paymentStatus,
-          metadata: session.metadata,
-        });
-        return NextResponse.json({ received: true, skipped: "not_paid" });
-      }
+    if (event.type !== "checkout.session.completed") {
+      console.log("[stripe/webhook] event ignored", { eventId: event.id, type: event.type });
+      return NextResponse.json({ received: true, ignored: event.type });
+    }
 
-      const { type, listingId, demandId, userId, objectId, metadata } = extractCheckoutIds(session);
-      const table = type === "demand" ? "demands" : "listings";
+    const session = event.data.object as Stripe.Checkout.Session;
+    const paymentStatus = String(session.payment_status ?? "").toLowerCase();
+    const paymentIntentId =
+      typeof session.payment_intent === "string"
+        ? session.payment_intent
+        : session.payment_intent?.id ?? null;
 
-      if (!objectId) {
-        console.error("[stripe/webhook] listingId/demandId lipsește din metadata.", {
-          sessionId: session.id,
-          type,
-          listingId,
-          demandId,
-          metadata,
-          clientReferenceId: session.client_reference_id,
-        });
-        return NextResponse.json({ received: true, skipped: "missing_object_id" });
-      }
+    console.log("[stripe/webhook] checkout.session.completed", {
+      eventId: event.id,
+      sessionId: session.id,
+      listingId: session.metadata?.listingId ?? session.metadata?.listing_id ?? null,
+      type: session.metadata?.type ?? null,
+      canonicalEndpoint: CANONICAL_STRIPE_WEBHOOK_URL,
+    });
 
-      const activation = await resolveActivationPlan(stripe, session, type);
-      if (activation.source === "none") {
-        console.error("[stripe/webhook] Nu am putut rezolva pachetul (priceId/packageId).", {
-          sessionId: session.id,
-          type,
-          objectId,
-          metadata,
-          priceId: metadata.priceId ?? metadata.price_id ?? null,
-          packageId: metadata.packageId ?? metadata.package_id ?? null,
-        });
-        return NextResponse.json({ received: true, skipped: "unknown_price_id" });
-      }
+    if (paymentStatus !== "paid") {
+      return fail("not_paid", { eventId: event.id, sessionId: session.id, paymentStatus });
+    }
 
-      const supabase = createClient(supabaseUrl, serviceRoleKey, {
-        auth: { persistSession: false, autoRefreshToken: false },
+    const { type, listingId, demandId, userId, objectId, metadata } = extractCheckoutIds(session);
+    const table = type === "demand" ? "demands" : "listings";
+
+    if (!objectId) {
+      return fail("missing_listing_id", {
+        eventId: event.id,
+        sessionId: session.id,
+        type,
+        listingId,
+        demandId,
       });
+    }
 
-      const { data: existing, error: fetchError } = await supabase
-        .from(table)
+    const activation = await resolveActivationPlan(stripe, session, type);
+    if (activation.source === "none") {
+      return fail("unknown_price_id", {
+        eventId: event.id,
+        sessionId: session.id,
+        type,
+        objectId,
+        priceId: metadata.priceId ?? metadata.price_id ?? null,
+      });
+    }
+
+    if (type === "listing") {
+      const expectedAmount = expectedMinorAmountForPriceId(activation.priceId ?? "");
+      if (expectedAmount == null) {
+        return fail("unknown_price_id", {
+          eventId: event.id,
+          sessionId: session.id,
+          listingId: objectId,
+          priceId: activation.priceId,
+        });
+      }
+      const amountCheck = classifyPaidSessionAmount({
+        amountTotal: Number(session.amount_total ?? 0),
+        currency: String(session.currency ?? ""),
+        expectedAmount,
+      });
+      if (amountCheck !== "ok") {
+        return fail(amountCheck, {
+          eventId: event.id,
+          sessionId: session.id,
+          listingId: objectId,
+          amountTotal: session.amount_total ?? null,
+          currency: session.currency ?? null,
+          expectedAmount,
+        });
+      }
+    }
+
+    const supabase = createClient(supabaseUrl, serviceRoleKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+
+    type FulfillmentRow = {
+      id: string;
+      status?: string;
+      sale_strategy?: string | null;
+      details?: unknown;
+    };
+
+    let existing: FulfillmentRow | null = null;
+    let fetchError: { message?: string; code?: string } | null = null;
+    if (type === "listing") {
+      const result = await supabase
+        .from("listings")
+        .select("id, status, sale_strategy, details")
+        .eq("id", objectId)
+        .maybeSingle();
+      fetchError = result.error;
+      existing = (result.data as FulfillmentRow | null) ?? null;
+    } else {
+      const result = await supabase
+        .from("demands")
         .select("id, status")
         .eq("id", objectId)
         .maybeSingle();
+      fetchError = result.error;
+      existing = (result.data as FulfillmentRow | null) ?? null;
+    }
 
-      if (fetchError) {
-        console.error("[stripe/webhook] Eroare citire din Supabase:", {
-          sessionId: session.id,
-          table,
-          objectId,
-          message: fetchError.message,
-          code: fetchError.code,
-          details: fetchError.details,
-          hint: fetchError.hint,
-        });
-        return new NextResponse(`Eroare citire ${table}.`, { status: 500 });
-      }
-      if (!existing) {
-        console.error("[stripe/webhook] Obiect inexistent în Supabase.", {
-          sessionId: session.id,
-          table,
-          objectId,
-          listingId,
-          demandId,
-        });
-        return NextResponse.json({ received: true, skipped: "object_not_found" });
-      }
-      if ((existing as { status?: string }).status === "active") {
-        console.log("[stripe/webhook] Obiect deja activ (idempotent).", {
-          sessionId: session.id,
-          table,
-          objectId,
-        });
-        return NextResponse.json({ received: true, idempotent: true });
-      }
-
-      const updateError = await activateRow(
-        supabase,
+    if (fetchError) {
+      console.error("[stripe/webhook] Eroare citire din Supabase:", {
+        eventId: event.id,
+        sessionId: session.id,
         table,
         objectId,
-        activation.expiresAt,
-        "[stripe/webhook]"
-      );
-      if (updateError) {
-        console.error("[stripe/webhook] Eroare activare — RECUPERARE MANUALĂ:", {
-          sessionId: session.id,
-          type,
-          table,
-          objectId,
-          listingId,
-          demandId,
-          userId: userId || null,
-          activation,
-          supabase: updateError.supabase,
-          error: updateError.message,
-        });
-        return new NextResponse(`Eroare activare ${table}.`, { status: 500 });
-      }
+        message: fetchError.message,
+        code: fetchError.code,
+      });
+      return new NextResponse(`Eroare citire ${table}.`, { status: 500 });
+    }
+    if (!existing) {
+      return fail("object_not_found", {
+        eventId: event.id,
+        sessionId: session.id,
+        table,
+        objectId,
+        listingId,
+        demandId,
+      });
+    }
 
-      console.log("[stripe/webhook] Obiect activat după plată.", {
+    const row = existing;
+
+    if (type === "listing") {
+      const intent = assertListingSaleIntentForFulfillment(row);
+      if (!intent.ok) {
+        return fail("incompatible_sale_intent", {
+          eventId: event.id,
+          sessionId: session.id,
+          listingId: objectId,
+        });
+      }
+    }
+
+    if (row.status === "active") {
+      if (type === "listing") {
+        const already = classifyAlreadyActiveFulfillment(
+          storedCheckoutSessionId(row.details),
+          session.id,
+        );
+        if (already === "conflicting_session") {
+          return fail("conflicting_session", {
+            eventId: event.id,
+            sessionId: session.id,
+            listingId: objectId,
+          });
+        }
+      }
+      console.log("[stripe/webhook] Obiect deja activ (idempotent).", {
+        eventId: event.id,
+        sessionId: session.id,
+        table,
+        objectId,
+      });
+      return NextResponse.json({ received: true, idempotent: true });
+    }
+
+    const fulfillment: StripeFulfillmentRecord = {
+      event_id: event.id,
+      checkout_session_id: session.id,
+      payment_intent_id: paymentIntentId,
+      amount: Number(session.amount_total ?? 0),
+      currency: String(session.currency ?? "").toLowerCase(),
+      price_id: activation.priceId,
+      fulfilled_at: new Date().toISOString(),
+      result: "activated",
+    };
+
+    const extraPayload =
+      type === "listing"
+        ? { details: mergeStripeFulfillmentIntoDetails(row.details, fulfillment) }
+        : {};
+
+    const updateError = await activateRow(
+      supabase,
+      table,
+      objectId,
+      activation.expiresAt,
+      "[stripe/webhook]",
+      extraPayload,
+    );
+    if (updateError) {
+      const code: ListingFulfillmentFailureCode =
+        updateError.code === "zero_row_update" || updateError.code === "ambiguous_update"
+          ? updateError.code
+          : "activation_failed";
+      return fail(code, {
+        eventId: event.id,
         sessionId: session.id,
         type,
         table,
         objectId,
+        listingId,
+        demandId,
         userId: userId || null,
-        activation,
-      });
-      return NextResponse.json({
-        received: true,
-        activated: objectId,
-        type,
-        expiresAt: activation.expiresAt,
+        supabase: updateError.supabase,
+        error: updateError.message,
       });
     }
 
-    return NextResponse.json({ received: true });
+    console.log("[stripe/webhook] Obiect activat după plată.", {
+      eventId: event.id,
+      sessionId: session.id,
+      type,
+      table,
+      objectId,
+      userId: userId || null,
+      result: "activated",
+      expiresAt: activation.expiresAt,
+    });
+    return NextResponse.json({
+      received: true,
+      activated: objectId,
+      type,
+      expiresAt: activation.expiresAt,
+    });
   } catch (error: unknown) {
     const err = error instanceof Error ? error : new Error(String(error));
     console.error("[stripe/webhook] Eroare generală neprevăzută:", {
       message: err.message,
       name: err.name,
-      stack: err.stack,
     });
     return new NextResponse("Eroare internă.", { status: 500 });
   }

@@ -161,19 +161,28 @@ export async function activateRow(
   table: string,
   id: string,
   expiresAt: string | null,
-  logPrefix = "[stripe/webhook]"
-): Promise<{ message: string; supabase?: ReturnType<typeof formatSupabaseError> } | null> {
-  const payload: Record<string, unknown> = { status: "active", paid: true };
+  logPrefix = "[stripe/webhook]",
+  extraPayload: Record<string, unknown> = {},
+): Promise<{ message: string; code?: string; supabase?: ReturnType<typeof formatSupabaseError> } | null> {
+  const payload: Record<string, unknown> = { status: "active", paid: true, ...extraPayload };
   if (expiresAt) payload.expires_at = expiresAt;
 
   for (let attempt = 0; attempt < 3; attempt++) {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from(table)
       .update(payload)
       .eq("id", id)
-      .neq("status", "active");
+      .neq("status", "active")
+      .select("id");
 
-    if (!error) return null;
+    if (!error) {
+      const n = data?.length ?? 0;
+      if (n === 1) return null;
+      if (n === 0) {
+        return { message: "Update a afectat 0 rânduri.", code: "zero_row_update" };
+      }
+      return { message: "Update a afectat mai multe rânduri.", code: "ambiguous_update" };
+    }
 
     console.error(`${logPrefix} activateRow — update eșuat (încercare ${attempt + 1}/3):`, {
       table,
@@ -195,11 +204,11 @@ export async function activateRow(
       }
     }
     if (!removed) {
-      return { message: error.message ?? "Update Supabase eșuat.", supabase: formatSupabaseError(error) };
+      return { message: error.message ?? "Update Supabase eșuat.", code: "activation_failed", supabase: formatSupabaseError(error) };
     }
   }
 
-  return { message: "Update eșuat după mai multe încercări de fallback." };
+  return { message: "Update eșuat după mai multe încercări de fallback.", code: "activation_failed" };
 }
 
 function isMissingColumnError(
