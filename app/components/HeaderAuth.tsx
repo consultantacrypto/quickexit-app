@@ -73,11 +73,11 @@ export function HeaderAuthDesktop({ user, onOpenAuth, onLogout }: HeaderAuthDesk
 
   if (user) {
     return (
-      <div className="flex max-w-[min(100%,22rem)] flex-col gap-1.5 rounded-xl border-2 border-gray-100 bg-gray-50 px-4 py-2 shadow-[2px_2px_0_0_rgba(0,0,0,0.1)] sm:max-w-none sm:flex-row sm:items-center sm:gap-4">
+      <div className="flex max-w-[min(100%,22rem)] flex-col gap-1.5 rounded-lg border border-black/10 bg-white px-3 py-1.5 sm:max-w-none sm:flex-row sm:items-center sm:gap-4">
         <div className="flex min-w-0 flex-1 flex-col gap-0.5 sm:flex-row sm:items-center sm:gap-3">
           <Link
             href="/dashboard"
-            className="flex shrink-0 items-center gap-1 text-[11px] font-black uppercase tracking-widest text-black italic transition-colors hover:text-[#FFD100] xl:text-xs"
+            className="flex shrink-0 items-center gap-1 text-[13px] font-medium tracking-wide text-ink transition-colors hover:text-black xl:text-sm"
           >
             <span className="text-sm" aria-hidden>
               ⚡
@@ -97,7 +97,7 @@ export function HeaderAuthDesktop({ user, onOpenAuth, onLogout }: HeaderAuthDesk
         <button
           type="button"
           onClick={() => void onLogout()}
-          className="shrink-0 text-left text-[10px] font-black uppercase tracking-widest text-gray-500 italic transition-colors hover:text-red-600 sm:text-right"
+          className="shrink-0 text-left text-[12px] font-medium tracking-wide text-neutral-500 transition-colors hover:text-ink sm:text-right"
         >
           {t("signOut")}
         </button>
@@ -109,7 +109,7 @@ export function HeaderAuthDesktop({ user, onOpenAuth, onLogout }: HeaderAuthDesk
     <button
       type="button"
       onClick={onOpenAuth}
-      className="rounded-xl border-2 border-black bg-white px-3.5 py-2.5 text-[11px] font-black uppercase tracking-widest text-black shadow-[3px_3px_0_0_rgba(0,0,0,1)] transition hover:-translate-y-px hover:border-[#FFD100] xl:text-xs"
+      className="inline-flex min-h-11 items-center justify-center rounded-lg border border-black/15 bg-white px-4 py-2.5 text-[13px] font-medium tracking-wide text-ink transition hover:border-black/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#FFD100]"
     >
       {t("signIn")}
     </button>
@@ -133,11 +133,11 @@ export function HeaderAuthMobile({
 
   if (user) {
     return (
-      <div className="flex w-full flex-col items-center gap-3 rounded-[2rem] border-2 border-gray-100 bg-gray-50 p-5">
+      <div className="flex w-full flex-col items-center gap-3 rounded-xl border border-[#E7E3DA] bg-white p-5">
         <Link
           href="/dashboard"
           onClick={onCloseMenu}
-          className="flex items-center gap-2 text-xl font-black uppercase tracking-widest italic text-black"
+          className="flex items-center gap-2 text-base font-medium tracking-tight text-ink"
         >
           <span className="text-2xl" aria-hidden>
             ⚡
@@ -158,7 +158,7 @@ export function HeaderAuthMobile({
             void onLogout();
             onCloseMenu();
           }}
-          className="mt-1 text-sm font-black uppercase tracking-widest text-red-600 transition-colors hover:text-red-800 italic"
+          className="mt-1 text-sm font-medium tracking-wide text-neutral-500 transition-colors hover:text-ink"
         >
           {t("signOut")}
         </button>
@@ -173,7 +173,7 @@ export function HeaderAuthMobile({
         onCloseMenu();
         onOpenAuth();
       }}
-      className="w-full rounded-[2rem] border-4 border-black bg-white py-5 text-lg font-black uppercase tracking-widest italic shadow-[6px_6px_0_0_rgba(0,0,0,1)]"
+      className="w-full rounded-xl border border-[#E7E3DA] bg-white px-4 py-4 text-center text-base font-medium text-ink"
     >
       {t("signIn")}
     </button>

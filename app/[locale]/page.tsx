@@ -268,7 +268,7 @@ export default async function Home({ params }: HomePageProps) {
           </div>
 
           {standardListings.length > 0 ? (
-            <div className="grid grid-cols-2 gap-3 sm:gap-5 xl:grid-cols-3 xl:gap-8">
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-5 xl:grid-cols-3 xl:gap-8">
               {standardListings.map((item, index) => (
                 <AdCard
                   key={String(item.id)}
@@ -307,7 +307,7 @@ export default async function Home({ params }: HomePageProps) {
                 <span aria-hidden>→</span>
               </TrackedLink>
             </div>
-            <div className="grid grid-cols-2 gap-3 sm:gap-5 xl:grid-cols-3 xl:gap-8">
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-5 xl:grid-cols-3 xl:gap-8">
               {auctionsHome.map((item) => (
                 <AdCard
                   key={String(item.id)}
