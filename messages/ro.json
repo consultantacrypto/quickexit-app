@@ -30,6 +30,16 @@
     "magicLinkSent": "✓ Verifică-ți mail-ul! Ți-am trimis link-ul de intrare.",
     "web3Maintenance": "⚠ Sistemul WalletConnect este în mentenanță pentru Faza 2."
   },
+  "Dashboard": {
+    "paymentCancel": {
+      "message": "Plata nu a fost finalizată. Anunțul tău este salvat și poți continua plata oricând.",
+      "cta": "Finalizează plata",
+      "error": "Nu am putut porni plata. Încearcă din nou din cardul anunțului."
+    },
+    "finalizePayment": "Finalizează plata",
+    "finalizePaymentLoading": "Se deschide plata…",
+    "finalizePaymentError": "Nu am putut crea sesiunea de plată. Te rugăm să încerci din nou."
+  },
   "Hero": {
     "titleLine1": "Vinde acum.",
     "titleLine1Highlight": "acum",
@@ -308,12 +318,23 @@
     "successDescription": "Anunțul este publicat. Poți urmări ofertele din cont.",
     "goToDashboard": "Mergi la contul meu",
     "checkoutErrors": {
-      "authRequired": "Trebuie să fii autentificat pentru a publica. Deschide „Contul meu”, autentifică-te și revino la acest pas.",
+      "authRequired": "Autentifică-te pentru a publica. Am păstrat datele formularului — după autentificare revii aici și confirmi din nou publicarea.",
       "saveFailed": "Nu am putut salva anunțul. Te rugăm să încerci din nou.",
       "invalidPackage": "Pachet invalid pentru plată. Te rugăm să reîncerci.",
       "paymentFailed": "Nu am putut inițializa plata. Te rugăm să încerci din nou.",
       "uploadFailed": "Nu am putut încărca imaginile. Verifică fișierele și încearcă din nou.",
-      "genericFailed": "Nu am putut finaliza solicitarea sau pornirea plății. Te rugăm să încerci din nou."
+      "genericFailed": "Nu am putut finaliza solicitarea sau pornirea plății. Te rugăm să încerci din nou.",
+      "pendingReuse": "Ai deja un anunț salvat în așteptarea plății. Continuăm plata pentru acesta.",
+      "pendingInvalid": "Anunțul salvat pentru plată nu mai este disponibil. Confirmă din nou publicarea pentru a crea unul nou.",
+      "incompatibleSaleIntent": "Metoda de vânzare și pachetul nu coincid. Alege din nou metoda de vânzare înainte de plată."
+    },
+    "draft": {
+      "restoredBanner": "Am restaurat ciorna ta de publicare. Pozele trebuie reîncărcate.",
+      "restoredBannerWithPending": "Am restaurat ciorna ta. Ai un anunț salvat în așteptarea plății — la publicare continuăm plata pentru acesta (fără anunț nou).",
+      "pendingPaymentHint": "Ai deja un anunț salvat în așteptarea plății. Continuăm plata pentru acesta.",
+      "discard": "Abandonează ciorna",
+      "discardConfirm": "Ștergi ciorna salvată și resetezi formularul?",
+      "discardConfirmWithPending": "Ștergi ciorna locală? Anunțul salvat în așteptarea plății rămâne disponibil în contul tău (dashboard), unde poți finaliza plata."
     },
     "pricingMode": {
       "question": "Cum dorești să prezinți prețul?",
@@ -348,6 +369,38 @@
           "description": "Prețul nu este afișat public. Persoanele interesate solicită oferta completă."
         }
       }
+    },
+    "saleMethod": {
+      "heading": "Metoda de vânzare",
+      "question": "Cum vrei să primești oferte?",
+      "direct": {
+        "title": "Vânzare directă",
+        "helper": "Publici activul la un preț afișat sau la cerere și discuți direct cu cumpărătorii."
+      },
+      "auction": {
+        "title": "Licitație deschisă",
+        "helper": "Primești oferte într-o perioadă clară și alegi manual dacă accepți una dintre ele.",
+        "confirmation": "Ai ales Licitație deschisă.",
+        "fixedPriceTitle": "Preț de pornire / referință",
+        "fixedPriceDescription": "Acesta este un preț de referință pentru fereastra de oferte, nu o vânzare directă la preț fix.",
+        "fixedPriceInputLabel": "Preț de pornire / referință (EUR)",
+        "fixedPriceNote": "Cumpărătorii pot oferi în jurul acestei sume. Cea mai mare ofertă nu câștigă automat."
+      }
+    },
+    "review": {
+      "heading": "Verifică înainte de plată",
+      "category": "Categorie",
+      "saleMethod": "Metoda de vânzare",
+      "pricePresentation": "Prezentarea prețului",
+      "package": "Pachet",
+      "duration": "Durată",
+      "amount": "Sumă de plată"
+    },
+    "step4": {
+      "titleDirect": "Alege durata anunțului",
+      "bodyDirect": "Pachetul stabilește cât timp rămâne promovat anunțul. Nu schimbă metoda de vânzare.",
+      "titleAuction": "Pachet licitație deschisă",
+      "bodyAuction": "Licitația deschisă include o fereastră de oferte de 30 de zile. Tu alegi manual dacă accepți o ofertă."
     }
   },
   "ListingDetail": {

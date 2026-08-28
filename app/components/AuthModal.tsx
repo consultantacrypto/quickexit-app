@@ -8,13 +8,16 @@ import { getAuthCallbackUrl } from "@/lib/siteUrl";
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
+  /** Path fără locale (ex. `/pune-anunt`). Default: `/dashboard`. */
+  nextPath?: string;
 }
 
-export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
+export default function AuthModal({ isOpen, onClose, nextPath = "/dashboard" }: AuthModalProps) {
   const locale = useLocale();
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState<{ text: string; type: "error" | "success" | "" }>({ text: "", type: "" });
+  const safeNextPath = nextPath.startsWith("/") ? nextPath : "/dashboard";
 
   // Reținem emailul ca să nu mai fie nevoie de reintroducere (Anti-Amnezie)
   useEffect(() => {
@@ -36,7 +39,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
     localStorage.setItem("quickexit_email", email);
 
-    const emailRedirectTo = getAuthCallbackUrl("/dashboard", locale);
+    const emailRedirectTo = getAuthCallbackUrl(safeNextPath, locale);
 
     const { error } = await supabase.auth.signInWithOtp({
       email,
@@ -54,7 +57,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   };
 
   const handleGoogleLogin = async () => {
-    const redirectTo = getAuthCallbackUrl("/dashboard", locale);
+    const redirectTo = getAuthCallbackUrl(safeNextPath, locale);
 
     await supabase.auth.signInWithOAuth({
       provider: "google",

@@ -30,6 +30,16 @@
     "magicLinkSent": "✓ Check your inbox! We've sent you a sign-in link.",
     "web3Maintenance": "⚠ WalletConnect is under maintenance for Phase 2."
   },
+  "Dashboard": {
+    "paymentCancel": {
+      "message": "Payment was not completed. Your listing is saved and you can continue payment anytime.",
+      "cta": "Complete payment",
+      "error": "We couldn't start checkout. Try again from the listing card."
+    },
+    "finalizePayment": "Complete payment",
+    "finalizePaymentLoading": "Opening checkout…",
+    "finalizePaymentError": "We couldn't create the payment session. Please try again."
+  },
   "Hero": {
     "titleLine1": "Sell now.",
     "titleLine1Highlight": "now",
@@ -308,12 +318,23 @@
     "successDescription": "Your listing is live. Track offers from your account.",
     "goToDashboard": "Go to my account",
     "checkoutErrors": {
-      "authRequired": "You must be signed in to publish. Open My Account, sign in, and return to this step.",
+      "authRequired": "Sign in to publish. We kept your form data — after signing in you return here and confirm publish again.",
       "saveFailed": "We couldn't save your listing. Please try again.",
       "invalidPackage": "Invalid package for checkout. Please try again.",
       "paymentFailed": "We couldn't initialize payment. Please try again.",
       "uploadFailed": "We couldn't upload your images. Check your files and try again.",
-      "genericFailed": "We couldn't complete your request or start checkout. Please try again."
+      "genericFailed": "We couldn't complete your request or start checkout. Please try again.",
+      "pendingReuse": "You already have a listing saved awaiting payment. We'll continue checkout for that one.",
+      "pendingInvalid": "The saved listing awaiting payment is no longer available. Confirm publish again to create a new one.",
+      "incompatibleSaleIntent": "Sale method and package do not match. Choose the sale method again before paying."
+    },
+    "draft": {
+      "restoredBanner": "We restored your listing draft. Photos must be uploaded again.",
+      "restoredBannerWithPending": "We restored your draft. You have a listing awaiting payment — publishing will resume checkout for it (no new listing).",
+      "pendingPaymentHint": "You already have a listing saved awaiting payment. We'll continue checkout for that one.",
+      "discard": "Discard draft",
+      "discardConfirm": "Delete the saved draft and reset the form?",
+      "discardConfirmWithPending": "Discard the local draft? Your listing awaiting payment stays available in your account (dashboard), where you can finish payment."
     },
     "pricingMode": {
       "question": "How do you want to present the price?",
@@ -348,6 +369,38 @@
           "description": "The price is not publicly displayed. Interested users request the full offer."
         }
       }
+    },
+    "saleMethod": {
+      "heading": "Sale method",
+      "question": "How should buyers make an offer?",
+      "direct": {
+        "title": "Direct sale",
+        "helper": "You publish the asset at a displayed price or on request and talk directly with buyers."
+      },
+      "auction": {
+        "title": "Open auction",
+        "helper": "You receive offers during a clear window and choose manually whether to accept one of them.",
+        "confirmation": "You chose Open auction.",
+        "fixedPriceTitle": "Starting / reference price",
+        "fixedPriceDescription": "This is a reference price for the auction window, not a normal fixed-price sale.",
+        "fixedPriceInputLabel": "Starting / reference price (EUR)",
+        "fixedPriceNote": "Buyers can offer around this amount. The highest offer does not win automatically."
+      }
+    },
+    "review": {
+      "heading": "Review before payment",
+      "category": "Category",
+      "saleMethod": "Sale method",
+      "pricePresentation": "Price presentation",
+      "package": "Package",
+      "duration": "Duration",
+      "amount": "Amount charged"
+    },
+    "step4": {
+      "titleDirect": "Choose listing duration",
+      "bodyDirect": "The package sets how long the listing stays promoted. This does not change the sale method.",
+      "titleAuction": "Open auction package",
+      "bodyAuction": "Open auction includes a 30-day offer window. You choose manually whether to accept an offer."
     }
   },
   "ListingDetail": {

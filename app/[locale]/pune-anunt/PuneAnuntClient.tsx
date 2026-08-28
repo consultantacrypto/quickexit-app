@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -30,21 +31,40 @@ import {
   toEvaluationTrackingEventParams,
   type EvaluationTrackingContext,
 } from "@/lib/evaluationTracking";
+import {
+  buildListingDraft,
+  clearListingDraft,
+  clearPendingListingIdOnDraft,
+  consumeListingAuthResumePending,
+  DEFAULT_LISTING_FORM_DATA,
+  flushListingDraftSave,
+  listingDraftAnalyticsParams,
+  markListingAuthResumePending,
+  persistPendingListingIdOnDraft,
+  resolveListingDraftForRestore,
+  saveListingAuthHandoff,
+  saveListingDraftDebounced,
+  type ListingDraftFormData,
+  type ListingDraftPackageId,
+  type ListingDraftV1,
+} from "@/lib/listingDraft";
 import { type PricingMode } from "@/lib/pricingMode";
+import {
+  coerceCompatibleSaleIntent,
+  mergeSaleFieldsIntoDetails,
+  parseListingSalePackageId,
+  type SaleMethod,
+} from "@/lib/listingSaleStrategy";
 
-type PackageIdParam = "economy" | "standard" | "urgent" | "auction";
+const AuthModal = dynamic(() => import("@/app/components/AuthModal"), {
+  ssr: false,
+  loading: () => null,
+});
 
-const VALID_PACKAGES: readonly PackageIdParam[] = [
-  "economy",
-  "standard",
-  "urgent",
-  "auction",
-];
+type PackageIdParam = ListingDraftPackageId;
 
 function normalizeInitialPackage(value: string | undefined): PackageIdParam {
-  return value && (VALID_PACKAGES as readonly string[]).includes(value)
-    ? (value as PackageIdParam)
-    : "standard";
+  return parseListingSalePackageId(value) ?? "standard";
 }
 
 const MAX_EVALUATION_EXIT_PRICE_EUR = 100_000_000;
@@ -66,6 +86,7 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
   const tPost = useTranslations("PostListing");
   const searchParams = useSearchParams();
   const initialPkg = normalizeInitialPackage(initialPackage);
+  const initialIntent = coerceCompatibleSaleIntent({ packageId: initialPkg });
   const prefillTrackedRef = useRef(false);
   const priceLockedFromEvaluationRef = useRef(false);
   const evaluationHandoffRef = useRef(false);
@@ -93,56 +114,222 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
   const [evaluationHandoffActive, setEvaluationHandoffActive] = useState(false);
   // Preț de piață introdus manual pentru active premium/rare (confidence < 50%).
   const [manualMarketPrice, setManualMarketPrice] = useState("");
-  const [saleStrategy, setSaleStrategy] = useState<string>(
-    initialPkg === "auction"
-        ? "licitatie"
-        : "standard"
-  );
-  const [selectedPackage, setSelectedPackage] = useState<PackageIdParam>(initialPkg);
+  const [saleStrategy, setSaleStrategy] = useState<string>(initialIntent.detailsStrategy);
+  const [selectedPackage, setSelectedPackage] = useState<PackageIdParam>(initialIntent.packageId);
+  const [saleMethod, setSaleMethod] = useState<SaleMethod>(initialIntent.saleMethod);
 
   const [isSaving, setIsSaving] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [hasTrackedStart, setHasTrackedStart] = useState(false);
   const [flowError, setFlowError] = useState<string | null>(null);
   const [listingTurnstileToken, setListingTurnstileToken] = useState<string | null>(null);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [draftReady, setDraftReady] = useState(false);
+  const [draftRestored, setDraftRestored] = useState(false);
+  const [pendingListingId, setPendingListingId] = useState<string | undefined>();
+  const [pendingListingCreatedAt, setPendingListingCreatedAt] = useState<
+    number | undefined
+  >();
+  const listingDraftRestoredRef = useRef(false);
+  const lastAutosaveTrackedStepRef = useRef<number | null>(null);
 
   // STATE NOU: Capturăm datele scrise de utilizator pentru API
-  const [formData, setFormData] = useState({
-    make: "",
-    model: "",
-    year: "",
-    km: "",
-    fuel: "Benzină",
-    engine: "",
-    transmission: "Automată",
-    bodyType: "Sedan",
-    status: "Înmatriculat RO",
-    tva: "Nu (Vânzător PF)",
-    propType: "Apartament",
-    surface: "",
-    rooms: "",
-    buildYear: "",
-    floor: "",
-    parking: "Inclus în preț",
-    landSurface: "",
-    location: "",
-    brand: "",
-    refModel: "",
-    purchaseYear: "",
-    mechanism: "Automat",
-    material: "",
-    boxPapers: "Full Set (Cutie + Acte)",
-    businessDomain: "",
-    businessAge: "",
-    revenue: "",
-    profit: "",
-    employees: "",
-    includes: "",
-    specs: "",
-    warranty: "",
+  const [formData, setFormData] = useState<ListingDraftFormData>({
+    ...DEFAULT_LISTING_FORM_DATA,
   });
 
+  const snapshotListingDraft = (): ListingDraftV1 =>
+    buildListingDraft({
+      step,
+      category,
+      adTitle,
+      description,
+      exitPrice,
+      pricingMode,
+      isExitPriceManuallyEdited,
+      manualMarketPrice,
+      marketPrice,
+      analyzedItems,
+      saleStrategy,
+      selectedPackage,
+      saleMethod,
+      formData,
+      evaluationConfidenceScore:
+        typeof evaluationResult?.confidence_score === "number"
+          ? evaluationResult.confidence_score
+          : undefined,
+      evaluationPrefillActive,
+      evaluationHandoffActive,
+      pendingListingId,
+      pendingListingCreatedAt,
+    });
+
+  const trackDraftEvent = (
+    eventName:
+      | "listing_draft_saved"
+      | "listing_draft_restored"
+      | "listing_auth_opened"
+      | "listing_auth_resumed"
+      | "listing_draft_cleared",
+    draft: Pick<ListingDraftV1, "step" | "category" | "selectedPackage" | "version">,
+    reason: string,
+    source?: string,
+  ) => {
+    trackEvent(eventName, listingDraftAnalyticsParams(draft, reason, source));
+  };
+
+  const applyListingDraftToState = (draft: ListingDraftV1) => {
+    listingDraftRestoredRef.current = true;
+    setStep(draft.step);
+    setCategory(draft.category);
+    setAdTitle(draft.adTitle);
+    setDescription(draft.description);
+    setExitPrice(draft.exitPrice);
+    setPricingMode(draft.pricingMode);
+    setIsExitPriceManuallyEdited(draft.isExitPriceManuallyEdited);
+    setManualMarketPrice(draft.manualMarketPrice);
+    setMarketPrice(draft.marketPrice);
+    setAnalyzedItems(draft.analyzedItems);
+    const restoredSale = coerceCompatibleSaleIntent({
+      saleMethod: draft.saleMethod,
+      packageId: parseListingSalePackageId(draft.selectedPackage) ?? "standard",
+      pricingMode: draft.pricingMode,
+    });
+    setSaleStrategy(restoredSale.detailsStrategy);
+    setSelectedPackage(restoredSale.packageId);
+    setSaleMethod(restoredSale.saleMethod);
+    setFormData(draft.formData);
+    if (typeof draft.evaluationConfidenceScore === "number") {
+      setEvaluationResult({ confidence_score: draft.evaluationConfidenceScore });
+    }
+    setEvaluationPrefillActive(draft.evaluationPrefillActive);
+    setEvaluationHandoffActive(draft.evaluationHandoffActive);
+    evaluationHandoffRef.current = draft.evaluationHandoffActive;
+    setPendingListingId(draft.pendingListingId);
+    setPendingListingCreatedAt(draft.pendingListingCreatedAt);
+    setDraftRestored(true);
+  };
+
+  // Restore draft after mount (client-only) — avoids hydration mismatch.
   useEffect(() => {
+    const restored = resolveListingDraftForRestore();
+    if (restored) {
+      applyListingDraftToState(restored.draft);
+      trackDraftEvent(
+        "listing_draft_restored",
+        restored.draft,
+        restored.source === "auth_handoff" ? "auth_handoff" : "session_restore",
+        restored.source,
+      );
+
+      const sameTabResume = consumeListingAuthResumePending();
+      void (async () => {
+        let shouldEmitAuthResumed = sameTabResume;
+        if (!shouldEmitAuthResumed && restored.handoffReason === "auth_required") {
+          const {
+            data: { user },
+          } = await supabase.auth.getUser();
+          shouldEmitAuthResumed = Boolean(user);
+        }
+        if (shouldEmitAuthResumed) {
+          trackDraftEvent(
+            "listing_auth_resumed",
+            restored.draft,
+            restored.source === "auth_handoff" ? "auth_handoff" : "auth_callback",
+            restored.source,
+          );
+        }
+      })();
+    }
+    setDraftReady(true);
+    const urlPkg = parseListingSalePackageId(searchParams.get("package"));
+    if (urlPkg) {
+      const fields = coerceCompatibleSaleIntent({ packageId: urlPkg });
+      setSelectedPackage(fields.packageId);
+      setSaleStrategy(fields.detailsStrategy);
+      setSaleMethod(fields.saleMethod);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only restore
+  }, []);
+
+  // Autosave textual draft (never Files / previews).
+  useEffect(() => {
+    if (!draftReady || isSuccess) return;
+    const draft = snapshotListingDraft();
+    saveListingDraftDebounced(draft, undefined, (ok) => {
+      if (!ok) return;
+      if (lastAutosaveTrackedStepRef.current === draft.step) return;
+      lastAutosaveTrackedStepRef.current = draft.step;
+      trackDraftEvent("listing_draft_saved", draft, "autosave");
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional field deps
+  }, [
+    draftReady,
+    isSuccess,
+    step,
+    category,
+    adTitle,
+    description,
+    exitPrice,
+    pricingMode,
+    isExitPriceManuallyEdited,
+    manualMarketPrice,
+    marketPrice,
+    analyzedItems,
+    saleStrategy,
+    selectedPackage,
+    saleMethod,
+    formData,
+    evaluationResult,
+    evaluationPrefillActive,
+    evaluationHandoffActive,
+    pendingListingId,
+    pendingListingCreatedAt,
+  ]);
+
+  const discardListingDraft = () => {
+    if (typeof window !== "undefined") {
+      const confirmMsg = pendingListingId
+        ? tPost("draft.discardConfirmWithPending")
+        : tPost("draft.discardConfirm");
+      const ok = window.confirm(confirmMsg);
+      if (!ok) return;
+    }
+    const draft = snapshotListingDraft();
+    clearListingDraft();
+    trackDraftEvent("listing_draft_cleared", draft, "user_discard");
+    setStep(1);
+    setCategory("Auto & Moto");
+    setImages([]);
+    setAdTitle("");
+    setDescription("");
+    setEvaluationResult(null);
+    setMarketPrice(0);
+    setAnalyzedItems(0);
+    setExitPrice("");
+    setPricingMode(null);
+    setIsExitPriceManuallyEdited(false);
+    setEvaluationPrefillActive(false);
+    setEvaluationPrefillMessage(null);
+    setEvaluationHandoffActive(false);
+    evaluationHandoffRef.current = false;
+    setManualMarketPrice("");
+    const resetSale = coerceCompatibleSaleIntent({ packageId: initialPkg });
+    setSaleStrategy(resetSale.detailsStrategy);
+    setSelectedPackage(resetSale.packageId);
+    setSaleMethod(resetSale.saleMethod);
+    setFormData({ ...DEFAULT_LISTING_FORM_DATA });
+    setPendingListingId(undefined);
+    setPendingListingCreatedAt(undefined);
+    setFlowError(null);
+    setDraftRestored(false);
+    listingDraftRestoredRef.current = false;
+  };
+
+  useEffect(() => {
+    if (!draftReady) return;
+    if (listingDraftRestoredRef.current) return;
+
     const source = searchParams.get("source")?.trim().toLowerCase();
     if (source !== "evaluation") return;
     setPricingMode("evaluated");
@@ -281,7 +468,7 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
         prefill_level: prefillLevel,
       });
     }
-  }, [searchParams]);
+  }, [searchParams, draftReady]);
 
   const trackListingStepCompleted = (completedStep: number) => {
     trackEvent(
@@ -354,16 +541,30 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
     },
   ];
 
-  const PACKAGE_TO_STRATEGY: Record<PackageId, "standard" | "lichidare" | "licitatie"> = {
-    economy: "standard",
-    standard: "standard",
-    urgent: "standard",
-    auction: "licitatie",
-  };
+  function applyCanonicalSaleState(state: ReturnType<typeof coerceCompatibleSaleIntent>) {
+    setSaleMethod(state.saleMethod);
+    setSelectedPackage(state.packageId);
+    setSaleStrategy(state.detailsStrategy);
+  }
+
+  function selectSaleMethod(next: SaleMethod) {
+    applyCanonicalSaleState(
+      coerceCompatibleSaleIntent({
+        saleMethod: next,
+        packageId: selectedPackage,
+        pricingMode,
+      }),
+    );
+  }
 
   function selectPackage(pkg: PackageId) {
-    setSelectedPackage(pkg);
-    setSaleStrategy(PACKAGE_TO_STRATEGY[pkg]);
+    applyCanonicalSaleState(
+      coerceCompatibleSaleIntent({
+        saleMethod: pkg === "auction" ? "auction" : "direct",
+        packageId: pkg,
+        pricingMode,
+      }),
+    );
   }
 
   function switchPricingMode(nextMode: PricingMode) {
@@ -687,14 +888,24 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
             : Boolean(exitPrice);
 
   // Trimite utilizatorul către Stripe Checkout pentru un anunț deja creat.
-  const handleCheckout = async (priceId: string, listingId: string, userId?: string) => {
+  const handleCheckout = async (priceId: string, listingId: string) => {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    if (!session?.access_token) {
+      throw new Error("auth_required");
+    }
+
     const res = await fetch("/api/stripe/checkout", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session.access_token}`,
+      },
       body: JSON.stringify({
         priceId,
         listingId,
-        userId: userId ?? "",
+        type: "listing",
       }),
     });
 
@@ -716,7 +927,7 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
       }),
     );
 
-    // Redirecționare către pagina securizată Stripe.
+    // Keep draft until payment=success on dashboard (Stripe cancel / close must recover).
     window.location.href = data.url;
   };
 
@@ -724,6 +935,19 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
     setFlowError(null);
     if (pricingMode === null) {
       setFlowError(tPost("pricingMode.validation.selectOptionToContinue"));
+      return;
+    }
+    const saleIntent = coerceCompatibleSaleIntent({
+      saleMethod,
+      packageId: selectedPackage,
+      pricingMode,
+    });
+    if (
+      saleIntent.saleMethod !== saleMethod ||
+      saleIntent.packageId !== selectedPackage
+    ) {
+      applyCanonicalSaleState(saleIntent);
+      setFlowError(tPost("checkoutErrors.incompatibleSaleIntent"));
       return;
     }
     trackEvent(
@@ -765,9 +989,108 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
             reason: "auth_required",
           }),
         );
-        setFlowError(
-          "Trebuie să fii autentificat pentru a publica. Deschide „Contul meu”, autentifică-te și revino la acest pas.",
-        );
+        const draft = snapshotListingDraft();
+        const saved = flushListingDraftSave(draft);
+        if (saved) {
+          trackDraftEvent("listing_draft_saved", draft, "auth_gate");
+        }
+        // Cross-tab magic link: localStorage handoff (best-effort; session remains same-tab fallback).
+        saveListingAuthHandoff(draft, "auth_required");
+        markListingAuthResumePending();
+        trackDraftEvent("listing_auth_opened", draft, "auth_required");
+        setFlowError(tPost("checkoutErrors.authRequired"));
+        setShowAuthModal(true);
+        setIsSaving(false);
+        return;
+      }
+
+      const priceId = getPriceIdForPackageId(saleIntent.packageId);
+      if (!priceId) {
+        setFlowError(tPost("checkoutErrors.invalidPackage"));
+        setIsSaving(false);
+        return;
+      }
+
+      // --- PF1.2: reuse existing pending_payment listing when draft has pendingListingId ---
+      if (pendingListingId) {
+        const { data: existingListing, error: existingError } = await supabase
+          .from("listings")
+          .select("id, user_id, status, is_seed, sale_strategy, category, details")
+          .eq("id", pendingListingId)
+          .maybeSingle();
+
+        if (
+          !existingError &&
+          existingListing &&
+          existingListing.user_id === user.id &&
+          existingListing.is_seed !== true &&
+          existingListing.status === "pending_payment"
+        ) {
+          const saleFields = saleIntent;
+          const nextDetails = mergeSaleFieldsIntoDetails(
+            existingListing.details,
+            saleIntent.packageId,
+            saleIntent.saleMethod,
+          );
+          if (pricingMode) nextDetails.pricing_mode = pricingMode;
+          const { error: syncPackageError } = await supabase
+            .from("listings")
+            .update({
+              sale_strategy: saleFields.sale_strategy,
+              details: nextDetails,
+            })
+            .eq("id", existingListing.id)
+            .eq("user_id", user.id)
+            .eq("status", "pending_payment");
+
+          if (syncPackageError) {
+            setFlowError(tPost("checkoutErrors.saveFailed"));
+            setIsSaving(false);
+            return;
+          }
+
+          setFlowError(tPost("checkoutErrors.pendingReuse"));
+          trackEvent("listing_pending_reused", {
+            source: "publish_form",
+            category: categoryLabelToTrackingKey(category),
+            package: selectedPackage,
+            reason: "pending_payment",
+          });
+          trackEvent(
+            "checkout_listing_started",
+            toEvaluationTrackingEventParams(evaluationTrackingRef.current, {
+              category: categoryLabelToTrackingKey(category),
+              package_id: selectedPackage,
+              pricing_mode: pricingMode,
+              sale_strategy: saleStrategy,
+              amount: packagePrices[selectedPackage],
+              checkout_type: "listing",
+            }),
+          );
+          await handleCheckout(priceId, existingListing.id);
+          return;
+        }
+
+        if (
+          !existingError &&
+          existingListing &&
+          existingListing.user_id === user.id &&
+          existingListing.status === "active"
+        ) {
+          clearListingDraft();
+          setPendingListingId(undefined);
+          setPendingListingCreatedAt(undefined);
+          setIsSaving(false);
+          window.location.href = `/dashboard`;
+          return;
+        }
+
+        // Invalid / missing / foreign / incompatible — drop pointer only, ask for a fresh submit.
+        const cleared = clearPendingListingIdOnDraft(snapshotListingDraft());
+        setPendingListingId(undefined);
+        setPendingListingCreatedAt(undefined);
+        flushListingDraftSave(cleared);
+        setFlowError(tPost("checkoutErrors.pendingInvalid"));
         setIsSaving(false);
         return;
       }
@@ -818,6 +1141,7 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
           : null;
 
       // 1. Salvăm anunțul ca "PENDING_PAYMENT" și îl returnăm din baza de date
+      const saleFields = saleIntent;
       const { data: insertedData, error } = await supabase
         .from("listings")
         .insert({
@@ -827,7 +1151,7 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
           description: description || "Anunț detaliat.",
           market_price: finalMarketPrice,
           exit_price: finalExitPrice,
-          sale_strategy: selectedPackage,
+          sale_strategy: saleFields.sale_strategy,
           status: "pending_payment", // Anunțul este reținut până se confirmă plata
           is_seed: false,
           deal_score: dealScore,
@@ -835,8 +1159,9 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
           images: uploadedImageUrls,
           details: {
             ...formData,
-            package: selectedPackage,
-            strategy: saleStrategy,
+            package: saleFields.detailsPackage,
+            strategy: saleFields.detailsStrategy,
+            sale_method: saleFields.detailsSaleMethod,
             pricing_mode: pricingMode,
             ...buildListingAcquisitionDetails(evaluationTrackingRef.current),
           },
@@ -856,20 +1181,34 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
             reason: "save_error",
           }),
         );
-        setFlowError("Nu am putut salva anunțul. Te rugăm să încerci din nou.");
+        setFlowError(tPost("checkoutErrors.saveFailed"));
         setIsSaving(false);
         return;
       }
 
-      // 2. Rezolvăm Price ID-ul Stripe pentru pachetul ales (sursa adevărului: lib/stripePackages).
-      const priceId = getPriceIdForPackageId(selectedPackage);
-      if (!priceId) {
-        setFlowError("Pachet invalid pentru plată. Te rugăm să reîncerci.");
-        setIsSaving(false);
-        return;
+      // Persist pendingListingId BEFORE Stripe session — so cancel/retry reuses this row.
+      const createdAt = Date.now();
+      const withPending = persistPendingListingIdOnDraft(
+        snapshotListingDraft(),
+        insertedData.id,
+        createdAt,
+      );
+      if (withPending) {
+        setPendingListingId(withPending.pendingListingId);
+        setPendingListingCreatedAt(withPending.pendingListingCreatedAt);
+      } else {
+        setPendingListingId(insertedData.id);
+        setPendingListingCreatedAt(createdAt);
+        flushListingDraftSave(
+          buildListingDraft({
+            ...snapshotListingDraft(),
+            pendingListingId: insertedData.id,
+            pendingListingCreatedAt: createdAt,
+          }),
+        );
       }
 
-      // 3. Apelăm motorul de plăți Stripe (ruta nouă /api/stripe/checkout)
+      // 2. Apelăm motorul de plăți Stripe (ruta /api/stripe/checkout)
       trackEvent(
         "checkout_listing_started",
         toEvaluationTrackingEventParams(evaluationTrackingRef.current, {
@@ -883,7 +1222,8 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
       );
 
       // handleCheckout redirecționează către Stripe; aruncă dacă răspunsul e invalid.
-      await handleCheckout(priceId, insertedData.id, user.id);
+      // pendingListingId remains on checkout failure so retry skips INSERT.
+      await handleCheckout(priceId, insertedData.id);
     } catch (error: any) {
       console.error("Eroare salvare anunț / plată:", error);
       trackEvent(
@@ -896,13 +1236,17 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
           reason:
             typeof error?.message === "string" && error.message === "upload_failed"
               ? "upload_failed"
-              : "checkout_error",
+              : typeof error?.message === "string" && error.message === "auth_required"
+                ? "auth_required"
+                : "checkout_error",
         }),
       );
       const msg =
         typeof error?.message === "string" && error.message === "upload_failed"
-          ? "Nu am putut încărca imaginile. Verifică fișierele și încearcă din nou."
-          : "Nu am putut finaliza solicitarea sau pornirea plății. Te rugăm să încerci din nou.";
+          ? tPost("checkoutErrors.uploadFailed")
+          : typeof error?.message === "string" && error.message === "auth_required"
+            ? tPost("checkoutErrors.authRequired")
+            : tPost("checkoutErrors.genericFailed");
       setFlowError(msg);
       setIsSaving(false);
     }
@@ -960,6 +1304,35 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
         </div>
 
         <div className="relative overflow-hidden rounded-[2rem] border-[3px] border-black bg-white p-8 shadow-[12px_12px_0_0_rgba(0,0,0,0.12)] md:p-14 md:shadow-[14px_14px_0_0_#FFD100]">
+          {draftRestored && (
+            <div
+              role="status"
+              className="relative z-10 mb-6 flex flex-col gap-3 rounded-xl border-2 border-black bg-[#FDFCF8] px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+            >
+              <p className="text-sm font-medium leading-relaxed text-neutral-800">
+                {pendingListingId
+                  ? tPost("draft.restoredBannerWithPending")
+                  : tPost("draft.restoredBanner")}
+              </p>
+              <button
+                type="button"
+                onClick={discardListingDraft}
+                className="shrink-0 border-b-2 border-transparent text-[11px] font-black uppercase tracking-widest text-neutral-600 transition hover:border-black hover:text-black"
+              >
+                {tPost("draft.discard")}
+              </button>
+            </div>
+          )}
+          {!draftRestored && pendingListingId ? (
+            <div
+              role="status"
+              className="relative z-10 mb-6 rounded-xl border-2 border-black bg-[#FDFCF8] px-4 py-3"
+            >
+              <p className="text-sm font-medium leading-relaxed text-neutral-800">
+                {tPost("draft.pendingPaymentHint")}
+              </p>
+            </div>
+          ) : null}
           {evaluationPrefillActive && evaluationPrefillMessage && (
             <div
               role="status"
@@ -1797,6 +2170,41 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
 
                   <div className="rounded-2xl border-[3px] border-black bg-[#F7F4EC]/80 p-5 md:p-6">
                     <p className="text-[10px] font-black uppercase tracking-widest text-neutral-500">
+                      {tPost("saleMethod.heading")}
+                    </p>
+                    <p className="mt-1 text-sm font-semibold text-neutral-700">
+                      {tPost("saleMethod.question")}
+                    </p>
+                    <div className="mt-4 grid gap-3 md:grid-cols-2">
+                      {(["direct", "auction"] as const).map((method) => (
+                        <button
+                          key={method}
+                          type="button"
+                          onClick={() => selectSaleMethod(method)}
+                          className={`rounded-xl border-[3px] p-4 text-left transition ${
+                            saleMethod === method
+                              ? "border-black bg-[#FFD100] shadow-[4px_4px_0_0_#000]"
+                              : "border-black bg-white hover:bg-[#FFF9E8]"
+                          }`}
+                        >
+                          <p className="text-xs font-black uppercase tracking-wide">
+                            {tPost(`saleMethod.${method}.title`)}
+                          </p>
+                          <p className="mt-2 text-[11px] font-semibold leading-relaxed text-neutral-700 normal-case">
+                            {tPost(`saleMethod.${method}.helper`)}
+                          </p>
+                        </button>
+                      ))}
+                    </div>
+                    {saleMethod === "auction" ? (
+                      <p className="mt-4 text-xs font-black uppercase tracking-wide text-black">
+                        {tPost("saleMethod.auction.confirmation")}
+                      </p>
+                    ) : null}
+                  </div>
+
+                  <div className="rounded-2xl border-[3px] border-black bg-[#F7F4EC]/80 p-5 md:p-6">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-neutral-500">
                       {tPost("pricingMode.question")}
                     </p>
                     <div className="mt-4 grid gap-3 md:grid-cols-2">
@@ -1812,10 +2220,14 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                           }`}
                         >
                           <p className="text-xs font-black uppercase tracking-wide">
-                            {tPost(`pricingMode.options.${mode}.title`)}
+                            {saleMethod === "auction" && mode === "fixed_price"
+                              ? tPost("saleMethod.auction.fixedPriceTitle")
+                              : tPost(`pricingMode.options.${mode}.title`)}
                           </p>
                           <p className="mt-2 text-[11px] font-semibold leading-relaxed text-neutral-700 normal-case">
-                            {tPost(`pricingMode.options.${mode}.description`)}
+                            {saleMethod === "auction" && mode === "fixed_price"
+                              ? tPost("saleMethod.auction.fixedPriceDescription")
+                              : tPost(`pricingMode.options.${mode}.description`)}
                           </p>
                         </button>
                       ))}
@@ -1830,7 +2242,9 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                   {pricingMode === "fixed_price" ? (
                     <div className="rounded-2xl border-[3px] border-black bg-[#F7F4EC]/80 p-6">
                       <label className="text-[10px] font-bold uppercase tracking-widest text-neutral-500">
-                        {tPost("pricingMode.fixedPriceInputLabel")}
+                        {saleMethod === "auction"
+                          ? tPost("saleMethod.auction.fixedPriceInputLabel")
+                          : tPost("pricingMode.fixedPriceInputLabel")}
                       </label>
                       <div className="relative mt-2">
                         <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl font-black text-neutral-900">
@@ -1848,7 +2262,9 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                         />
                       </div>
                       <p className="mt-3 text-xs font-medium text-neutral-500">
-                        {tPost("pricingMode.fixedPriceNote")}
+                        {saleMethod === "auction"
+                          ? tPost("saleMethod.auction.fixedPriceNote")
+                          : tPost("pricingMode.fixedPriceNote")}
                       </p>
                     </div>
                   ) : null}
@@ -2053,16 +2469,26 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
               )}
               <div>
                 <h2 className="text-2xl font-black uppercase italic tracking-tight text-black md:text-3xl">
-                  Alege viteza de vânzare
+                  {saleMethod === "auction"
+                    ? tPost("step4.titleAuction")
+                    : tPost("step4.titleDirect")}
                 </h2>
                 <p className="mt-3 max-w-2xl text-sm font-semibold leading-relaxed text-neutral-600">
-                  Pachetul stabilește cât timp va fi promovat anunțul și cât de rapid
-                  vrei să găsești cumpărători.
+                  {saleMethod === "auction"
+                    ? tPost("step4.bodyAuction")
+                    : tPost("step4.bodyDirect")}
                 </p>
+                {saleMethod === "auction" ? (
+                  <p className="mt-3 text-xs font-black uppercase tracking-wide text-black">
+                    {tPost("saleMethod.auction.confirmation")}
+                  </p>
+                ) : null}
               </div>
 
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-5">
-                {PACKAGE_DEFS.map((pkg) => {
+                {PACKAGE_DEFS.filter((pkg) =>
+                  saleMethod === "auction" ? pkg.id === "auction" : pkg.id !== "auction",
+                ).map((pkg) => {
                   const isSelected = selectedPackage === pkg.id;
                   const price = packagePrices[pkg.id];
                   return (
@@ -2117,10 +2543,55 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                 })}
               </div>
 
-              <div className="rounded-2xl border-2 border-dashed border-neutral-300 bg-[#fafafa] px-5 py-4 text-center">
-                <p className="text-sm font-black uppercase tracking-wide text-neutral-800">
-                  Pachet ales: {selectedPackageMeta.title} — {packagePrices[selectedPackage]} RON
+              <div className="rounded-2xl border-[3px] border-black bg-[#FDFCF8] px-5 py-5">
+                <p className="text-[10px] font-black uppercase tracking-widest text-neutral-500">
+                  {tPost("review.heading")}
                 </p>
+                <dl className="mt-3 space-y-2 text-sm font-semibold text-neutral-800">
+                  <div className="flex justify-between gap-4">
+                    <dt className="text-neutral-500">{tPost("review.category")}</dt>
+                    <dd className="text-right font-black uppercase tracking-wide">{category}</dd>
+                  </div>
+                  <div className="flex justify-between gap-4">
+                    <dt className="text-neutral-500">{tPost("review.saleMethod")}</dt>
+                    <dd className="text-right font-black uppercase tracking-wide">
+                      {tPost(`saleMethod.${saleMethod}.title`)}
+                    </dd>
+                  </div>
+                  <div className="flex justify-between gap-4">
+                    <dt className="text-neutral-500">{tPost("review.pricePresentation")}</dt>
+                    <dd className="text-right font-black uppercase tracking-wide">
+                      {saleMethod === "auction" && pricingMode === "fixed_price"
+                        ? tPost("saleMethod.auction.fixedPriceTitle")
+                        : pricingMode
+                          ? tPost(`pricingMode.options.${pricingMode}.title`)
+                          : "—"}
+                    </dd>
+                  </div>
+                  <div className="flex justify-between gap-4">
+                    <dt className="text-neutral-500">{tPost("review.package")}</dt>
+                    <dd className="text-right font-black uppercase tracking-wide">
+                      {selectedPackageMeta.title}
+                    </dd>
+                  </div>
+                  <div className="flex justify-between gap-4">
+                    <dt className="text-neutral-500">{tPost("review.duration")}</dt>
+                    <dd className="text-right font-black uppercase tracking-wide">
+                      {selectedPackageMeta.durationLabel}
+                    </dd>
+                  </div>
+                  <div className="flex justify-between gap-4">
+                    <dt className="text-neutral-500">{tPost("review.amount")}</dt>
+                    <dd className="text-right font-black tabular-nums">
+                      {packagePrices[selectedPackage]} RON
+                    </dd>
+                  </div>
+                </dl>
+                {saleMethod === "auction" ? (
+                  <p className="mt-4 text-xs font-black uppercase tracking-wide text-black">
+                    {tPost("saleMethod.auction.confirmation")}
+                  </p>
+                ) : null}
               </div>
 
               <button
@@ -2145,6 +2616,12 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
           )}
         </div>
       </div>
+
+      <AuthModal
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        nextPath="/pune-anunt"
+      />
     </div>
   );
 }

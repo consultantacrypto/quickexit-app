@@ -18,6 +18,7 @@ Evenimentele GA4 din Quick Exit sunt folosite pentru:
 - nu trimitem date KYC
 - nu trimitem texte libere introduse de user
 - `listing_id` și `demand_id` sunt permise ca identificatori operaționali
+- Excepție PF1.2: `listing_pending_reused`, `listing_checkout_resumed`, `listing_checkout_cancelled` **nu** trimit `listing_id`, titlu, descriere, email, telefon sau preț
 
 ## Lista Evenimentelor
 
@@ -34,6 +35,14 @@ Evenimentele GA4 din Quick Exit sunt folosite pentru:
 | `listing_prefilled_from_evaluation` | `app/[locale]/pune-anunt/PuneAnuntClient.tsx` | la prefill din draft/query | `category`, `has_exit_price`, `selected_price_type`, `prefill_level` | handoff reușit evaluator → formular |
 | `listing_step_completed` | `app/[locale]/pune-anunt/PuneAnuntClient.tsx` | la finalizarea pașilor 1–4 | `step`, `category`, `source`, `selected_price_type`, `prefill_level` | abandon pe pași formular |
 | `listing_submit_attempt` | `app/[locale]/pune-anunt/PuneAnuntClient.tsx` | înainte/după submit listing | `category`, `package_id`, `status`, `reason`, `source`, `selected_price_type` | fricțiune auth/upload/save |
+| `listing_draft_saved` | `app/[locale]/pune-anunt/PuneAnuntClient.tsx` | autosave / auth gate | `step`, `category`, `package`, `draft_version`, `reason` | persist draft (fără PII text) |
+| `listing_draft_restored` | `app/[locale]/pune-anunt/PuneAnuntClient.tsx` | la mount dacă există draft | `step`, `category`, `package`, `draft_version`, `reason`, `source` (`session` \| `auth_handoff`) | restore după refresh/auth |
+| `listing_auth_opened` | `app/[locale]/pune-anunt/PuneAnuntClient.tsx` | AuthModal la auth_required | `step`, `category`, `package`, `draft_version`, `reason` | intent auth din publish |
+| `listing_auth_resumed` | `app/[locale]/pune-anunt/PuneAnuntClient.tsx` | după callback auth + draft | `step`, `category`, `package`, `draft_version`, `reason`, `source` | resume funnel |
+| `listing_draft_cleared` | `app/[locale]/pune-anunt/PuneAnuntClient.tsx`, `dashboard` | abandon sau `payment=success` | `step`, `category`, `package`, `draft_version`, `reason` (`user_discard` \| `payment_success`) | cleanup draft |
+| `listing_pending_reused` | `app/[locale]/pune-anunt/PuneAnuntClient.tsx` | submit reutilizează listing `pending_payment` existent | `source=publish_form`, `category`, `package`, `reason` | evita INSERT duplicat |
+| `listing_checkout_resumed` | `app/[locale]/dashboard/page.tsx` | CTA „Finalizează plata” (card sau banner cancel) | `source` (`dashboard` \| `cancel_banner`), `category`, `package`, `reason` | resume checkout fără listing nou |
+| `listing_checkout_cancelled` | `app/[locale]/dashboard/page.tsx` | return Stripe `payment=cancel` pentru listing propriu | `source=cancel_banner`, `category`, `package`, `reason` | abandon plată cu listing salvat |
 | `start_post_listing` | `app/[locale]/pune-anunt/PuneAnuntClient.tsx` | step 1 → 2 | `category`, `source`, `selected_price_type`, `prefill_level` | început funnel listare |
 | `checkout_listing_started` | `app/[locale]/pune-anunt/PuneAnuntClient.tsx` | înainte de Stripe redirect | `category`, `package_id`, `amount`, `checkout_type`, `source`, `selected_price_type`, `prefill_level` | intenție plată |
 | `checkout_created` | `app/[locale]/pune-anunt/PuneAnuntClient.tsx` | sesiune Stripe creată | `checkout_type`, `listing_id`, `package_id`, `amount`, `status`, `source`, `selected_price_type` | confirmare creare checkout |

@@ -8,6 +8,7 @@ import {
   type ListingPackageId,
 } from "@/lib/stripePackages";
 import { getListingExpiryIso, getListingPackageById, validateListingPackage } from "@/lib/pricing";
+import { resolveListingPackageIdFromRow, validatePersistedSaleIntent } from "@/lib/listingSaleStrategy";
 import {
   activateRow,
   extractCheckoutIds,
@@ -97,17 +98,9 @@ export function resolveForceActivateTarget(input: ForceActivateInput): {
 }
 
 export function inferPackageIdFromListing(listing: Pick<ListingRow, "sale_strategy" | "details">): string | null {
-  const fromStrategy = String(listing.sale_strategy ?? "").trim();
-  if (validateListingPackage(fromStrategy)) return fromStrategy;
-
-  const details =
-    listing.details && typeof listing.details === "object" && !Array.isArray(listing.details)
-      ? (listing.details as Record<string, unknown>)
-      : null;
-  const fromDetails = String(details?.package ?? "").trim();
-  if (validateListingPackage(fromDetails)) return fromDetails;
-
-  return null;
+  const validated = validatePersistedSaleIntent(listing);
+  if (validated.ok) return validated.state.packageId;
+  return resolveListingPackageIdFromRow(listing);
 }
 
 export function inferPackageIdFromDemand(_demand?: DemandRow): string {

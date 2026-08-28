@@ -134,14 +134,25 @@ export default function PosteazaCerereClient() {
       });
 
       // Ruta generică /api/stripe/checkout; type: "demand" îi spune webhook-ului ce să activeze.
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        setErrorMsg("Sesiunea a expirat. Te rugăm să te autentifici din nou.");
+        setIsSubmitting(false);
+        return;
+      }
+
       const stripeRes = await fetch("/api/stripe/checkout", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
         body: JSON.stringify({
           priceId,
           demandId: insertedData.id,
           type: "demand",
-          userId: user.id,
         }),
       });
 

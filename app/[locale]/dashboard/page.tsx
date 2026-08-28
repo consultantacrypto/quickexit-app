@@ -3,8 +3,16 @@
 import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { useRouter } from "@/src/i18n/navigation";
+import { useLocale, useTranslations } from "next-intl";
 import { supabase } from "@/lib/supabase";
 import { trackEvent } from "@/lib/analytics";
+import {
+  clearListingDraft,
+  listingDraftAnalyticsParams,
+  loadListingAuthHandoff,
+  loadListingDraftFromSession,
+  syncPendingListingIdIntoExistingDraft,
+} from "@/lib/listingDraft";
 import {
   categoryLabelToTrackingKey,
   parseListingAcquisitionDetails,
@@ -12,11 +20,11 @@ import {
 } from "@/lib/evaluationTracking";
 import AdCard from "@/app/components/AdCard";
 import { normalizeSaleType } from "@/utils/normalizeSaleType";
-import { useLocale } from "next-intl";
 import { getNumberLocale } from "@/lib/i18n/format";
 import { adCardPricingProps } from "@/lib/listingPrice";
 import { Wallet, Inbox, PlusCircle, Search, Settings, Power, Play, PiggyBank, ClipboardList } from "lucide-react";
 import KycBanner from "@/app/components/KycBanner";
+import { getPriceIdForPackageId } from "@/lib/stripePackages";
 
 type DashboardTab = "portofoliu" | "cumparari" | "oferte";
 const OWNER_USER_ID = "83da9725-68f3-4ded-9605-714b9094bf0e";
@@ -30,6 +38,7 @@ function DashboardContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const locale = useLocale();
+  const tDash = useTranslations("Dashboard");
   const numberLocale = getNumberLocale(locale);
   
   const paymentStatus = searchParams.get("payment");
@@ -70,6 +79,9 @@ function DashboardContent() {
   const [soldActionMessage, setSoldActionMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [demandOfferActionMessage, setDemandOfferActionMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [statusActionMessage, setStatusActionMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [paymentCancelListingId, setPaymentCancelListingId] = useState<string | null>(null);
+  const [checkoutLoadingId, setCheckoutLoadingId] = useState<string | null>(null);
+  const [checkoutActionError, setCheckoutActionError] = useState<string | null>(null);
   
   const [isLoading, setIsLoading] = useState(true);
 
@@ -120,6 +132,30 @@ function DashboardContent() {
           ? "cancel"
           : null;
     if (!normalizedPayment) return;
+
+    // Clear listing publish draft only on confirmed listing payment success (not cancel / pending).
+    if (
+      normalizedPayment === "success" &&
+      normalizedType === "listing" &&
+      typeof window !== "undefined"
+    ) {
+      const clearKey = [
+        "listing_draft_cleared_payment_success",
+        sessionIdParam || listingIdParam || listingId || "no_id",
+      ].join(":");
+      if (!window.sessionStorage.getItem(clearKey)) {
+        window.sessionStorage.setItem(clearKey, "1");
+        const existing =
+          loadListingDraftFromSession() ?? loadListingAuthHandoff()?.draft ?? null;
+        clearListingDraft();
+        if (existing) {
+          trackEvent(
+            "listing_draft_cleared",
+            listingDraftAnalyticsParams(existing, "payment_success"),
+          );
+        }
+      }
+    }
 
     const effectiveListingId = listingIdParam || listingId || undefined;
     const effectiveDemandId = demandIdParam || demandId || undefined;
@@ -180,11 +216,42 @@ function DashboardContent() {
         trackEvent("checkout_listing_cancel", baseParams);
 
         if (effectiveListingId) {
+          const {
+            data: { user },
+          } = await supabase.auth.getUser();
+
           const { data: listingRow } = await supabase
             .from("listings")
-            .select("details, category")
+            .select("id, user_id, status, details, category, sale_strategy")
             .eq("id", effectiveListingId)
             .maybeSingle();
+
+          // Only surface cancel UX for listings owned by the signed-in user.
+          if (
+            user &&
+            listingRow &&
+            listingRow.user_id === user.id &&
+            listingRow.status === "pending_payment"
+          ) {
+            setPaymentCancelListingId(listingRow.id);
+            syncPendingListingIdIntoExistingDraft(listingRow.id);
+
+            const pkg =
+              typeof listingRow.sale_strategy === "string" &&
+              getPriceIdForPackageId(listingRow.sale_strategy)
+                ? listingRow.sale_strategy
+                : typeof (listingRow.details as { package?: string } | null)?.package ===
+                    "string"
+                  ? String((listingRow.details as { package?: string }).package)
+                  : "standard";
+
+            trackEvent("listing_checkout_cancelled", {
+              source: "cancel_banner",
+              category: categoryLabelToTrackingKey(String(listingRow.category ?? "")),
+              package: pkg,
+              reason: "stripe_cancel",
+            });
+          }
 
           const acquisition = parseListingAcquisitionDetails(listingRow?.details);
           if (acquisition?.source === "evaluation") {
@@ -199,6 +266,9 @@ function DashboardContent() {
             );
           }
         }
+
+        // Drop query params so refresh does not re-show the banner.
+        router.replace("/dashboard", { scroll: false });
         return;
       }
 
@@ -221,7 +291,81 @@ function DashboardContent() {
     demandId,
     listingIdParam,
     demandIdParam,
+    router,
   ]);
+
+  const resumeListingCheckout = async (
+    targetListingId: string,
+    source: "dashboard" | "cancel_banner",
+  ) => {
+    if (checkoutLoadingId) return;
+    setCheckoutActionError(null);
+    setCheckoutLoadingId(targetListingId);
+
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        setCheckoutActionError(tDash("finalizePaymentError"));
+        setCheckoutLoadingId(null);
+        return;
+      }
+
+      const listing =
+        myListings.find((item) => item.id === targetListingId) ?? null;
+      const pkgFromStrategy =
+        typeof listing?.sale_strategy === "string" &&
+        getPriceIdForPackageId(listing.sale_strategy)
+          ? listing.sale_strategy
+          : null;
+      const pkgFromDetails =
+        typeof listing?.details?.package === "string" &&
+        getPriceIdForPackageId(listing.details.package)
+          ? listing.details.package
+          : null;
+      const packageId = pkgFromStrategy || pkgFromDetails || "standard";
+
+      trackEvent("listing_checkout_resumed", {
+        source,
+        category: categoryLabelToTrackingKey(String(listing?.category ?? "")),
+        package: packageId,
+        reason: "pending_payment",
+      });
+
+      // priceId optional — API derives amount/package server-side from the listing.
+      const priceId = getPriceIdForPackageId(packageId) ?? undefined;
+      const res = await fetch("/api/stripe/checkout", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          listingId: targetListingId,
+          type: "listing",
+          ...(priceId ? { priceId } : {}),
+        }),
+      });
+
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data?.url) {
+        setCheckoutActionError(
+          typeof data?.error === "string" && data.error
+            ? data.error
+            : tDash("finalizePaymentError"),
+        );
+        setCheckoutLoadingId(null);
+        return;
+      }
+
+      syncPendingListingIdIntoExistingDraft(targetListingId);
+      window.location.href = data.url;
+    } catch {
+      setCheckoutActionError(tDash("finalizePaymentError"));
+      setCheckoutLoadingId(null);
+    }
+  };
 
   const fetchDashboardData = async () => {
     setIsLoading(true);
@@ -774,6 +918,47 @@ function DashboardContent() {
         />
       )}
 
+      {paymentCancelListingId ? (
+        <div
+          role="status"
+          className="mb-6 rounded-xl border-[3px] border-black bg-[#FDFCF8] p-4 shadow-[4px_4px_0_0_rgba(0,0,0,1)] md:p-5"
+        >
+          <p className="text-sm font-bold leading-relaxed text-neutral-800">
+            {tDash("paymentCancel.message")}
+          </p>
+          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+            <button
+              type="button"
+              disabled={checkoutLoadingId === paymentCancelListingId}
+              onClick={() =>
+                void resumeListingCheckout(paymentCancelListingId, "cancel_banner")
+              }
+              className="inline-flex items-center justify-center rounded-lg border-2 border-black bg-[#FFD100] px-5 py-2.5 text-xs font-black uppercase tracking-wide text-black shadow-[2px_2px_0_0_rgba(0,0,0,1)] transition enabled:hover:-translate-y-0.5 enabled:active:translate-y-px enabled:active:shadow-none disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {checkoutLoadingId === paymentCancelListingId
+                ? tDash("finalizePaymentLoading")
+                : tDash("paymentCancel.cta")}
+            </button>
+            <button
+              type="button"
+              onClick={() => setPaymentCancelListingId(null)}
+              className="text-[11px] font-black uppercase tracking-widest text-neutral-600 underline-offset-4 hover:text-black hover:underline"
+            >
+              OK
+            </button>
+          </div>
+          {checkoutActionError && paymentCancelListingId ? (
+            <p className="mt-3 text-xs font-semibold text-red-600">{checkoutActionError}</p>
+          ) : null}
+        </div>
+      ) : null}
+
+      {checkoutActionError && !paymentCancelListingId ? (
+        <p className="mb-4 text-xs font-semibold text-red-600" role="alert">
+          {checkoutActionError}
+        </p>
+      ) : null}
+
       {/* KPI-URI COMPACTE */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
         <div className="bg-white border-[3px] border-black p-4 rounded-xl shadow-[3px_3px_0_0_rgba(0,0,0,1)]">
@@ -864,8 +1049,15 @@ function DashboardContent() {
                     </button>
                     
                     {item.status === 'pending_payment' ? (
-                      <button className="bg-[#FDFCF8] border-2 border-neutral-300 py-2.5 rounded-lg text-xs font-black uppercase text-neutral-500 cursor-not-allowed">
-                        Așteaptă Plata
+                      <button
+                        type="button"
+                        disabled={checkoutLoadingId === item.id}
+                        onClick={() => void resumeListingCheckout(item.id, "dashboard")}
+                        className="border-2 border-black bg-[#FFD100] py-2.5 rounded-lg text-xs font-black uppercase text-black transition-all shadow-[2px_2px_0_0_rgba(0,0,0,1)] enabled:hover:-translate-y-0.5 enabled:active:translate-y-px enabled:active:shadow-none disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {checkoutLoadingId === item.id
+                          ? tDash("finalizePaymentLoading")
+                          : tDash("finalizePayment")}
                       </button>
                     ) : item.status === 'sold' ? (
                       <button className="bg-[#FDFCF8] border-2 border-neutral-300 py-2.5 rounded-lg text-xs font-black uppercase text-neutral-500 cursor-not-allowed">
