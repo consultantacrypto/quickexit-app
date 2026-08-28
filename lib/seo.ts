@@ -34,7 +34,8 @@ export function buildPageMetadata({
   const siteUrl = getSiteUrl();
   const canonicalPath = localePath(locale, path);
   const canonical = `${siteUrl}${canonicalPath}`;
-  const finalTitle = title.includes("Quick Exit") ? title : `${title} | Quick Exit`;
+  const branded = title.includes("Quick Exit") || title.includes("QuickExit");
+  const finalTitle = branded ? title : `${title} | Quick Exit`;
   const ogLocale = locale === "en" ? "en_GB" : "ro_RO";
   const roPath = localePath("ro", path);
   const enPath = localePath("en", path);

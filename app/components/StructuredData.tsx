@@ -2,9 +2,20 @@ import { companyInfo } from "@/lib/company";
 
 type StructuredDataProps = {
   siteUrl: string;
+  locale?: string;
 };
 
-export default function StructuredData({ siteUrl }: StructuredDataProps) {
+export default function StructuredData({ siteUrl, locale = "ro" }: StructuredDataProps) {
+  const inLanguage = locale === "en" ? "en-GB" : "ro-RO";
+  const serviceType =
+    locale === "en"
+      ? "marketplace for vehicles, property and valuable assets"
+      : "marketplace pentru automobile, proprietăți și active valoroase";
+  const description =
+    locale === "en"
+      ? "QuickExit is a marketplace for premium vehicles, property and collectible objects, with transparent pricing and direct contact between parties."
+      : "QuickExit este un marketplace pentru automobile premium, proprietăți și obiecte de colecție, cu prețuri transparente și contact direct între părți.";
+
   const organization = {
     "@context": "https://schema.org",
     "@type": "Organization",
@@ -30,17 +41,17 @@ export default function StructuredData({ siteUrl }: StructuredDataProps) {
     "@type": "WebSite",
     name: "Quick Exit",
     url: siteUrl,
-    inLanguage: "ro-RO",
+    inLanguage,
   };
 
   const service = {
     "@context": "https://schema.org",
     "@type": "Service",
     name: "Quick Exit",
-    serviceType: "platforma de lichiditate rapida pentru active",
+    serviceType,
     areaServed: "Romania",
-    description:
-      "Quick Exit conecteaza vanzatori care vor lichiditate rapida cu cumparatori care au capital disponibil.",
+    description,
+    inLanguage,
     provider: {
       "@type": "Organization",
       name: "Quick Exit",
@@ -54,7 +65,6 @@ export default function StructuredData({ siteUrl }: StructuredDataProps) {
     <>
       {payloads.map((payload, idx) => (
         <script
-          // eslint-disable-next-line react/no-danger
           dangerouslySetInnerHTML={{ __html: JSON.stringify(payload) }}
           key={idx}
           type="application/ld+json"

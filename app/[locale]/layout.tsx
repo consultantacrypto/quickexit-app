@@ -16,26 +16,26 @@ const siteUrl = getSiteUrl();
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.quickexit.ro"),
   title: {
-    default: "Quick Exit | Platforma de lichiditate rapida pentru active",
+    default: "QuickExit | Automobile, proprietăți și active valoroase",
     template: "%s | Quick Exit",
   },
   description:
-    "Quick Exit este platforma din Romania pentru vanzare rapida de active. Conectam vanzatori care vor lichiditate cu investitori care au capital disponibil.",
+    "Descoperă automobile premium, proprietăți și obiecte de colecție, cu prețuri transparente și contact direct pe QuickExit.",
   keywords: [
-    "lichiditate rapida",
-    "vanzare rapida active",
-    "platforma investitori Romania",
-    "capital disponibil",
+    "marketplace active",
+    "automobile premium",
+    "proprietati",
+    "obiecte de colectie",
     "anunturi active",
-    "evaluare active",
+    "QuickExit",
   ],
   alternates: {
     canonical: `${siteUrl}/ro`,
   },
   openGraph: {
-    title: "Quick Exit | Vinde acum. Lichiditate rapida.",
+    title: "QuickExit | Automobile, proprietăți și active valoroase",
     description:
-      "Platforma pentru vanzatori care vor sa vanda rapid si cumparatori care au capital disponibil.",
+      "Descoperă automobile premium, proprietăți și obiecte de colecție, cu prețuri transparente și contact direct pe QuickExit.",
     url: siteUrl,
     siteName: "Quick Exit",
     type: "website",
@@ -125,10 +125,10 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
         <NextIntlClientProvider locale={locale} messages={messages}>
           <AnalyticsAttributionInit />
           <AuthHashCleaner />
-          <StructuredData siteUrl={siteUrl} />
+          <StructuredData siteUrl={siteUrl} locale={locale} />
           <Header />
 
-          <main className="flex-grow pt-16 md:pt-32">{children}</main>
+          <main className="flex-grow pt-16 md:pt-20">{children}</main>
 
           <Footer />
         </NextIntlClientProvider>

@@ -18,7 +18,7 @@ const AuthModal = dynamic(() => import("./AuthModal"), {
 });
 
 const navLinkClass =
-  "text-[11px] font-black uppercase tracking-widest text-neutral-700 transition-colors hover:text-black xl:text-xs";
+  "text-[13px] font-medium tracking-wide text-neutral-700 transition-colors hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#FFD100]";
 
 export default function Header() {
   const t = useTranslations("Navigation");
@@ -29,53 +29,43 @@ export default function Header() {
 
   useEffect(() => {
     if (user) {
+      // Close the auth modal after a successful session. Pre-existing header behavior.
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- session-driven modal close
       setIsAuthOpen(false);
     }
   }, [user]);
 
   return (
     <>
-      <header className="fixed top-0 left-0 right-0 z-50 flex h-16 items-center border-b border-black/10 bg-[#F7F4EC]/95 shadow-[0_4px_20px_rgba(0,0,0,0.04)] backdrop-blur-md md:h-28">
-        <div className="mx-auto flex w-full max-w-[1440px] items-center justify-between px-4 md:px-8">
-          <div className="flex shrink-0 items-center gap-3">
+      <header className="fixed top-0 left-0 right-0 z-50 flex h-16 items-center border-b border-black/8 bg-[#F7F4EC]/95 backdrop-blur-md md:h-20">
+        <div className="mx-auto flex w-full max-w-[1440px] items-center justify-between gap-4 px-4 md:px-8">
+          <div className="flex shrink-0 items-center">
             <Link
               href="/"
-              className="relative block h-11 w-40 transition-transform hover:scale-105 sm:h-12 sm:w-44 md:h-16 md:w-60 lg:h-20 lg:w-72"
+              className="relative block h-9 w-36 sm:h-10 sm:w-44 md:h-11 md:w-52"
             >
               <Image
                 src="/logo.webp"
                 alt={t("logoAlt")}
                 fill
-                sizes="(max-width: 768px) 160px, (max-width: 1024px) 240px, 288px"
+                sizes="(max-width: 768px) 176px, 208px"
                 className="object-contain object-left"
                 priority
               />
             </Link>
           </div>
 
-          <div className="hidden items-center gap-5 lg:flex xl:gap-6">
-            <nav className="flex items-center gap-4 xl:gap-5" aria-label={t("mainMenu")}>
-              <Link href="/" className={navLinkClass}>
-                {t("home")}
+          <div className="hidden min-w-0 items-center gap-5 lg:flex xl:gap-6">
+            <nav className="flex items-center gap-5 xl:gap-6" aria-label={t("mainMenu")}>
+              <Link href="/#active-assets" className={navLinkClass}>
+                {t("explore")}
               </Link>
               <Link href="/cum-functioneaza" className={navLinkClass}>
                 {t("howItWorks")}
               </Link>
-              <Link
-                href="/capital-disponibil"
-                className="group flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-neutral-700 italic transition-colors hover:text-black xl:text-xs"
-              >
-                <span className="relative flex h-2 w-2">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#FFD100] opacity-75" />
-                  <span className="relative inline-flex h-2 w-2 rounded-full bg-yellow-500" />
-                </span>
-                <span className="border-b-2 border-transparent pb-0.5 transition-colors group-hover:border-[#FFD100]">
-                  {t("buyerOffers")}
-                </span>
-              </Link>
             </nav>
 
-            <div className="h-6 w-px bg-black/15" aria-hidden />
+            <div className="h-5 w-px bg-black/10" aria-hidden />
 
             <HeaderAuthDesktop
               user={user}
@@ -84,17 +74,10 @@ export default function Header() {
             />
 
             <Link
-              href="/posteaza-cerere"
-              className="rounded-xl border-2 border-black bg-white px-3.5 py-2.5 text-[11px] font-black uppercase tracking-widest text-black shadow-[3px_3px_0_0_rgba(0,0,0,1)] transition hover:-translate-y-px hover:border-[#FFD100] xl:px-4 xl:text-xs"
-            >
-              {t("buyWithCash")}
-            </Link>
-
-            <Link
               href="/pune-anunt"
-              className="rounded-2xl border-2 border-black bg-[#FFD100] px-4 py-2.5 text-[11px] font-black uppercase tracking-widest text-black italic shadow-[4px_4px_0_0_rgba(0,0,0,1)] transition hover:-translate-y-px hover:bg-black hover:text-[#FFD100] xl:px-5 xl:py-3 xl:text-xs"
+              className="inline-flex items-center justify-center rounded-lg bg-ink px-4 py-2.5 text-[12px] font-semibold tracking-wide text-white transition hover:bg-black focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#FFD100] xl:px-5"
             >
-              {t("postListing")}
+              {t("listAsset")}
             </Link>
 
             <LanguageSwitcher />
@@ -114,9 +97,9 @@ export default function Header() {
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
                 viewBox="0 0 24 24"
-                strokeWidth={2.5}
+                strokeWidth={2}
                 stroke="currentColor"
-                className="h-7 w-7"
+                className="h-6 w-6"
                 aria-hidden
               >
                 <path
@@ -132,7 +115,7 @@ export default function Header() {
 
       <div
         id="mobile-main-menu"
-        className={`fixed inset-0 z-[60] bg-[#F7F4EC] transition-transform duration-500 ${
+        className={`fixed inset-0 z-[60] bg-[#F7F4EC] transition-transform duration-300 motion-reduce:transition-none ${
           isOpen ? "translate-x-0" : "pointer-events-none translate-x-full"
         }`}
         inert={!isOpen}
@@ -143,20 +126,20 @@ export default function Header() {
       >
         <div className="flex h-full flex-col">
           <div className="flex h-16 items-center justify-between border-b border-black/10 px-4 md:px-6">
-            <div className="relative h-8 w-32 font-black text-xl italic text-black">
+            <div className="text-lg font-semibold tracking-tight text-ink">
               {tFooter("brandName")}
             </div>
             <button
               type="button"
               onClick={() => setIsOpen(false)}
-              className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-gray-100 text-black"
+              className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-white text-black"
               aria-label={t("closeMenu")}
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
                 viewBox="0 0 24 24"
-                strokeWidth={2.5}
+                strokeWidth={2}
                 stroke="currentColor"
                 className="h-6 w-6"
                 aria-hidden
@@ -170,19 +153,22 @@ export default function Header() {
             </button>
           </div>
 
-          <div className="flex flex-grow flex-col items-center justify-center gap-5 overflow-y-auto px-6 py-8">
+          <nav
+            className="flex flex-grow flex-col items-stretch gap-3 overflow-y-auto px-6 py-8"
+            aria-label={t("mainMenu")}
+          >
             <Link
-              href="/"
+              href="/#active-assets"
               onClick={() => setIsOpen(false)}
-              className="w-full rounded-[2rem] border-4 border-black bg-white py-4 text-center text-lg font-black uppercase tracking-widest italic shadow-[6px_6px_0_0_rgba(0,0,0,1)]"
+              className="rounded-xl border border-[#E7E3DA] bg-white px-4 py-4 text-center text-base font-medium text-ink"
             >
-              {t("home")}
+              {t("explore")}
             </Link>
 
             <Link
               href="/cum-functioneaza"
               onClick={() => setIsOpen(false)}
-              className="w-full rounded-[2rem] border-4 border-black bg-white py-4 text-center text-lg font-black uppercase tracking-widest italic shadow-[6px_6px_0_0_rgba(0,0,0,1)]"
+              className="rounded-xl border border-[#E7E3DA] bg-white px-4 py-4 text-center text-base font-medium text-ink"
             >
               {t("howItWorks")}
             </Link>
@@ -195,33 +181,13 @@ export default function Header() {
             />
 
             <Link
-              href="/capital-disponibil"
-              onClick={() => setIsOpen(false)}
-              className="flex w-full items-center justify-center gap-3 rounded-[2rem] border-4 border-black bg-[#FDFCF8] py-5 text-center text-lg font-black uppercase tracking-widest italic shadow-[6px_6px_0_0_rgba(0,0,0,1)]"
-            >
-              <span className="relative flex h-3 w-3">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#FFD100] opacity-75" />
-                <span className="relative inline-flex h-3 w-3 rounded-full bg-yellow-500" />
-              </span>
-              {t("buyerOffers")}
-            </Link>
-
-            <Link
-              href="/posteaza-cerere"
-              onClick={() => setIsOpen(false)}
-              className="w-full rounded-[2rem] border-4 border-black bg-white py-5 text-center text-lg font-black uppercase tracking-widest italic shadow-[6px_6px_0_0_rgba(0,0,0,1)]"
-            >
-              {t("buyWithCash")}
-            </Link>
-
-            <Link
               href="/pune-anunt"
               onClick={() => setIsOpen(false)}
-              className="w-full rounded-[2rem] border-4 border-black bg-[#FFD100] py-5 text-center text-lg font-black uppercase tracking-widest italic shadow-[6px_6px_0_0_rgba(0,0,0,1)]"
+              className="rounded-xl bg-ink px-4 py-4 text-center text-base font-semibold text-white"
             >
-              {t("postListing")}
+              {t("listAsset")}
             </Link>
-          </div>
+          </nav>
         </div>
       </div>
 

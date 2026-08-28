@@ -24,9 +24,14 @@ Evenimentele GA4 din Quick Exit sunt folosite pentru:
 
 | event_name | pagină | moment declanșare | parametri | scop business |
 |---|---|---|---|---|
-| `click_evaluate` | `app/page.tsx` | click CTA către `/evaluare` | `source` | măsoară intrarea în funnel-ul de evaluare |
-| `click_post_listing` | `app/page.tsx` | click CTA către `/pune-anunt` | `source` | măsoară intenția directă de publicare anunț |
-| `click_capital_available` | `app/page.tsx` | click CTA către `/capital-disponibil` | `source` | măsoară interesul pentru cereri active |
+| `click_explore_assets` | `app/[locale]/page.tsx` | click CTA Explorează activele / Explore assets | `source` | măsoară descoperirea inventarului de pe homepage |
+| `click_post_listing` | `app/[locale]/page.tsx` | click CTA Listează un activ / List an asset | `source` | măsoară intenția de publicare anunț |
+| `click_category_world` | `app/[locale]/page.tsx` | click pe o lume de active (Auto / Imobiliare / Lux) | `source`, `category` | măsoară descoperirea pe categorii cu stoc |
+| `click_view_all_assets` | `app/[locale]/page.tsx` | click Vezi toate activele / View all assets | `source` | măsoară continuarea către ruta de categorie cu stoc |
+| `click_view_all_auctions` | `app/[locale]/page.tsx` | click Vezi toate licitațiile / View all auctions | `source` | măsoară continuarea către `/licitatii` |
+| `click_how_it_works` | `app/[locale]/page.tsx` | click către pagina Cum funcționează | `source` | măsoară interesul pentru explicația operațională |
+| `click_evaluate` | `app/[locale]/evaluare` și alte pagini | click CTA către `/evaluare` | `source` | măsoară intrarea în funnel-ul de evaluare |
+| `click_capital_available` | pagini capital / ghiduri | click CTA către `/capital-disponibil` | `source` | măsoară interesul pentru cereri active |
 | `start_evaluation` | `app/[locale]/evaluare/EvaluareClient.tsx` | la pornirea evaluării | `category` | măsoară începutul evaluării pe categorii |
 | `evaluation_success` | `app/[locale]/evaluare/EvaluareClient.tsx` | la evaluare reușită | `category`, `data_quality_label`, `confidence_score` | măsoară calitatea și finalizarea evaluării |
 | `evaluation_failed` | `app/[locale]/evaluare/EvaluareClient.tsx` | API error / timeout / 429 / 400 | `category`, `status_code`, `reason` | măsoară eșecul evaluării |

@@ -1,11 +1,13 @@
 {
   "Navigation": {
-    "logoAlt": "Quick Exit — rapid liquidity platform for assets",
+    "logoAlt": "QuickExit — marketplace for valuable assets",
     "home": "Home",
-    "howItWorks": "How It Works",
+    "explore": "Explore",
+    "howItWorks": "How it works",
     "buyerOffers": "Buyer Offers",
     "buyWithCash": "Buy with Cash",
     "postListing": "List an Asset for Sale",
+    "listAsset": "List an asset",
     "openMenu": "Open main menu",
     "closeMenu": "Close main menu",
     "mainMenu": "Main menu",
@@ -41,14 +43,13 @@
     "finalizePaymentError": "We couldn't create the payment session. Please try again."
   },
   "Hero": {
-    "titleLine1": "Sell now.",
-    "titleLine1Highlight": "now",
-    "titleLine2": "Get paid today.",
-    "titleLine2Highlight": "today",
-    "subtitle": "Quick Exit connects sellers who need fast liquidity with buyers who have capital and are looking for below-market opportunities.",
-    "evaluateCta": "What's your asset worth?",
-    "viewBuyerRequests": "View buyer requests",
-    "packagesSectionTitle": "Choose your sale pace"
+    "eyebrow": "QUICKEXIT · MARKETPLACE FOR VALUABLE ASSETS",
+    "titleLine1": "Valuable assets.",
+    "titleLine2": "Transparent pricing.",
+    "subtitle": "Discover premium vehicles, properties and collectible objects, with clear information and direct contact with the owners or partners listing them.",
+    "primaryCta": "Explore assets",
+    "secondaryCta": "List an asset",
+    "trust": "QuickExit does not process payment for the asset or hold funds in custody."
   },
   "Packages": {
     "auction": {
@@ -141,22 +142,54 @@
     "durationLabel": "Duration: {duration}"
   },
   "Home": {
-    "metaTitle": "Quick Exit | Rapid liquidity platform for assets",
-    "metaDescription": "Quick Exit connects sellers seeking fast liquidity with buyers and investors ready to acquire assets.",
-    "categoriesTitle": "Choose a Category",
-    "futureMobility": {
-      "title": "Future Mobility",
-      "line1": "Premium on-order import for next-generation electric vehicles.",
-      "line2": "Final configuration and price are confirmed together with the partner.",
-      "cta": "Explore the collection"
+    "metaTitle": "QuickExit | Vehicles, property and valuable assets",
+    "metaDescription": "Discover premium vehicles, property and collectible objects, with transparent pricing and direct contact on QuickExit.",
+    "worlds": {
+      "title": "Asset worlds",
+      "ariaLabel": "Categories with available assets"
     },
     "listings": {
-      "title": "Active sale listings",
-      "titleHighlight": "sale listings",
-      "postListing": "Post listing",
-      "viewAll": "View all listings →",
-      "accountHint": "Browse without an account. To publish, submit offers, and access the Negotiation Room, you'll need a simple account.",
+      "title": "Assets available now",
+      "support": "Pricing and information are published directly in each listing.",
+      "viewAll": "View all assets",
       "empty": "No active listings at the moment."
+    },
+    "auctions": {
+      "title": "Open auctions",
+      "viewAll": "View all auctions"
+    },
+    "howItWorks": {
+      "title": "How it works",
+      "readMore": "Read how it works",
+      "steps": [
+        {
+          "title": "Discover",
+          "body": "Explore assets and the information published for each listing."
+        },
+        {
+          "title": "Connect directly",
+          "body": "Contact the owner or partner who published the listing."
+        },
+        {
+          "title": "Verify and complete",
+          "body": "Verify the asset, documents and terms before completing the transaction."
+        }
+      ]
+    },
+    "seller": {
+      "title": "Have a valuable asset to sell?",
+      "support": "List it on QuickExit and connect directly with interested buyers.",
+      "cta": "List an asset",
+      "pricing": "View pricing"
+    },
+    "safety": {
+      "title": "Direct transactions",
+      "description": "QuickExit does not process payment for the asset or hold funds in custody.",
+      "tips": [
+        "Verify the asset, documents and counterparty before payment or handover.",
+        "For high-value transactions, use a contract and professional advice.",
+        "Do not pay deposits without appropriate verification."
+      ]
     },
     "capital": {
       "title": "Available capital",
@@ -170,26 +203,6 @@
       "fallbackText": "Publish the asset you want to acquire or explore active buyer requests.",
       "fallbackPrimaryCta": "Publish a request",
       "fallbackSecondaryCta": "View all requests"
-    },
-    "auctions": {
-      "title": "Open auctions",
-      "titleHighlight": "auctions",
-      "description": "Assets with a bidding window of up to 30 days. The seller manually selects the right offer.",
-      "disclaimer": "No automatic winner. Payment and handover are arranged directly between parties.",
-      "emptyTitle": "No active auctions at the moment",
-      "emptyDescription": "Open auctions let sellers receive offers for up to 30 days and manually select the right bid.",
-      "publishAuction": "Publish an auction",
-      "viewAll": "View all auctions",
-      "addAuction": "Add an auction"
-    },
-    "safety": {
-      "title": "Safe transaction guidelines",
-      "description": "Quick Exit does not process payments or hold funds in escrow. Before payment or handover, verify the asset, documentation, and the other party's identity.",
-      "tips": [
-        "Don't pay deposits without verification.",
-        "For large amounts, use a contract and professional advisory.",
-        "Never enter card details on links sent by other users."
-      ]
     },
     "globalStats": {
       "declaredValueLabel": "Declared value in listings and requests",
@@ -227,6 +240,9 @@
     "highestOffer": "Highest offer",
     "favoriteAdd": "Add \"{title}\" to favorites",
     "favoriteRemove": "Remove \"{title}\" from favorites",
+    "marketplace": {
+      "auction": "Open auction"
+    },
     "auction": {
       "expired": "Expired",
       "closesToday": "Closes today",
@@ -247,9 +263,11 @@
   },
   "Footer": {
     "brandName": "QUICK EXIT",
-    "tagline": "Platform for accelerated sales and direct contact in Romania. We connect assets with interested buyers and investors through technology; fund availability is not verified by the platform.",
+    "tagline": "Marketplace for vehicles, property and collectible objects, with transparent pricing and direct contact in Romania.",
     "accountHint": "Browse without an account. To publish, submit offers, and access the Negotiation Room, you'll need a simple account.",
     "madeInRomania": "Made in Romania",
+    "stripeFees": "Stripe processes QuickExit listing fees, not payment for the asset.",
+    "identityOptional": "Identity verification is available as an optional account step.",
     "platform": {
       "title": "Platform",
       "howItWorks": "How It Works",

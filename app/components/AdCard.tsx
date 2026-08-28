@@ -28,6 +28,8 @@ interface AdCardProps {
   highestOffer?: number | string | null;
   expiresAt?: string | null;
   extraBadges?: string[];
+  /** Homepage editorial presentation. Default keeps category/detail/dashboard cards unchanged. */
+  variant?: "default" | "marketplace";
 }
 
 export default function AdCard({
@@ -44,6 +46,7 @@ export default function AdCard({
   highestOffer,
   expiresAt,
   extraBadges,
+  variant = "default",
 }: AdCardProps) {
   const t = useTranslations("AdCard");
   const locale = useLocale();
@@ -67,32 +70,71 @@ export default function AdCard({
   const highestLabel = formatHighestOfferEURLabel(highestOffer ?? null, locale);
   const timeLeft = formatAuctionCardTimeLeft(expiresAt ?? null, auctionCopy);
   const discountNum = Number(discount) || 0;
-  const showExtraBadges = Array.isArray(extraBadges) && extraBadges.length > 0;
+  const isMarketplace = variant === "marketplace";
+  const showExtraBadges =
+    !isMarketplace && Array.isArray(extraBadges) && extraBadges.length > 0;
   const showMarketPrice = marketPrice.trim().length > 0;
   const showExitPrice = exitPrice.trim().length > 0;
-  const showLiquidityScore = score != null && Number.isFinite(score);
+  const showLiquidityScore =
+    !isMarketplace && score != null && Number.isFinite(score);
+  const hasImage = typeof image === "string" && image.trim().length > 0;
+  const showDiscount = !isMarketplace && discountNum > 0;
+  const showTypeBadge = !isMarketplace || type === "auction";
+  const typeLabel = isMarketplace && type === "auction" ? t("marketplace.auction") : t(`type.${type}`);
+  const imageAlt = isMarketplace ? title : "";
 
   return (
-    <article className="group relative flex flex-col overflow-hidden rounded-3xl border border-line/70 bg-surface shadow-[0_1px_3px_rgba(0,0,0,0.04)] transition-all duration-500 ease-out hover:-translate-y-1 hover:border-neutral-300/80 hover:shadow-[0_28px_50px_-16px_rgba(0,0,0,0.22)]">
+    <article
+      className={
+        isMarketplace
+          ? "group relative flex flex-col overflow-hidden rounded-xl border border-[#E7E3DA] bg-white shadow-[0_1px_2px_rgba(10,10,10,0.04)] transition duration-300 ease-out hover:-translate-y-0.5 hover:shadow-[0_16px_32px_-18px_rgba(10,10,10,0.18)]"
+          : "group relative flex flex-col overflow-hidden rounded-3xl border border-line/70 bg-surface shadow-[0_1px_3px_rgba(0,0,0,0.04)] transition-all duration-500 ease-out hover:-translate-y-1 hover:border-neutral-300/80 hover:shadow-[0_28px_50px_-16px_rgba(0,0,0,0.22)]"
+      }
+    >
       <Link href={listingHref} aria-label={title} className="absolute inset-0 z-[1]" />
 
       {/* IMAGINEA — eroul cardului */}
-      <div className="pointer-events-none relative aspect-[4/3] w-full overflow-hidden bg-neutral-100">
-        <Image
-          src={image}
-          alt=""
-          fill
-          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-          priority={priority}
-          className="object-cover transition-transform duration-[1200ms] ease-out group-hover:scale-[1.04]"
-          loader={supabaseImageLoader}
-        />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/10" />
+      <div
+        className={`pointer-events-none relative aspect-[4/3] w-full overflow-hidden ${
+          isMarketplace ? "bg-[#F3EFE6]" : "bg-neutral-100"
+        }`}
+      >
+        {hasImage ? (
+          <Image
+            src={image}
+            alt={imageAlt}
+            fill
+            sizes="(max-width: 768px) 100vw, (max-width: 1279px) 50vw, 33vw"
+            priority={priority}
+            className={`object-cover ${
+              isMarketplace
+                ? "transition-transform duration-700 ease-out motion-safe:group-hover:scale-[1.03]"
+                : "transition-transform duration-[1200ms] ease-out group-hover:scale-[1.04]"
+            }`}
+            loader={supabaseImageLoader}
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center" aria-hidden>
+            <span className="text-[10px] font-semibold uppercase tracking-[0.22em] text-neutral-400">
+              QuickExit
+            </span>
+          </div>
+        )}
+        {!isMarketplace ? (
+          <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/10" />
+        ) : null}
 
-        {/* tip — glass pill discret */}
-        <span className="absolute left-4 top-4 rounded-full border border-white/20 bg-black/55 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-white backdrop-blur-md">
-          {t(`type.${type}`)}
-        </span>
+        {showTypeBadge ? (
+          <span
+            className={
+              isMarketplace
+                ? "absolute left-3 top-3 rounded-full border border-black/10 bg-white/92 px-2.5 py-1 text-[10px] font-semibold tracking-wide text-ink backdrop-blur-sm"
+                : "absolute left-4 top-4 rounded-full border border-white/20 bg-black/55 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-white backdrop-blur-md"
+            }
+          >
+            {typeLabel}
+          </span>
+        ) : null}
 
         {showExtraBadges ? (
           <div className="absolute bottom-4 left-4 z-[2] flex max-w-[70%] flex-wrap gap-1.5">
@@ -107,14 +149,13 @@ export default function AdCard({
           </div>
         ) : null}
 
-        {/* DISCOUNT — accentul vizual principal */}
-        {discountNum > 0 && (
+        {showDiscount ? (
           <span className="absolute right-4 top-4 rounded-full bg-gold px-3.5 py-1.5 text-sm font-bold tracking-tight text-ink shadow-[0_4px_14px_rgba(0,0,0,0.18)]">
             −{discountNum}%
           </span>
-        )}
+        ) : null}
 
-        {/* favorite — subtil, jos-dreapta */}
+        {!isMarketplace ? (
         <button
           type="button"
           onClick={() => setIsFavorite(!isFavorite)}
@@ -140,10 +181,15 @@ export default function AdCard({
             />
           </svg>
         </button>
+        ) : null}
       </div>
 
       {/* CONȚINUT */}
-      <div className="pointer-events-none relative z-[1] flex flex-1 flex-col gap-5 p-7">
+      <div
+        className={`pointer-events-none relative z-[1] flex flex-1 flex-col ${
+          isMarketplace ? "gap-3 p-4 md:gap-4 md:p-5" : "gap-5 p-7"
+        }`}
+      >
         <div>
           {showLiquidityScore ? (
             <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-muted">
@@ -151,7 +197,9 @@ export default function AdCard({
             </p>
           ) : null}
           <h3
-            className={`line-clamp-2 text-lg font-semibold leading-snug tracking-tight text-ink ${showLiquidityScore ? "mt-2" : ""}`}
+            className={`line-clamp-2 leading-snug tracking-tight text-ink ${
+              isMarketplace ? "text-base font-medium md:text-lg" : "text-lg font-semibold"
+            } ${showLiquidityScore ? "mt-2" : ""}`}
           >
             {title}
           </h3>
@@ -170,9 +218,13 @@ export default function AdCard({
         )}
 
         {/* PREȚ — bloc curat, mult aer */}
-        <div className="mt-auto flex items-end justify-between border-t border-line/60 pt-5">
+        <div
+          className={`mt-auto flex items-end justify-between border-t border-line/60 ${
+            isMarketplace ? "pt-3 md:pt-4" : "pt-5"
+          }`}
+        >
           <div>
-            {showMarketPrice ? (
+            {showMarketPrice && !isMarketplace ? (
               <p className="text-[11px] font-medium uppercase tracking-wider text-muted">
                 {t("marketPrice")}:{" "}
                 <span className="line-through decoration-neutral-300">{marketPrice}</span>
@@ -180,13 +232,19 @@ export default function AdCard({
             ) : null}
             {showExitPrice ? (
               <p
-                className={`text-[28px] font-bold leading-none tracking-tight text-ink ${showMarketPrice ? "mt-1" : ""}`}
+                className={`font-semibold leading-none tracking-tight text-ink ${
+                  isMarketplace ? "text-[22px] md:text-[26px]" : "text-[28px] font-bold"
+                } ${showMarketPrice && !isMarketplace ? "mt-1" : ""}`}
               >
                 {exitPrice}
               </p>
             ) : null}
           </div>
-          <span className="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-ink transition-colors group-hover:text-gold-deep">
+          <span
+            className={`inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-ink ${
+              isMarketplace ? "text-neutral-600 group-hover:text-ink" : "group-hover:text-gold-deep"
+            } transition-colors`}
+          >
             {t("details")}
             <span className="transition-transform duration-300 group-hover:translate-x-1">→</span>
           </span>

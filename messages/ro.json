@@ -1,11 +1,13 @@
 {
   "Navigation": {
-    "logoAlt": "Quick Exit — platformă de lichiditate rapidă pentru active",
+    "logoAlt": "QuickExit — marketplace pentru active valoroase",
     "home": "Acasă",
-    "howItWorks": "Cum funcționează?",
-    "buyerOffers": "Oferte Cumpărători",
-    "buyWithCash": "Cumpăr cu Cash",
+    "explore": "Explorează",
+    "howItWorks": "Cum funcționează",
+    "buyerOffers": "Oferte cumpărători",
+    "buyWithCash": "Cumpăr cu cash",
     "postListing": "Pune anunț vânzare",
+    "listAsset": "Listează un activ",
     "openMenu": "Deschide meniul principal",
     "closeMenu": "Închide meniul principal",
     "mainMenu": "Meniu principal",
@@ -41,14 +43,13 @@
     "finalizePaymentError": "Nu am putut crea sesiunea de plată. Te rugăm să încerci din nou."
   },
   "Hero": {
-    "titleLine1": "Vinde acum.",
-    "titleLine1Highlight": "acum",
-    "titleLine2": "Banii azi.",
-    "titleLine2Highlight": "azi",
-    "subtitle": "Quick Exit conectează vânzători care vor să vândă rapid cu cumpărători care au buget și caută oportunități sub prețul pieței.",
-    "evaluateCta": "Cât valorează ce vinzi?",
-    "viewBuyerRequests": "Vezi cereri de cumpărare",
-    "packagesSectionTitle": "Alege ritmul de vânzare"
+    "eyebrow": "QUICKEXIT · MARKETPLACE PENTRU ACTIVE VALOROASE",
+    "titleLine1": "Active valoroase.",
+    "titleLine2": "Prețuri transparente.",
+    "subtitle": "Descoperă automobile premium, proprietăți și obiecte de colecție, cu informații clare și contact direct cu proprietarii sau partenerii care le listează.",
+    "primaryCta": "Explorează activele",
+    "secondaryCta": "Listează un activ",
+    "trust": "QuickExit nu încasează plata activului și nu ține fonduri în custodie."
   },
   "Packages": {
     "auction": {
@@ -141,22 +142,54 @@
     "durationLabel": "Durată: {duration}"
   },
   "Home": {
-    "metaTitle": "Quick Exit | Platformă de lichiditate rapidă pentru active",
-    "metaDescription": "Quick Exit conectează vânzătorii care vor lichiditate rapidă cu cumpărători și investitori pregătiți pentru achiziții.",
-    "categoriesTitle": "Alege Categoria",
-    "futureMobility": {
-      "title": "Future Mobility",
-      "line1": "Import premium la comandă pentru automobile electrice de ultimă generație.",
-      "line2": "Configurația și prețul final se confirmă împreună cu partenerul.",
-      "cta": "Descoperă colecția"
+    "metaTitle": "QuickExit | Automobile, proprietăți și active valoroase",
+    "metaDescription": "Descoperă automobile premium, proprietăți și obiecte de colecție, cu prețuri transparente și contact direct pe QuickExit.",
+    "worlds": {
+      "title": "Lumi de active",
+      "ariaLabel": "Categorii cu active disponibile"
     },
     "listings": {
-      "title": "Anunțuri vânzări active",
-      "titleHighlight": "vânzări active",
-      "postListing": "Pune anunț",
-      "viewAll": "Vezi toate anunțurile →",
-      "accountHint": "Poți naviga fără cont. Pentru publicare, trimitere oferte și Camera de Negociere ai nevoie de un cont simplu.",
+      "title": "Active disponibile acum",
+      "support": "Prețuri și informații publicate direct în fiecare anunț.",
+      "viewAll": "Vezi toate activele",
       "empty": "Momentan nu există anunțuri active."
+    },
+    "auctions": {
+      "title": "Licitații deschise",
+      "viewAll": "Vezi toate licitațiile"
+    },
+    "howItWorks": {
+      "title": "Cum funcționează",
+      "readMore": "Citește cum funcționează",
+      "steps": [
+        {
+          "title": "Descoperi",
+          "body": "Explorezi activele și informațiile publicate."
+        },
+        {
+          "title": "Discuți direct",
+          "body": "Intri în contact cu proprietarul sau partenerul care listează."
+        },
+        {
+          "title": "Verifici și finalizezi",
+          "body": "Verifici activul, documentele și condițiile înainte de tranzacție."
+        }
+      ]
+    },
+    "seller": {
+      "title": "Ai un activ valoros de vândut?",
+      "support": "Publică-l pe QuickExit și intră în contact direct cu cumpărători interesați.",
+      "cta": "Listează un activ",
+      "pricing": "Vezi tarifele"
+    },
+    "safety": {
+      "title": "Tranzacții directe",
+      "description": "QuickExit nu procesează plata activului și nu ține fonduri în custodie.",
+      "tips": [
+        "Verifică activul, documentele și cealaltă parte înainte de plată sau predare.",
+        "Pentru tranzacții de valoare mare, folosește un contract și consultanță de specialitate.",
+        "Nu plăti avans fără verificări adecvate."
+      ]
     },
     "capital": {
       "title": "Capital disponibil",
@@ -170,26 +203,6 @@
       "fallbackText": "Publică activul pe care îl cauți sau descoperă cererile active ale cumpărătorilor.",
       "fallbackPrimaryCta": "Publică o cerere",
       "fallbackSecondaryCta": "Vezi toate cererile"
-    },
-    "auctions": {
-      "title": "Licitații deschise",
-      "titleHighlight": "deschise",
-      "description": "Active cu fereastră de ofertare până la 30 de zile. Vânzătorul alege manual oferta potrivită.",
-      "disclaimer": "Nu există câștigător automat. Plata și predarea se stabilesc direct între părți.",
-      "emptyTitle": "Momentan nu există licitații active",
-      "emptyDescription": "Licitațiile deschise permit vânzătorilor să primească oferte timp de până la 30 de zile și să aleagă manual oferta potrivită.",
-      "publishAuction": "Publică o licitație",
-      "viewAll": "Vezi toate licitațiile",
-      "addAuction": "Adaugă o licitație"
-    },
-    "safety": {
-      "title": "Recomandări pentru tranzacții sigure",
-      "description": "Quick Exit nu procesează plata și nu ține fonduri în custodie. Înainte de plată sau predare, verifică activul, actele și identitatea celeilalte părți.",
-      "tips": [
-        "Nu plăti avans fără verificări.",
-        "Pentru sume mari, folosește contract și consultanță de specialitate.",
-        "Nu introduce datele cardului în linkuri primite de la alți utilizatori."
-      ]
     },
     "globalStats": {
       "declaredValueLabel": "Valoare declarată în anunțuri și cereri",
@@ -227,6 +240,9 @@
     "highestOffer": "Cea mai mare ofertă",
     "favoriteAdd": "Adaugă „{title}” la favorite",
     "favoriteRemove": "Elimină „{title}” din favorite",
+    "marketplace": {
+      "auction": "Licitație deschisă"
+    },
     "auction": {
       "expired": "Expirată",
       "closesToday": "Se închide azi",
@@ -247,9 +263,11 @@
   },
   "Footer": {
     "brandName": "QUICK EXIT",
-    "tagline": "Platformă pentru vânzări accelerate și contact direct în România. Conectăm active cu cumpărători și investitori interesați prin tehnologie; disponibilitatea fondurilor nu este verificată de platformă.",
+    "tagline": "Marketplace pentru automobile, proprietăți și obiecte de colecție, cu prețuri transparente și contact direct în România.",
     "accountHint": "Poți naviga fără cont. Pentru publicare, trimitere oferte și Camera de Negociere ai nevoie de un cont simplu.",
     "madeInRomania": "Made in Romania",
+    "stripeFees": "Stripe procesează taxele de listare QuickExit, nu plata activului.",
+    "identityOptional": "Verificarea identității este disponibilă, opțional, pentru conturi.",
     "platform": {
       "title": "Platformă",
       "howItWorks": "Cum funcționează",
