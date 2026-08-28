@@ -2,11 +2,15 @@ import {
   CANONICAL_STRIPE_WEBHOOK_URL,
   assertListingSaleIntentForFulfillment,
   classifyAlreadyActiveFulfillment,
+  classifyCheckoutSessionContract,
+  classifyLostActivationRace,
   classifyPaidSessionAmount,
   classifyWebhookProbeStatus,
   expectedMinorAmountForPriceId,
   listingFulfillmentHttpStatus,
+  listingPriceMatchesPaidPrice,
   mergeStripeFulfillmentIntoDetails,
+  parseCheckoutObjectType,
   storedCheckoutSessionId,
 } from "../lib/stripeListingFulfillment";
 import { getExpiryIsoForPackage, getPackageByPriceId } from "../lib/stripePackages";
@@ -56,9 +60,56 @@ assert(listingFulfillmentHttpStatus("conflicting_session") === 409, "conflicting
 assert(listingFulfillmentHttpStatus("test_mode") === 400, "test mode rejected");
 assert(listingFulfillmentHttpStatus("incompatible_sale_intent") === 422, "sale-intent mismatch rejected");
 assert(listingFulfillmentHttpStatus("not_paid") === 200, "unpaid completed session acknowledged without fulfillment");
+assert(listingFulfillmentHttpStatus("session_not_complete") === 422, "incomplete session rejected");
+assert(listingFulfillmentHttpStatus("package_mismatch") === 422, "listing package vs paid price rejected");
+assert(parseCheckoutObjectType("listing") === "listing", "explicit listing type");
+assert(parseCheckoutObjectType("demand") === "demand", "explicit demand type");
+assert(parseCheckoutObjectType("") === null, "empty type is not default listing");
+assert(parseCheckoutObjectType("offer") === null, "unrelated checkout type ignored");
+assert(classifyCheckoutSessionContract({ status: "complete", payment_status: "paid" }) === "ok", "complete paid ok");
+assert(
+  classifyCheckoutSessionContract({ status: "open", payment_status: "paid" }) === "session_not_complete",
+  "open session rejected",
+);
+assert(
+  classifyCheckoutSessionContract({ status: "complete", payment_status: "unpaid" }) === "not_paid",
+  "unpaid complete rejected from fulfillment",
+);
+assert(
+  listingPriceMatchesPaidPrice({ listingPriceId: PROVEN_PRICE, paidPriceId: PROVEN_PRICE }),
+  "server listing price must match paid price",
+);
+assert(
+  !listingPriceMatchesPaidPrice({ listingPriceId: PROVEN_PRICE, paidPriceId: "price_other" }),
+  "client price cannot override listing catalog",
+);
 
 const sessionA = "cs_live_a1rCZ2TihHzIIZ4f22D8jPz3os00QU2dGElUmqQmA5Mhh3Tjvxf2082BOQ";
 const sessionB = "cs_live_otherSessionxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+assert(
+  classifyLostActivationRace({
+    currentStatus: "active",
+    storedSessionId: null,
+    incomingSessionId: sessionA,
+  }) === "idempotent",
+  "concurrent loser sees active recovered/active row as idempotent",
+);
+assert(
+  classifyLostActivationRace({
+    currentStatus: "pending_payment",
+    storedSessionId: null,
+    incomingSessionId: sessionA,
+  }) === "retry",
+  "true zero-row while still pending is retryable",
+);
+assert(
+  classifyLostActivationRace({
+    currentStatus: "active",
+    storedSessionId: sessionA,
+    incomingSessionId: sessionB,
+  }) === "conflicting_session",
+  "concurrent loser with a different stored Session is rejected",
+);
 assert(classifyAlreadyActiveFulfillment(null, sessionA) === "idempotent", "active without stored session is idempotent");
 assert(classifyAlreadyActiveFulfillment(sessionA, sessionA) === "idempotent", "same session idempotent");
 assert(classifyAlreadyActiveFulfillment(sessionA, sessionB) === "conflicting_session", "conflicting session");
@@ -78,6 +129,7 @@ const merged = mergeStripeFulfillmentIntoDetails(
 );
 assert(merged.package === "standard", "merge does not overwrite package");
 assert(merged.brand === "keep-me", "merge does not overwrite listing content");
+assert(merged.strategy === "standard", "merge does not overwrite sale-intent strategy");
 assert(storedCheckoutSessionId(merged) === sessionA, "stored session readable");
 
 const directIntent = assertListingSaleIntentForFulfillment({

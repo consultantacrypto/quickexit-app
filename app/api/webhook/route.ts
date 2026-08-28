@@ -14,9 +14,14 @@ import {
 } from '@/lib/stripeWebhookActivation';
 import {
   classifyAlreadyActiveFulfillment,
+  classifyCheckoutSessionContract,
+  classifyLostActivationRace,
+  listingPriceMatchesPaidPrice,
   mergeStripeFulfillmentIntoDetails,
   storedCheckoutSessionId,
 } from '@/lib/stripeListingFulfillment';
+import { resolveListingPackageIdFromRow } from '@/lib/listingSaleStrategy';
+import { getPriceIdForPackageId } from '@/lib/stripePackages';
 
 export async function POST(req: Request) {
   try {
@@ -59,9 +64,19 @@ export async function POST(req: Request) {
       return new NextResponse(`Eroare Semnătură: ${err.message}`, { status: 400 });
     }
 
+    if (event.livemode === false) {
+      console.error('[webhook] test-mode event rejected');
+      return NextResponse.json({ received: false, error: 'test_mode' }, { status: 400 });
+    }
+
     // 3. PRINDEREA EVENIMENTULUI DE PLATĂ
     if (event.type === 'checkout.session.completed') {
       const session = event.data.object as Stripe.Checkout.Session;
+      const sessionContract = classifyCheckoutSessionContract(session);
+      if (sessionContract === 'session_not_complete') {
+        console.error('[webhook] session not complete', { sessionId: session.id });
+        return NextResponse.json({ received: false, error: 'session_not_complete' }, { status: 422 });
+      }
       const paidAmount = Number(session.amount_total ?? 0);
       const paidCurrency = String(session.currency ?? '').toLowerCase();
       const paymentStatus = String(session.payment_status ?? '').toLowerCase();
@@ -120,7 +135,7 @@ export async function POST(req: Request) {
           if (activation.source !== 'none') {
             const { data: listing, error: listingError } = await supabase
               .from('listings')
-              .select('id, status, details')
+              .select('id, status, sale_strategy, details')
               .eq('id', listingId)
               .single();
             if (listingError || !listing) {
@@ -131,6 +146,20 @@ export async function POST(req: Request) {
                 code: listingError?.code,
               });
               return NextResponse.json({ received: false, error: 'object_not_found' }, { status: 500 });
+            }
+            const listingPkg = resolveListingPackageIdFromRow(listing);
+            const listingPriceId = listingPkg ? getPriceIdForPackageId(listingPkg) : null;
+            if (
+              !listingPriceMatchesPaidPrice({
+                listingPriceId,
+                paidPriceId: activation.priceId,
+              })
+            ) {
+              console.error('[webhook] listing package vs paid price mismatch', {
+                sessionId: session.id,
+                listingId,
+              });
+              return NextResponse.json({ received: false, error: 'package_mismatch' }, { status: 422 });
             }
             if (listing.status === 'active') {
               const already = classifyAlreadyActiveFulfillment(
@@ -174,10 +203,29 @@ export async function POST(req: Request) {
               },
             );
             if (updateError) {
+              if (updateError.code === 'zero_row_update') {
+                const raced = await supabase
+                  .from('listings')
+                  .select('id, status, details')
+                  .eq('id', listingId)
+                  .maybeSingle();
+                const race = classifyLostActivationRace({
+                  currentStatus: (raced.data as { status?: string; details?: unknown } | null)?.status,
+                  storedSessionId: storedCheckoutSessionId(
+                    (raced.data as { details?: unknown } | null)?.details,
+                  ),
+                  incomingSessionId: session.id,
+                });
+                if (race === 'idempotent') {
+                  return NextResponse.json({ received: true, idempotent: true, type: 'listing' });
+                }
+                if (race === 'conflicting_session') {
+                  return NextResponse.json({ received: false, error: 'conflicting_session' }, { status: 409 });
+                }
+              }
               console.error('[webhook] Eroare activare listing (priceId flow) — RECUPERARE MANUALĂ:', {
                 sessionId: session.id,
                 listingId,
-                activation,
                 supabase: updateError.supabase,
                 error: updateError.message,
               });
@@ -218,12 +266,27 @@ export async function POST(req: Request) {
 
         const { data: listing, error: listingError } = await supabase
           .from('listings')
-          .select('id, status, details')
+          .select('id, status, sale_strategy, details')
           .eq('id', listingId)
           .single();
         if (listingError || !listing) {
           console.error('[webhook] listing not found', { sessionId: session.id, listingId, reason: listingError?.message });
           return NextResponse.json({ received: false, error: 'object_not_found' }, { status: 500 });
+        }
+        const listingPkg = resolveListingPackageIdFromRow(listing);
+        const listingPriceId = listingPkg ? getPriceIdForPackageId(listingPkg) : null;
+        const paidPriceId = priceId || getPriceIdForPackageId(pkg.id);
+        if (
+          !listingPriceMatchesPaidPrice({
+            listingPriceId,
+            paidPriceId,
+          })
+        ) {
+          console.error('[webhook] listing package vs paid price mismatch', {
+            sessionId: session.id,
+            listingId,
+          });
+          return NextResponse.json({ received: false, error: 'package_mismatch' }, { status: 422 });
         }
         if (listing.status === 'active') {
           const already = classifyAlreadyActiveFulfillment(
@@ -260,6 +323,26 @@ export async function POST(req: Request) {
           },
         );
         if (legacyError) {
+          if (legacyError.code === 'zero_row_update') {
+            const raced = await supabase
+              .from('listings')
+              .select('id, status, details')
+              .eq('id', listingId)
+              .maybeSingle();
+            const race = classifyLostActivationRace({
+              currentStatus: (raced.data as { status?: string; details?: unknown } | null)?.status,
+              storedSessionId: storedCheckoutSessionId(
+                (raced.data as { details?: unknown } | null)?.details,
+              ),
+              incomingSessionId: session.id,
+            });
+            if (race === 'idempotent') {
+              return NextResponse.json({ received: true, idempotent: true, type: 'listing' });
+            }
+            if (race === 'conflicting_session') {
+              return NextResponse.json({ received: false, error: 'conflicting_session' }, { status: 409 });
+            }
+          }
           console.error('Eroare activare Listing:', legacyError.message);
           return new NextResponse('Eroare activare listing', { status: 500 });
         }

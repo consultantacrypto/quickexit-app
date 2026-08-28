@@ -37,7 +37,9 @@ export type ListingFulfillmentFailureCode =
   | "test_mode"
   | "incompatible_sale_intent"
   | "not_paid"
-  | "invalid_amount";
+  | "invalid_amount"
+  | "session_not_complete"
+  | "package_mismatch";
 
 export function listingFulfillmentHttpStatus(code: ListingFulfillmentFailureCode): number {
   switch (code) {
@@ -46,6 +48,8 @@ export function listingFulfillmentHttpStatus(code: ListingFulfillmentFailureCode
     case "currency_mismatch":
     case "incompatible_sale_intent":
     case "invalid_amount":
+    case "session_not_complete":
+    case "package_mismatch":
       return 422;
     case "conflicting_session":
       return 409;
@@ -85,6 +89,39 @@ export function classifyAlreadyActiveFulfillment(
   if (!incoming) return "conflicting_session";
   if (!storedSessionId) return "idempotent";
   return storedSessionId === incoming ? "idempotent" : "conflicting_session";
+}
+
+export function parseCheckoutObjectType(value: unknown): "listing" | "demand" | null {
+  const raw = typeof value === "string" ? value.trim() : "";
+  if (raw === "listing" || raw === "demand") return raw;
+  return null;
+}
+
+export function classifyCheckoutSessionContract(session: {
+  status?: string | null;
+  payment_status?: string | null;
+}): "ok" | "session_not_complete" | "not_paid" {
+  if (String(session.status ?? "").toLowerCase() !== "complete") return "session_not_complete";
+  if (String(session.payment_status ?? "").toLowerCase() !== "paid") return "not_paid";
+  return "ok";
+}
+
+export function classifyLostActivationRace(params: {
+  currentStatus?: string | null;
+  storedSessionId: string | null;
+  incomingSessionId: string;
+}): "idempotent" | "conflicting_session" | "retry" {
+  if (params.currentStatus === "active") {
+    return classifyAlreadyActiveFulfillment(params.storedSessionId, params.incomingSessionId);
+  }
+  return "retry";
+}
+
+export function listingPriceMatchesPaidPrice(params: {
+  listingPriceId: string | null;
+  paidPriceId: string | null;
+}): boolean {
+  return Boolean(params.listingPriceId && params.paidPriceId && params.listingPriceId === params.paidPriceId);
 }
 
 export function mergeStripeFulfillmentIntoDetails(

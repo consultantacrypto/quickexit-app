@@ -10,14 +10,20 @@ import {
   CANONICAL_STRIPE_WEBHOOK_URL,
   assertListingSaleIntentForFulfillment,
   classifyAlreadyActiveFulfillment,
+  classifyCheckoutSessionContract,
+  classifyLostActivationRace,
   classifyPaidSessionAmount,
   expectedMinorAmountForPriceId,
   listingFulfillmentHttpStatus,
+  listingPriceMatchesPaidPrice,
   mergeStripeFulfillmentIntoDetails,
+  parseCheckoutObjectType,
   storedCheckoutSessionId,
   type ListingFulfillmentFailureCode,
   type StripeFulfillmentRecord,
 } from "@/lib/stripeListingFulfillment";
+import { resolveListingPackageIdFromRow } from "@/lib/listingSaleStrategy";
+import { getPriceIdForPackageId } from "@/lib/stripePackages";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -85,7 +91,26 @@ export async function POST(req: Request) {
     }
 
     const session = event.data.object as Stripe.Checkout.Session;
-    const paymentStatus = String(session.payment_status ?? "").toLowerCase();
+    const checkoutType = parseCheckoutObjectType(session.metadata?.type);
+    if (!checkoutType) {
+      console.log("[stripe/webhook] checkout type ignored", {
+        eventId: event.id,
+        sessionId: session.id,
+        checkoutType: session.metadata?.type ?? "empty",
+      });
+      return NextResponse.json({ received: true, ignored: "unknown_checkout_type" });
+    }
+
+    const sessionContract = classifyCheckoutSessionContract(session);
+    if (sessionContract !== "ok") {
+      return fail(sessionContract, {
+        eventId: event.id,
+        sessionId: session.id,
+        status: session.status ?? null,
+        paymentStatus: session.payment_status ?? null,
+      });
+    }
+
     const paymentIntentId =
       typeof session.payment_intent === "string"
         ? session.payment_intent
@@ -95,15 +120,13 @@ export async function POST(req: Request) {
       eventId: event.id,
       sessionId: session.id,
       listingId: session.metadata?.listingId ?? session.metadata?.listing_id ?? null,
-      type: session.metadata?.type ?? null,
+      type: checkoutType,
       canonicalEndpoint: CANONICAL_STRIPE_WEBHOOK_URL,
     });
 
-    if (paymentStatus !== "paid") {
-      return fail("not_paid", { eventId: event.id, sessionId: session.id, paymentStatus });
-    }
-
-    const { type, listingId, demandId, userId, objectId, metadata } = extractCheckoutIds(session);
+    const { listingId, demandId, userId, metadata } = extractCheckoutIds(session);
+    const type = checkoutType;
+    const objectId = type === "demand" ? demandId : listingId;
     const table = type === "demand" ? "demands" : "listings";
 
     if (!objectId) {
@@ -218,6 +241,22 @@ export async function POST(req: Request) {
           listingId: objectId,
         });
       }
+      const listingPkg = resolveListingPackageIdFromRow(row);
+      const listingPriceId = listingPkg ? getPriceIdForPackageId(listingPkg) : null;
+      if (
+        !listingPriceMatchesPaidPrice({
+          listingPriceId,
+          paidPriceId: activation.priceId,
+        })
+      ) {
+        return fail("package_mismatch", {
+          eventId: event.id,
+          sessionId: session.id,
+          listingId: objectId,
+          listingPriceId,
+          paidPriceId: activation.priceId ?? null,
+        });
+      }
     }
 
     if (row.status === "active") {
@@ -268,6 +307,33 @@ export async function POST(req: Request) {
       extraPayload,
     );
     if (updateError) {
+      if (updateError.code === "zero_row_update" && type === "listing") {
+        const raced = await supabase
+          .from("listings")
+          .select("id, status, details")
+          .eq("id", objectId)
+          .maybeSingle();
+        const race = classifyLostActivationRace({
+          currentStatus: (raced.data as FulfillmentRow | null)?.status,
+          storedSessionId: storedCheckoutSessionId((raced.data as FulfillmentRow | null)?.details),
+          incomingSessionId: session.id,
+        });
+        if (race === "idempotent") {
+          console.log("[stripe/webhook] concurrent activation lost race — idempotent", {
+            eventId: event.id,
+            sessionId: session.id,
+            listingId: objectId,
+          });
+          return NextResponse.json({ received: true, idempotent: true });
+        }
+        if (race === "conflicting_session") {
+          return fail("conflicting_session", {
+            eventId: event.id,
+            sessionId: session.id,
+            listingId: objectId,
+          });
+        }
+      }
       const code: ListingFulfillmentFailureCode =
         updateError.code === "zero_row_update" || updateError.code === "ambiguous_update"
           ? updateError.code
