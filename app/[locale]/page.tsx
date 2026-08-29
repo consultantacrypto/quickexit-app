@@ -100,7 +100,7 @@ function glueHighlightPunctuation(phrase: { before: string; highlight: string; a
 }
 
 const HERO_LINE_CLASS =
-  "block text-[3.35rem] normal-case leading-[0.9] sm:text-7xl md:text-7xl md:leading-[0.85] lg:text-9xl xl:text-[8.25rem] 2xl:text-[8.75rem] 2xl:leading-[0.82]";
+  "block text-[3.35rem] normal-case leading-[0.9] sm:text-7xl md:text-[4.3rem] md:leading-[0.85] lg:text-9xl xl:text-[8.25rem] 2xl:text-[8.75rem] 2xl:leading-[0.82]";
 
 type HomePageProps = {
   params: Promise<{ locale: string }>;
@@ -134,8 +134,6 @@ export default async function Home({ params }: HomePageProps) {
   const heroLine2 = glueHighlightPunctuation(
     splitHighlightedPhrase(tHero("titleLine2"), tHero("titleLine2Highlight")),
   );
-  const evaluateCta = tHero("evaluateCta");
-  const evaluateCtaText = evaluateCta.endsWith("?") ? evaluateCta.slice(0, -1) : evaluateCta;
 
   const listingsTitle = splitHighlightedPhrase(
     tHome("listings.title"),
@@ -225,10 +223,10 @@ export default async function Home({ params }: HomePageProps) {
         />
       )}
 
-      <section className="relative overflow-hidden bg-white pb-6 pt-6 text-center md:pb-8 md:pt-8 lg:pb-9 lg:pt-7 xl:pt-6">
+      <section className="relative overflow-hidden bg-white pb-8 pt-6 text-center md:pb-10 md:pt-8 lg:pb-10 lg:pt-7 xl:pt-6">
         <div className="mx-auto max-w-[1440px] px-4 md:px-8">
           <div className="mx-auto w-full">
-            <h1 className="mb-4 font-black italic tracking-tighter text-black md:mb-5 lg:mb-6">
+            <h1 className="mb-6 pb-2 font-black italic tracking-tighter text-black md:mb-8 md:pb-3">
               <span className={`${HERO_LINE_CLASS} max-md:whitespace-nowrap`}>
                 {heroLine1.before}
                 <span className="quickexit-acum-pulse whitespace-nowrap text-[#FFD100]">
@@ -249,7 +247,7 @@ export default async function Home({ params }: HomePageProps) {
               </span>
             </h1>
 
-            <div className="mx-auto mb-4 max-w-[23rem] px-1.5 sm:max-w-3xl sm:px-2 md:mb-5 lg:mb-5 lg:max-w-[54rem]">
+            <div className="mx-auto mb-5 max-w-[23rem] px-1.5 sm:max-w-3xl sm:px-2 md:mb-6 lg:max-w-[54rem]">
               <p className="text-[13px] font-bold leading-[1.56] sm:text-[14px] sm:leading-[1.6] md:text-[17px] md:leading-[1.62] lg:text-[20px] lg:leading-[1.65]">
                 <span className="bg-[#FFD100] px-2.5 py-1.5 text-black box-decoration-clone sm:px-3 md:px-3.5 md:py-2">
                   {tHero("subtitle")}
@@ -257,25 +255,14 @@ export default async function Home({ params }: HomePageProps) {
               </p>
             </div>
 
-            <div className="mb-2 flex flex-col items-center md:mb-3 lg:mb-3">
+            <div className="flex flex-col items-center">
               <TrackedLink
-                href="/evaluare"
-                eventName="click_evaluate"
+                href="/pune-anunt"
+                eventName="click_post_listing"
                 eventParams={{ source: "home_hero" }}
-                className="group relative inline-flex items-center justify-center overflow-hidden whitespace-nowrap rounded-full border border-black/[0.12] bg-black/90 px-8 py-3.5 text-sm font-semibold uppercase tracking-[0.12em] text-[#FFD100] shadow-[0_14px_36px_-10px_rgba(0,0,0,0.45)] backdrop-blur-md transition-all duration-300 hover:border-[#FFD100]/35 hover:bg-black hover:shadow-[0_22px_48px_-14px_rgba(0,0,0,0.5)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#FFD100] md:px-11 md:py-4 md:text-base xl:px-12 xl:py-[1.125rem] xl:text-[17px]"
+                className="group relative inline-flex min-h-12 items-center justify-center overflow-hidden whitespace-nowrap rounded-full border border-black/[0.12] bg-black/90 px-8 py-3.5 text-sm font-semibold uppercase tracking-[0.12em] text-[#FFD100] shadow-[0_14px_36px_-10px_rgba(0,0,0,0.45)] backdrop-blur-md transition-all duration-300 hover:border-[#FFD100]/35 hover:bg-black hover:shadow-[0_22px_48px_-14px_rgba(0,0,0,0.5)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#FFD100] md:min-h-12 md:px-11 md:py-4 md:text-base xl:px-12 xl:py-[1.125rem] xl:text-[17px]"
               >
-                <span className="relative z-10 whitespace-nowrap">
-                  {evaluateCtaText}
-                  <span className="quickexit-question-pulse inline-block">?</span>
-                </span>
-              </TrackedLink>
-              <TrackedLink
-                href="/capital-disponibil"
-                eventName="click_capital_available"
-                eventParams={{ source: "home_hero" }}
-                className="mt-2.5 inline-block border-b-2 border-transparent py-2 text-[10px] font-black uppercase tracking-widest text-neutral-600 underline-offset-4 transition hover:border-black hover:text-black md:mt-3 md:text-[11px]"
-              >
-                {tHero("viewBuyerRequests")}
+                <span className="relative z-10 whitespace-nowrap">{tHero("primaryCta")}</span>
               </TrackedLink>
             </div>
           </div>
