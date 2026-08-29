@@ -16,8 +16,6 @@ import { isPublicAuctionOpen } from "@/lib/auctionOpen";
 
 export const revalidate = 60;
 
-const PACKAGE_IDS = ["auction", "economy", "standard", "urgent"] as const;
-
 const CATEGORY_DEFS = [
   {
     slug: "auto",
@@ -91,6 +89,19 @@ function splitHighlightedPhrase(full: string, highlight: string) {
   };
 }
 
+/** Keep trailing punctuation on the highlighted word so it cannot wrap onto its own line. */
+function glueHighlightPunctuation(phrase: { before: string; highlight: string; after: string }) {
+  const punct = phrase.after.match(/^[.,!?…]+/)?.[0] ?? "";
+  return {
+    before: phrase.before,
+    glued: `${phrase.highlight}${punct}`,
+    rest: phrase.after.slice(punct.length),
+  };
+}
+
+const HERO_LINE_CLASS =
+  "block text-[3.35rem] normal-case leading-[0.9] sm:text-7xl md:text-7xl md:leading-[0.85] lg:text-9xl xl:text-[8.25rem] 2xl:text-[8.75rem] 2xl:leading-[0.82]";
+
 type HomePageProps = {
   params: Promise<{ locale: string }>;
 };
@@ -112,14 +123,17 @@ export default async function Home({ params }: HomePageProps) {
   setRequestLocale(locale);
 
   const tHero = await getTranslations("Hero");
-  const tPackages = await getTranslations("Packages");
   const tHome = await getTranslations("Home");
   const tCat = await getTranslations("Categories");
 
   const siteUrl = getSiteUrl();
   const numberLocale = getNumberLocale(locale);
-  const heroLine1 = splitHighlightedPhrase(tHero("titleLine1"), tHero("titleLine1Highlight"));
-  const heroLine2 = splitHighlightedPhrase(tHero("titleLine2"), tHero("titleLine2Highlight"));
+  const heroLine1 = glueHighlightPunctuation(
+    splitHighlightedPhrase(tHero("titleLine1"), tHero("titleLine1Highlight")),
+  );
+  const heroLine2 = glueHighlightPunctuation(
+    splitHighlightedPhrase(tHero("titleLine2"), tHero("titleLine2Highlight")),
+  );
   const evaluateCta = tHero("evaluateCta");
   const evaluateCtaText = evaluateCta.endsWith("?") ? evaluateCta.slice(0, -1) : evaluateCta;
 
@@ -213,19 +227,25 @@ export default async function Home({ params }: HomePageProps) {
 
       <section className="relative overflow-hidden bg-white pb-6 pt-6 text-center md:pb-8 md:pt-8 lg:pb-9 lg:pt-7 xl:pt-6">
         <div className="mx-auto max-w-[1440px] px-4 md:px-8">
-          <div className="mx-auto max-w-4xl">
+          <div className="mx-auto w-full">
             <h1 className="mb-4 font-black italic tracking-tighter text-black md:mb-5 lg:mb-6">
-              <span className="block text-6xl normal-case leading-[0.9] sm:text-7xl md:text-8xl md:leading-[0.85] lg:text-9xl xl:text-[8.25rem] 2xl:text-[8.75rem] 2xl:leading-[0.82]">
+              <span className={`${HERO_LINE_CLASS} max-md:whitespace-nowrap`}>
                 {heroLine1.before}
-                <span className="quickexit-acum-pulse text-[#FFD100]">{heroLine1.highlight}</span>
-                {heroLine1.after}
-              </span>
-              <span className="mt-1 block text-6xl normal-case leading-[0.9] sm:mt-0 sm:text-7xl md:text-8xl md:leading-[0.85] lg:text-9xl xl:text-[8.25rem] 2xl:text-[8.75rem] 2xl:leading-[0.82]">
-                {heroLine2.before}
-                <span className="quickexit-hero-sweep inline-block bg-[length:240%_100%] bg-clip-text text-transparent [background-image:linear-gradient(110deg,#E5E7EB_0%,#E5E7EB_42%,#FFF3A3_47%,#FFD100_50%,#FFF3A3_53%,#E5E7EB_58%,#E5E7EB_100%)]">
-                  {heroLine2.highlight}
+                <span className="quickexit-acum-pulse whitespace-nowrap text-[#FFD100]">
+                  {heroLine1.glued}
                 </span>
-                {heroLine2.after}
+                {heroLine1.rest ? (
+                  <span className="whitespace-nowrap">{heroLine1.rest}</span>
+                ) : null}
+              </span>
+              <span className={`mt-1 sm:mt-0 md:whitespace-nowrap ${HERO_LINE_CLASS}`}>
+                {heroLine2.before}
+                <span className="quickexit-hero-sweep inline-block whitespace-nowrap bg-[length:240%_100%] bg-clip-text text-transparent [background-image:linear-gradient(110deg,#E5E7EB_0%,#E5E7EB_42%,#FFF3A3_47%,#FFD100_50%,#FFF3A3_53%,#E5E7EB_58%,#E5E7EB_100%)]">
+                  {heroLine2.glued}
+                </span>
+                {heroLine2.rest ? (
+                  <span className="whitespace-nowrap">{heroLine2.rest}</span>
+                ) : null}
               </span>
             </h1>
 
@@ -259,37 +279,6 @@ export default async function Home({ params }: HomePageProps) {
               </TrackedLink>
             </div>
           </div>
-
-          <div className="mt-1 md:mt-2">
-            <div className="mb-2.5 text-center md:mb-3 lg:mb-3.5">
-              <h2 className="text-lg font-black uppercase italic tracking-tight text-black md:text-2xl">
-                {tHero("packagesSectionTitle")}
-              </h2>
-            </div>
-
-            <div className="mx-auto grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4 lg:gap-5">
-              {PACKAGE_IDS.map((packageId) => (
-                <Link
-                  key={packageId}
-                  href={`/pune-anunt?package=${packageId}`}
-                  className="block rounded-2xl border-[3px] border-black bg-white p-3 text-left shadow-[3px_3px_0_0_rgba(0,0,0,1)] transition hover:-translate-y-0.5 md:p-3.5 lg:p-4"
-                >
-                  <p className="mb-1 text-[10px] font-black uppercase tracking-widest text-gray-500 md:text-[11px]">
-                    {tPackages(`${packageId}.title`)}
-                  </p>
-                  <p className="text-base font-black uppercase italic leading-none md:text-lg lg:text-xl">
-                    {tPackages(`${packageId}.duration`)}
-                  </p>
-                  <p className="mt-2 inline-block rounded bg-black px-2 py-0.5 text-[11px] font-black uppercase tracking-tighter text-[#FFD100] md:text-[11px]">
-                    {tPackages(`${packageId}.price`)}
-                  </p>
-                  <p className="mt-2 block text-[10px] font-bold uppercase tracking-tighter text-neutral-500 opacity-90 md:text-[11px]">
-                    {tPackages(`${packageId}.description`)}
-                  </p>
-                </Link>
-              ))}
-            </div>
-          </div>
         </div>
       </section>
 
@@ -318,7 +307,10 @@ export default async function Home({ params }: HomePageProps) {
         </div>
       </section>
 
-      <section className="border-t border-gray-100 bg-white pt-16 pb-16 md:pt-20 md:pb-24">
+      <section
+        id="active-assets"
+        className="scroll-mt-20 border-t border-gray-100 bg-white pt-16 pb-16 md:scroll-mt-32 md:pt-20 md:pb-24"
+      >
         <div className="mx-auto max-w-[1440px] px-4 md:px-8">
           <div className="mb-4 flex flex-col items-start justify-between gap-5 md:flex-row md:items-end">
             <h2 className="text-3xl font-black uppercase italic tracking-tight text-black md:text-4xl">
