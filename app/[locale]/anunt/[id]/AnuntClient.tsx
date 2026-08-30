@@ -9,11 +9,12 @@ import { MessagesSquare, Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import AuthModal from "@/app/components/AuthModal";
 import AdCard from "@/app/components/AdCard";
+import ListingMedia from "@/app/components/ListingMedia";
 import { normalizeSaleType } from "@/utils/normalizeSaleType";
 import { parseListingOfferCount } from "@/utils/auctionListingUi";
 import { buildSocialShareKit } from "@/lib/socialShare";
 import { trackEvent } from "@/lib/analytics";
-import supabaseImageLoader from "@/lib/supabase-image-loader";
+import { canonicalListingImageSrc } from "@/lib/listingMedia";
 import {
   formatEurAmount,
   formatMemberSince,
@@ -24,7 +25,6 @@ import { getListingPriceAdvantage } from "@/lib/listingPriceAdvantage";
 import { getListingCtaMode } from "@/lib/listingCta";
 import {
   adCardPricingProps,
-  dealScoreForCard,
   isValidPrice,
 } from "@/lib/listingPrice";
 import { getPricingMode } from "@/lib/pricingMode";
@@ -243,20 +243,6 @@ export default function AnuntClient({
     noLabel: t("details.no"),
   };
 
-  const strategyBadge = (strategy?: string | null): string => {
-    const n = normalizeSaleType(strategy);
-    switch (n) {
-      case "auction":
-        return t("strategyBadge.auction");
-      case "urgent":
-        return t("strategyBadge.urgent");
-      case "extreme":
-        return t("strategyBadge.extreme");
-      default:
-        return t("strategyBadge.standard");
-    }
-  };
-
   const kycStatusLabel = useCallback(
     (status: string | null | undefined): string => {
       if (status === "verified") return t("kyc.verified");
@@ -332,8 +318,7 @@ export default function AnuntClient({
     isEvaluatedPricing &&
     Number.isFinite(Number(adData.discount)) &&
     Number(adData.discount) > 0;
-  const showLiquidityScore =
-    !isFmOrderLike && isEvaluatedPricing && dealScoreForCard(adData.deal_score) !== null;
+  const showLiquidityScore = false; // public liquidity score removed — invented from discount
   const hasValidExitPrice = isValidPrice(adData.exit_price);
   const canUseClassicOfferFlow = !isPriceOnRequest && hasValidExitPrice;
 
@@ -371,6 +356,17 @@ export default function AnuntClient({
   const [isAccepting, setIsAccepting] = useState(false);
   const [acceptSuccess, setAcceptSuccess] = useState(false);
   const [acceptActionMessage, setAcceptActionMessage] = useState<{ type: "error"; text: string } | null>(null);
+
+  const [inquiryPhone, setInquiryPhone] = useState("");
+  const [inquiryMessage, setInquiryMessage] = useState("");
+  const [inquiryConsent, setInquiryConsent] = useState(false);
+  const [isSubmittingInquiry, setIsSubmittingInquiry] = useState(false);
+  const [inquirySuccess, setInquirySuccess] = useState(false);
+  const [inquiryNotified, setInquiryNotified] = useState(false);
+  const [inquiryActionMessage, setInquiryActionMessage] = useState<{
+    type: "error";
+    text: string;
+  } | null>(null);
 
   const router = useRouter();
   const [isOpeningRoom, setIsOpeningRoom] = useState(false);
@@ -756,9 +752,7 @@ export default function AnuntClient({
   };
 
   const trustKycChipLabel =
-    sellerProfile?.kyc_status === "verified"
-      ? t("trust.verifiedIdentity")
-      : t("trust.trustPrefix", { status: kycStatusLabel(sellerProfile?.kyc_status ?? null) });
+    sellerProfile?.kyc_status === "verified" ? t("trust.verifiedIdentity") : null;
 
   const canShowShareKit = adData?.status === "active" && adData?.is_seed === false;
   const socialKit = canShowShareKit
@@ -828,6 +822,60 @@ export default function AnuntClient({
     setActiveModal("offer");
     setOfferSuccess(false);
     setOfferActionMessage(null);
+  };
+
+  const openInquiryModal = async () => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) {
+      setShowAuthModal(true);
+      return;
+    }
+    setActiveModal("inquiry");
+    setInquirySuccess(false);
+    setInquiryNotified(false);
+    setInquiryActionMessage(null);
+  };
+
+  const submitListingInquiry = async () => {
+    if (!inquiryPhone || !inquiryConsent) return;
+    setIsSubmittingInquiry(true);
+    setInquiryActionMessage(null);
+    try {
+      const response = await fetch(`/api/listings/${adData.id}/inquiry`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          phone: inquiryPhone,
+          message: inquiryMessage,
+          consent: inquiryConsent,
+        }),
+      });
+      const payload = (await response.json().catch(() => null)) as {
+        success?: boolean;
+        notified?: boolean;
+        error?: string;
+      } | null;
+      if (!response.ok || !payload?.success) {
+        throw new Error(payload?.error || t("errors.inquirySubmitFailed"));
+      }
+      setInquiryNotified(payload.notified === true);
+      setInquirySuccess(true);
+      setInquiryPhone("");
+      setInquiryMessage("");
+      setInquiryConsent(false);
+    } catch (err) {
+      setInquiryActionMessage({
+        type: "error",
+        text:
+          err instanceof Error && err.message
+            ? err.message
+            : t("errors.inquirySubmitFailed"),
+      });
+    } finally {
+      setIsSubmittingInquiry(false);
+    }
   };
 
   const renderConversionPanel = () => (
@@ -901,12 +949,16 @@ export default function AnuntClient({
                   : {}),
               });
             } else if (ctaMode !== "auction") {
-              trackEvent("click_listing_offer", {
+              trackEvent("click_request_details", {
                 listing_id: adData.id,
                 category: adData.category || "unknown",
               });
             }
-            openOfferModal();
+            if (ctaMode === "auction") {
+              openOfferModal();
+            } else {
+              void openInquiryModal();
+            }
           }}
           className="w-full rounded-2xl border-[3px] border-black bg-black py-3.5 font-black uppercase tracking-wider text-[#FFD100] shadow-[5px_5px_0_0_#000] transition duration-150 hover:brightness-110 motion-reduce:transition-none md:py-4 md:text-sm"
         >
@@ -1047,21 +1099,23 @@ export default function AnuntClient({
               <button
                 type="button"
                 onClick={() => setImageLightboxOpen(true)}
-                className="group relative h-[300px] w-full cursor-pointer overflow-hidden rounded-[2rem] border-[3px] border-black bg-neutral-100 text-left shadow-[10px_10px_0_0_#FFD100] transition hover:border-[#FFD100] md:h-[400px] lg:h-[450px]"
+                className="group relative h-[300px] w-full cursor-pointer overflow-hidden rounded-[2rem] border-[3px] border-black bg-[#F5F1E8] text-left shadow-[10px_10px_0_0_#FFD100] transition hover:border-[#FFD100] md:h-[400px] lg:h-[450px]"
                 aria-label={t("gallery.openLightbox")}
               >
-                <Image
+                <ListingMedia
                   src={displayImages[currentImageIndex]}
                   alt={listingTitle || t("defaults.listingImageAlt")}
-                  fill
                   sizes="(max-width: 768px) 100vw, (max-width: 1200px) 70vw, 900px"
-                  className="object-cover transition-transform duration-500 group-hover:scale-[1.02]"
                   priority
-                  loader={supabaseImageLoader}
+                  containerAspect={16 / 9}
+                  className="absolute inset-0"
+                  imgClassName="transition-transform duration-500 group-hover:scale-[1.02]"
                 />
-                <div className="pointer-events-none absolute left-4 top-4 rounded-lg border-2 border-black bg-black px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-[#FFD100]">
-                  {strategyBadge(adData.sale_strategy)}
-                </div>
+                {isAuctionDetail ? (
+                  <div className="pointer-events-none absolute left-4 top-4 rounded-lg border-2 border-black bg-black px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-[#FFD100]">
+                    {t("strategyBadge.auction")}
+                  </div>
+                ) : null}
                 <div className="pointer-events-none absolute bottom-3 left-1/2 max-w-[90%] -translate-x-1/2 rounded-lg bg-black/65 px-3 py-1.5 text-center text-[9px] font-bold uppercase tracking-wide text-white">
                   {t("gallery.tapToEnlarge")}
                 </div>
@@ -1085,7 +1139,13 @@ export default function AnuntClient({
                           : "border-black opacity-70 hover:opacity-100"
                       }`}
                     >
-                      <Image src={img} alt={t("gallery.thumbnailAlt", { index: index + 1 })} fill className="object-cover" loader={supabaseImageLoader} />
+                      <ListingMedia
+                        src={img}
+                        alt={t("gallery.thumbnailAlt", { index: index + 1 })}
+                        sizes="160px"
+                        containerAspect={16 / 9}
+                        className="absolute inset-0"
+                      />
                     </button>
                   ))}
                 </div>
@@ -1148,13 +1208,15 @@ export default function AnuntClient({
               {fm ? <FutureMobilitySections fm={fm} /> : renderTechnicalDetails()}
 
               <div className="mt-6 flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={() => setActiveModal("verified")}
-                  className="flex items-center gap-1.5 rounded-lg border border-black/80 bg-black px-3 py-1.5 text-[9px] font-black uppercase tracking-wider text-[#FFD100] transition hover:brightness-110"
-                >
-                  <span className="leading-tight text-left normal-case">{trustKycChipLabel}</span>
-                </button>
+                {trustKycChipLabel ? (
+                  <button
+                    type="button"
+                    onClick={() => setActiveModal("verified")}
+                    className="flex items-center gap-1.5 rounded-lg border border-black/80 bg-black px-3 py-1.5 text-[9px] font-black uppercase tracking-wider text-[#FFD100] transition hover:brightness-110"
+                  >
+                    <span className="leading-tight text-left normal-case">{trustKycChipLabel}</span>
+                  </button>
+                ) : null}
                 <button
                   type="button"
                   onClick={() => setActiveModal("docs")}
@@ -1209,12 +1271,14 @@ export default function AnuntClient({
                         <span className={labelBase}>{t("seller.displayName")}</span>
                         <span className="mt-1 block font-bold text-black">{sellerDisplayName}</span>
                       </li>
-                      <li>
-                        <span className={labelBase}>{t("seller.status")}</span>
-                        <span className="mt-1 block font-bold text-black">
-                          {kycStatusLabel(sellerProfile?.kyc_status ?? null)}
-                        </span>
-                      </li>
+                      {sellerProfile?.kyc_status === "verified" ? (
+                        <li>
+                          <span className={labelBase}>{t("seller.status")}</span>
+                          <span className="mt-1 block font-bold text-black">
+                            {kycStatusLabel(sellerProfile.kyc_status)}
+                          </span>
+                        </li>
+                      ) : null}
                       {sellerMemberSince && (
                         <li>
                           <span className={labelBase}>{t("seller.memberSince")}</span>
@@ -1457,6 +1521,21 @@ export default function AnuntClient({
               setOfferSuccess(false);
             }}
             clampOfferPrice={clampOfferPrice}
+            inquirySuccess={inquirySuccess}
+            inquiryNotified={inquiryNotified}
+            inquiryActionMessage={inquiryActionMessage}
+            inquiryPhone={inquiryPhone}
+            inquiryMessage={inquiryMessage}
+            inquiryConsent={inquiryConsent}
+            isSubmittingInquiry={isSubmittingInquiry}
+            onInquiryPhoneChange={setInquiryPhone}
+            onInquiryMessageChange={setInquiryMessage}
+            onInquiryConsentChange={setInquiryConsent}
+            onSubmitInquiry={() => void submitListingInquiry()}
+            onInquirySuccessClose={() => {
+              setActiveModal(null);
+              setInquirySuccess(false);
+            }}
           />
         ) : null}
       </div>
@@ -1524,13 +1603,12 @@ export default function AnuntClient({
             onClick={(e) => e.stopPropagation()}
           >
             <Image
-              src={displayImages[currentImageIndex]}
+              src={canonicalListingImageSrc(displayImages[currentImageIndex])}
               alt={listingTitle || t("defaults.listingImageAlt")}
               fill
               className="object-contain"
               sizes="100vw"
               priority
-              loader={supabaseImageLoader}
             />
           </div>
 
