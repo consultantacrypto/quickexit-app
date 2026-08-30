@@ -182,6 +182,12 @@ export default async function Home({ params }: HomePageProps) {
     .order("created_at", { ascending: false })
     .limit(6);
 
+  const { count: activeDemandCount } = await supabase
+    .from("demands")
+    .select("id", { count: "exact", head: true })
+    .eq("status", "active");
+  const hasActiveCapital = (activeDemandCount ?? 0) > 0;
+
   const auctionsHome = (
     openAuctionListings?.filter((item) => isPublicAuctionOpen(item)) ?? []
   ).slice(0, 4);
@@ -347,6 +353,7 @@ export default async function Home({ params }: HomePageProps) {
         </div>
       </section>
 
+      {hasActiveCapital ? (
       <section className="border-t border-gray-100 bg-[#FDFCF8] px-4 py-16 md:py-24">
         <div className="mx-auto max-w-7xl">
           <div className="mb-12">
@@ -434,6 +441,21 @@ export default async function Home({ params }: HomePageProps) {
           </div>
         </div>
       </section>
+      ) : (
+      <section className="border-t border-gray-100 bg-[#FDFCF8] px-4 py-8 md:py-10">
+        <div className="mx-auto flex max-w-7xl flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
+          <p className="text-sm font-black uppercase italic tracking-tight text-black md:text-base">
+            {tHome("capital.emptyStripTitle")}
+          </p>
+          <Link
+            href="/posteaza-cerere"
+            className="inline-flex items-center justify-center rounded-2xl border-[3px] border-black bg-white px-6 py-3 text-[11px] font-black uppercase tracking-widest text-black shadow-[6px_6px_0_0_rgba(0,0,0,1)] transition hover:-translate-y-0.5 hover:shadow-[6px_6px_0_0_#FFD100] md:text-xs"
+          >
+            {tHome("capital.emptyStripCta")}
+          </Link>
+        </div>
+      </section>
+      )}
 
       <section className="border-t border-gray-100 bg-white px-4 py-16 md:py-24">
         <div className="mx-auto max-w-7xl">

@@ -191,8 +191,8 @@ export default function Footer() {
 
           <div className="flex flex-col items-center gap-5 sm:flex-row sm:flex-wrap sm:justify-end">
             <DiditKycTrustBadge />
-            <div className="flex items-center gap-8 opacity-30 grayscale transition-all hover:grayscale-0 hover:opacity-100">
-              <div className="text-[10px] font-black italic tracking-tighter text-white underline decoration-[#FFD100] decoration-2">
+            <div className="flex max-w-md items-center gap-8 opacity-70 transition-all hover:opacity-100">
+              <div className="text-[10px] font-black italic leading-snug tracking-tight text-white underline decoration-[#FFD100] decoration-2">
                 {t("securePayments")}
               </div>
               <div className="flex gap-4">
