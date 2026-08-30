@@ -1,32 +1,13 @@
 import type { ImageLoaderProps } from "next/image";
+import { canonicalListingImageSrc } from "@/lib/listingMedia";
 
-const SUPABASE_OBJECT_PUBLIC = "/storage/v1/object/public/";
-const SUPABASE_RENDER_PUBLIC = "/storage/v1/render/image/public/";
-
-function isSupabaseStorageObjectUrl(src: string): boolean {
-  return src.includes(SUPABASE_OBJECT_PUBLIC);
-}
-
-export default function supabaseImageLoader({
-  src,
-  width,
-  quality,
-}: ImageLoaderProps): string {
-  if (!src || typeof src !== "string") {
-    return src;
-  }
-
-  if (!isSupabaseStorageObjectUrl(src)) {
-    return src;
-  }
-
-  try {
-    const renderSrc = src.replace(SUPABASE_OBJECT_PUBLIC, SUPABASE_RENDER_PUBLIC);
-    const url = new URL(renderSrc);
-    url.searchParams.set("width", String(width));
-    url.searchParams.set("quality", String(quality ?? 75));
-    return url.toString();
-  } catch {
-    return src;
-  }
+/**
+ * Pass-through loader. Do not map object URLs onto `/render/image/` —
+ * that transform returns progressive JPEGs with an unscaled SOF height.
+ * Next/Image's default optimizer should be preferred (omit this loader).
+ * Kept so existing `loader={supabaseImageLoader}` call sites still emit
+ * undistorted originals if not yet migrated.
+ */
+export default function supabaseImageLoader({ src }: ImageLoaderProps): string {
+  return canonicalListingImageSrc(src) || src;
 }
