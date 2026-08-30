@@ -402,6 +402,12 @@
       "bodyDirect": "Pachetul stabilește cât timp rămâne promovat anunțul. Nu schimbă metoda de vânzare.",
       "titleAuction": "Pachet licitație deschisă",
       "bodyAuction": "Licitația deschisă include o fereastră de oferte de 30 de zile. Tu alegi manual dacă accepți o ofertă."
+    },
+    "cover": {
+      "title": "Imagini",
+      "setAsCover": "Setează ca imagine principală",
+      "currentCover": "Imagine principală",
+      "empty": "Nu există imagini pe acest anunț."
     }
   },
   "ListingDetail": {

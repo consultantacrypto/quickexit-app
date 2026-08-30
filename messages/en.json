@@ -402,6 +402,12 @@
       "bodyDirect": "The package sets how long the listing stays promoted. This does not change the sale method.",
       "titleAuction": "Open auction package",
       "bodyAuction": "Open auction includes a 30-day offer window. You choose manually whether to accept an offer."
+    },
+    "cover": {
+      "title": "Images",
+      "setAsCover": "Set as main image",
+      "currentCover": "Main image",
+      "empty": "This listing has no images."
     }
   },
   "ListingDetail": {

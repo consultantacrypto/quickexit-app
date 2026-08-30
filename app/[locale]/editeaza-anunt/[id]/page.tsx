@@ -9,6 +9,8 @@ import { getPricingMode, type PricingMode } from "@/lib/pricingMode";
 import { premiumSellerConfig } from "@/lib/premiumSeller";
 import { financingConfig } from "@/lib/financingConfig";
 import { LISTING_AUTO_CATEGORY } from "@/lib/listingPremium";
+import ListingMedia from "@/app/components/ListingMedia";
+import { reorderListingImagesCover } from "@/lib/listingMedia";
 
 export default function EditAdPage() {
   const tPost = useTranslations("PostListing");
@@ -29,6 +31,8 @@ export default function EditAdPage() {
   const [pricingMode, setPricingMode] = useState<PricingMode>("evaluated");
   const [initialPricingMode, setInitialPricingMode] = useState<PricingMode>("evaluated");
   const [formData, setFormData] = useState<any>({});
+  const [listingImages, setListingImages] = useState<string[]>([]);
+  const [coverIndex, setCoverIndex] = useState(0);
 
   const isOwner = currentUserId === premiumSellerConfig.ownerUserId;
 
@@ -61,6 +65,11 @@ export default function EditAdPage() {
         setPricingMode(mode);
         setInitialPricingMode(mode);
         setFormData(details);
+        const images = Array.isArray(data.images)
+          ? data.images.filter((url: unknown): url is string => typeof url === "string" && url.trim().length > 0)
+          : [];
+        setListingImages(images);
+        setCoverIndex(0);
       }
       setIsLoading(false);
     }
@@ -87,6 +96,7 @@ export default function EditAdPage() {
       title: string;
       description: string;
       details: Record<string, unknown>;
+      images?: string[];
       exit_price?: number | null;
       market_price?: number | null;
       discount?: number | null;
@@ -95,6 +105,7 @@ export default function EditAdPage() {
       title: adTitle,
       description: description,
       details: mergedDetails,
+      images: reorderListingImagesCover(listingImages, coverIndex),
     };
 
     if (pricingMode === "evaluated") {
@@ -169,6 +180,74 @@ export default function EditAdPage() {
             <div className="md:col-span-2">
               <label className="text-[10px] font-black uppercase text-gray-400">Titlu Anunț</label>
               <input type="text" value={adTitle} onChange={(e) => setAdTitle(e.target.value)} className="w-full mt-1 p-3 border-2 border-black rounded-lg font-bold uppercase focus:outline-none focus:border-[#FFD100]" />
+            </div>
+
+            <div className="md:col-span-2">
+              <p className="text-[10px] font-black uppercase text-gray-400">{tPost("cover.title")}</p>
+              {listingImages.length === 0 ? (
+                <p className="mt-2 text-sm font-semibold text-neutral-600">{tPost("cover.empty")}</p>
+              ) : (
+                <div
+                  role="radiogroup"
+                  aria-label={tPost("cover.title")}
+                  className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4"
+                >
+                  {listingImages.map((src, index) => {
+                    const isCover = index === coverIndex;
+                    return (
+                      <div key={`${src}-${index}`} className="space-y-2">
+                        <button
+                          type="button"
+                          role="radio"
+                          aria-checked={isCover}
+                          aria-label={
+                            isCover
+                              ? tPost("cover.currentCover")
+                              : tPost("cover.setAsCover")
+                          }
+                          onClick={() => setCoverIndex(index)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
+                              setCoverIndex(index);
+                            }
+                          }}
+                          className={`relative block aspect-[4/3] w-full overflow-hidden rounded-xl border-[3px] bg-[#F5F1E8] text-left transition ${
+                            isCover
+                              ? "border-[#FFD100] shadow-[4px_4px_0_0_#000]"
+                              : "border-black hover:border-[#FFD100]"
+                          }`}
+                        >
+                          <ListingMedia
+                            src={src}
+                            alt={`${adTitle || "listing"} ${index + 1}`}
+                            sizes="220px"
+                            className="absolute inset-0"
+                          />
+                          {isCover ? (
+                            <span className="absolute left-2 top-2 rounded-md border-2 border-black bg-[#FFD100] px-2 py-0.5 text-[8px] font-black uppercase tracking-wide text-black">
+                              {tPost("cover.currentCover")}
+                            </span>
+                          ) : null}
+                        </button>
+                        {!isCover ? (
+                          <button
+                            type="button"
+                            onClick={() => setCoverIndex(index)}
+                            className="w-full rounded-lg border-2 border-black bg-white px-2 py-1.5 text-[9px] font-black uppercase tracking-wide hover:bg-[#FFD100]"
+                          >
+                            {tPost("cover.setAsCover")}
+                          </button>
+                        ) : (
+                          <p className="text-center text-[9px] font-black uppercase tracking-wide text-neutral-500">
+                            {tPost("cover.currentCover")}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
             {/* AUTO & MOTO */}
