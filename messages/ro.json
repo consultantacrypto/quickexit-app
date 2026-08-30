@@ -170,7 +170,9 @@
       "fallbackTitle": "Cumpărători cu capital disponibil",
       "fallbackText": "Publică activul pe care îl cauți sau descoperă cererile active ale cumpărătorilor.",
       "fallbackPrimaryCta": "Publică o cerere",
-      "fallbackSecondaryCta": "Vezi toate cererile"
+      "fallbackSecondaryCta": "Vezi toate cererile",
+      "emptyStripTitle": "Cumperi cu cash? Spune-ne ce cauți.",
+      "emptyStripCta": "PUBLICĂ O CERERE"
     },
     "auctions": {
       "title": "Licitații deschise",
@@ -202,7 +204,7 @@
       "activeListingsSub": "Active disponibile chiar acum",
       "soldLabel": "Vânzări finalizate",
       "soldSub": "Tranzacții încheiate cu succes",
-      "activeCategoriesLabel": "Categorii active",
+      "activeCategoriesLabel": "Categorii cu anunțuri active",
       "activeCategoriesSub": "Domenii distincte cu anunțuri active"
     }
   },
@@ -276,7 +278,7 @@
       "odr": "S.O.L.",
       "odrDescription": "Soluționarea Online a Litigiilor"
     },
-    "securePayments": "SECURE PAYMENTS BY STRIPE",
+    "securePayments": "Plăți securizate prin Stripe pentru publicarea anunțurilor.",
     "visa": "VISA",
     "mastercard": "MASTERCARD"
   },

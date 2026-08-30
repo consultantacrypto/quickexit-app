@@ -170,7 +170,9 @@
       "fallbackTitle": "Buyers with available capital",
       "fallbackText": "Publish the asset you want to acquire or explore active buyer requests.",
       "fallbackPrimaryCta": "Publish a request",
-      "fallbackSecondaryCta": "View all requests"
+      "fallbackSecondaryCta": "View all requests",
+      "emptyStripTitle": "Buying with cash? Tell us what you’re looking for.",
+      "emptyStripCta": "POST A BUYER REQUEST"
     },
     "auctions": {
       "title": "Open auctions",
@@ -202,7 +204,7 @@
       "activeListingsSub": "Assets available right now",
       "soldLabel": "Completed sales",
       "soldSub": "Successfully closed transactions",
-      "activeCategoriesLabel": "Active categories",
+      "activeCategoriesLabel": "Categories with active listings",
       "activeCategoriesSub": "Distinct domains with active listings"
     }
   },
@@ -276,7 +278,7 @@
       "odr": "O.D.R.",
       "odrDescription": "Online Dispute Resolution"
     },
-    "securePayments": "SECURE PAYMENTS BY STRIPE",
+    "securePayments": "Listing publication payments secured by Stripe.",
     "visa": "VISA",
     "mastercard": "MASTERCARD"
   },
