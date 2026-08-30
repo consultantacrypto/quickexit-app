@@ -67,7 +67,7 @@ export function adCardPricingProps(
       ? onRequestLabel
       : (formatPriceOrNull(item.exit_price, numberLocale) ?? ""),
     discount: isEvaluated ? discountStringForCard(item.discount) : "0",
-    score: isEvaluated ? dealScoreForCard(item.deal_score) : null,
+    score: null,
   };
 }
 
