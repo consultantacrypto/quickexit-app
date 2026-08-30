@@ -41,18 +41,6 @@ export type ListingModalsProps = {
   onSubmitOffer: () => void;
   onOfferSuccessClose: () => void;
   clampOfferPrice: (value: number) => number;
-  inquirySuccess: boolean;
-  inquiryNotified: boolean;
-  inquiryActionMessage: ListingOfferActionMessage;
-  inquiryPhone: string;
-  inquiryMessage: string;
-  inquiryConsent: boolean;
-  isSubmittingInquiry: boolean;
-  onInquiryPhoneChange: (value: string) => void;
-  onInquiryMessageChange: (value: string) => void;
-  onInquiryConsentChange: (value: boolean) => void;
-  onSubmitInquiry: () => void;
-  onInquirySuccessClose: () => void;
 };
 
 export default function ListingModals({
@@ -86,18 +74,6 @@ export default function ListingModals({
   onSubmitOffer,
   onOfferSuccessClose,
   clampOfferPrice,
-  inquirySuccess,
-  inquiryNotified,
-  inquiryActionMessage,
-  inquiryPhone,
-  inquiryMessage,
-  inquiryConsent,
-  isSubmittingInquiry,
-  onInquiryPhoneChange,
-  onInquiryMessageChange,
-  onInquiryConsentChange,
-  onSubmitInquiry,
-  onInquirySuccessClose,
 }: ListingModalsProps) {
   const t = useTranslations("ListingDetail");
   const locale = useLocale();
@@ -381,91 +357,6 @@ export default function ListingModals({
                   className="mt-2 w-full rounded-2xl border-[3px] border-black bg-black py-5 font-black uppercase tracking-widest text-[#FFD100] shadow-[4px_4px_0_0_#000] transition hover:bg-neutral-900 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {isSubmittingOffer ? t("modals.offer.submitting") : t("modals.offer.submit")}
-                </button>
-              </>
-            )}
-          </div>
-        )}
-
-        {activeModal === "inquiry" && (
-          <div className="space-y-6 pt-4">
-            <h3 className="text-2xl font-black uppercase italic tracking-tighter md:text-3xl">
-              {t("modals.inquiry.title")}{" "}
-              <span className="text-[#FFD100]">{t("modals.inquiry.titleHighlight")}</span>
-            </h3>
-            <p className="text-sm font-medium leading-relaxed text-neutral-700">
-              {t("modals.inquiry.intro", { title: adData.title ?? "" })}
-            </p>
-
-            {inquirySuccess ? (
-              <div className="rounded-2xl border-[3px] border-black bg-[#FFD100] p-6 text-center shadow-[4px_4px_0_0_#000]">
-                <p className="mb-2 text-xl font-black uppercase italic text-black">
-                  {t("modals.inquiry.successTitle")}
-                </p>
-                <p className="text-[11px] font-bold uppercase leading-relaxed tracking-wide text-neutral-900">
-                  {inquiryNotified
-                    ? t("modals.inquiry.successSent")
-                    : t("modals.inquiry.successHqFallback")}
-                </p>
-                <button
-                  type="button"
-                  onClick={onInquirySuccessClose}
-                  className="mt-6 w-full rounded-xl border-[3px] border-black bg-black py-4 text-[10px] font-black uppercase tracking-widest text-[#FFD100] transition hover:bg-neutral-900"
-                >
-                  {t("modals.close")}
-                </button>
-              </div>
-            ) : (
-              <>
-                {inquiryActionMessage ? (
-                  <div role="alert" className="rounded-xl border-2 border-red-700 bg-red-100 px-4 py-3 text-sm font-bold text-red-900">
-                    {inquiryActionMessage.text}
-                  </div>
-                ) : null}
-                <div className="space-y-3">
-                  <label className={labelBase} htmlFor="inquiry-phone">
-                    {t("modals.inquiry.phoneLabel")}
-                  </label>
-                  <input
-                    id="inquiry-phone"
-                    type="tel"
-                    autoComplete="tel"
-                    value={inquiryPhone}
-                    onChange={(e) => onInquiryPhoneChange(e.target.value)}
-                    placeholder={t("modals.inquiry.phonePlaceholder")}
-                    className={inputBase}
-                    required
-                  />
-                  <label className={labelBase} htmlFor="inquiry-message">
-                    {t("modals.inquiry.messageLabel")}
-                  </label>
-                  <textarea
-                    id="inquiry-message"
-                    value={inquiryMessage}
-                    onChange={(e) => onInquiryMessageChange(e.target.value)}
-                    placeholder={t("modals.inquiry.messagePlaceholder")}
-                    rows={4}
-                    className={`${inputBase} resize-none font-medium normal-case`}
-                  />
-                  <label className="flex cursor-pointer items-start gap-3 text-sm font-medium text-neutral-700">
-                    <input
-                      type="checkbox"
-                      checked={inquiryConsent}
-                      onChange={(e) => onInquiryConsentChange(e.target.checked)}
-                      className="mt-1 h-4 w-4 shrink-0 accent-black"
-                    />
-                    <span>{t("modals.inquiry.consent")}</span>
-                  </label>
-                </div>
-                <button
-                  type="button"
-                  onClick={onSubmitInquiry}
-                  disabled={isSubmittingInquiry || !inquiryPhone || !inquiryConsent}
-                  className="w-full rounded-2xl border-[3px] border-black bg-black py-5 font-black uppercase tracking-widest text-[#FFD100] shadow-[4px_4px_0_0_#000] transition hover:bg-neutral-900 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  {isSubmittingInquiry
-                    ? t("modals.inquiry.submitting")
-                    : t("modals.inquiry.submit")}
                 </button>
               </>
             )}

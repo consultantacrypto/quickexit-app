@@ -357,17 +357,6 @@ export default function AnuntClient({
   const [acceptSuccess, setAcceptSuccess] = useState(false);
   const [acceptActionMessage, setAcceptActionMessage] = useState<{ type: "error"; text: string } | null>(null);
 
-  const [inquiryPhone, setInquiryPhone] = useState("");
-  const [inquiryMessage, setInquiryMessage] = useState("");
-  const [inquiryConsent, setInquiryConsent] = useState(false);
-  const [isSubmittingInquiry, setIsSubmittingInquiry] = useState(false);
-  const [inquirySuccess, setInquirySuccess] = useState(false);
-  const [inquiryNotified, setInquiryNotified] = useState(false);
-  const [inquiryActionMessage, setInquiryActionMessage] = useState<{
-    type: "error";
-    text: string;
-  } | null>(null);
-
   const router = useRouter();
   const [isOpeningRoom, setIsOpeningRoom] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -824,60 +813,6 @@ export default function AnuntClient({
     setOfferActionMessage(null);
   };
 
-  const openInquiryModal = async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
-      setShowAuthModal(true);
-      return;
-    }
-    setActiveModal("inquiry");
-    setInquirySuccess(false);
-    setInquiryNotified(false);
-    setInquiryActionMessage(null);
-  };
-
-  const submitListingInquiry = async () => {
-    if (!inquiryPhone || !inquiryConsent) return;
-    setIsSubmittingInquiry(true);
-    setInquiryActionMessage(null);
-    try {
-      const response = await fetch(`/api/listings/${adData.id}/inquiry`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          phone: inquiryPhone,
-          message: inquiryMessage,
-          consent: inquiryConsent,
-        }),
-      });
-      const payload = (await response.json().catch(() => null)) as {
-        success?: boolean;
-        notified?: boolean;
-        error?: string;
-      } | null;
-      if (!response.ok || !payload?.success) {
-        throw new Error(payload?.error || t("errors.inquirySubmitFailed"));
-      }
-      setInquiryNotified(payload.notified === true);
-      setInquirySuccess(true);
-      setInquiryPhone("");
-      setInquiryMessage("");
-      setInquiryConsent(false);
-    } catch (err) {
-      setInquiryActionMessage({
-        type: "error",
-        text:
-          err instanceof Error && err.message
-            ? err.message
-            : t("errors.inquirySubmitFailed"),
-      });
-    } finally {
-      setIsSubmittingInquiry(false);
-    }
-  };
-
   const renderConversionPanel = () => (
     <div className="rounded-[2rem] border-[3px] border-black bg-white p-5 shadow-[10px_10px_0_0_rgba(0,0,0,0.95)] md:p-6 md:shadow-[12px_12px_0_0_#FFD100]">
       <div className="mb-4 space-y-2.5">
@@ -949,16 +884,12 @@ export default function AnuntClient({
                   : {}),
               });
             } else if (ctaMode !== "auction") {
-              trackEvent("click_request_details", {
+              trackEvent("click_listing_offer", {
                 listing_id: adData.id,
                 category: adData.category || "unknown",
               });
             }
-            if (ctaMode === "auction") {
-              openOfferModal();
-            } else {
-              void openInquiryModal();
-            }
+            openOfferModal();
           }}
           className="w-full rounded-2xl border-[3px] border-black bg-black py-3.5 font-black uppercase tracking-wider text-[#FFD100] shadow-[5px_5px_0_0_#000] transition duration-150 hover:brightness-110 motion-reduce:transition-none md:py-4 md:text-sm"
         >
@@ -1050,7 +981,7 @@ export default function AnuntClient({
             ? t("detailV2.trust.premiumSeller")
             : sellerProfile?.kyc_status === "verified"
               ? t("detailV2.trust.identityVerified")
-              : t("detailV2.trust.verificationInProgress")
+              : t("detailV2.trust.contactHint")
         }
         contactHint={t("detailV2.trust.contactHint")}
         compact={showPremiumSeller}
@@ -1521,21 +1452,6 @@ export default function AnuntClient({
               setOfferSuccess(false);
             }}
             clampOfferPrice={clampOfferPrice}
-            inquirySuccess={inquirySuccess}
-            inquiryNotified={inquiryNotified}
-            inquiryActionMessage={inquiryActionMessage}
-            inquiryPhone={inquiryPhone}
-            inquiryMessage={inquiryMessage}
-            inquiryConsent={inquiryConsent}
-            isSubmittingInquiry={isSubmittingInquiry}
-            onInquiryPhoneChange={setInquiryPhone}
-            onInquiryMessageChange={setInquiryMessage}
-            onInquiryConsentChange={setInquiryConsent}
-            onSubmitInquiry={() => void submitListingInquiry()}
-            onInquirySuccessClose={() => {
-              setActiveModal(null);
-              setInquirySuccess(false);
-            }}
           />
         ) : null}
       </div>

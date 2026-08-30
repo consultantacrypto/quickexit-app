@@ -1,4 +1,4 @@
-export type ListingModalId = "verified" | "docs" | "ai-score" | "accept" | "offer" | "inquiry";
+export type ListingModalId = "verified" | "docs" | "ai-score" | "accept" | "offer";
 
 export const labelBase =
   "block text-[10px] font-black uppercase tracking-widest text-neutral-500";
