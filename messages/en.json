@@ -38,7 +38,14 @@
     },
     "finalizePayment": "Complete payment",
     "finalizePaymentLoading": "Opening checkout…",
-    "finalizePaymentError": "We couldn't create the payment session. Please try again."
+    "finalizePaymentError": "We couldn't create the payment session. Please try again.",
+    "phonePromptTitle": "Add a phone number to your profile",
+    "phonePromptBody": "Your listings stay active. The number stays private and is needed for buyer inquiries.",
+    "phonePromptPlaceholder": "Phone number",
+    "phonePromptSave": "Save phone number",
+    "phonePromptSaving": "Saving…",
+    "phonePromptError": "Enter a valid phone number.",
+    "phonePromptSaved": "Phone number saved. It stays private."
   },
   "Hero": {
     "titleLine1": "Sell now.",
@@ -170,7 +177,9 @@
       "fallbackTitle": "Buyers with available capital",
       "fallbackText": "Publish the asset you want to acquire or explore active buyer requests.",
       "fallbackPrimaryCta": "Publish a request",
-      "fallbackSecondaryCta": "View all requests"
+      "fallbackSecondaryCta": "View all requests",
+      "emptyStripTitle": "Buying with cash? Tell us what you’re looking for.",
+      "emptyStripCta": "POST A BUYER REQUEST"
     },
     "auctions": {
       "title": "Open auctions",
@@ -202,7 +211,7 @@
       "activeListingsSub": "Assets available right now",
       "soldLabel": "Completed sales",
       "soldSub": "Successfully closed transactions",
-      "activeCategoriesLabel": "Active categories",
+      "activeCategoriesLabel": "Categories with active listings",
       "activeCategoriesSub": "Distinct domains with active listings"
     }
   },
@@ -276,7 +285,7 @@
       "odr": "O.D.R.",
       "odrDescription": "Online Dispute Resolution"
     },
-    "securePayments": "SECURE PAYMENTS BY STRIPE",
+    "securePayments": "Listing publication payments secured by Stripe.",
     "visa": "VISA",
     "mastercard": "MASTERCARD"
   },
@@ -327,7 +336,18 @@
       "genericFailed": "We couldn't complete your request or start checkout. Please try again.",
       "pendingReuse": "You already have a listing saved awaiting payment. We'll continue checkout for that one.",
       "pendingInvalid": "The saved listing awaiting payment is no longer available. Confirm publish again to create a new one.",
-      "incompatibleSaleIntent": "Sale method and package do not match. Choose the sale method again before paying."
+      "incompatibleSaleIntent": "Sale method and package do not match. Choose the sale method again before paying.",
+      "phoneRequired": "Enter a valid phone number. It stays private and is not shown on the listing."
+    },
+    "sellerPhone": {
+      "label": "Phone (private)",
+      "hint": "Required to publish. Never shown publicly. Buyers receive it only through inquiries."
+    },
+    "cover": {
+      "title": "Images",
+      "setAsCover": "Set as main image",
+      "currentCover": "Main image",
+      "empty": "This listing has no images."
     },
     "draft": {
       "restoredBanner": "We restored your listing draft. Photos must be uploaded again.",
@@ -402,12 +422,6 @@
       "bodyDirect": "The package sets how long the listing stays promoted. This does not change the sale method.",
       "titleAuction": "Open auction package",
       "bodyAuction": "Open auction includes a 30-day offer window. You choose manually whether to accept an offer."
-    },
-    "cover": {
-      "title": "Images",
-      "setAsCover": "Set as main image",
-      "currentCover": "Main image",
-      "empty": "This listing has no images."
     }
   },
   "ListingDetail": {
@@ -589,7 +603,8 @@
       "ownListing": "This is your listing — negotiation is initiated by buyers.",
       "roomOpenFailed": "We couldn't open the negotiation room. Please try again.",
       "offerSubmitFailed": "We couldn't submit your offer. Please try again.",
-      "acceptSubmitFailed": "We couldn't submit your confirmation. Please try again."
+      "acceptSubmitFailed": "We couldn't submit your confirmation. Please try again.",
+      "inquirySubmitFailed": "We couldn't record your inquiry. Please try again."
     },
     "safety": {
       "warning": "Do not send money in advance and do not enter card details via links from other users. Verify the asset and details directly with the seller.",
@@ -793,7 +808,7 @@
         "title": "Price",
         "titleHighlight": "confirmation",
         "successTitle": "Your request has been recorded.",
-        "successBody": "The seller has been notified about your agreement at {price}. They may contact you using the details submitted with your offer.",
+        "successBody": "Your agreement at {price} has been recorded. QuickExit will pass it to the seller. We do not claim the seller was notified automatically.",
         "confirmQuestion": "Do you confirm purchase at {price} (fast sale price)?",
         "contactHint": "Leave your details — the seller will contact you through agreed channels",
         "phonePlaceholder": "Phone number",
@@ -805,7 +820,7 @@
         "title": "Submit",
         "titleHighlight": "offer",
         "successTitle": "Your offer has been sent.",
-        "successBody": "The seller has been notified and may contact you using the details you provided.",
+        "successBody": "Your offer has been recorded. Track it from your dashboard. QuickExit will pass it to the seller if needed.",
         "yourOffer": "Your offer (EUR)",
         "offerAmountAria": "Offer amount",
         "minOffer": "Min: {price} (−30%)",
@@ -815,6 +830,21 @@
         "messagePlaceholder": "Message for the seller (e.g. payment terms, response deadline)...",
         "submitting": "Submitting...",
         "submit": "Submit offer"
+      },
+      "inquiry": {
+        "title": "Request",
+        "titleHighlight": "details",
+        "intro": "Send an inquiry for “{title}”. This is not a price offer.",
+        "phoneLabel": "Phone",
+        "phonePlaceholder": "Phone number",
+        "messageLabel": "Message (optional)",
+        "messagePlaceholder": "Questions about the asset, viewing, documents…",
+        "consent": "I agree that QuickExit may pass this inquiry to the seller. My phone number is not public.",
+        "submitting": "Sending...",
+        "submit": "Send inquiry",
+        "successTitle": "Inquiry recorded",
+        "successSent": "Your inquiry has been recorded and sent to the seller.",
+        "successHqFallback": "Your inquiry has been recorded. The QuickExit team will pass it to the seller."
       }
     }
   },

@@ -25,6 +25,7 @@ import { adCardPricingProps } from "@/lib/listingPrice";
 import { Wallet, Inbox, PlusCircle, Search, Settings, Power, Play, PiggyBank, ClipboardList } from "lucide-react";
 import KycBanner from "@/app/components/KycBanner";
 import { getPriceIdForPackageId } from "@/lib/stripePackages";
+import { normalizePhone } from "@/lib/financingLead";
 
 type DashboardTab = "portofoliu" | "cumparari" | "oferte";
 const OWNER_USER_ID = "83da9725-68f3-4ded-9605-714b9094bf0e";
@@ -60,6 +61,9 @@ function DashboardContent() {
 
   // Stare pentru profilul utilizatorului (pentru KYC)
   const [userProfile, setUserProfile] = useState<any>(null);
+  const [phoneDraft, setPhoneDraft] = useState("");
+  const [isSavingPhone, setIsSavingPhone] = useState(false);
+  const [phonePromptMessage, setPhonePromptMessage] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string>("");
   const [sessionEmail, setSessionEmail] = useState<string | null>(null);
 
@@ -816,6 +820,33 @@ function DashboardContent() {
     window.location.href = DIDIT_HOSTED_VERIFICATION_URL;
   };
 
+  const needsPhonePrompt =
+    myListings.length > 0 &&
+    !(typeof userProfile?.phone === "string" && userProfile.phone.trim());
+
+  const saveProfilePhone = async () => {
+    const normalized = normalizePhone(phoneDraft);
+    if (!normalized || !currentUserId) {
+      setPhonePromptMessage(tDash("phonePromptError"));
+      return;
+    }
+    setIsSavingPhone(true);
+    setPhonePromptMessage(null);
+    const { error } = await supabase
+      .from("profiles")
+      .update({ phone: normalized })
+      .eq("id", currentUserId);
+    setIsSavingPhone(false);
+    if (error) {
+      setPhonePromptMessage(tDash("phonePromptError"));
+      return;
+    }
+    setUserProfile((prev: Record<string, unknown> | null) =>
+      prev ? { ...prev, phone: normalized } : { phone: normalized },
+    );
+    setPhonePromptMessage(tDash("phonePromptSaved"));
+  };
+
   const kycStartButtonClass =
     "inline-flex shrink-0 items-center justify-center gap-2 rounded-xl border-[3px] border-black bg-[#FFD100] px-5 py-3 text-xs font-black uppercase tracking-widest text-black shadow-[4px_4px_0_0_rgba(0,0,0,1)] transition hover:-translate-y-0.5 hover:shadow-[2px_2px_0_0_rgba(0,0,0,1)]";
 
@@ -909,6 +940,40 @@ function DashboardContent() {
           {renderKycStartButton("w-full md:w-auto")}
         </div>
       </div>
+
+      {needsPhonePrompt ? (
+        <div className="mb-6 rounded-2xl border-[3px] border-black bg-white p-4 shadow-[5px_5px_0_0_rgba(0,0,0,1)] md:p-5">
+          <p className="text-xs font-black uppercase tracking-widest text-neutral-600">
+            {tDash("phonePromptTitle")}
+          </p>
+          <p className="mt-2 text-sm font-semibold leading-relaxed text-neutral-700">
+            {tDash("phonePromptBody")}
+          </p>
+          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+            <input
+              type="tel"
+              autoComplete="tel"
+              value={phoneDraft}
+              onChange={(e) => setPhoneDraft(e.target.value)}
+              placeholder={tDash("phonePromptPlaceholder")}
+              className="w-full rounded-lg border-2 border-black px-3 py-2.5 text-sm font-bold outline-none focus:border-[#FFD100] sm:max-w-xs"
+            />
+            <button
+              type="button"
+              disabled={isSavingPhone}
+              onClick={() => void saveProfilePhone()}
+              className="inline-flex items-center justify-center rounded-lg border-2 border-black bg-[#FFD100] px-5 py-2.5 text-xs font-black uppercase tracking-wide text-black shadow-[2px_2px_0_0_rgba(0,0,0,1)] disabled:opacity-60"
+            >
+              {isSavingPhone ? tDash("phonePromptSaving") : tDash("phonePromptSave")}
+            </button>
+          </div>
+          {phonePromptMessage ? (
+            <p className="mt-3 text-xs font-semibold text-neutral-700" role="status">
+              {phonePromptMessage}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
 
       {/* Banner KYC: după plată reușită (listing/cerere activă), mesaj aliniat cu politica reală — fără blocare */}
       {!isLoading && showKycRecommendationBanner && resolveKycUserId() && (

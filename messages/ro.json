@@ -38,7 +38,14 @@
     },
     "finalizePayment": "Finalizează plata",
     "finalizePaymentLoading": "Se deschide plata…",
-    "finalizePaymentError": "Nu am putut crea sesiunea de plată. Te rugăm să încerci din nou."
+    "finalizePaymentError": "Nu am putut crea sesiunea de plată. Te rugăm să încerci din nou.",
+    "phonePromptTitle": "Completează telefonul din profil",
+    "phonePromptBody": "Anunțurile tale rămân active. Telefonul este privat și necesar pentru solicitările de la cumpărători.",
+    "phonePromptPlaceholder": "Număr de telefon",
+    "phonePromptSave": "Salvează telefonul",
+    "phonePromptSaving": "Se salvează…",
+    "phonePromptError": "Introdu un număr de telefon valid.",
+    "phonePromptSaved": "Telefonul a fost salvat. Rămâne privat."
   },
   "Hero": {
     "titleLine1": "Vinde acum.",
@@ -170,7 +177,9 @@
       "fallbackTitle": "Cumpărători cu capital disponibil",
       "fallbackText": "Publică activul pe care îl cauți sau descoperă cererile active ale cumpărătorilor.",
       "fallbackPrimaryCta": "Publică o cerere",
-      "fallbackSecondaryCta": "Vezi toate cererile"
+      "fallbackSecondaryCta": "Vezi toate cererile",
+      "emptyStripTitle": "Cumperi cu cash? Spune-ne ce cauți.",
+      "emptyStripCta": "PUBLICĂ O CERERE"
     },
     "auctions": {
       "title": "Licitații deschise",
@@ -202,7 +211,7 @@
       "activeListingsSub": "Active disponibile chiar acum",
       "soldLabel": "Vânzări finalizate",
       "soldSub": "Tranzacții încheiate cu succes",
-      "activeCategoriesLabel": "Categorii active",
+      "activeCategoriesLabel": "Categorii cu anunțuri active",
       "activeCategoriesSub": "Domenii distincte cu anunțuri active"
     }
   },
@@ -276,7 +285,7 @@
       "odr": "S.O.L.",
       "odrDescription": "Soluționarea Online a Litigiilor"
     },
-    "securePayments": "SECURE PAYMENTS BY STRIPE",
+    "securePayments": "Plăți securizate prin Stripe pentru publicarea anunțurilor.",
     "visa": "VISA",
     "mastercard": "MASTERCARD"
   },
@@ -327,7 +336,18 @@
       "genericFailed": "Nu am putut finaliza solicitarea sau pornirea plății. Te rugăm să încerci din nou.",
       "pendingReuse": "Ai deja un anunț salvat în așteptarea plății. Continuăm plata pentru acesta.",
       "pendingInvalid": "Anunțul salvat pentru plată nu mai este disponibil. Confirmă din nou publicarea pentru a crea unul nou.",
-      "incompatibleSaleIntent": "Metoda de vânzare și pachetul nu coincid. Alege din nou metoda de vânzare înainte de plată."
+      "incompatibleSaleIntent": "Metoda de vânzare și pachetul nu coincid. Alege din nou metoda de vânzare înainte de plată.",
+      "phoneRequired": "Introdu un număr de telefon valid. Rămâne privat și nu apare pe anunț."
+    },
+    "sellerPhone": {
+      "label": "Telefon (privat)",
+      "hint": "Obligatoriu la publicare. Nu este afișat public. Cumpărătorii îl primesc doar prin solicitări."
+    },
+    "cover": {
+      "title": "Imagini",
+      "setAsCover": "Setează ca imagine principală",
+      "currentCover": "Imagine principală",
+      "empty": "Nu există imagini pe acest anunț."
     },
     "draft": {
       "restoredBanner": "Am restaurat ciorna ta de publicare. Pozele trebuie reîncărcate.",
@@ -402,12 +422,6 @@
       "bodyDirect": "Pachetul stabilește cât timp rămâne promovat anunțul. Nu schimbă metoda de vânzare.",
       "titleAuction": "Pachet licitație deschisă",
       "bodyAuction": "Licitația deschisă include o fereastră de oferte de 30 de zile. Tu alegi manual dacă accepți o ofertă."
-    },
-    "cover": {
-      "title": "Imagini",
-      "setAsCover": "Setează ca imagine principală",
-      "currentCover": "Imagine principală",
-      "empty": "Nu există imagini pe acest anunț."
     }
   },
   "ListingDetail": {
@@ -589,7 +603,8 @@
       "ownListing": "Acesta este anunțul tău — negocierea pornește din partea cumpărătorilor.",
       "roomOpenFailed": "Nu am putut deschide camera de negociere. Reîncearcă.",
       "offerSubmitFailed": "Nu am putut trimite oferta. Te rugăm să reîncerci.",
-      "acceptSubmitFailed": "Nu am putut trimite confirmarea. Te rugăm să reîncerci."
+      "acceptSubmitFailed": "Nu am putut trimite confirmarea. Te rugăm să reîncerci.",
+      "inquirySubmitFailed": "Nu am putut înregistra solicitarea. Te rugăm să reîncerci."
     },
     "safety": {
       "warning": "Nu trimite bani în avans și nu introduce datele cardului în linkuri primite de la alți utilizatori. Verifică activul și detaliile direct cu vânzătorul.",
@@ -793,7 +808,7 @@
         "title": "Confirmare",
         "titleHighlight": "preț",
         "successTitle": "Cererea ta a fost înregistrată.",
-        "successBody": "Vânzătorul a fost notificat în legătură cu acordul tău la prețul de {price}. Te poate contacta folosind datele transmise prin ofertă.",
+        "successBody": "Acordul tău la prețul de {price} a fost înregistrat. Echipa QuickExit îl transmite vânzătorului. Nu pretindem că vânzătorul a fost notificat automat.",
         "confirmQuestion": "Confirmi achiziția la {price} (preț de vânzare rapidă)?",
         "contactHint": "Lasă datele tale — vânzătorul te contactează prin canalele agreate",
         "phonePlaceholder": "Număr de telefon",
@@ -805,7 +820,7 @@
         "title": "Trimite",
         "titleHighlight": "ofertă",
         "successTitle": "Oferta a fost trimisă.",
-        "successBody": "Vânzătorul a fost notificat și te poate contacta folosind datele furnizate.",
+        "successBody": "Oferta a fost înregistrată. O poți urmări din dashboard. Echipa QuickExit o transmite vânzătorului dacă este necesar.",
         "yourOffer": "Oferta ta (EUR)",
         "offerAmountAria": "Suma ofertei",
         "minOffer": "Min: {price} (−30%)",
@@ -815,6 +830,21 @@
         "messagePlaceholder": "Mesaj pentru vânzător (ex.: termeni de plată, termen de răspuns)...",
         "submitting": "Se trimite...",
         "submit": "Trimite oferta"
+      },
+      "inquiry": {
+        "title": "Solicită",
+        "titleHighlight": "detalii",
+        "intro": "Trimite o solicitare pentru „{title}”. Nu este o ofertă de preț.",
+        "phoneLabel": "Telefon",
+        "phonePlaceholder": "Număr de telefon",
+        "messageLabel": "Mesaj (opțional)",
+        "messagePlaceholder": "Întrebări despre activ, vizionare, acte…",
+        "consent": "Sunt de acord ca QuickExit să transmită această solicitare vânzătorului. Telefonul nu este public.",
+        "submitting": "Se trimite...",
+        "submit": "Trimite solicitarea",
+        "successTitle": "Solicitare înregistrată",
+        "successSent": "Solicitarea ta a fost înregistrată și trimisă vânzătorului.",
+        "successHqFallback": "Solicitarea a fost înregistrată. Echipa QuickExit o va transmite vânzătorului."
       }
     }
   },

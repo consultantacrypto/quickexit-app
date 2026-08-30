@@ -55,6 +55,7 @@ import {
   parseListingSalePackageId,
   type SaleMethod,
 } from "@/lib/listingSaleStrategy";
+import { normalizePhone } from "@/lib/financingLead";
 
 const AuthModal = dynamic(() => import("@/app/components/AuthModal"), {
   ssr: false,
@@ -122,6 +123,7 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
   const [isSuccess, setIsSuccess] = useState(false);
   const [hasTrackedStart, setHasTrackedStart] = useState(false);
   const [flowError, setFlowError] = useState<string | null>(null);
+  const [sellerPhone, setSellerPhone] = useState("");
   const [listingTurnstileToken, setListingTurnstileToken] = useState<string | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [draftReady, setDraftReady] = useState(false);
@@ -250,6 +252,23 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
       setSaleMethod(fields.saleMethod);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only restore
+  }, []);
+
+  useEffect(() => {
+    void (async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("phone")
+        .eq("id", user.id)
+        .maybeSingle();
+      const existing =
+        typeof profile?.phone === "string" ? profile.phone.trim() : "";
+      if (existing) setSellerPhone(existing);
+    })();
   }, []);
 
   // Autosave textual draft (never Files / previews).
@@ -1003,6 +1022,18 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
         setIsSaving(false);
         return;
       }
+
+      const normalizedSellerPhone = normalizePhone(sellerPhone);
+      if (!normalizedSellerPhone) {
+        setFlowError(tPost("checkoutErrors.phoneRequired"));
+        setIsSaving(false);
+        return;
+      }
+
+      await supabase
+        .from("profiles")
+        .update({ phone: normalizedSellerPhone })
+        .eq("id", user.id);
 
       const priceId = getPriceIdForPackageId(saleIntent.packageId);
       if (!priceId) {
@@ -1983,7 +2014,22 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
               </div>
 
               <div className="rounded-3xl border border-black/[0.08] bg-[#F7F4EC]/80 p-6 md:border-2 md:border-black/[0.06] md:p-10">
-                <label className="block text-[10px] font-bold uppercase tracking-widest text-neutral-500">
+                <label className="block text-[10px] font-bold uppercase tracking-widest text-neutral-500" htmlFor="seller-phone">
+                  {tPost("sellerPhone.label")}
+                </label>
+                <input
+                  id="seller-phone"
+                  type="tel"
+                  autoComplete="tel"
+                  value={sellerPhone}
+                  onChange={(e) => setSellerPhone(e.target.value)}
+                  className={`${inputBase} mt-2`}
+                />
+                <p className="mt-2 text-xs font-medium text-neutral-600">
+                  {tPost("sellerPhone.hint")}
+                </p>
+
+                <label className="mt-10 block text-[10px] font-bold uppercase tracking-widest text-neutral-500">
                   Descriere anunț
                 </label>
                 <textarea
@@ -2111,6 +2157,10 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                 <button
                   type="button"
                   onClick={() => {
+                    if (!normalizePhone(sellerPhone)) {
+                      setFlowError(tPost("checkoutErrors.phoneRequired"));
+                      return;
+                    }
                     if (pricingMode === "evaluated") {
                       void generateAiPricing();
                       return;
