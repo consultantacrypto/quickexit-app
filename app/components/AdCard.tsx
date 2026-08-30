@@ -1,10 +1,9 @@
 "use client";
 
-import Image from "next/image";
 import { Link } from "@/src/i18n/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
-import supabaseImageLoader from "@/lib/supabase-image-loader";
+import ListingMedia from "@/app/components/ListingMedia";
 import { listingDetailPath } from "@/src/i18n/paths";
 import {
   auctionOfferLineForCard,
@@ -37,7 +36,6 @@ export default function AdCard({
   marketPrice,
   exitPrice,
   discount,
-  score,
   type,
   priority = false,
   offerCount,
@@ -70,29 +68,30 @@ export default function AdCard({
   const showExtraBadges = Array.isArray(extraBadges) && extraBadges.length > 0;
   const showMarketPrice = marketPrice.trim().length > 0;
   const showExitPrice = exitPrice.trim().length > 0;
-  const showLiquidityScore = score != null && Number.isFinite(score);
+  const showAuctionBadge = type === "auction";
+  const showDiscountBadge = discountNum > 0;
 
   return (
     <article className="group relative flex flex-col overflow-hidden rounded-3xl border border-line/70 bg-surface shadow-[0_1px_3px_rgba(0,0,0,0.04)] transition-all duration-500 ease-out hover:-translate-y-1 hover:border-neutral-300/80 hover:shadow-[0_28px_50px_-16px_rgba(0,0,0,0.22)]">
       <Link href={listingHref} aria-label={title} className="absolute inset-0 z-[1]" />
 
       {/* IMAGINEA — eroul cardului */}
-      <div className="pointer-events-none relative aspect-[4/3] w-full overflow-hidden bg-neutral-100">
-        <Image
+      <div className="pointer-events-none relative aspect-[4/3] w-full overflow-hidden">
+        <ListingMedia
           src={image}
-          alt=""
-          fill
+          alt={title}
           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
           priority={priority}
-          className="object-cover transition-transform duration-[1200ms] ease-out group-hover:scale-[1.04]"
-          loader={supabaseImageLoader}
+          className="absolute inset-0"
+          imgClassName="transition-transform duration-[1200ms] ease-out group-hover:scale-[1.04]"
         />
         <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/10" />
 
-        {/* tip — glass pill discret */}
-        <span className="absolute left-4 top-4 rounded-full border border-white/20 bg-black/55 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-white backdrop-blur-md">
-          {t(`type.${type}`)}
-        </span>
+        {showAuctionBadge ? (
+          <span className="absolute left-4 top-4 rounded-full border border-white/20 bg-black/55 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-white backdrop-blur-md">
+            {t("type.auction")}
+          </span>
+        ) : null}
 
         {showExtraBadges ? (
           <div className="absolute bottom-4 left-4 z-[2] flex max-w-[70%] flex-wrap gap-1.5">
@@ -107,12 +106,11 @@ export default function AdCard({
           </div>
         ) : null}
 
-        {/* DISCOUNT — accentul vizual principal */}
-        {discountNum > 0 && (
+        {showDiscountBadge ? (
           <span className="absolute right-4 top-4 rounded-full bg-gold px-3.5 py-1.5 text-sm font-bold tracking-tight text-ink shadow-[0_4px_14px_rgba(0,0,0,0.18)]">
             −{discountNum}%
           </span>
-        )}
+        ) : null}
 
         {/* favorite — subtil, jos-dreapta */}
         <button
@@ -145,14 +143,7 @@ export default function AdCard({
       {/* CONȚINUT */}
       <div className="pointer-events-none relative z-[1] flex flex-1 flex-col gap-5 p-7">
         <div>
-          {showLiquidityScore ? (
-            <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-muted">
-              {t("liquidityScore")} · {score}
-            </p>
-          ) : null}
-          <h3
-            className={`line-clamp-2 text-lg font-semibold leading-snug tracking-tight text-ink ${showLiquidityScore ? "mt-2" : ""}`}
-          >
+          <h3 className="line-clamp-2 text-lg font-semibold leading-snug tracking-tight text-ink">
             {title}
           </h3>
         </div>
