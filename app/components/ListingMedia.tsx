@@ -18,6 +18,7 @@ type ListingMediaProps = {
   containerAspect?: number;
   className?: string;
   imgClassName?: string;
+  onError?: () => void;
 };
 
 function ListingMediaInner({
@@ -28,6 +29,7 @@ function ListingMediaInner({
   containerAspect,
   className,
   imgClassName,
+  onError,
 }: {
   canonical: string;
   alt: string;
@@ -36,6 +38,7 @@ function ListingMediaInner({
   containerAspect: number;
   className: string;
   imgClassName: string;
+  onError?: () => void;
 }) {
   const [fit, setFit] = useState<"cover" | "contain">("contain");
 
@@ -63,6 +66,7 @@ function ListingMediaInner({
           sizes={sizes}
           priority={priority}
           onLoad={onLoad}
+          onError={onError}
           className={`${fit === "cover" ? "object-cover object-center" : "object-contain object-center"} ${imgClassName}`.trim()}
         />
       ) : null}
@@ -78,6 +82,7 @@ export default function ListingMedia({
   containerAspect = LISTING_CARD_ASPECT,
   className = "",
   imgClassName = "",
+  onError,
 }: ListingMediaProps) {
   const canonical = canonicalListingImageSrc(src);
   return (
@@ -90,6 +95,7 @@ export default function ListingMedia({
       containerAspect={containerAspect}
       className={className}
       imgClassName={imgClassName}
+      onError={onError}
     />
   );
 }

@@ -410,6 +410,29 @@
       "setAsCover": "Set as main image",
       "currentCover": "Main image",
       "empty": "This listing has no images."
+    },
+    "photoEditor": {
+      "title": "Listing photos",
+      "hint": "The first image is the cover. You can upload, reorder, or remove photos. Storage files are not deleted.",
+      "add": "Add photos",
+      "remove": "Remove photo #n#",
+      "moveLeft": "Move photo #n# left",
+      "moveRight": "Move photo #n# right",
+      "preview": "Final order before save",
+      "uploading": "Uploading",
+      "remaining": "Slots left: #count#",
+      "authRequired": "Sign in to edit this listing.",
+      "forbidden": "You cannot edit this listing.",
+      "previewFailed": "Preview failed",
+      "alt": "#title# — photo #n#",
+      "errors": {
+        "unsupportedType": "Use JPG, PNG, or WebP.",
+        "fileTooLarge": "The file exceeds 8 MB.",
+        "limitReached": "You reached the 20-image limit.",
+        "uploadFailed": "Upload failed. Please try again.",
+        "keepLast": "Keep at least one photo.",
+        "saveFailed": "Save failed. Please try again."
+      }
     }
   },
   "ListingDetail": {

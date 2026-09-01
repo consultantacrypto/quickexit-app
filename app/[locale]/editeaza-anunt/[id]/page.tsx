@@ -9,10 +9,10 @@ import { getPricingMode, type PricingMode } from "@/lib/pricingMode";
 import { premiumSellerConfig } from "@/lib/premiumSeller";
 import { financingConfig } from "@/lib/financingConfig";
 import { LISTING_AUTO_CATEGORY } from "@/lib/listingPremium";
-import ListingMedia from "@/app/components/ListingMedia";
-import { reorderListingImagesCover } from "@/lib/listingMedia";
+import ListingPhotoEditor from "@/app/components/ListingPhotoEditor";
+import { buildListingImagesPatch, sanitizeListingImageUrls } from "@/lib/listingImageUpload";
 
-export default function EditAdPage() {
+function EditAdPage() {
   const tPost = useTranslations("PostListing");
   const tPremium = useTranslations("ListingDetail.premiumSeller");
   const tFinancing = useTranslations("ListingDetail.financing");
@@ -22,6 +22,10 @@ export default function EditAdPage() {
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [accessError, setAccessError] = useState<"auth" | "forbidden" | null>(null);
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [photosBusy, setPhotosBusy] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   
   const [category, setCategory] = useState("");
@@ -30,9 +34,13 @@ export default function EditAdPage() {
   const [exitPrice, setExitPrice] = useState("");
   const [pricingMode, setPricingMode] = useState<PricingMode>("evaluated");
   const [initialPricingMode, setInitialPricingMode] = useState<PricingMode>("evaluated");
-  const [formData, setFormData] = useState<any>({});
+  const [formData, setFormData] = useState<Record<string, unknown>>({});
   const [listingImages, setListingImages] = useState<string[]>([]);
-  const [coverIndex, setCoverIndex] = useState(0);
+
+  const detailStr = (key: string) => {
+    const value = formData[key];
+    return value == null ? "" : String(value);
+  };
 
   const isOwner = currentUserId === premiumSellerConfig.ownerUserId;
 
@@ -41,43 +49,63 @@ export default function EditAdPage() {
       const {
         data: { user },
       } = await supabase.auth.getUser();
-      setCurrentUserId(user?.id ?? null);
+      if (!user) {
+        setCurrentUserId(null);
+        setAccessError("auth");
+        setIsLoading(false);
+        return;
+      }
+      setCurrentUserId(user.id);
 
       const { data, error } = await supabase
-        .from('listings')
-        .select('*')
-        .eq('id', id)
-        .single();
+        .from("listings")
+        .select("*")
+        .eq("id", id)
+        .eq("user_id", user.id)
+        .maybeSingle();
 
-      if (data) {
-        setCategory(data.category);
-        setAdTitle(data.title);
-        setDescription(data.description);
-        setExitPrice(
-          data.exit_price != null &&
-            Number.isFinite(Number(data.exit_price)) &&
-            Number(data.exit_price) > 0
-            ? String(data.exit_price)
-            : "",
-        );
-        const details = data.details || {};
-        const mode = getPricingMode(details);
-        setPricingMode(mode);
-        setInitialPricingMode(mode);
-        setFormData(details);
-        const images = Array.isArray(data.images)
-          ? data.images.filter((url: unknown): url is string => typeof url === "string" && url.trim().length > 0)
-          : [];
-        setListingImages(images);
-        setCoverIndex(0);
+      if (error || !data) {
+        setAccessError("forbidden");
+        setIsLoading(false);
+        return;
       }
+
+      setCategory(data.category);
+      setAdTitle(data.title);
+      setDescription(data.description);
+      setExitPrice(
+        data.exit_price != null &&
+          Number.isFinite(Number(data.exit_price)) &&
+          Number(data.exit_price) > 0
+          ? String(data.exit_price)
+          : "",
+      );
+      const details = data.details || {};
+      const mode = getPricingMode(details);
+      setPricingMode(mode);
+      setInitialPricingMode(mode);
+      setFormData(
+        details && typeof details === "object" && !Array.isArray(details)
+          ? (details as Record<string, unknown>)
+          : {},
+      );
+      setListingImages(sanitizeListingImageUrls(data.images));
+      setAccessError(null);
       setIsLoading(false);
     }
-    fetchAd();
+    void fetchAd();
   }, [id]);
 
   const handleUpdate = async () => {
     setIsSaving(true);
+    setSaveError(null);
+    setSaveMessage(null);
+    const imagePatch = buildListingImagesPatch(listingImages);
+    if ("error" in imagePatch) {
+      setSaveError(tPost("photoEditor.errors.keepLast"));
+      setIsSaving(false);
+      return;
+    }
     const trimmedExit = exitPrice.trim();
     const mergedDetails: Record<string, unknown> = { ...formData, pricing_mode: pricingMode };
 
@@ -105,7 +133,7 @@ export default function EditAdPage() {
       title: adTitle,
       description: description,
       details: mergedDetails,
-      images: reorderListingImagesCover(listingImages, coverIndex),
+      images: imagePatch.images,
     };
 
     if (pricingMode === "evaluated") {
@@ -118,7 +146,7 @@ export default function EditAdPage() {
     } else if (pricingMode === "fixed_price") {
       const parsed = Number(trimmedExit);
       if (!Number.isFinite(parsed) || parsed <= 0) {
-        alert(tPost("pricingMode.validation.fixedPriceRequired"));
+        setSaveError(tPost("pricingMode.validation.fixedPriceRequired"));
         setIsSaving(false);
         return;
       }
@@ -132,15 +160,21 @@ export default function EditAdPage() {
       updatePayload.discount = null;
       updatePayload.deal_score = null;
     }
+    if (!currentUserId) {
+      setAccessError("auth");
+      setIsSaving(false);
+      return;
+    }
     const { error } = await supabase
-      .from('listings')
+      .from("listings")
       .update(updatePayload)
-      .eq('id', id);
+      .eq("id", id)
+      .eq("user_id", currentUserId);
 
     if (error) {
-      alert("Eroare la salvare. Ai rulat politica SQL de UPDATE?");
+      setSaveError(tPost("photoEditor.errors.saveFailed"));
     } else {
-      router.push('/dashboard');
+      router.push("/dashboard");
     }
     setIsSaving(false);
   };
@@ -159,6 +193,27 @@ export default function EditAdPage() {
       <span className="font-black uppercase tracking-widest text-xs">Se încarcă datele terminalului...</span>
     </div>
   );
+
+  if (accessError) {
+    return (
+      <div className="min-h-screen bg-gray-50 px-4 pt-16 font-sans text-black">
+        <div className="mx-auto max-w-lg rounded-2xl border-[3px] border-black bg-white p-8">
+          <h1 className="text-2xl font-black uppercase italic">
+            {accessError === "auth"
+              ? tPost("photoEditor.authRequired")
+              : tPost("photoEditor.forbidden")}
+          </h1>
+          <button
+            type="button"
+            onClick={() => router.push("/dashboard")}
+            className="mt-6 inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest"
+          >
+            <ArrowLeft size={14} /> Înapoi la Centru de Comandă
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 pt-10 pb-24 px-4 font-sans text-black">
@@ -182,100 +237,74 @@ export default function EditAdPage() {
               <input type="text" value={adTitle} onChange={(e) => setAdTitle(e.target.value)} className="w-full mt-1 p-3 border-2 border-black rounded-lg font-bold uppercase focus:outline-none focus:border-[#FFD100]" />
             </div>
 
-            <div className="md:col-span-2">
-              <p className="text-[10px] font-black uppercase text-gray-400">{tPost("cover.title")}</p>
-              {listingImages.length === 0 ? (
-                <p className="mt-2 text-sm font-semibold text-neutral-600">{tPost("cover.empty")}</p>
-              ) : (
-                <div
-                  role="radiogroup"
-                  aria-label={tPost("cover.title")}
-                  className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4"
-                >
-                  {listingImages.map((src, index) => {
-                    const isCover = index === coverIndex;
-                    return (
-                      <div key={`${src}-${index}`} className="space-y-2">
-                        <button
-                          type="button"
-                          role="radio"
-                          aria-checked={isCover}
-                          aria-label={
-                            isCover
-                              ? tPost("cover.currentCover")
-                              : tPost("cover.setAsCover")
-                          }
-                          onClick={() => setCoverIndex(index)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter" || e.key === " ") {
-                              e.preventDefault();
-                              setCoverIndex(index);
-                            }
-                          }}
-                          className={`relative block aspect-[4/3] w-full overflow-hidden rounded-xl border-[3px] bg-[#F5F1E8] text-left transition ${
-                            isCover
-                              ? "border-[#FFD100] shadow-[4px_4px_0_0_#000]"
-                              : "border-black hover:border-[#FFD100]"
-                          }`}
-                        >
-                          <ListingMedia
-                            src={src}
-                            alt={`${adTitle || "listing"} ${index + 1}`}
-                            sizes="220px"
-                            className="absolute inset-0"
-                          />
-                          {isCover ? (
-                            <span className="absolute left-2 top-2 rounded-md border-2 border-black bg-[#FFD100] px-2 py-0.5 text-[8px] font-black uppercase tracking-wide text-black">
-                              {tPost("cover.currentCover")}
-                            </span>
-                          ) : null}
-                        </button>
-                        {!isCover ? (
-                          <button
-                            type="button"
-                            onClick={() => setCoverIndex(index)}
-                            className="w-full rounded-lg border-2 border-black bg-white px-2 py-1.5 text-[9px] font-black uppercase tracking-wide hover:bg-[#FFD100]"
-                          >
-                            {tPost("cover.setAsCover")}
-                          </button>
-                        ) : (
-                          <p className="text-center text-[9px] font-black uppercase tracking-wide text-neutral-500">
-                            {tPost("cover.currentCover")}
-                          </p>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
+            <ListingPhotoEditor
+              images={listingImages}
+              onChange={setListingImages}
+              userId={currentUserId ?? ""}
+              listingTitle={adTitle}
+              disabled={isSaving}
+              onBusyChange={setPhotosBusy}
+              labels={{
+                title: tPost("photoEditor.title"),
+                hint: tPost("photoEditor.hint"),
+                add: tPost("photoEditor.add"),
+                main: tPost("cover.currentCover"),
+                setMain: tPost("cover.setAsCover"),
+                remove: tPost("photoEditor.remove"),
+                moveLeft: tPost("photoEditor.moveLeft"),
+                moveRight: tPost("photoEditor.moveRight"),
+                preview: tPost("photoEditor.preview"),
+                empty: tPost("cover.empty"),
+                uploading: tPost("photoEditor.uploading"),
+                remaining: tPost("photoEditor.remaining"),
+                previewFailed: tPost("photoEditor.previewFailed"),
+                keepLast: tPost("photoEditor.errors.keepLast"),
+                alt: tPost("photoEditor.alt"),
+                errors: {
+                  unsupported_type: tPost("photoEditor.errors.unsupportedType"),
+                  file_too_large: tPost("photoEditor.errors.fileTooLarge"),
+                  limit_reached: tPost("photoEditor.errors.limitReached"),
+                  upload_failed: tPost("photoEditor.errors.uploadFailed"),
+                },
+              }}
+            />
+            {saveError ? (
+              <p className="md:col-span-2 text-sm font-semibold text-red-700" role="alert">
+                {saveError}
+              </p>
+            ) : null}
+            {saveMessage ? (
+              <p className="md:col-span-2 text-sm font-semibold text-green-800" role="status">
+                {saveMessage}
+              </p>
+            ) : null}
 
             {/* AUTO & MOTO */}
             {category === "Auto & Moto" && (
               <>
                 <div>
                   <label className="text-[10px] font-black uppercase text-gray-400">Marcă</label>
-                  <input type="text" value={formData.make || ""} onChange={(e) => updateField('make', e.target.value)} className="w-full mt-1 p-3 border-2 border-black rounded-lg font-bold uppercase" />
+                  <input type="text" value={detailStr("make")} onChange={(e) => updateField('make', e.target.value)} className="w-full mt-1 p-3 border-2 border-black rounded-lg font-bold uppercase" />
                 </div>
                 <div>
                   <label className="text-[10px] font-black uppercase text-gray-400">Model</label>
-                  <input type="text" value={formData.model || ""} onChange={(e) => updateField('model', e.target.value)} className="w-full mt-1 p-3 border-2 border-black rounded-lg font-bold uppercase" />
+                  <input type="text" value={detailStr("model")} onChange={(e) => updateField('model', e.target.value)} className="w-full mt-1 p-3 border-2 border-black rounded-lg font-bold uppercase" />
                 </div>
                 <div>
                   <label className="text-[10px] font-black uppercase text-gray-400">Kilometraj (KM)</label>
-                  <input type="number" value={formData.km || ""} onChange={(e) => updateField('km', e.target.value)} className="w-full mt-1 p-3 border-2 border-black rounded-lg font-bold" />
+                  <input type="number" value={detailStr("km")} onChange={(e) => updateField('km', e.target.value)} className="w-full mt-1 p-3 border-2 border-black rounded-lg font-bold" />
                 </div>
                 <div>
                   <label className="text-[10px] font-black uppercase text-gray-400">An Fabricație</label>
-                  <input type="number" value={formData.year || ""} onChange={(e) => updateField('year', e.target.value)} className="w-full mt-1 p-3 border-2 border-black rounded-lg font-bold" />
+                  <input type="number" value={detailStr("year")} onChange={(e) => updateField('year', e.target.value)} className="w-full mt-1 p-3 border-2 border-black rounded-lg font-bold" />
                 </div>
                 <div>
                    <label className="text-[10px] font-black uppercase text-gray-400">Motorizare / CP</label>
-                   <input type="text" value={formData.engine || ""} onChange={(e) => updateField('engine', e.target.value)} className="w-full mt-1 p-3 border-2 border-black rounded-lg font-bold uppercase" />
+                   <input type="text" value={detailStr("engine")} onChange={(e) => updateField('engine', e.target.value)} className="w-full mt-1 p-3 border-2 border-black rounded-lg font-bold uppercase" />
                 </div>
                 <div>
                    <label className="text-[10px] font-black uppercase text-gray-400">Status</label>
-                   <select value={formData.status || ""} onChange={(e) => updateField('status', e.target.value)} className="w-full mt-1 p-3 border-2 border-black rounded-lg font-bold uppercase">
+                   <select value={detailStr("status")} onChange={(e) => updateField('status', e.target.value)} className="w-full mt-1 p-3 border-2 border-black rounded-lg font-bold uppercase">
                      <option>Înmatriculat RO</option>
                      <option>Neînmatriculat</option>
                    </select>
@@ -288,23 +317,23 @@ export default function EditAdPage() {
               <>
                 <div>
                   <label className="text-[10px] font-black uppercase text-gray-400">Suprafață (mp)</label>
-                  <input type="number" value={formData.surface || ""} onChange={(e) => updateField('surface', e.target.value)} className="w-full mt-1 p-3 border-2 border-black rounded-lg font-bold" />
+                  <input type="number" value={detailStr("surface")} onChange={(e) => updateField('surface', e.target.value)} className="w-full mt-1 p-3 border-2 border-black rounded-lg font-bold" />
                 </div>
                 <div>
                   <label className="text-[10px] font-black uppercase text-gray-400">Camere</label>
-                  <input type="number" value={formData.rooms || ""} onChange={(e) => updateField('rooms', e.target.value)} className="w-full mt-1 p-3 border-2 border-black rounded-lg font-bold" />
+                  <input type="number" value={detailStr("rooms")} onChange={(e) => updateField('rooms', e.target.value)} className="w-full mt-1 p-3 border-2 border-black rounded-lg font-bold" />
                 </div>
                 <div>
                   <label className="text-[10px] font-black uppercase text-gray-400">Etaj / Regim</label>
-                  <input type="text" value={formData.floor || ""} onChange={(e) => updateField('floor', e.target.value)} className="w-full mt-1 p-3 border-2 border-black rounded-lg font-bold uppercase" />
+                  <input type="text" value={detailStr("floor")} onChange={(e) => updateField('floor', e.target.value)} className="w-full mt-1 p-3 border-2 border-black rounded-lg font-bold uppercase" />
                 </div>
                 <div>
                   <label className="text-[10px] font-black uppercase text-gray-400">An Construcție</label>
-                  <input type="number" value={formData.buildYear || ""} onChange={(e) => updateField('buildYear', e.target.value)} className="w-full mt-1 p-3 border-2 border-black rounded-lg font-bold" />
+                  <input type="number" value={detailStr("buildYear")} onChange={(e) => updateField('buildYear', e.target.value)} className="w-full mt-1 p-3 border-2 border-black rounded-lg font-bold" />
                 </div>
                 <div className="md:col-span-2">
                   <label className="text-[10px] font-black uppercase text-gray-400">Localizare Exactă</label>
-                  <input type="text" value={formData.location || ""} onChange={(e) => updateField('location', e.target.value)} className="w-full mt-1 p-3 border-2 border-black rounded-lg font-bold uppercase focus:border-[#FFD100] outline-none" />
+                  <input type="text" value={detailStr("location")} onChange={(e) => updateField('location', e.target.value)} className="w-full mt-1 p-3 border-2 border-black rounded-lg font-bold uppercase focus:border-[#FFD100] outline-none" />
                 </div>
               </>
             )}
@@ -314,19 +343,19 @@ export default function EditAdPage() {
               <>
                 <div>
                   <label className="text-[10px] font-black uppercase text-gray-400">Brand</label>
-                  <input type="text" value={formData.brand || ""} onChange={(e) => updateField('brand', e.target.value)} className="w-full mt-1 p-3 border-2 border-black rounded-lg font-bold uppercase" />
+                  <input type="text" value={detailStr("brand")} onChange={(e) => updateField('brand', e.target.value)} className="w-full mt-1 p-3 border-2 border-black rounded-lg font-bold uppercase" />
                 </div>
                 <div>
                   <label className="text-[10px] font-black uppercase text-gray-400">Model & Ref.</label>
-                  <input type="text" value={formData.refModel || ""} onChange={(e) => updateField('refModel', e.target.value)} className="w-full mt-1 p-3 border-2 border-black rounded-lg font-bold uppercase" />
+                  <input type="text" value={detailStr("refModel")} onChange={(e) => updateField('refModel', e.target.value)} className="w-full mt-1 p-3 border-2 border-black rounded-lg font-bold uppercase" />
                 </div>
                 <div>
                   <label className="text-[10px] font-black uppercase text-gray-400">An Achiziție</label>
-                  <input type="number" value={formData.purchaseYear || ""} onChange={(e) => updateField('purchaseYear', e.target.value)} className="w-full mt-1 p-3 border-2 border-black rounded-lg font-bold" />
+                  <input type="number" value={detailStr("purchaseYear")} onChange={(e) => updateField('purchaseYear', e.target.value)} className="w-full mt-1 p-3 border-2 border-black rounded-lg font-bold" />
                 </div>
                  <div>
                   <label className="text-[10px] font-black uppercase text-gray-400">Pachet</label>
-                  <select value={formData.boxPapers || ""} onChange={(e) => updateField('boxPapers', e.target.value)} className="w-full mt-1 p-3 border-2 border-black rounded-lg font-bold uppercase">
+                  <select value={detailStr("boxPapers")} onChange={(e) => updateField('boxPapers', e.target.value)} className="w-full mt-1 p-3 border-2 border-black rounded-lg font-bold uppercase">
                      <option>Full Set (Cutie + Acte)</option><option>Doar Ceasul</option><option>Ceas + Cutie</option>
                   </select>
                 </div>
@@ -458,9 +487,10 @@ export default function EditAdPage() {
             ) : null}
 
             <button 
+              type="button"
               onClick={handleUpdate}
-              disabled={isSaving}
-              className="md:col-span-2 w-full bg-black text-[#FFD100] py-5 rounded-xl font-black uppercase tracking-widest text-xs italic shadow-[5px_5px_0_0_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none transition-all flex items-center justify-center gap-2 mt-4"
+              disabled={isSaving || photosBusy}
+              className="md:col-span-2 w-full bg-black text-[#FFD100] py-5 rounded-xl font-black uppercase tracking-widest text-xs italic shadow-[5px_5px_0_0_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none transition-all flex items-center justify-center gap-2 mt-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black focus-visible:ring-offset-2"
             >
               {isSaving ? <Loader2 className="animate-spin" /> : <Save size={16} />}
               {isSaving ? "Se criptează datele..." : "Salvează Noua Versiune"}
@@ -471,3 +501,5 @@ export default function EditAdPage() {
     </div>
   );
 }
+
+export default EditAdPage;

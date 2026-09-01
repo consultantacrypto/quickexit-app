@@ -410,6 +410,29 @@
       "setAsCover": "Setează ca imagine principală",
       "currentCover": "Imagine principală",
       "empty": "Nu există imagini pe acest anunț."
+    },
+    "photoEditor": {
+      "title": "Fotografii anunț",
+      "hint": "Prima imagine este coperta. Poți încărca, reordona sau scoate poze. Fișierele din Storage nu se șterg.",
+      "add": "Adaugă fotografii",
+      "remove": "Scoate fotografia #n#",
+      "moveLeft": "Mută fotografia #n# la stânga",
+      "moveRight": "Mută fotografia #n# la dreapta",
+      "preview": "Ordine finală înainte de salvare",
+      "uploading": "Se încarcă",
+      "remaining": "Locuri rămase: #count#",
+      "authRequired": "Autentifică-te pentru a edita anunțul.",
+      "forbidden": "Nu poți edita acest anunț.",
+      "previewFailed": "Previzualizarea a eșuat",
+      "alt": "#title# — fotografia #n#",
+      "errors": {
+        "unsupportedType": "Folosește JPG, PNG sau WebP.",
+        "fileTooLarge": "Fișierul depășește 8 MB.",
+        "limitReached": "Ai atins limita de 20 de imagini.",
+        "uploadFailed": "Încărcarea a eșuat. Încearcă din nou.",
+        "keepLast": "Păstrează cel puțin o fotografie.",
+        "saveFailed": "Salvarea a eșuat. Încearcă din nou."
+      }
     }
   },
   "ListingDetail": {
