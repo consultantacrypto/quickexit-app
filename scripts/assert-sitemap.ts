@@ -82,6 +82,14 @@ assert(
   "en home present",
 );
 assert(
+  staticEntries.some((e) => e.url === `${PRODUCTION_SITE_URL}/ro/anunturi`),
+  "ro all-listings present",
+);
+assert(
+  staticEntries.some((e) => e.url === `${PRODUCTION_SITE_URL}/en/anunturi`),
+  "en all-listings present",
+);
+assert(
   staticEntries.every((e) => e.url.startsWith(PRODUCTION_SITE_URL)),
   "static urls are production canonical",
 );

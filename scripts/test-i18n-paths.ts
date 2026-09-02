@@ -4,6 +4,7 @@ import { normalizeAppPath } from "../src/i18n/paths";
 
 const cases = [
   "/anunt/test-id",
+  "/anunturi",
   "/categorii/auto",
   "/trimite-oferta/abc",
   "/ro/anunt/test-id",
