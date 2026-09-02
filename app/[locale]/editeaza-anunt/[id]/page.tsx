@@ -10,6 +10,7 @@ import { premiumSellerConfig } from "@/lib/premiumSeller";
 import { financingConfig } from "@/lib/financingConfig";
 import { LISTING_AUTO_CATEGORY } from "@/lib/listingPremium";
 import ListingPhotoEditor from "@/app/components/ListingPhotoEditor";
+import CarBrandCombobox from "@/app/components/CarBrandCombobox";
 import { buildListingImagesPatch, sanitizeListingImageUrls } from "@/lib/listingImageUpload";
 
 function EditAdPage() {
@@ -283,8 +284,15 @@ function EditAdPage() {
             {category === "Auto & Moto" && (
               <>
                 <div>
-                  <label className="text-[10px] font-black uppercase text-gray-400">Marcă</label>
-                  <input type="text" value={detailStr("make")} onChange={(e) => updateField('make', e.target.value)} className="w-full mt-1 p-3 border-2 border-black rounded-lg font-bold uppercase" />
+                  <CarBrandCombobox
+                    label={tPost("carBrand.label")}
+                    placeholder={tPost("carBrand.placeholder")}
+                    noMatches={tPost("carBrand.noMatches")}
+                    listLabel={tPost("carBrand.listLabel")}
+                    value={detailStr("make")}
+                    onChange={(next) => updateField("make", next)}
+                    inputClassName="w-full mt-1 p-3 border-2 border-black rounded-lg font-bold uppercase"
+                  />
                 </div>
                 <div>
                   <label className="text-[10px] font-black uppercase text-gray-400">Model</label>

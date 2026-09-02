@@ -7,6 +7,7 @@ import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { supabase } from "@/lib/supabase";
 import { Loader2, Search, Star, X } from "lucide-react";
+import CarBrandCombobox from "@/app/components/CarBrandCombobox";
 import { trackEvent } from "@/lib/analytics";
 import EvaluateTurnstile, { type EvaluateTurnstileHandle } from "@/components/EvaluateTurnstile";
 import { isEvaluateTurnstileUiEnabled } from "@/lib/turnstilePublic";
@@ -1397,17 +1398,14 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                   {category === "Auto & Moto" && (
                     <>
                       <div>
-                        <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">
-                          Marcă
-                        </label>
-                        <input
-                          type="text"
+                        <CarBrandCombobox
+                          label={tPost("carBrand.label")}
+                          placeholder={tPost("carBrand.placeholder")}
+                          noMatches={tPost("carBrand.noMatches")}
+                          listLabel={tPost("carBrand.listLabel")}
                           value={formData.make}
-                          onChange={(e) =>
-                            setFormData({ ...formData, make: e.target.value })
-                          }
-                          placeholder="Ex: Mercedes-Benz"
-                          className="w-full mt-2 p-3 border-[3px] border-black rounded-xl font-bold uppercase focus:outline-none focus:bg-gray-50"
+                          onChange={(next) => setFormData({ ...formData, make: next })}
+                          inputClassName="w-full mt-2 p-3 border-[3px] border-black rounded-xl font-bold uppercase focus:bg-gray-50"
                         />
                       </div>
                       <div>

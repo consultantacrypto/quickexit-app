@@ -328,6 +328,12 @@
     "pageTitle": "Publică anunțul",
     "pageSubtitle": "pentru vânzare rapidă",
     "pageDescription": "Completează activul, stabilește prețul și alege viteza de vânzare.",
+    "carBrand": {
+      "label": "Marcă",
+      "placeholder": "Caută sau scrie marca",
+      "noMatches": "Nicio marcă din listă. Poți continua cu textul scris.",
+      "listLabel": "Mărci auto"
+    },
     "steps": {
       "assetData": "Date activ",
       "photosDescription": "Poze și descriere",

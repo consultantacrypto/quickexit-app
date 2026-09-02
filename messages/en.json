@@ -328,6 +328,12 @@
     "pageTitle": "Publish your listing",
     "pageSubtitle": "for a fast sale",
     "pageDescription": "Complete your asset details, set your price, and choose your sale speed.",
+    "carBrand": {
+      "label": "Make",
+      "placeholder": "Search or type a make",
+      "noMatches": "No matching make in the list. You can keep the text you typed.",
+      "listLabel": "Car makes"
+    },
     "steps": {
       "assetData": "Asset details",
       "photosDescription": "Photos & description",
