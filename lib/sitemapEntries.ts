@@ -61,6 +61,7 @@ export function staticAndCategorySitemapPaths(): string[] {
     "/ghid/active-sub-pretul-pietei",
     "/capital-disponibil",
     "/licitatii",
+    "/anunturi",
     "/tarife",
     "/cum-functioneaza",
     "/future-mobility",

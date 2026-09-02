@@ -9,7 +9,7 @@ import { getSiteUrl } from "@/lib/siteUrl";
 import { normalizeSaleType } from "@/utils/normalizeSaleType";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/src/i18n/navigation";
-import { categoryPath } from "@/src/i18n/paths";
+import { categoryPath, listingsIndexPath } from "@/src/i18n/paths";
 import { getNumberLocale, formatEurAmount } from "@/lib/i18n/format";
 import { adCardPricingProps } from "@/lib/listingPrice";
 import { isPublicAuctionOpen } from "@/lib/auctionOpen";
@@ -321,7 +321,7 @@ export default async function Home({ params }: HomePageProps) {
                 {tHome("listings.postListing")}
               </TrackedLink>
               <Link
-                href={categoryPath("auto")}
+                href={listingsIndexPath()}
                 className="border-b-2 border-transparent text-[11px] font-black uppercase tracking-widest text-neutral-600 underline-offset-4 transition hover:border-black hover:text-black md:text-xs"
               >
                 {tHome("listings.viewAll")}

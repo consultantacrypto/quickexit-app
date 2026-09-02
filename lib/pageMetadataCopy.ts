@@ -99,6 +99,18 @@ export const PAGE_METADATA_COPY = {
         "Publish assets on Quick Exit with an exit price, indicative valuation, and access to buyers or investors seeking fast opportunities.",
     },
   },
+  anunturi: {
+    ro: {
+      title: "Toate anunțurile active | Quick Exit",
+      description:
+        "Vezi toate anunțurile publice active de pe Quick Exit, din auto, imobiliare, lux, business, gadgets și foto.",
+    },
+    en: {
+      title: "All active listings | Quick Exit",
+      description:
+        "Browse every public active listing on Quick Exit across cars, real estate, luxury, business, gadgets and photo.",
+    },
+  },
   licitatii: {
     ro: {
       title: "Licitații active | Quick Exit",

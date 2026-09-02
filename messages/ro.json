@@ -217,6 +217,23 @@
     "photoAudio": "Foto & Audio",
     "gadgetsTech": "Gadgets & Tech"
   },
+  "AllListings": {
+    "metaTitle": "Toate anunțurile active | Quick Exit",
+    "metaDescription": "Vezi toate anunțurile publice active de pe Quick Exit, din toate categoriile.",
+    "kicker": "Anunțuri publice",
+    "title": "Toate anunțurile",
+    "description": "Active publice, din toate cele șase categorii, sortate de la cele mai noi.",
+    "filterLabel": "Filtrează după categorie",
+    "filterAll": "Toate",
+    "count": "{count} anunțuri",
+    "countOne": "1 anunț",
+    "loading": "Se încarcă anunțurile…",
+    "empty": "Momentan nu există anunțuri active.",
+    "emptyFiltered": "Nu există anunțuri active în această categorie.",
+    "error": "Nu am putut încărca anunțurile. Reîncearcă.",
+    "postCta": "Pune anunț",
+    "backHome": "Înapoi acasă"
+  },
   "AdCard": {
     "type": {
       "standard": "Lichiditate",

@@ -38,3 +38,12 @@ export function categoryPath(slug: string): string {
     .replace(/^\/+|\/+$/g, "");
   return normalizeAppPath(`/categorii/${cleanSlug}`);
 }
+
+export function listingsIndexPath(categorySlug?: string | null): string {
+  const base = normalizeAppPath("/anunturi");
+  const slug = String(categorySlug ?? "")
+    .trim()
+    .replace(/^\/+|\/+$/g, "");
+  if (!slug) return base;
+  return `${base}?category=${encodeURIComponent(slug)}`;
+}

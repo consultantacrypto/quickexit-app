@@ -217,6 +217,23 @@
     "photoAudio": "Photo & Audio",
     "gadgetsTech": "Gadgets & Tech"
   },
+  "AllListings": {
+    "metaTitle": "All active listings | Quick Exit",
+    "metaDescription": "Browse every public active listing on Quick Exit, across all categories.",
+    "kicker": "Public listings",
+    "title": "All listings",
+    "description": "Public assets from all six categories, newest first.",
+    "filterLabel": "Filter by category",
+    "filterAll": "All",
+    "count": "{count} listings",
+    "countOne": "1 listing",
+    "loading": "Loading listings…",
+    "empty": "No active listings at the moment.",
+    "emptyFiltered": "No active listings in this category.",
+    "error": "We could not load listings. Please try again.",
+    "postCta": "Post listing",
+    "backHome": "Back home"
+  },
   "AdCard": {
     "type": {
       "standard": "Liquidity",
