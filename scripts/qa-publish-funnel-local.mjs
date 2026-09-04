@@ -1,18 +1,72 @@
 import { createRequire } from "node:module";
 
 const require = createRequire(import.meta.url);
-const { chromium } = require("D:/MEDIA/quickexit/qa/uiux-audit/node_modules/playwright");
-
-const BASE = "http://localhost:3006";
-const WRITE_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 
 function fail(message) {
   console.error(`FAIL ${message}`);
   process.exit(1);
 }
 
+function loadPlaywright() {
+  const fromEnv = process.env.PLAYWRIGHT_MODULE?.trim();
+  if (fromEnv) {
+    try {
+      return require(fromEnv);
+    } catch (error) {
+      fail(
+        `PLAYWRIGHT_MODULE is set but could not be loaded (${fromEnv}): ${error instanceof Error ? error.message : error}`,
+      );
+    }
+  }
+  try {
+    return require("playwright");
+  } catch {
+    fail(
+      "Playwright is not installed in this repository. Set PLAYWRIGHT_MODULE to a playwright package path, or add the playwright package locally, then retry.",
+    );
+  }
+}
+
+const { chromium } = loadPlaywright();
+
+const BASE = "http://localhost:3006";
+const WRITE_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
+
 function assert(condition, message) {
   if (!condition) fail(message);
+}
+
+function isProtectedVendorHost(url) {
+  const host = url.toLowerCase();
+  return (
+    host.includes("supabase.co") ||
+    host.includes("stripe.com") ||
+    host.includes("api.stripe.com")
+  );
+}
+
+function isAnalyticsCollectHost(url) {
+  const host = url.toLowerCase();
+  return (
+    host.includes("google-analytics.com") ||
+    host.includes("analytics.google.com") ||
+    host.includes("doubleclick.net") ||
+    host.includes("googleadservices.com") ||
+    host.includes("analytics.tiktok.com") ||
+    host.includes("business-api.tiktok.com")
+  );
+}
+
+async function protectVendorWrites(page) {
+  await page.route("**/*", async (route) => {
+    const req = route.request();
+    const url = req.url();
+    if (WRITE_METHODS.has(req.method()) && (isProtectedVendorHost(url) || isAnalyticsCollectHost(url))) {
+      await route.abort();
+      return;
+    }
+    await route.continue();
+  });
 }
 
 const defaultForm = {
@@ -75,20 +129,14 @@ function draftPayload(overrides = {}) {
 }
 
 async function attachNetwork(page, bucket) {
+  await protectVendorWrites(page);
   page.on("request", (req) => {
     bucket.push({ method: req.method(), url: req.url() });
   });
 }
 
 function writeHits(bucket) {
-  return bucket.filter((req) => {
-    const host = req.url.toLowerCase();
-    const isTarget =
-      host.includes("supabase.co") ||
-      host.includes("stripe.com") ||
-      host.includes("api.stripe.com");
-    return isTarget && WRITE_METHODS.has(req.method);
-  });
+  return bucket.filter((req) => isProtectedVendorHost(req.url) && WRITE_METHODS.has(req.method));
 }
 
 async function noHorizontalOverflow(page) {
@@ -297,6 +345,7 @@ try {
     const hits = [];
     const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
     const next = await context.newPage();
+    await protectVendorWrites(next);
     next.on("request", (req) => {
       hits.push({ method: req.method(), url: req.url() });
       network.push({ method: req.method(), url: req.url() });
@@ -404,6 +453,7 @@ try {
   const revokeHits = [];
   const revokeCtx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
   const revokePage = await revokeCtx.newPage();
+  await protectVendorWrites(revokePage);
   revokePage.on("request", (req) => {
     revokeHits.push({ method: req.method(), url: req.url() });
     network.push({ method: req.method(), url: req.url() });
