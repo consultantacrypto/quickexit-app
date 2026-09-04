@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 import { Link } from "@/src/i18n/navigation";
 import { ShieldCheck } from "lucide-react";
 import { companyInfo } from "@/lib/company";
+import CookieSettingsButton from "./CookieSettingsButton";
 
 const footerLink = "text-xs font-bold uppercase italic text-neutral-400 transition-colors hover:text-[#FFD100]";
 
@@ -107,6 +108,11 @@ export default function Footer() {
                 <Link href="/cookies" className={footerLink}>
                   {t("legal.cookies")}
                 </Link>
+              </li>
+              <li>
+                <CookieSettingsButton className={`${footerLink} text-left`}>
+                  {t("legal.cookieSettings")}
+                </CookieSettingsButton>
               </li>
               <li>
                 <Link href="/contact" className={footerLink}>

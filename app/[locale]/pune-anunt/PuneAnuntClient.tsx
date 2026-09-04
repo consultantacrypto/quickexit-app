@@ -10,6 +10,7 @@ import { Loader2, Search, Star, X } from "lucide-react";
 import CarBrandCombobox from "@/app/components/CarBrandCombobox";
 import PublishDraftRecoveryDialog from "./PublishDraftRecoveryDialog";
 import { trackEvent } from "@/lib/analytics";
+import { trackFunnelEvent } from "@/lib/funnelAnalytics";
 import EvaluateTurnstile, { type EvaluateTurnstileHandle } from "@/components/EvaluateTurnstile";
 import { isEvaluateTurnstileUiEnabled } from "@/lib/turnstilePublic";
 import { getPriceIdForPackageId } from "@/lib/stripePackages";
@@ -156,6 +157,12 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
     ...DEFAULT_LISTING_FORM_DATA,
   });
 
+  const funnelParams = () => ({
+    locale,
+    category: categoryLabelToTrackingKey(category),
+    source: "publish_form" as const,
+    sale_strategy: saleMethod,
+  });
 
   const livePublishGuardInput = (): PublishGuardInput => ({
     category,
@@ -269,7 +276,11 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
         setSaleMethod(fields.saleMethod);
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only draft gate
+    trackFunnelEvent("publish_page_view", {
+      locale,
+      source: "publish_form",
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only draft gate; funnel once-gate + consent gate prevent Strict Mode duplicates
   }, []);
 
   // Autosave textual draft (never Files / previews).
@@ -375,6 +386,12 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
         recoverySource,
       );
     }
+    trackFunnelEvent("listing_started", {
+      ...funnelParams(),
+      source: "draft_recovery",
+      category: categoryLabelToTrackingKey(recoveryDraft.category),
+      sale_strategy: recoveryDraft.saleMethod,
+    });
     setDraftDecision("restored");
     setDraftReady(true);
     setRecoveryDraft(null);
@@ -549,8 +566,11 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
       }),
     );
     if (completedStep === 1) {
+      trackFunnelEvent("listing_step_1_complete", { ...funnelParams(), step: 1 });
     } else if (completedStep === 2) {
+      trackFunnelEvent("listing_step_2_complete", { ...funnelParams(), step: 2 });
     } else if (completedStep === 3) {
+      trackFunnelEvent("listing_step_3_complete", { ...funnelParams(), step: 3 });
     }
   };
 
@@ -968,6 +988,7 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
       throw new Error("auth_required");
     }
 
+    trackFunnelEvent("begin_checkout", funnelParams(), { skipOnce: true });
 
     const res = await fetch("/api/stripe/checkout", {
       method: "POST",
@@ -2063,6 +2084,7 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                           category: categoryLabelToTrackingKey(category),
                         }),
                       );
+                      trackFunnelEvent("listing_started", funnelParams());
                       setHasTrackedStart(true);
                     }
                     trackListingStepCompleted(1);

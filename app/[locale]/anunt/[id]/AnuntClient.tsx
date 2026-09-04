@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import { useTranslations, useLocale } from "next-intl";
@@ -14,6 +14,8 @@ import { normalizeSaleType } from "@/utils/normalizeSaleType";
 import { parseListingOfferCount } from "@/utils/auctionListingUi";
 import { buildSocialShareKit } from "@/lib/socialShare";
 import { trackEvent } from "@/lib/analytics";
+import { trackFunnelEvent } from "@/lib/funnelAnalytics";
+import { categoryLabelToTrackingKey } from "@/lib/evaluationTracking";
 import { canonicalListingImageSrc } from "@/lib/listingMedia";
 import {
   formatEurAmount,
@@ -288,6 +290,19 @@ export default function AnuntClient({
   const [adData] = useState<PublicListingRow>(initialListing);
   const [similarAds] = useState<PublicListingRow[]>(initialSimilar);
   const [offerPrice, setOfferPrice] = useState(Number(initialListing.exit_price) || 0);
+  const funnelListingParams = useMemo(
+    () => ({
+      locale: locale === "en" ? "en" : "ro",
+      category: categoryLabelToTrackingKey(String(adData.category || "")),
+      source: "listing_detail" as const,
+      sale_strategy:
+        normalizeSaleType(adData.sale_strategy) === "auction"
+          ? ("auction" as const)
+          : ("direct" as const),
+    }),
+    [adData.category, adData.sale_strategy, locale],
+  );
+  const listingViewOnceRef = useRef(false);
 
   const fm = useMemo(
     () => getFutureMobilityDetails(adData.details),
@@ -474,6 +489,8 @@ export default function AnuntClient({
   useEffect(() => {
     if (!adData?.id) return;
     if (adData.status !== "active") return;
+    if (listingViewOnceRef.current) return;
+    listingViewOnceRef.current = true;
     trackEvent("view_listing", {
       listing_id: adData.id,
       category: adData.category || "unknown",
@@ -486,7 +503,8 @@ export default function AnuntClient({
           }
         : {}),
     });
-  }, [adData, fm]);
+    trackFunnelEvent("listing_view", funnelListingParams);
+  }, [adData, fm, funnelListingParams]);
 
   useEffect(() => {
     setCanQuickShare(typeof navigator !== "undefined" && typeof navigator.share === "function");
@@ -518,6 +536,7 @@ export default function AnuntClient({
         amount: Number(offerPrice),
         status: "success",
       });
+      trackFunnelEvent("offer_submitted", funnelListingParams, { skipOnce: true });
       setOfferSuccess(true);
       setBuyerPhone("");
       setBuyerEmail("");
@@ -808,6 +827,7 @@ export default function AnuntClient({
   };
 
   const openOfferModal = () => {
+    trackFunnelEvent("offer_started", funnelListingParams);
     setActiveModal("offer");
     setOfferSuccess(false);
     setOfferActionMessage(null);
@@ -869,6 +889,7 @@ export default function AnuntClient({
         <button
           type="button"
           onClick={() => {
+            trackFunnelEvent("request_details_click", funnelListingParams);
             if (ctaMode === "on_order") {
               trackEvent("click_request_personalized_offer", {
                 listing_id: adData.id,

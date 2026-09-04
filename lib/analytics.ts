@@ -1,5 +1,19 @@
 "use client";
 
+import {
+  buildConsentPreferences,
+  emitConsentChange,
+  googleConsentUpdateFromPreferences,
+  hasAnalyticsConsent as hasAnalyticsPreference,
+  hasMarketingConsent as hasMarketingPreference,
+  persistConsentPreferences,
+  readConsentPreferences,
+  type ConsentChoiceInput,
+  type ConsentPreferences,
+  LEGACY_ANALYTICS_CONSENT_STORAGE_KEY,
+} from "@/lib/consentPreferences";
+import { applyConsentTags, clearFirstPartyTikTokCookies, dispatchGtagEvent } from "@/lib/consentTags";
+
 export const GA_MEASUREMENT_ID =
   process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID || "G-8LLK172SCX";
 
@@ -7,18 +21,35 @@ export const TIKTOK_PIXEL_ID =
   process.env.NEXT_PUBLIC_TIKTOK_PIXEL_ID || "D8MJJNJC77U4U91BBCT0";
 
 type EventParams = Record<string, string | number | boolean | null | undefined>;
-type AttributionData = {
+export type AttributionData = {
   utm_source?: string;
   utm_medium?: string;
   utm_campaign?: string;
   utm_content?: string;
   utm_term?: string;
-  referrer?: string;
-  landing_path?: string;
-  first_seen_at?: string;
 };
-const ATTRIBUTION_KEY = "quickexit_attribution";
-const MAX_ATTR_FIELD_LENGTH = 120;
+
+export const ATTRIBUTION_STORAGE_KEY = "quickexit_attribution";
+export const ANALYTICS_CONSENT_STORAGE_KEY = LEGACY_ANALYTICS_CONSENT_STORAGE_KEY;
+export const MAX_ATTR_FIELD_LENGTH = 120;
+export const ATTRIBUTION_UTM_KEYS = [
+  "utm_source",
+  "utm_medium",
+  "utm_campaign",
+  "utm_content",
+  "utm_term",
+] as const;
+
+const ATTRIBUTION_KEY = ATTRIBUTION_STORAGE_KEY;
+const UTM_KEYS = ATTRIBUTION_UTM_KEYS;
+const UTM_VALUE_RE = /^[a-zA-Z0-9._\- ]+$/;
+const CLICK_ID_RE = /gclid|fbclid|ttclid|msclkid|wbraid|gbraid|dclid|twclid/i;
+
+export type AnalyticsConsentState = "granted" | "denied";
+
+export type AnalyticsTrackOptions = {
+  attributionMode?: "full" | "utm_only" | "none";
+};
 
 declare global {
   interface Window {
@@ -27,7 +58,14 @@ declare global {
     ttq?: {
       track?: (eventName: string, params?: Record<string, unknown>) => void;
       page?: () => void;
+      holdConsent?: () => void;
+      grantConsent?: () => void;
+      revokeConsent?: () => void;
     };
+    quickexitSetAnalyticsConsent?: (state: AnalyticsConsentState) => void;
+    quickexitRevokeAnalyticsConsent?: () => void;
+    quickexitSetConsentPreferences?: (input: ConsentChoiceInput) => void;
+    quickexitGetConsentPreferences?: () => ConsentPreferences | null;
   }
 }
 
@@ -74,13 +112,84 @@ function normalizeField(value: string | null | undefined): string | undefined {
   return trimmed.slice(0, MAX_ATTR_FIELD_LENGTH);
 }
 
-function sanitizeReferrer(rawReferrer: string): string | undefined {
+export function sanitizeUtmValue(
+  value: string | null | undefined,
+): string | undefined {
+  const normalized = normalizeField(value);
+  if (!normalized) return undefined;
+  if (normalized.includes("@") || normalized.includes("://")) return undefined;
+  if (CLICK_ID_RE.test(normalized)) return undefined;
+  if (!UTM_VALUE_RE.test(normalized)) return undefined;
+  return normalized;
+}
+
+export function hasAnalyticsConsent(): boolean {
+  return hasAnalyticsPreference();
+}
+
+export function hasMarketingConsent(): boolean {
+  return hasMarketingPreference();
+}
+
+export function getAnalyticsConsent(): AnalyticsConsentState | null {
+  const prefs = readConsentPreferences();
+  if (!prefs) return null;
+  return prefs.analytics ? "granted" : "denied";
+}
+
+export function syncVendorConsent(prefs: ConsentPreferences | null = readConsentPreferences()): void {
+  if (typeof window === "undefined") return;
   try {
-    const parsed = new URL(rawReferrer);
-    return normalizeField(`${parsed.origin}${parsed.pathname}`);
+    if (typeof window.gtag === "function") {
+      window.gtag("consent", "update", googleConsentUpdateFromPreferences(prefs));
+    }
+    if (prefs?.marketing) {
+      window.ttq?.grantConsent?.();
+    } else {
+      window.ttq?.revokeConsent?.();
+      window.ttq?.holdConsent?.();
+    }
   } catch {
-    return undefined;
+    // vendor consent sync must never crash the app
   }
+}
+
+export function clearAnalyticsAttribution(): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.removeItem(ATTRIBUTION_KEY);
+    window.sessionStorage.removeItem(ATTRIBUTION_KEY);
+  } catch {
+    // ignore
+  }
+}
+
+export function applyConsentPreferences(input: ConsentChoiceInput): ConsentPreferences {
+  const next = buildConsentPreferences(input);
+  persistConsentPreferences(next);
+  if (next.analytics) {
+    captureAttribution();
+  } else {
+    clearAnalyticsAttribution();
+  }
+  if (!next.marketing) {
+    clearFirstPartyTikTokCookies();
+  }
+  syncVendorConsent(next);
+  emitConsentChange(next);
+  return next;
+}
+
+export function setAnalyticsConsent(state: AnalyticsConsentState): void {
+  const existing = readConsentPreferences();
+  applyConsentPreferences({
+    analytics: state === "granted",
+    marketing: state === "granted" ? Boolean(existing?.marketing) : false,
+  });
+}
+
+export function revokeAnalyticsConsent(): void {
+  applyConsentPreferences({ analytics: false, marketing: false });
 }
 
 function readStoredAttribution(): AttributionData | null {
@@ -88,43 +197,46 @@ function readStoredAttribution(): AttributionData | null {
   try {
     const raw = window.localStorage.getItem(ATTRIBUTION_KEY);
     if (!raw) return null;
-    const parsed = JSON.parse(raw) as AttributionData;
-    if (!parsed || typeof parsed !== "object") return null;
-    return parsed;
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return null;
+    const out: AttributionData = {};
+    for (const key of UTM_KEYS) {
+      out[key] = sanitizeUtmValue(
+        typeof parsed[key] === "string" ? parsed[key] : undefined,
+      );
+    }
+    return out;
   } catch {
     return null;
   }
 }
 
-function buildCurrentAttribution(): AttributionData {
+function buildUtmOnlyAttribution(): AttributionData {
   if (typeof window === "undefined") return {};
   try {
     const currentUrl = new URL(window.location.href);
-    const referrer =
-      typeof document !== "undefined" && document.referrer
-        ? sanitizeReferrer(document.referrer)
-        : undefined;
-    return {
-      utm_source: normalizeField(currentUrl.searchParams.get("utm_source")),
-      utm_medium: normalizeField(currentUrl.searchParams.get("utm_medium")),
-      utm_campaign: normalizeField(currentUrl.searchParams.get("utm_campaign")),
-      utm_content: normalizeField(currentUrl.searchParams.get("utm_content")),
-      utm_term: normalizeField(currentUrl.searchParams.get("utm_term")),
-      referrer,
-      landing_path: normalizeField(`${window.location.pathname}${window.location.search}`),
-      first_seen_at: new Date().toISOString(),
-    };
+    const utm: AttributionData = {};
+    for (const key of UTM_KEYS) {
+      utm[key] = sanitizeUtmValue(currentUrl.searchParams.get(key));
+    }
+    return utm;
   } catch {
     return {};
   }
 }
 
+function hasAnyUtm(data: AttributionData): boolean {
+  return UTM_KEYS.some((key) => Boolean(data[key]));
+}
+
 export function captureAttribution(): void {
   if (typeof window === "undefined") return;
+  if (!hasAnalyticsConsent()) return;
   try {
     const existing = readStoredAttribution();
-    if (existing) return; // first-touch only in this sprint
-    const data = buildCurrentAttribution();
+    if (existing && hasAnyUtm(existing)) return;
+    const data = buildUtmOnlyAttribution();
+    if (!hasAnyUtm(data)) return;
     window.localStorage.setItem(ATTRIBUTION_KEY, JSON.stringify(data));
   } catch {
     // attribution is best-effort; never break runtime
@@ -133,33 +245,33 @@ export function captureAttribution(): void {
 
 export function getAttribution(): AttributionData {
   if (typeof window === "undefined") return {};
+  if (!hasAnalyticsConsent()) return {};
   try {
-    const existing = readStoredAttribution();
-    if (existing) return existing;
-    return {};
+    return readStoredAttribution() ?? {};
   } catch {
     return {};
   }
 }
 
-export function appendAttributionParams(params?: EventParams): EventParams {
+export function appendAttributionParams(
+  params?: EventParams,
+  mode: AnalyticsTrackOptions["attributionMode"] = "utm_only",
+): EventParams {
+  if (mode === "none") return { ...(params ?? {}) };
   const attribution = getAttribution();
-  const attributionParams: EventParams = {
-    attribution_utm_source: attribution.utm_source,
-    attribution_utm_medium: attribution.utm_medium,
-    attribution_utm_campaign: attribution.utm_campaign,
-    attribution_utm_content: attribution.utm_content,
-    attribution_utm_term: attribution.utm_term,
-    attribution_referrer: attribution.referrer,
-    attribution_landing_path: attribution.landing_path,
-    attribution_first_seen_at: attribution.first_seen_at,
+  const utmParams: EventParams = {
+    utm_source: attribution.utm_source,
+    utm_medium: attribution.utm_medium,
+    utm_campaign: attribution.utm_campaign,
+    utm_content: attribution.utm_content,
+    utm_term: attribution.utm_term,
   };
-  // Explicit event params win on conflicts.
-  return { ...attributionParams, ...(params ?? {}) };
+  return { ...utmParams, ...(params ?? {}) };
 }
 
 export function pageview(url: string): void {
   if (typeof window === "undefined") return;
+  if (!hasAnalyticsConsent()) return;
   if (!GA_MEASUREMENT_ID) return;
   if (typeof window.gtag !== "function") return;
   window.gtag("config", GA_MEASUREMENT_ID, { page_path: url });
@@ -167,6 +279,7 @@ export function pageview(url: string): void {
 
 function trackTikTokEvent(eventName: string, params?: EventParams): void {
   if (typeof window === "undefined") return;
+  if (!hasMarketingConsent()) return;
   if (!TIKTOK_PIXEL_ID) return;
 
   const tiktokEvent = TIKTOK_EVENT_MAP[eventName];
@@ -183,16 +296,40 @@ function trackTikTokEvent(eventName: string, params?: EventParams): void {
   }
 }
 
-export function trackEvent(eventName: string, params?: EventParams): void {
+export function trackEvent(
+  eventName: string,
+  params?: EventParams,
+  options?: AnalyticsTrackOptions,
+): void {
   if (typeof window === "undefined") return;
+  const analyticsOk = hasAnalyticsConsent();
+  const marketingOk = hasMarketingConsent();
+  if (!analyticsOk && !marketingOk) return;
 
-  captureAttribution();
-  const enrichedParams = appendAttributionParams(params);
+  try {
+    if (analyticsOk || marketingOk) {
+      const prefs = readConsentPreferences();
+      if (prefs) applyConsentTags(prefs);
+    }
+    if (analyticsOk) {
+      captureAttribution();
+      const enrichedParams = appendAttributionParams(
+        params,
+        options?.attributionMode ?? "utm_only",
+      );
+      if (GA_MEASUREMENT_ID && typeof window.gtag === "function") {
+        dispatchGtagEvent(eventName, enrichedParams);
+      }
+      if (marketingOk) {
+        trackTikTokEvent(eventName, enrichedParams);
+      }
+      return;
+    }
 
-  if (GA_MEASUREMENT_ID && typeof window.gtag === "function") {
-    window.gtag("event", eventName, enrichedParams);
+    if (marketingOk) {
+      trackTikTokEvent(eventName, params);
+    }
+  } catch {
+    // Consent denial, missing gtag, or blocked storage must never crash the app.
   }
-
-  trackTikTokEvent(eventName, enrichedParams);
 }
-

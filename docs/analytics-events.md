@@ -17,8 +17,114 @@ Evenimentele GA4 din Quick Exit sunt folosite pentru:
 - nu trimitem `access token`
 - nu trimitem date KYC
 - nu trimitem texte libere introduse de user
-- `listing_id` și `demand_id` sunt permise ca identificatori operaționali
+- `listing_id` și `demand_id` sunt permise ca identificatori operaționali **doar pe evenimentele legacy**
+- Evenimentele din helper-ul `lib/funnelAnalytics.ts` **nu** trimit email, telefon, titlu, descriere, user id, listing id, texte libere, `purchase` sau valoare/monedă neverificată
 - Excepție PF1.2: `listing_pending_reused`, `listing_checkout_resumed`, `listing_checkout_cancelled` **nu** trimit `listing_id`, titlu, descriere, email, telefon sau preț
+
+## Publish draft (browser-only)
+
+Ciorna de publicare este doar în browser. Nu există draft în baza de date.
+
+| Cheie | Storage | Rol |
+|---|---|---|
+| `quickExitListingDraft` | sessionStorage | schema v2 a formularului |
+| `quickExitListingAuthResume` | sessionStorage | flag resume after auth (same tab) |
+| `quickExitListingDraftAuthHandoff` | localStorage | magic-link handoff, TTL 45 min |
+
+- Schema: `LISTING_DRAFT_VERSION = 2` (V1 este migrat la citire; versiuni necunoscute eșuează închis).
+- Expirare: **24 de ore** de la `timestamp` (`LISTING_DRAFT_TTL_MS`). Ciornele expirate, JSON invalid sau câmpuri necunoscute sunt șterse și tratate ca vizită nouă (pasul 1).
+- Restore: nu este silențios. Utilizatorul alege „Continuă ciorna” sau „Șterge ciorna și începe un anunț nou”. Continuarea validează pașii 1–3 și revine la cel mai devreme pas incomplet; checkout-ul nu pornește dintr-o ciornă invalidă.
+- Ștergerea ciornei elimină datele din formular. Contul utilizatorului nu este afectat. Nu există un al doilea confirm nested.
+
+### Câmpuri exacte
+
+`quickExitListingDraft` (sessionStorage): `version`, `timestamp`, `step`, `category`, `adTitle`, `description`, `exitPrice`, `pricingMode`, `isExitPriceManuallyEdited`, `manualMarketPrice`, `marketPrice`, `analyzedItems`, `saleStrategy`, `selectedPackage`, `saleMethod`, `formData` (`make`, `model`, `year`, `km`, `fuel`, `engine`, `transmission`, `bodyType`, `status`, `tva`, `propType`, `surface`, `rooms`, `buildYear`, `floor`, `parking`, `landSurface`, `location`, `brand`, `refModel`, `purchaseYear`, `mechanism`, `material`, `boxPapers`, `businessDomain`, `businessAge`, `revenue`, `profit`, `employees`, `includes`, `specs`, `warranty`), `evaluationConfidenceScore?`, `evaluationPrefillActive`, `evaluationHandoffActive`, `pendingListingId?`, `pendingListingCreatedAt?`.
+
+`quickExitListingAuthResume` (sessionStorage): valoarea `"1"` (flag same-tab). Fără email, telefon, token.
+
+`quickExitListingDraftAuthHandoff` (localStorage, 45 min): `version`, `timestamp`, `expiresAt`, `reason: "auth_required"`, `draft` (același obiect ca draft-ul de sesiune). Handoff expirat/invalid este șters. Nu conține email/telefon (auth-ul existent nu le cere în această cheie).
+
+Nu se persistă: File, imagini base64, blob/object URL, token Supabase, Stripe session/client secret. `pendingListingId` este UUID pentru resume checkout, nu este trimis în helper-ul de funnel.
+
+## Consent (Basic Consent Mode)
+
+Cheia: `quickexit_consent_preferences` (obiect versionat). Migrare din `quickexit_analytics_consent`:
+- `granted` → `analytics: true`, `marketing: false` (marketing nu se activează automat);
+- `denied` → ambele false;
+- absent/invalid → fără consimțământ opțional (banner).
+
+| Categorie | Ce include | Implicit |
+|---|---|---|
+| necessary | auth, limbă, ciorne, securitate, continuitate checkout, preferințe esențiale | mereu true |
+| analytics | GA4, funnel, UTM sanitizat | false până la acord |
+| marketing | TikTok Pixel. Nu există destinație Google Ads AW-; ad_storage rămâne denied fără marketing | false până la acord |
+
+GA4 și TikTok **nu** sunt necesare. Nu există destinație Google Ads `AW-` instalată; conversiile Ads, dacă vor exista, ar veni doar din importuri viitoare GA4. Scripturile nu se injectează înainte de acordul potrivit. „Consent default denied” nu este folosit ca substitut pentru blocarea rețelei: `gtag.js` și TikTok nu se încarcă deloc fără grant.
+
+| Stare | gtag.js / GA4 | Funnel | UTM | TikTok |
+|---|---|---|---|---|
+| absent | 0 | 0 | 0 | 0 |
+| respinge opționale | 0 | 0 | 0 | 0 |
+| doar analiză | permis | permis | permis | 0 |
+| doar marketing | fără evenimente GA4 | 0 | 0 | permis după grant |
+| acceptă toate | permis | permis | permis | permis |
+| retrage tot + reload | 0 request-uri noi | 0 | șters | 0 |
+
+Namespace UTM canonic în payload: `utm_source`, `utm_medium`, `utm_campaign`, `utm_content`, `utm_term` (fără `attribution_utm_*`).
+
+Formularul de publicare rămâne funcțional fără consimțământ opțional. Revoke nu șterge ciorne, auth sau limbă.
+
+Nu se marchează Key events în GA4 din acest sprint — doar documentare. Nu activăm enhanced conversions / advanced matching.
+
+## Funnel events (canonical helper)
+
+Pasul 2 al produsului: fotografiile și descrierea sunt **opționale**. `listing_step_2_complete` se emite doar pe calea existentă de părăsire a pasului 2 (continue către preț, sau `generateAiPricing` după validarea pasului 1 + Turnstile dacă e activ). Nu s-au inventat reguli noi de validare pentru analytics.
+
+`begin_checkout` se emite imediat înainte de `fetch("/api/stripe/checkout")`. Un checkout eșuat poate fi reîncercat (`skipOnce: true`); nu este `purchase`.
+
+`offer_submitted` se emite doar după insert-ul existent reușit. Deschiderea/închiderea modalului nu îl fabrică.
+
+`publish_page_view` și `listing_view` sunt gated once (module once-gate + ref pe listing) ca React Strict Mode să nu dubleze.
+
+Nu există eveniment `purchase` până când succesul de plată este verificat server-side (webhook). URL `payment=success` nu fabrică purchase.
+
+## Canonical ↔ legacy mapping
+
+Ambele evenimente pot încă porni la aceeași acțiune (HQ Copilot / istoric). **Nu importa ambele ca conversii Google Ads.**
+
+| Canonical | Boundary | Legacy equivalent | GA4 Key event (recomandare, nu marcat acum) | Counting |
+|---|---|---|---|---|
+| `publish_page_view` | mount real `/pune-anunt` | `gtag('config')` page_view only — nu este a doua conversie Ads | nu | once per real page load |
+| `listing_started` | first successful step 1, or continue draft | `start_post_listing` | nu | once per page load |
+| `listing_step_1_complete` | after existing step 1 validation | `listing_step_completed` (`step=1`) | **da** | once per successful transition / page load |
+| `listing_step_2_complete` | after existing leave-step-2 path | `listing_step_completed` (`step=2`) | nu | once per successful transition / page load |
+| `listing_step_3_complete` | after existing step 3 pricing validation | `listing_step_completed` (`step=3`) | **da** | once per successful transition / page load |
+| `begin_checkout` | immediately before existing checkout request | `checkout_listing_started`, later `checkout_created` | **da** | retry allowed on failed checkout |
+| `listing_view` | after valid **active** listing is loaded | `view_listing` | nu | once per listing load (Strict Mode safe) |
+| `request_details_click` | primary listing CTA | `click_listing_offer` and FM `click_request_personalized_offer` | nu | once per page load |
+| `offer_started` | offer modal opens | none | nu | once per page load |
+| `offer_submitted` | successful listing offer insert | `submit_listing_offer` | **da** | once per successful insert |
+
+Key events recomandate pentru funnel-ul inițial (document only): `listing_step_1_complete`, `listing_step_3_complete`, `begin_checkout`, `offer_submitted`.
+
+## Funnel events (canonical helper) — params
+
+| event_name | boundary | params (enums only) |
+|---|---|---|
+| `publish_page_view` | mount `/pune-anunt` | `locale`, `source=publish_form` |
+| `listing_started` | first successful step 1, or continue draft | `locale`, `category`, `source`, `sale_strategy` |
+| `listing_step_1_complete` | after step 1 validation | `locale`, `category`, `step=1`, `source`, `sale_strategy` |
+| `listing_step_2_complete` | after leaving step 2 via existing validation path | `locale`, `category`, `step=2`, `source`, `sale_strategy` |
+| `listing_step_3_complete` | after step 3 pricing validation | `locale`, `category`, `step=3`, `source`, `sale_strategy` |
+| `begin_checkout` | immediately before existing `/api/stripe/checkout` request | `locale`, `category`, `source`, `sale_strategy` |
+| `listing_view` | active listing detail load | `locale`, `category`, `source=listing_detail`, `sale_strategy` |
+| `request_details_click` | primary listing CTA | `locale`, `category`, `source`, `sale_strategy` |
+| `offer_started` | offer modal opens | `locale`, `category`, `source`, `sale_strategy` |
+| `offer_submitted` | successful listing offer insert | `locale`, `category`, `source`, `sale_strategy` |
+
+Helper-ul `lib/funnelAnalytics.ts` **nu** trimite email, telefon, titlu, descriere, user id, listing id, image URL, click IDs, texte libere, `purchase` sau valoare/monedă neverificată.
+
+Evenimentele legacy rămân pentru HQ Copilot. Nu au fost șterse.
 
 ## Lista Evenimentelor
 
@@ -107,21 +213,14 @@ Evenimentele GA4 din Quick Exit sunt folosite pentru:
 
 ## Attribution fields
 
-- Capturăm first-touch în browser pentru: `utm_source`, `utm_medium`, `utm_campaign`, `utm_content`, `utm_term`, `referrer`, `landing_path`, `first_seen_at`.
-- Persistența este în `localStorage` pe cheia `quickexit_attribution`.
-- Strategia din acest sprint este strict **first-touch only** (nu suprascriem datele existente și nu implementăm last-touch).
-- `referrer` este sanitizat la format `origin + pathname` (fără query params), iar câmpurile sunt limitate defensiv la lungime maximă.
-- Câmpurile se atașează automat în `trackEvent` cu prefix:
-  - `attribution_utm_source`
-  - `attribution_utm_medium`
-  - `attribution_utm_campaign`
-  - `attribution_utm_content`
-  - `attribution_utm_term`
-  - `attribution_referrer`
-  - `attribution_landing_path`
-  - `attribution_first_seen_at`
-- Nu colectăm PII (fără email, telefon, nume, mesaje, user id).
-- În acest sprint nu persistăm attribution în DB.
+- Capturăm first-touch **doar după consimțământ `granted`**, și **doar** UTM: `utm_source`, `utm_medium`, `utm_campaign`, `utm_content`, `utm_term`.
+- Nu se stochează `referrer`, `landing_path`, `first_seen_at`, click IDs (`gclid`, `fbclid`, `ttclid`, …), email, telefon, listing id.
+- Fiecare valoare este sanitizată (`[a-zA-Z0-9._- ]`) și limitată la 120 caractere. Valori cu `@`, `://` sau click-id sunt respinse.
+- Persistența este în `localStorage` pe cheia `quickexit_attribution`. Fără cookies și fără sessionStorage pentru acest helper.
+- Strategia este **first-touch only** (nu suprascriem UTM existent).
+- Câmpurile se atașează în `trackEvent` ca `utm_source`, `utm_medium`, `utm_campaign`, `utm_content`, `utm_term` când consimțământul de analiză este acordat.
+- Revoke șterge `quickexit_attribution` și oprește dispatch-urile viitoare.
+- Nu colectăm PII. Nu persistăm attribution în DB. Helper-ul nu creează advertising identifiers.
 
 ### Stripe checkout metadata attribution
 
