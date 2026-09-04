@@ -5,6 +5,7 @@ import {
   carBrandSuggestions,
   sanitizeCarBrandInput,
 } from "@/lib/carBrands";
+import { resolveCarBrandComboboxEnter } from "@/lib/carBrandComboboxKeyboard";
 
 type CarBrandComboboxProps = {
   value: string;
@@ -82,10 +83,14 @@ export default function CarBrandCombobox({
     }
     if (event.key === "Enter") {
       event.preventDefault();
-      if (open && suggestions[activeIndex]) {
+      event.stopPropagation();
+      if (
+        resolveCarBrandComboboxEnter({
+          open,
+          highlighted: suggestions[activeIndex],
+        }) === "select_highlight"
+      ) {
         commit(suggestions[activeIndex]);
-      } else {
-        commit(value);
       }
       return;
     }
@@ -133,25 +138,29 @@ export default function CarBrandCombobox({
       >
           {suggestions.length > 0 ? (
             suggestions.map((brand, index) => (
-              <li
-                id={`${listId}-opt-${index}`}
-                key={`${brand}-${index}`}
-                role="option"
-                aria-selected={index === activeIndex}
-                className={`cursor-pointer px-3 py-2 text-sm font-bold ${
-                  index === activeIndex ? "bg-[#FFD100] text-black" : "bg-white text-black"
-                }`}
-                onMouseDown={(event) => {
-                  event.preventDefault();
-                  commit(brand);
-                }}
-                onMouseEnter={() => setHighlight(index)}
-              >
-                {brand}
+              <li key={`${brand}-${index}`} role="none">
+                <button
+                  type="button"
+                  id={`${listId}-opt-${index}`}
+                  role="option"
+                  aria-selected={index === activeIndex}
+                  className={`w-full cursor-pointer px-3 py-2 text-left text-sm font-bold ${
+                    index === activeIndex ? "bg-[#FFD100] text-black" : "bg-white text-black"
+                  }`}
+                  onMouseDown={(event) => {
+                    event.preventDefault();
+                    commit(brand);
+                  }}
+                  onMouseEnter={() => setHighlight(index)}
+                >
+                  {brand}
+                </button>
               </li>
             ))
           ) : (
-            <li className="px-3 py-2 text-xs font-bold text-neutral-600">{noMatches}</li>
+            <li role="none" className="px-3 py-2 text-xs font-bold text-neutral-600">
+              {noMatches}
+            </li>
           )}
       </ul>
     </div>

@@ -352,7 +352,8 @@
       "genericFailed": "We couldn't complete your request or start checkout. Please try again.",
       "pendingReuse": "You already have a listing saved awaiting payment. We'll continue checkout for that one.",
       "pendingInvalid": "The saved listing awaiting payment is no longer available. Confirm publish again to create a new one.",
-      "incompatibleSaleIntent": "Sale method and package do not match. Choose the sale method again before paying."
+      "incompatibleSaleIntent": "Sale method and package do not match. Choose the sale method again before paying.",
+      "stepsIncomplete": "Complete the previous steps before payment. Checkout cannot start from an incomplete draft."
     },
     "draft": {
       "restoredBanner": "We restored your listing draft. Photos must be uploaded again.",
@@ -360,7 +361,13 @@
       "pendingPaymentHint": "You already have a listing saved awaiting payment. We'll continue checkout for that one.",
       "discard": "Discard draft",
       "discardConfirm": "Delete the saved draft and reset the form?",
-      "discardConfirmWithPending": "Discard the local draft? Your listing awaiting payment stays available in your account (dashboard), where you can finish payment."
+      "discardConfirmWithPending": "Discard the local draft? Your listing awaiting payment stays available in your account (dashboard), where you can finish payment.",
+      "recoveryTitle": "You have a saved draft",
+      "recoveryBody": "Continue the listing you started, or delete the draft and start from step 1 — Asset details?",
+      "recoveryConsequence": "Deleting the draft removes the saved form data. Your account is not affected.",
+      "recoveryExpires": "Local drafts expire after 24 hours. They are not saved to your account.",
+      "continue": "Continue draft",
+      "startNew": "Delete draft and start a new listing"
     },
     "pricingMode": {
       "question": "How do you want to present the price?",

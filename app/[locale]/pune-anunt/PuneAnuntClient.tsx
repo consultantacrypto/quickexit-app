@@ -1,13 +1,14 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import { supabase } from "@/lib/supabase";
 import { Loader2, Search, Star, X } from "lucide-react";
 import CarBrandCombobox from "@/app/components/CarBrandCombobox";
+import PublishDraftRecoveryDialog from "./PublishDraftRecoveryDialog";
 import { trackEvent } from "@/lib/analytics";
 import EvaluateTurnstile, { type EvaluateTurnstileHandle } from "@/components/EvaluateTurnstile";
 import { isEvaluateTurnstileUiEnabled } from "@/lib/turnstilePublic";
@@ -36,19 +37,28 @@ import {
   buildListingDraft,
   clearListingDraft,
   clearPendingListingIdOnDraft,
+  commitPublishDraftRestore,
   consumeListingAuthResumePending,
   DEFAULT_LISTING_FORM_DATA,
   flushListingDraftSave,
   listingDraftAnalyticsParams,
   markListingAuthResumePending,
+  peekPublishDraft,
   persistPendingListingIdOnDraft,
-  resolveListingDraftForRestore,
   saveListingAuthHandoff,
   saveListingDraftDebounced,
   type ListingDraftFormData,
   type ListingDraftPackageId,
+  type ListingDraftRestoreSource,
   type ListingDraftV1,
 } from "@/lib/listingDraft";
+import {
+  assertPublishCheckoutReady,
+  guardedPublishStep,
+  listingDraftToGuardInput,
+  validatePublishStep1,
+  type PublishGuardInput,
+} from "@/lib/publishDraftGuard";
 import { type PricingMode } from "@/lib/pricingMode";
 import {
   coerceCompatibleSaleIntent,
@@ -85,6 +95,7 @@ type PuneAnuntClientProps = {
 
 export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps) {
   const tPost = useTranslations("PostListing");
+  const locale = useLocale() === "en" ? "en" : "ro";
   const searchParams = useSearchParams();
   const initialPkg = normalizeInitialPackage(initialPackage);
   const initialIntent = coerceCompatibleSaleIntent({ packageId: initialPkg });
@@ -127,6 +138,12 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [draftReady, setDraftReady] = useState(false);
   const [draftRestored, setDraftRestored] = useState(false);
+  const [draftDecision, setDraftDecision] = useState<
+    "loading" | "pending" | "fresh" | "restored"
+  >("loading");
+  const [recoveryDraft, setRecoveryDraft] = useState<ListingDraftV1 | null>(null);
+  const [recoverySource, setRecoverySource] =
+    useState<ListingDraftRestoreSource>("session");
   const [pendingListingId, setPendingListingId] = useState<string | undefined>();
   const [pendingListingCreatedAt, setPendingListingCreatedAt] = useState<
     number | undefined
@@ -137,6 +154,25 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
   // STATE NOU: Capturăm datele scrise de utilizator pentru API
   const [formData, setFormData] = useState<ListingDraftFormData>({
     ...DEFAULT_LISTING_FORM_DATA,
+  });
+
+
+  const livePublishGuardInput = (): PublishGuardInput => ({
+    category,
+    adTitle,
+    formData,
+    description,
+    pricingMode,
+    exitPrice,
+    manualMarketPrice,
+    marketPrice,
+    evaluationConfidenceScore:
+      typeof evaluationResult?.confidence_score === "number"
+        ? evaluationResult.confidence_score
+        : undefined,
+    evaluationHandoffActive,
+    saleMethod,
+    selectedPackage,
   });
 
   const snapshotListingDraft = (): ListingDraftV1 =>
@@ -181,7 +217,11 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
 
   const applyListingDraftToState = (draft: ListingDraftV1) => {
     listingDraftRestoredRef.current = true;
-    setStep(draft.step);
+    const guardedStep = guardedPublishStep(
+      draft.step,
+      listingDraftToGuardInput(draft),
+    );
+    setStep(guardedStep);
     setCategory(draft.category);
     setAdTitle(draft.adTitle);
     setDescription(draft.description);
@@ -211,51 +251,32 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
     setDraftRestored(true);
   };
 
-  // Restore draft after mount (client-only) — avoids hydration mismatch.
+  // Peek draft after mount. Never silently restore step/data.
   useEffect(() => {
-    const restored = resolveListingDraftForRestore();
-    if (restored) {
-      applyListingDraftToState(restored.draft);
-      trackDraftEvent(
-        "listing_draft_restored",
-        restored.draft,
-        restored.source === "auth_handoff" ? "auth_handoff" : "session_restore",
-        restored.source,
-      );
-
-      const sameTabResume = consumeListingAuthResumePending();
-      void (async () => {
-        let shouldEmitAuthResumed = sameTabResume;
-        if (!shouldEmitAuthResumed && restored.handoffReason === "auth_required") {
-          const {
-            data: { user },
-          } = await supabase.auth.getUser();
-          shouldEmitAuthResumed = Boolean(user);
-        }
-        if (shouldEmitAuthResumed) {
-          trackDraftEvent(
-            "listing_auth_resumed",
-            restored.draft,
-            restored.source === "auth_handoff" ? "auth_handoff" : "auth_callback",
-            restored.source,
-          );
-        }
-      })();
+    const peeked = peekPublishDraft();
+    if (peeked.status === "available") {
+      setRecoveryDraft(peeked.draft);
+      setRecoverySource(peeked.source);
+      setDraftDecision("pending");
+    } else {
+      setDraftDecision("fresh");
+      setDraftReady(true);
+      const urlPkg = parseListingSalePackageId(searchParams.get("package"));
+      if (urlPkg) {
+        const fields = coerceCompatibleSaleIntent({ packageId: urlPkg });
+        setSelectedPackage(fields.packageId);
+        setSaleStrategy(fields.detailsStrategy);
+        setSaleMethod(fields.saleMethod);
+      }
     }
-    setDraftReady(true);
-    const urlPkg = parseListingSalePackageId(searchParams.get("package"));
-    if (urlPkg) {
-      const fields = coerceCompatibleSaleIntent({ packageId: urlPkg });
-      setSelectedPackage(fields.packageId);
-      setSaleStrategy(fields.detailsStrategy);
-      setSaleMethod(fields.saleMethod);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only restore
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only draft gate
   }, []);
 
   // Autosave textual draft (never Files / previews).
   useEffect(() => {
-    if (!draftReady || isSuccess) return;
+    if (!draftReady || isSuccess || draftDecision === "pending" || draftDecision === "loading") {
+      return;
+    }
     const draft = snapshotListingDraft();
     saveListingDraftDebounced(draft, undefined, (ok) => {
       if (!ok) return;
@@ -288,17 +309,7 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
     pendingListingCreatedAt,
   ]);
 
-  const discardListingDraft = () => {
-    if (typeof window !== "undefined") {
-      const confirmMsg = pendingListingId
-        ? tPost("draft.discardConfirmWithPending")
-        : tPost("draft.discardConfirm");
-      const ok = window.confirm(confirmMsg);
-      if (!ok) return;
-    }
-    const draft = snapshotListingDraft();
-    clearListingDraft();
-    trackDraftEvent("listing_draft_cleared", draft, "user_discard");
+  const resetPublishFormToInitial = () => {
     setStep(1);
     setCategory("Auto & Moto");
     setImages([]);
@@ -325,10 +336,68 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
     setFlowError(null);
     setDraftRestored(false);
     listingDraftRestoredRef.current = false;
+    lastAutosaveTrackedStepRef.current = null;
+  };
+
+  const discardListingDraft = () => {
+    if (typeof window !== "undefined") {
+      const confirmMsg = pendingListingId
+        ? tPost("draft.discardConfirmWithPending")
+        : tPost("draft.discardConfirm");
+      const ok = window.confirm(confirmMsg);
+      if (!ok) return;
+    }
+    const draft = snapshotListingDraft();
+    clearListingDraft();
+    trackDraftEvent("listing_draft_cleared", draft, "user_discard");
+    resetPublishFormToInitial();
+    setDraftDecision("fresh");
+    setDraftReady(true);
+    setRecoveryDraft(null);
+  };
+
+  const continueRecoveredDraft = () => {
+    if (!recoveryDraft) return;
+    commitPublishDraftRestore(recoverySource);
+    applyListingDraftToState(recoveryDraft);
+    trackDraftEvent(
+      "listing_draft_restored",
+      recoveryDraft,
+      recoverySource === "auth_handoff" ? "auth_handoff" : "session_restore",
+      recoverySource,
+    );
+    const sameTabResume = consumeListingAuthResumePending();
+    if (sameTabResume || recoverySource === "auth_handoff") {
+      trackDraftEvent(
+        "listing_auth_resumed",
+        recoveryDraft,
+        recoverySource === "auth_handoff" ? "auth_handoff" : "auth_callback",
+        recoverySource,
+      );
+    }
+    setDraftDecision("restored");
+    setDraftReady(true);
+    setRecoveryDraft(null);
+  };
+
+  const startNewListingFromRecovery = () => {
+    clearListingDraft();
+    resetPublishFormToInitial();
+    setDraftDecision("fresh");
+    setDraftReady(true);
+    setRecoveryDraft(null);
+    const urlPkg = parseListingSalePackageId(searchParams.get("package"));
+    if (urlPkg) {
+      const fields = coerceCompatibleSaleIntent({ packageId: urlPkg });
+      setSelectedPackage(fields.packageId);
+      setSaleStrategy(fields.detailsStrategy);
+      setSaleMethod(fields.saleMethod);
+    }
   };
 
   useEffect(() => {
     if (!draftReady) return;
+    if (draftDecision === "pending" || draftDecision === "loading") return;
     if (listingDraftRestoredRef.current) return;
 
     const source = searchParams.get("source")?.trim().toLowerCase();
@@ -479,6 +548,10 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
         category: categoryLabelToTrackingKey(category),
       }),
     );
+    if (completedStep === 1) {
+    } else if (completedStep === 2) {
+    } else if (completedStep === 3) {
+    }
   };
 
   const categoriesList = [
@@ -609,22 +682,13 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
   }
 
   function validatePrimaryAssetFields(): string | null {
-    if (!adTitle.trim()) return "Completează titlul anunțului.";
-    if (category === "Auto & Moto") {
-      if (!formData.make.trim() || !formData.model.trim())
-        return "Completează marca și modelul vehiculului.";
-    } else if (category === "Imobiliare") {
-      if (!formData.location.trim() || !formData.surface.trim())
-        return "Completează localizarea și suprafața.";
-    } else if (category === "Lux & Ceasuri") {
-      if (!formData.brand.trim() || !formData.refModel.trim())
-        return "Completează brandul și modelul.";
-    } else if (category === "Afaceri de vânzare") {
-      if (!formData.businessDomain.trim() || !formData.revenue.trim())
-        return "Completează domeniul și cifra de afaceri.";
-    } else if (category === "Gadgets" || category === "Foto & Audio") {
-      if (!formData.brand.trim()) return "Completează brandul și modelul produsului.";
-    }
+    const code = validatePublishStep1({ category, adTitle, formData });
+    if (code === "title") return "Completează titlul anunțului.";
+    if (code === "auto_make_model") return "Completează marca și modelul vehiculului.";
+    if (code === "imobiliare_location_surface") return "Completează localizarea și suprafața.";
+    if (code === "lux_brand_model") return "Completează brandul și modelul.";
+    if (code === "business_domain_revenue") return "Completează domeniul și cifra de afaceri.";
+    if (code === "gadgets_brand") return "Completează brandul și modelul produsului.";
     return null;
   }
 
@@ -890,12 +954,20 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
 
   // Trimite utilizatorul către Stripe Checkout pentru un anunț deja creat.
   const handleCheckout = async (priceId: string, listingId: string) => {
+    const checkoutReady = assertPublishCheckoutReady(livePublishGuardInput());
+    if (!checkoutReady.ok) {
+      setStep(checkoutReady.step);
+      setFlowError(tPost("checkoutErrors.stepsIncomplete"));
+      throw new Error("checkout_steps_incomplete");
+    }
+
     const {
       data: { session },
     } = await supabase.auth.getSession();
     if (!session?.access_token) {
       throw new Error("auth_required");
     }
+
 
     const res = await fetch("/api/stripe/checkout", {
       method: "POST",
@@ -934,6 +1006,16 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
 
   const handleFinalSubmit = async () => {
     setFlowError(null);
+    const checkoutReady = assertPublishCheckoutReady(livePublishGuardInput());
+    if (!checkoutReady.ok) {
+      setStep(checkoutReady.step);
+      setFlowError(
+        checkoutReady.code === "incompatible_sale_intent"
+          ? tPost("checkoutErrors.incompatibleSaleIntent")
+          : tPost("checkoutErrors.stepsIncomplete"),
+      );
+      return;
+    }
     if (pricingMode === null) {
       setFlowError(tPost("pricingMode.validation.selectOptionToContinue"));
       return;
@@ -960,7 +1042,6 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
         status: "started",
       }),
     );
-    trackListingStepCompleted(4);
     setIsSaving(true);
     if (pricingMode === "fixed_price") {
       if (!hasValidExitPriceInput) {
@@ -1227,6 +1308,10 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
       await handleCheckout(priceId, insertedData.id);
     } catch (error: any) {
       console.error("Eroare salvare anunț / plată:", error);
+      if (typeof error?.message === "string" && error.message === "checkout_steps_incomplete") {
+        setIsSaving(false);
+        return;
+      }
       trackEvent(
         "listing_submit_attempt",
         toEvaluationTrackingEventParams(evaluationTrackingRef.current, {
@@ -1278,9 +1363,30 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
     );
   }
 
+  const handlePublishFormSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+  };
+
+  const recoveryOpen = draftDecision === "pending";
+
   return (
     <div className="min-h-screen bg-[#F7F4EC] px-4 pb-28 pt-20 font-sans text-neutral-900 antialiased selection:bg-[#FFD100]/40 md:px-8">
-      <div className="mx-auto max-w-7xl space-y-10 md:space-y-14">
+      {recoveryOpen ? (
+        <PublishDraftRecoveryDialog
+          title={tPost("draft.recoveryTitle")}
+          body={tPost("draft.recoveryBody")}
+          consequence={tPost("draft.recoveryConsequence")}
+          expires={tPost("draft.recoveryExpires")}
+          continueLabel={tPost("draft.continue")}
+          startNewLabel={tPost("draft.startNew")}
+          onContinue={continueRecoveredDraft}
+          onStartNew={startNewListingFromRecovery}
+        />
+      ) : null}
+      <div
+        className="mx-auto max-w-7xl space-y-10 md:space-y-14"
+        {...(recoveryOpen ? { inert: true, "aria-hidden": true } : {})}
+      >
         <div className="rounded-[2rem] border-[3px] border-black bg-black p-8 text-white shadow-[10px_10px_0_0_#FFD100] md:p-12">
           <div className="mx-auto max-w-3xl text-center">
             <p className="text-[10px] font-bold uppercase tracking-[0.28em] text-[#FFD100]/90 md:text-[11px]">
@@ -1305,6 +1411,7 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
         </div>
 
         <div className="relative overflow-hidden rounded-[2rem] border-[3px] border-black bg-white p-8 shadow-[12px_12px_0_0_rgba(0,0,0,0.12)] md:p-14 md:shadow-[14px_14px_0_0_#FFD100]">
+          <form onSubmit={handlePublishFormSubmit}>
           {draftRestored && (
             <div
               role="status"
@@ -2440,6 +2547,10 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                     <button
                       type="button"
                       onClick={() => {
+                        if (!canProceedFromPrice) {
+                          setFlowError(tPost("pricingMode.validation.selectOptionToContinue"));
+                          return;
+                        }
                         setFlowError(null);
                         trackListingStepCompleted(3);
                         setStep(4);
@@ -2593,6 +2704,7 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
               </div>
 
               <button
+                type="button"
                 onClick={handleFinalSubmit}
                 disabled={isSaving}
                 className="w-full bg-black py-5 text-[#FFD100] border-[3px] border-black rounded-2xl font-black uppercase tracking-widest text-sm italic transition-transform hover:scale-[1.01] shadow-[8px_8px_0_0_rgba(0,0,0,1)] active:translate-y-0.5 active:shadow-none disabled:opacity-50"
@@ -2612,11 +2724,12 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
               </button>
             </div>
           )}
+          </form>
         </div>
       </div>
 
       <AuthModal
-        isOpen={showAuthModal}
+        isOpen={showAuthModal && !recoveryOpen}
         onClose={() => setShowAuthModal(false)}
         nextPath="/pune-anunt"
       />

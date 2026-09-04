@@ -352,7 +352,8 @@
       "genericFailed": "Nu am putut finaliza solicitarea sau pornirea plății. Te rugăm să încerci din nou.",
       "pendingReuse": "Ai deja un anunț salvat în așteptarea plății. Continuăm plata pentru acesta.",
       "pendingInvalid": "Anunțul salvat pentru plată nu mai este disponibil. Confirmă din nou publicarea pentru a crea unul nou.",
-      "incompatibleSaleIntent": "Metoda de vânzare și pachetul nu coincid. Alege din nou metoda de vânzare înainte de plată."
+      "incompatibleSaleIntent": "Metoda de vânzare și pachetul nu coincid. Alege din nou metoda de vânzare înainte de plată.",
+      "stepsIncomplete": "Completează pașii anteriori înainte de plată. Nu putem porni checkout-ul dintr-o ciornă incompletă."
     },
     "draft": {
       "restoredBanner": "Am restaurat ciorna ta de publicare. Pozele trebuie reîncărcate.",
@@ -360,7 +361,13 @@
       "pendingPaymentHint": "Ai deja un anunț salvat în așteptarea plății. Continuăm plata pentru acesta.",
       "discard": "Abandonează ciorna",
       "discardConfirm": "Ștergi ciorna salvată și resetezi formularul?",
-      "discardConfirmWithPending": "Ștergi ciorna locală? Anunțul salvat în așteptarea plății rămâne disponibil în contul tău (dashboard), unde poți finaliza plata."
+      "discardConfirmWithPending": "Ștergi ciorna locală? Anunțul salvat în așteptarea plății rămâne disponibil în contul tău (dashboard), unde poți finaliza plata.",
+      "recoveryTitle": "Ai o ciornă salvată",
+      "recoveryBody": "Vrei să continui anunțul început sau să ștergi ciorna și să începi de la pasul 1 — Date activ?",
+      "recoveryConsequence": "Dacă ștergi ciorna, datele salvate din formular vor fi eliminate. Contul tău rămâne neschimbat.",
+      "recoveryExpires": "Ciornele locale expiră după 24 de ore. Nu sunt salvate în cont.",
+      "continue": "Continuă ciorna",
+      "startNew": "Șterge ciorna și începe un anunț nou"
     },
     "pricingMode": {
       "question": "Cum dorești să prezinți prețul?",

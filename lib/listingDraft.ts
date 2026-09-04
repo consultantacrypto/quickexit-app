@@ -9,10 +9,27 @@ import {
 export const LISTING_DRAFT_STORAGE_KEY = "quickExitListingDraft";
 export const LISTING_AUTH_HANDOFF_STORAGE_KEY = "quickExitListingDraftAuthHandoff";
 export const LISTING_AUTH_RESUME_FLAG_KEY = "quickExitListingAuthResume";
+/**
+ * Browser-only publish draft. There is no database-backed draft system.
+ *
+ * Storage keys (the only keys `clearListingDraft` may touch):
+ * - sessionStorage `quickExitListingDraft`
+ * - sessionStorage `quickExitListingAuthResume`
+ * - localStorage `quickExitListingDraftAuthHandoff`
+ *
+ * Expiration: 24 hours from `timestamp`. Expired / corrupt / version-incompatible
+ * drafts fail closed and are cleared. Auth handoff (magic link) expires in 45 minutes.
+ */
+export const PUBLISH_DRAFT_SESSION_KEYS = [
+  LISTING_DRAFT_STORAGE_KEY,
+  LISTING_AUTH_RESUME_FLAG_KEY,
+] as const;
+export const PUBLISH_DRAFT_LOCAL_KEYS = [LISTING_AUTH_HANDOFF_STORAGE_KEY] as const;
 /** Current draft schema version (V1 drafts are migrated on read). */
 export const LISTING_DRAFT_VERSION = 2 as const;
 const LISTING_DRAFT_ACCEPTED_VERSIONS = new Set([1, 2]);
-export const LISTING_DRAFT_TTL_MS = 24 * 60 * 60 * 1000;
+export const LISTING_DRAFT_TTL_HOURS = 24;
+export const LISTING_DRAFT_TTL_MS = LISTING_DRAFT_TTL_HOURS * 60 * 60 * 1000;
 /** Auth handoff TTL — cross-tab magic link (45 min). */
 export const LISTING_AUTH_HANDOFF_TTL_MS = 45 * 60 * 1000;
 export const LISTING_DRAFT_SAVE_DEBOUNCE_MS = 400;
@@ -97,6 +114,59 @@ export type ListingDraftRestoreResult = {
   handoffReason?: "auth_required";
 };
 
+export type ListingDraftParseFailureReason =
+  | "invalid_json"
+  | "not_object"
+  | "unexpected_fields"
+  | "incompatible_version"
+  | "malformed"
+  | "expired";
+
+export type ListingDraftParseResult =
+  | { ok: true; draft: ListingDraftV1 }
+  | { ok: false; reason: ListingDraftParseFailureReason };
+
+export type PublishDraftPeek =
+  | { status: "none" }
+  | {
+      status: "available";
+      draft: ListingDraftV1;
+      source: ListingDraftRestoreSource;
+      handoffReason?: "auth_required";
+    };
+
+const LISTING_DRAFT_KNOWN_KEYS = new Set([
+  "version",
+  "timestamp",
+  "step",
+  "category",
+  "adTitle",
+  "description",
+  "exitPrice",
+  "pricingMode",
+  "isExitPriceManuallyEdited",
+  "manualMarketPrice",
+  "marketPrice",
+  "analyzedItems",
+  "saleStrategy",
+  "selectedPackage",
+  "saleMethod",
+  "formData",
+  "evaluationConfidenceScore",
+  "evaluationPrefillActive",
+  "evaluationHandoffActive",
+  "pendingListingId",
+  "pendingListingCreatedAt",
+]);
+
+const LISTING_AUTH_HANDOFF_KNOWN_KEYS = new Set([
+  "version",
+  "timestamp",
+  "expiresAt",
+  "reason",
+  "draft",
+]);
+
 export type ListingDraftAnalyticsParams = {
   step: number;
   category: string;
@@ -146,6 +216,76 @@ const FORM_DATA_KEYS = [
   "specs",
   "warranty",
 ] as const;
+
+export const LISTING_DRAFT_FORM_DATA_KEYS = FORM_DATA_KEYS;
+
+/** Exact fields persisted in `quickExitListingDraft` (sessionStorage). */
+export const LISTING_DRAFT_STORED_FIELDS = [
+  "version",
+  "timestamp",
+  "step",
+  "category",
+  "adTitle",
+  "description",
+  "exitPrice",
+  "pricingMode",
+  "isExitPriceManuallyEdited",
+  "manualMarketPrice",
+  "marketPrice",
+  "analyzedItems",
+  "saleStrategy",
+  "selectedPackage",
+  "saleMethod",
+  "formData",
+  "evaluationConfidenceScore",
+  "evaluationPrefillActive",
+  "evaluationHandoffActive",
+  "pendingListingId",
+  "pendingListingCreatedAt",
+] as const;
+
+/** Exact fields persisted in `quickExitListingDraftAuthHandoff` (localStorage). */
+export const LISTING_AUTH_HANDOFF_STORED_FIELDS = [
+  "version",
+  "timestamp",
+  "expiresAt",
+  "reason",
+  "draft",
+] as const;
+
+/** `quickExitListingAuthResume` is a same-tab flag, value `"1"` only. */
+export const LISTING_AUTH_RESUME_FLAG_VALUE = "1";
+
+const LISTING_DRAFT_FORBIDDEN_FIELD_NAMES = [
+  "email",
+  "phone",
+  "telefon",
+  "images",
+  "files",
+  "photo",
+  "access_token",
+  "refresh_token",
+  "client_secret",
+  "session_id",
+] as const;
+
+export const LISTING_DRAFT_FORBIDDEN_PAYLOAD_RE =
+  /data:image\/|blob:|sk_live_|sk_test_|pk_live_|pk_test_|client_secret|cs_test_|cs_live_|sb-access-token|eyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{10,}/i;
+
+export function listingDraftJsonLooksUnsafe(raw: string): boolean {
+  return LISTING_DRAFT_FORBIDDEN_PAYLOAD_RE.test(raw);
+}
+
+export function listingDraftSchemaHasForbiddenFields(): boolean {
+  const names = [
+    ...LISTING_DRAFT_STORED_FIELDS,
+    ...LISTING_DRAFT_FORM_DATA_KEYS,
+    ...LISTING_AUTH_HANDOFF_STORED_FIELDS,
+  ].map((name) => name.toLowerCase());
+  return LISTING_DRAFT_FORBIDDEN_FIELD_NAMES.some((forbidden) =>
+    names.includes(forbidden),
+  );
+}
 
 export const DEFAULT_LISTING_FORM_DATA: ListingDraftFormData = {
   make: "",
@@ -198,7 +338,12 @@ function sanitizeText(value: unknown, max = MAX_TEXT): string {
   if (typeof value !== "string") return "";
   const trimmed = value.trimStart();
   if (!trimmed) return "";
-  return trimmed.length > max ? trimmed.slice(0, max) : trimmed;
+  const withoutUnsafe = trimmed
+    .replace(/data:[^;,\s]+;base64,[a-zA-Z0-9+/=]+/gi, "")
+    .replace(/blob:[^\s"'<>]+/gi, "")
+    .replace(/\bsk_(?:live|test)_[a-zA-Z0-9]+/g, "")
+    .replace(/\bcs_(?:live|test)_[a-zA-Z0-9]+/g, "");
+  return withoutUnsafe.length > max ? withoutUnsafe.slice(0, max) : withoutUnsafe;
 }
 
 function sanitizeShort(value: unknown, max = MAX_SHORT): string {
@@ -309,42 +454,136 @@ export function buildListingDraft(input: {
   };
 }
 
-function parseListingDraftRecord(parsed: Record<string, unknown>): ListingDraftV1 | null {
+export function isMeaningfulListingDraft(draft: ListingDraftV1): boolean {
+  if (draft.adTitle.trim()) return true;
+  if (draft.description.trim()) return true;
+  if (draft.exitPrice.trim()) return true;
+  if (draft.pricingMode !== null) return true;
+  if (draft.pendingListingId) return true;
+  if (draft.evaluationPrefillActive || draft.evaluationHandoffActive) return true;
+  if (draft.step > 1) return true;
+  if (draft.category.trim() && draft.category !== "Auto & Moto") return true;
+  const fields = [
+    draft.formData.make,
+    draft.formData.model,
+    draft.formData.brand,
+    draft.formData.refModel,
+    draft.formData.location,
+    draft.formData.surface,
+    draft.formData.businessDomain,
+    draft.formData.revenue,
+  ];
+  return fields.some((value) => value.trim().length > 0);
+}
+
+function hasOnlyKnownKeys(
+  value: Record<string, unknown>,
+  allowed: Set<string>,
+): boolean {
+  return Object.keys(value).every((key) => allowed.has(key));
+}
+
+function parseListingDraftRecord(
+  parsed: Record<string, unknown>,
+  now = Date.now(),
+): ListingDraftParseResult {
+  if (!hasOnlyKnownKeys(parsed, LISTING_DRAFT_KNOWN_KEYS)) {
+    return { ok: false, reason: "unexpected_fields" };
+  }
+
   const version = Number(parsed.version);
-  if (!LISTING_DRAFT_ACCEPTED_VERSIONS.has(version)) return null;
+  if (!Number.isInteger(version) || !LISTING_DRAFT_ACCEPTED_VERSIONS.has(version)) {
+    return { ok: false, reason: "incompatible_version" };
+  }
 
   const timestamp = Number(parsed.timestamp);
-  if (!Number.isFinite(timestamp)) return null;
+  if (!Number.isFinite(timestamp) || timestamp <= 0) {
+    return { ok: false, reason: "malformed" };
+  }
+  if (now - timestamp > LISTING_DRAFT_TTL_MS) {
+    return { ok: false, reason: "expired" };
+  }
 
-  return buildListingDraft({
-    timestamp,
-    step: clampStep(parsed.step),
-    category: String(parsed.category ?? ""),
-    adTitle: String(parsed.adTitle ?? ""),
-    description: String(parsed.description ?? ""),
-    exitPrice: String(parsed.exitPrice ?? ""),
-    pricingMode: sanitizePricingMode(parsed.pricingMode),
-    isExitPriceManuallyEdited: Boolean(parsed.isExitPriceManuallyEdited),
-    manualMarketPrice: String(parsed.manualMarketPrice ?? ""),
-    marketPrice: sanitizeNumber(parsed.marketPrice),
-    analyzedItems: sanitizeNumber(parsed.analyzedItems),
-    saleStrategy: String(parsed.saleStrategy ?? "standard"),
-    selectedPackage: sanitizePackage(parsed.selectedPackage),
-    saleMethod: typeof parsed.saleMethod === "string" ? parsed.saleMethod : undefined,
-    formData: sanitizeFormData(parsed.formData),
-    evaluationConfidenceScore:
-      typeof parsed.evaluationConfidenceScore === "number"
-        ? parsed.evaluationConfidenceScore
-        : undefined,
-    evaluationPrefillActive: Boolean(parsed.evaluationPrefillActive),
-    evaluationHandoffActive: Boolean(parsed.evaluationHandoffActive),
-    pendingListingId:
-      typeof parsed.pendingListingId === "string" ? parsed.pendingListingId : undefined,
-    pendingListingCreatedAt:
-      typeof parsed.pendingListingCreatedAt === "number"
-        ? parsed.pendingListingCreatedAt
-        : undefined,
-  });
+  if (parsed.formData !== undefined) {
+    if (!parsed.formData || typeof parsed.formData !== "object" || Array.isArray(parsed.formData)) {
+      return { ok: false, reason: "malformed" };
+    }
+    if (!hasOnlyKnownKeys(parsed.formData as Record<string, unknown>, new Set(FORM_DATA_KEYS))) {
+      return { ok: false, reason: "unexpected_fields" };
+    }
+  }
+
+  if (
+    parsed.evaluationPrefillActive !== undefined &&
+    typeof parsed.evaluationPrefillActive !== "boolean"
+  ) {
+    return { ok: false, reason: "malformed" };
+  }
+  if (
+    parsed.evaluationHandoffActive !== undefined &&
+    typeof parsed.evaluationHandoffActive !== "boolean"
+  ) {
+    return { ok: false, reason: "malformed" };
+  }
+  if (
+    parsed.isExitPriceManuallyEdited !== undefined &&
+    typeof parsed.isExitPriceManuallyEdited !== "boolean"
+  ) {
+    return { ok: false, reason: "malformed" };
+  }
+
+  try {
+    return {
+      ok: true,
+      draft: buildListingDraft({
+        timestamp,
+        step: clampStep(parsed.step),
+        category: String(parsed.category ?? ""),
+        adTitle: String(parsed.adTitle ?? ""),
+        description: String(parsed.description ?? ""),
+        exitPrice: String(parsed.exitPrice ?? ""),
+        pricingMode: sanitizePricingMode(parsed.pricingMode),
+        isExitPriceManuallyEdited: Boolean(parsed.isExitPriceManuallyEdited),
+        manualMarketPrice: String(parsed.manualMarketPrice ?? ""),
+        marketPrice: sanitizeNumber(parsed.marketPrice),
+        analyzedItems: sanitizeNumber(parsed.analyzedItems),
+        saleStrategy: String(parsed.saleStrategy ?? "standard"),
+        selectedPackage: sanitizePackage(parsed.selectedPackage),
+        saleMethod: typeof parsed.saleMethod === "string" ? parsed.saleMethod : undefined,
+        formData: sanitizeFormData(parsed.formData),
+        evaluationConfidenceScore:
+          typeof parsed.evaluationConfidenceScore === "number"
+            ? parsed.evaluationConfidenceScore
+            : undefined,
+        evaluationPrefillActive: Boolean(parsed.evaluationPrefillActive),
+        evaluationHandoffActive: Boolean(parsed.evaluationHandoffActive),
+        pendingListingId:
+          typeof parsed.pendingListingId === "string" ? parsed.pendingListingId : undefined,
+        pendingListingCreatedAt:
+          typeof parsed.pendingListingCreatedAt === "number"
+            ? parsed.pendingListingCreatedAt
+            : undefined,
+      }),
+    };
+  } catch {
+    return { ok: false, reason: "malformed" };
+  }
+}
+
+export function parseListingDraftJson(
+  raw: string,
+  now = Date.now(),
+): ListingDraftParseResult {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return { ok: false, reason: "invalid_json" };
+  }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    return { ok: false, reason: "not_object" };
+  }
+  return parseListingDraftRecord(parsed as Record<string, unknown>, now);
 }
 
 export function listingDraftAnalyticsParams(
@@ -366,6 +605,10 @@ export function saveListingDraftImmediate(draft: ListingDraftV1): boolean {
   if (typeof window === "undefined") return false;
   try {
     const payload = buildListingDraft(draft);
+    if (!isMeaningfulListingDraft(payload)) {
+      clearListingDraftSession();
+      return false;
+    }
     window.sessionStorage.setItem(LISTING_DRAFT_STORAGE_KEY, JSON.stringify(payload));
     return true;
   } catch {
@@ -395,26 +638,20 @@ export function flushListingDraftSave(draft: ListingDraftV1): boolean {
   return saveListingDraftImmediate(draft);
 }
 
-export function loadListingDraftFromSession(): ListingDraftV1 | null {
+export function loadListingDraftFromSession(now = Date.now()): ListingDraftV1 | null {
   if (typeof window === "undefined") return null;
 
   try {
     const raw = window.sessionStorage.getItem(LISTING_DRAFT_STORAGE_KEY);
     if (!raw) return null;
 
-    const parsed = JSON.parse(raw) as Record<string, unknown>;
-    const draft = parseListingDraftRecord(parsed);
-    if (!draft) {
+    const parsed = parseListingDraftJson(raw, now);
+    if (!parsed.ok) {
       clearListingDraftSession();
       return null;
     }
 
-    if (Date.now() - draft.timestamp > LISTING_DRAFT_TTL_MS) {
-      clearListingDraftSession();
-      return null;
-    }
-
-    return draft;
+    return parsed.draft;
   } catch {
     clearListingDraftSession();
     return null;
@@ -489,6 +726,10 @@ export function loadListingAuthHandoff(): ListingAuthHandoffV1 | null {
       clearListingAuthHandoff();
       return null;
     }
+    if (!hasOnlyKnownKeys(parsed, LISTING_AUTH_HANDOFF_KNOWN_KEYS)) {
+      clearListingAuthHandoff();
+      return null;
+    }
 
     const expiresAt = Number(parsed.expiresAt);
     const timestamp = Number(parsed.timestamp);
@@ -511,8 +752,8 @@ export function loadListingAuthHandoff(): ListingAuthHandoffV1 | null {
       return null;
     }
 
-    const draft = parseListingDraftRecord(draftRaw);
-    if (!draft) {
+    const draftResult = parseListingDraftRecord(draftRaw);
+    if (!draftResult.ok) {
       clearListingAuthHandoff();
       return null;
     }
@@ -522,7 +763,7 @@ export function loadListingAuthHandoff(): ListingAuthHandoffV1 | null {
       timestamp,
       expiresAt,
       reason: "auth_required",
-      draft,
+      draft: draftResult.draft,
     };
   } catch {
     clearListingAuthHandoff();
@@ -599,6 +840,77 @@ export function syncPendingListingIdIntoExistingDraft(listingId: string): boolea
 }
 
 /**
+ * Read-only draft peek for the publish recovery gate.
+ * Does not import auth handoff into sessionStorage (no silent resume).
+ * Invalid / expired drafts are cleared and treated as absent.
+ */
+export function peekPublishDraft(now = Date.now()): PublishDraftPeek {
+  if (typeof window === "undefined") return { status: "none" };
+
+  const sessionDraft = loadListingDraftFromSession(now);
+  const handoff = loadListingAuthHandoff();
+  const sessionMeaningful = sessionDraft && isMeaningfulListingDraft(sessionDraft) ? sessionDraft : null;
+  const handoffMeaningful =
+    handoff && isMeaningfulListingDraft(handoff.draft) ? handoff : null;
+
+  if (sessionDraft && !sessionMeaningful) {
+    clearListingDraftSession();
+  }
+  if (handoff && !handoffMeaningful) {
+    clearListingAuthHandoff();
+  }
+
+  if (!sessionMeaningful && !handoffMeaningful) return { status: "none" };
+
+  if (sessionMeaningful && handoffMeaningful) {
+    if (sessionMeaningful.timestamp >= handoffMeaningful.draft.timestamp) {
+      return { status: "available", draft: sessionMeaningful, source: "session" };
+    }
+    return {
+      status: "available",
+      draft: handoffMeaningful.draft,
+      source: "auth_handoff",
+      handoffReason: handoffMeaningful.reason,
+    };
+  }
+
+  if (sessionMeaningful) {
+    return { status: "available", draft: sessionMeaningful, source: "session" };
+  }
+
+  if (handoffMeaningful) {
+    return {
+      status: "available",
+      draft: handoffMeaningful.draft,
+      source: "auth_handoff",
+      handoffReason: handoffMeaningful.reason,
+    };
+  }
+
+  return { status: "none" };
+}
+
+/** After the user explicitly continues a handoff draft, copy it into sessionStorage. */
+export function commitPublishDraftRestore(source: ListingDraftRestoreSource): boolean {
+  if (source !== "auth_handoff") return true;
+  const handoff = loadListingAuthHandoff();
+  if (!handoff) return false;
+  const imported = saveListingDraftImmediate(handoff.draft);
+  if (imported) {
+    clearListingAuthHandoff();
+    return true;
+  }
+  return false;
+}
+
+export function isPublishDraftStorageKey(key: string): boolean {
+  return (
+    (PUBLISH_DRAFT_SESSION_KEYS as readonly string[]).includes(key) ||
+    (PUBLISH_DRAFT_LOCAL_KEYS as readonly string[]).includes(key)
+  );
+}
+
+/**
  * Resolve draft for mount restore:
  * - prefer newer timestamp between session and auth handoff;
  * - import handoff into sessionStorage only when handoff wins / is sole source;
@@ -657,7 +969,7 @@ export function resolveListingDraftForRestore(): ListingDraftRestoreResult | nul
 export function markListingAuthResumePending(): void {
   if (typeof window === "undefined") return;
   try {
-    window.sessionStorage.setItem(LISTING_AUTH_RESUME_FLAG_KEY, "1");
+      window.sessionStorage.setItem(LISTING_AUTH_RESUME_FLAG_KEY, LISTING_AUTH_RESUME_FLAG_VALUE);
   } catch {
     // ignore
   }
@@ -666,7 +978,7 @@ export function markListingAuthResumePending(): void {
 export function consumeListingAuthResumePending(): boolean {
   if (typeof window === "undefined") return false;
   try {
-    const pending = window.sessionStorage.getItem(LISTING_AUTH_RESUME_FLAG_KEY) === "1";
+      const pending = window.sessionStorage.getItem(LISTING_AUTH_RESUME_FLAG_KEY) === LISTING_AUTH_RESUME_FLAG_VALUE;
     if (pending) {
       window.sessionStorage.removeItem(LISTING_AUTH_RESUME_FLAG_KEY);
     }
