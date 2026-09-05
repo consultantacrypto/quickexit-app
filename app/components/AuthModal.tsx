@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useLocale } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { supabase } from "@/lib/supabase";
 import { getAuthCallbackUrl } from "@/lib/siteUrl";
 
@@ -14,6 +14,7 @@ interface AuthModalProps {
 
 export default function AuthModal({ isOpen, onClose, nextPath = "/dashboard" }: AuthModalProps) {
   const locale = useLocale();
+  const t = useTranslations("Auth");
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState<{ text: string; type: "error" | "success" | "" }>({ text: "", type: "" });
@@ -49,9 +50,9 @@ export default function AuthModal({ isOpen, onClose, nextPath = "/dashboard" }: 
     });
 
     if (error) {
-      setMessage({ text: "Eroare: " + error.message, type: "error" });
+      setMessage({ text: t("errorPrefix") + error.message, type: "error" });
     } else {
-      setMessage({ text: "✓ Verifică-ți mail-ul! Ți-am trimis link-ul de intrare.", type: "success" });
+      setMessage({ text: t("magicLinkSent"), type: "success" });
     }
     setIsLoading(false);
   };
@@ -68,7 +69,7 @@ export default function AuthModal({ isOpen, onClose, nextPath = "/dashboard" }: 
   };
 
   const handleWeb3Login = () => {
-    setMessage({ text: "⚠ Sistemul WalletConnect este în mentenanță pentru Faza 2.", type: "error" });
+    setMessage({ text: t("web3Maintenance"), type: "error" });
   };
 
   return (
@@ -92,7 +93,7 @@ export default function AuthModal({ isOpen, onClose, nextPath = "/dashboard" }: 
         <button
           type="button"
           onClick={onClose}
-          aria-label="Închide fereastra de autentificare"
+          aria-label={t("closeModal")}
           className="absolute top-8 right-8 w-10 h-10 bg-gray-50 border-2 border-transparent hover:border-black hover:bg-[#FFD100] rounded-full flex items-center justify-center transition-all group z-10"
         >
           <span className="text-2xl font-black text-black opacity-40 group-hover:opacity-100 group-hover:rotate-90 transition-all duration-300" aria-hidden>
@@ -102,11 +103,11 @@ export default function AuthModal({ isOpen, onClose, nextPath = "/dashboard" }: 
 
         <div className="p-10 pt-14 text-center">
           <h2 className="text-4xl md:text-5xl font-black uppercase italic tracking-tighter leading-none mb-4">
-            Bine ai <span className="text-[#FFD100] drop-shadow-[3px_3px_0_rgba(0,0,0,1)]">venit</span>
+            {t("welcomeLead")}{t("welcomeLead") ? " " : ""}
+            <span className="text-[#FFD100] drop-shadow-[3px_3px_0_rgba(0,0,0,1)]">{t("welcomeHighlight")}</span>
           </h2>
           <p className="text-[11px] md:text-[12px] font-bold text-gray-500 uppercase tracking-widest px-4 leading-relaxed">
-            Folosește mai jos adresa de e-mail (primești un link de acces) sau butonul Google. Același cont îl folosești
-            pentru anunțuri, oferte și Camera de negociere.
+            {t("welcomeSubtitle")}
           </p>
         </div>
 
@@ -116,14 +117,14 @@ export default function AuthModal({ isOpen, onClose, nextPath = "/dashboard" }: 
           <form onSubmit={handleEmailLogin} className="space-y-4">
             <div className="relative group">
               <label className="text-[10px] font-black uppercase tracking-[0.2em] text-black mb-3 block ml-1 italic">
-                Creează cont sau loghează-te cu mail
+                {t("emailLabel")}
               </label>
               <input 
                 type="email" 
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="adresa.ta@email.com" 
+                placeholder={t("emailPlaceholder")}
                 className="w-full p-5 bg-white border-[3px] border-black text-black rounded-2xl font-black text-lg text-center focus:outline-none focus:bg-gray-50 shadow-[6px_6px_0_0_rgba(0,0,0,0.05)] transition-all placeholder:text-gray-200"
               />
             </div>
@@ -133,17 +134,17 @@ export default function AuthModal({ isOpen, onClose, nextPath = "/dashboard" }: 
               disabled={isLoading}
               className="w-full bg-black text-[#FFD100] border-[3px] border-black py-5 rounded-2xl font-black uppercase tracking-widest text-sm italic transition-all hover:bg-gray-900 shadow-[8px_8px_0_0_rgba(255,209,0,1)] active:translate-y-1 active:shadow-none disabled:opacity-50"
             >
-              {isLoading ? "Se procesează..." : "Primește link-ul de acces →"}
+              {isLoading ? t("submitLoading") : t("submitButton")}
             </button>
             
             <p className="text-[9px] font-bold text-gray-400 text-center uppercase tracking-[0.1em] italic">
-              Dacă nu ai cont, se va crea automat după ce apeși pe link-ul din mail.
+              {t("autoAccountHint")}
             </p>
           </form>
 
           <div className="flex items-center gap-6">
             <div className="h-[2px] bg-gray-100 flex-1"></div>
-            <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest">Opțiuni Avansate</span>
+            <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest">{t("advancedOptions")}</span>
             <div className="h-[2px] bg-gray-100 flex-1"></div>
           </div>
 
@@ -159,7 +160,7 @@ export default function AuthModal({ isOpen, onClose, nextPath = "/dashboard" }: 
                 <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
                 <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
               </svg>
-              Google
+              {t("google")}
             </button>
 
             {/* Web3 Wallet */}
@@ -171,7 +172,7 @@ export default function AuthModal({ isOpen, onClose, nextPath = "/dashboard" }: 
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M11.944 17.97L4.58 13.62 11.943 24l7.37-10.38-7.372 4.35h.003zM12.056 0L4.69 12.22l7.365 4.339 7.365-4.34L12.056 0z"/>
               </svg>
-              Web3 Wallet
+              {t("web3Wallet")}
             </button>
           </div>
 

@@ -16,14 +16,11 @@ import { isEvaluateTurnstileUiEnabled } from "@/lib/turnstilePublic";
 import { getPriceIdForPackageId } from "@/lib/stripePackages";
 import { resolveEvaluateCategoryKey } from "@/lib/evaluateSafety";
 import {
-  buildEvaluationPrefillMessage,
   computePrefillLevel,
   EVALUATION_CATEGORY_LABELS,
-  EVALUATION_PRICE_STRATEGIES,
   loadEvaluationDraftFromSession,
   mapEvaluationDraftToListingPatch,
   parseEvaluationPriceType,
-  prefillMessageForLevel,
   type EvaluationPriceType,
   type PrefillLevel,
 } from "@/lib/evaluationDraft";
@@ -89,6 +86,15 @@ function parseEvaluationExitPrice(raw: string | null): number | null {
   if (!Number.isFinite(n) || n <= 0 || n > MAX_EVALUATION_EXIT_PRICE_EUR) return null;
   return Math.round(n);
 }
+
+const CATEGORY_I18N_KEYS = {
+  "Auto & Moto": "auto",
+  Imobiliare: "imobiliare",
+  "Lux & Ceasuri": "lux",
+  "Afaceri de vânzare": "business",
+  Gadgets: "gadgets",
+  "Foto & Audio": "foto",
+} as const;
 
 type PuneAnuntClientProps = {
   initialPackage?: string;
@@ -426,7 +432,6 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
     let resolvedCategoryKey: string | null = null;
     let prefillLevel: PrefillLevel = "price_only";
     let selectedPriceType: EvaluationPriceType | undefined;
-    let selectedPriceLabel: string | undefined;
 
     const draft = loadEvaluationDraftFromSession();
 
@@ -469,10 +474,6 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
         selectedPriceType = draft.selectedPriceType;
       }
 
-      if (draft.selectedPriceLabel) {
-        selectedPriceLabel = draft.selectedPriceLabel;
-      }
-
       if (Object.keys(formDataPatch).length > 0) {
         setFormData((prev) => ({ ...prev, ...formDataPatch }));
         didPrefill = true;
@@ -510,11 +511,6 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
       const queryPriceType = parseEvaluationPriceType(searchParams.get("price_type"));
       if (queryPriceType) {
         selectedPriceType = queryPriceType;
-        if (!selectedPriceLabel) {
-          selectedPriceLabel = EVALUATION_PRICE_STRATEGIES.find(
-            (s) => s.type === queryPriceType,
-          )?.label;
-        }
       }
     }
 
@@ -540,9 +536,9 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
 
       setEvaluationPrefillActive(true);
       setEvaluationPrefillMessage(
-        selectedPriceLabel
-          ? buildEvaluationPrefillMessage(prefillLevel, selectedPriceLabel)
-          : prefillMessageForLevel(prefillLevel),
+        selectedPriceType
+          ? tPost(`prefill.strategy.${selectedPriceType}`)
+          : tPost(`prefill.${prefillLevel}`),
       );
     }
 
@@ -555,7 +551,7 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
         prefill_level: prefillLevel,
       });
     }
-  }, [searchParams, draftReady]);
+  }, [searchParams, draftReady, tPost]);
 
   const trackListingStepCompleted = (completedStep: number) => {
     trackEvent(
@@ -594,45 +590,17 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
 
   const PACKAGE_DEFS: {
     id: PackageId;
-    title: string;
-    durationLabel: string;
-    description: string;
-    benefits?: string[];
-    badge?: string;
+    badgeKey?: "standard.badge" | "urgent.badge";
+    benefitKeys?: readonly ["urgent.benefit1", "urgent.benefit2", "urgent.benefit3"];
   }[] = [
-    {
-      id: "economy",
-      title: "Expunere Maximă",
-      durationLabel: "30 zile",
-      description: "Pentru anunțuri care au nevoie de mai mult timp la vedere.",
-    },
-    {
-      id: "standard",
-      title: "Vânzare Rapidă",
-      durationLabel: "14 zile",
-      description: "Pentru listări echilibrate între timp, cost și vizibilitate.",
-      badge: "Recomandat",
-    },
+    { id: "economy" },
+    { id: "standard", badgeKey: "standard.badge" },
     {
       id: "urgent",
-      title: "Pachet Validare & Listare Standard",
-      durationLabel: "60 zile",
-      description:
-        "Listare curată, verificată manual, cu acces complet la investitori pregătiți să negocieze.",
-      benefits: [
-        "Verificare manuală a activului (Filtru anti-zgomot)",
-        "Listare garantată timp de 60 de zile în platformă",
-        "Acces complet în Camera de Negociere cu investitorii",
-      ],
-      badge: "Premium",
+      badgeKey: "urgent.badge",
+      benefitKeys: ["urgent.benefit1", "urgent.benefit2", "urgent.benefit3"],
     },
-    {
-      id: "auction",
-      title: "Licitație deschisă 30 zile",
-      durationLabel: "30 zile",
-      description:
-        "Pentru active unde vrei să strângi mai multe oferte și să alegi manual varianta potrivită. Include afișare ca licitație, fereastră de ofertare 30 zile și semnale publice de interes: număr oferte, cea mai mare ofertă și timp rămas. Nu garantează vânzarea.",
-    },
+    { id: "auction" },
   ];
 
   function applyCanonicalSaleState(state: ReturnType<typeof coerceCompatibleSaleIntent>) {
@@ -703,12 +671,12 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
 
   function validatePrimaryAssetFields(): string | null {
     const code = validatePublishStep1({ category, adTitle, formData });
-    if (code === "title") return "Completează titlul anunțului.";
-    if (code === "auto_make_model") return "Completează marca și modelul vehiculului.";
-    if (code === "imobiliare_location_surface") return "Completează localizarea și suprafața.";
-    if (code === "lux_brand_model") return "Completează brandul și modelul.";
-    if (code === "business_domain_revenue") return "Completează domeniul și cifra de afaceri.";
-    if (code === "gadgets_brand") return "Completează brandul și modelul produsului.";
+    if (code === "title") return tPost("validation.title");
+    if (code === "auto_make_model") return tPost("validation.autoMakeModel");
+    if (code === "imobiliare_location_surface") return tPost("validation.imobiliareLocationSurface");
+    if (code === "lux_brand_model") return tPost("validation.luxBrandModel");
+    if (code === "business_domain_revenue") return tPost("validation.businessDomainRevenue");
+    if (code === "gadgets_brand") return tPost("validation.gadgetsBrand");
     return null;
   }
 
@@ -782,9 +750,7 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
     }
 
     if (turnstileUiEnabled && !listingTurnstileToken) {
-      setFlowError(
-        "Completează verificarea de securitate de mai jos, apoi continuă către estimarea pe piață.",
-      );
+      setFlowError(tPost("validation.turnstileRequired"));
       return;
     }
 
@@ -845,8 +811,7 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
       });
 
       if (response.status === 403) {
-        let message =
-          "Verificarea de securitate nu a reușit. Te rugăm să reîncerci.";
+        let message = tPost("validation.turnstileFailed");
         try {
           const data = (await response.json()) as { message?: string };
           if (typeof data.message === "string" && data.message.trim()) {
@@ -1005,7 +970,7 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
 
     const data = await res.json().catch(() => null);
     if (!res.ok || !data?.url) {
-      throw new Error(data?.error || "Nu am putut inițializa plata. Te rugăm să încerci din nou.");
+      throw new Error(data?.error || tPost("checkoutErrors.paymentFailed"));
     }
 
     trackEvent(
@@ -1251,7 +1216,7 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
           user_id: user.id,
           title: adTitle,
           category: category,
-          description: description || "Anunț detaliat.",
+          description: description || tPost("descriptionFallback"),
           market_price: finalMarketPrice,
           exit_price: finalExitPrice,
           sale_strategy: saleFields.sale_strategy,
@@ -1368,16 +1333,16 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
             ✓
           </span>
           <h1 className="mb-4 text-2xl font-black uppercase italic leading-tight tracking-tight text-black md:text-3xl">
-            Anunț activat cu succes
+            {tPost("successTitle")}
           </h1>
           <p className="mb-8 text-sm font-medium leading-relaxed text-neutral-600">
-            Anunțul este publicat. Poți urmări ofertele din cont.
+            {tPost("successDescription")}
           </p>
           <Link
             href="/dashboard"
             className="block w-full rounded-2xl border-[3px] border-black bg-black py-4 text-sm font-black uppercase tracking-widest text-[#FFD100] transition hover:brightness-110"
           >
-            Mergi la contul meu
+            {tPost("goToDashboard")}
           </Link>
         </div>
       </div>
@@ -1411,23 +1376,23 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
         <div className="rounded-[2rem] border-[3px] border-black bg-black p-8 text-white shadow-[10px_10px_0_0_#FFD100] md:p-12">
           <div className="mx-auto max-w-3xl text-center">
             <p className="text-[10px] font-bold uppercase tracking-[0.28em] text-[#FFD100]/90 md:text-[11px]">
-              Quick Exit Terminal
+              {tPost("terminalLabel")}
             </p>
             <h1 className="mt-5 text-3xl font-black uppercase italic leading-[1.05] tracking-tight md:text-5xl">
-              Publică <span className="text-[#FFD100]">anunțul</span>
+              {tPost("pageTitleLead")} <span className="text-[#FFD100]">{tPost("pageTitleHighlight")}</span>
             </h1>
             <p className="mx-auto mt-3 max-w-xl text-lg font-black uppercase italic text-[#FFD100] md:text-xl">
-              pentru vânzare rapidă
+              {tPost("pageSubtitle")}
             </p>
             <p className="mx-auto mt-6 max-w-xl text-[11px] font-semibold uppercase leading-relaxed tracking-[0.18em] text-neutral-300 md:text-xs">
-              Completează activul, stabilește prețul și alege viteza de vânzare.
+              {tPost("pageDescription")}
             </p>
           </div>
           <div className="mx-auto mt-10 flex flex-wrap justify-center gap-2 md:gap-3">
-            <StepPill index={1} title="Date activ" />
-            <StepPill index={2} title="Poze și descriere" />
-            <StepPill index={3} title="Preț de vânzare" />
-            <StepPill index={4} title="Pachet și publicare" />
+            <StepPill index={1} title={tPost("steps.assetData")} />
+            <StepPill index={2} title={tPost("steps.photosDescription")} />
+            <StepPill index={3} title={tPost("steps.salePrice")} />
+            <StepPill index={4} title={tPost("steps.packagePublish")} />
           </div>
         </div>
 
@@ -1481,13 +1446,13 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
             <div className="relative z-10 space-y-8 md:space-y-10">
               <div>
                 <h2 className="mb-6 text-xl font-black uppercase italic tracking-tight text-black md:text-2xl">
-                  1. Date despre activ
+                  {tPost("step1.title")}
                 </h2>
                 <p className="mb-2 text-sm font-medium text-neutral-600">
-                  Alege o categorie pentru a continua. Câmpurile următoare se adaptează în funcție de tipul activului.
+                  {tPost("step1.intro")}
                 </p>
                 <p className="mb-6 text-xs font-medium text-neutral-500">
-                  După ce selectezi categoria, completează detaliile tehnice mai jos.
+                  {tPost("step1.hint")}
                 </p>
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:gap-6">
                   {categoriesList.map((cat) => (
@@ -1502,7 +1467,7 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                       }`}
                     >
                       <p className="text-xs font-black uppercase tracking-wider md:text-sm">
-                        {cat}
+                        {tPost(`categories.${CATEGORY_I18N_KEYS[cat as keyof typeof CATEGORY_I18N_KEYS]}`)}
                       </p>
                     </button>
                   ))}
@@ -1511,13 +1476,13 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
 
               <div className="rounded-3xl border border-black/[0.08] bg-[#F7F4EC]/80 p-6 md:border-2 md:border-black/[0.06] md:p-10">
                 <label className="block text-[10px] font-bold uppercase tracking-widest text-neutral-500">
-                  Titlu anunț
+                  {tPost("fields.title")}
                 </label>
                 <input
                   type="text"
                   value={adTitle}
                   onChange={(e) => setAdTitle(e.target.value)}
-                  placeholder="Ex.: Mercedes S 500 / Apartament Herăstrău"
+                  placeholder={tPost("fields.titlePlaceholder")}
                   className={`${inputBase} font-bold uppercase tracking-wide`}
                 />
 
@@ -1538,7 +1503,7 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                       </div>
                       <div>
                         <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">
-                          Model
+                          {tPost("fields.model")}
                         </label>
                         <input
                           type="text"
@@ -1546,13 +1511,13 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                           onChange={(e) =>
                             setFormData({ ...formData, model: e.target.value })
                           }
-                          placeholder="Ex: S-Class"
+                          placeholder={tPost("fields.modelPlaceholder")}
                           className="w-full mt-2 p-3 border-[3px] border-black rounded-xl font-bold uppercase focus:outline-none focus:bg-gray-50"
                         />
                       </div>
                       <div>
                         <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">
-                          An Fabricație
+                          {tPost("fields.year")}
                         </label>
                         <input
                           type="number"
@@ -1566,7 +1531,7 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                       </div>
                       <div>
                         <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">
-                          Rulaj (KM Curenți)
+                          {tPost("fields.mileage")}
                         </label>
                         <input
                           type="number"
@@ -1580,7 +1545,7 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                       </div>
                       <div>
                         <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">
-                          Combustibil
+                          {tPost("fields.fuel")}
                         </label>
                         <select
                           value={formData.fuel}
@@ -1589,15 +1554,15 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                           }
                           className="w-full mt-2 p-3 border-[3px] border-black rounded-xl font-bold uppercase focus:outline-none focus:bg-gray-50 appearance-none"
                         >
-                          <option>Benzină</option>
-                          <option>Diesel</option>
-                          <option>Hibrid</option>
-                          <option>Electric</option>
+                          <option value="Benzină">{tPost("options.fuelPetrol")}</option>
+                          <option value="Diesel">{tPost("options.fuelDiesel")}</option>
+                          <option value="Hibrid">{tPost("options.fuelHybrid")}</option>
+                          <option value="Electric">{tPost("options.fuelElectric")}</option>
                         </select>
                       </div>
                       <div>
                         <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">
-                          Motorizare / CP
+                          {tPost("fields.engine")}
                         </label>
                         <input
                           type="text"
@@ -1605,13 +1570,13 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                           onChange={(e) =>
                             setFormData({ ...formData, engine: e.target.value })
                           }
-                          placeholder="Ex: 3.0 / 292 CP"
+                          placeholder={tPost("fields.enginePlaceholder")}
                           className="w-full mt-2 p-3 border-[3px] border-black rounded-xl font-bold uppercase focus:outline-none focus:bg-gray-50"
                         />
                       </div>
                       <div>
                         <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">
-                          Cutie de viteze
+                          {tPost("fields.transmission")}
                         </label>
                         <select
                           value={formData.transmission}
@@ -1623,13 +1588,13 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                           }
                           className="w-full mt-2 p-3 border-[3px] border-black rounded-xl font-bold uppercase focus:outline-none focus:bg-gray-50 appearance-none"
                         >
-                          <option>Automată</option>
-                          <option>Manuală</option>
+                          <option value="Automată">{tPost("options.transmissionAuto")}</option>
+                          <option value="Manuală">{tPost("options.transmissionManual")}</option>
                         </select>
                       </div>
                       <div>
                         <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">
-                          Caroserie
+                          {tPost("fields.bodyType")}
                         </label>
                         <select
                           value={formData.bodyType}
@@ -1638,16 +1603,16 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                           }
                           className="w-full mt-2 p-3 border-[3px] border-black rounded-xl font-bold uppercase focus:outline-none focus:bg-gray-50 appearance-none"
                         >
-                          <option>Sedan</option>
-                          <option>SUV</option>
-                          <option>Coupe</option>
-                          <option>Cabrio</option>
-                          <option>Off-Road</option>
+                          <option value="Sedan">{tPost("options.bodySedan")}</option>
+                          <option value="SUV">{tPost("options.bodySuv")}</option>
+                          <option value="Coupe">{tPost("options.bodyCoupe")}</option>
+                          <option value="Cabrio">{tPost("options.bodyCabrio")}</option>
+                          <option value="Off-Road">{tPost("options.bodyOffRoad")}</option>
                         </select>
                       </div>
                       <div>
                         <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">
-                          Status Înmatriculare
+                          {tPost("fields.registration")}
                         </label>
                         <select
                           value={formData.status}
@@ -1656,14 +1621,14 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                           }
                           className="w-full mt-2 p-3 border-[3px] border-black rounded-xl font-bold uppercase focus:outline-none focus:bg-gray-50 appearance-none"
                         >
-                          <option>Înmatriculat RO</option>
-                          <option>Neînmatriculat</option>
-                          <option>Înmatriculat Extern</option>
+                          <option value="Înmatriculat RO">{tPost("options.regRo")}</option>
+                          <option value="Neînmatriculat">{tPost("options.regNone")}</option>
+                          <option value="Înmatriculat Extern">{tPost("options.regForeign")}</option>
                         </select>
                       </div>
                       <div>
                         <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">
-                          TVA DEDUCTIBIL?
+                          {tPost("fields.vat")}
                         </label>
                         <select
                           value={formData.tva}
@@ -1672,8 +1637,8 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                           }
                           className="w-full mt-2 p-3 border-[3px] border-black rounded-xl font-bold uppercase focus:outline-none focus:bg-gray-50 appearance-none"
                         >
-                          <option>Nu (Vânzător PF)</option>
-                          <option>Da (Vânzător PJ)</option>
+                          <option value="Nu (Vânzător PF)">{tPost("options.vatNo")}</option>
+                          <option value="Da (Vânzător PJ)">{tPost("options.vatYes")}</option>
                         </select>
                       </div>
                     </>
@@ -1683,7 +1648,7 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                     <>
                       <div>
                         <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">
-                          Tip Proprietate
+                          {tPost("fields.propertyType")}
                         </label>
                         <select
                           value={formData.propType}
@@ -1692,15 +1657,15 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                           }
                           className="w-full mt-2 p-3 border-[3px] border-black rounded-xl font-bold uppercase focus:outline-none focus:bg-gray-50 appearance-none"
                         >
-                          <option>Apartament</option>
-                          <option>Casă / Vilă</option>
-                          <option>Teren</option>
-                          <option>Spațiu Comercial</option>
+                          <option value="Apartament">{tPost("options.propApartment")}</option>
+                          <option value="Casă / Vilă">{tPost("options.propHouse")}</option>
+                          <option value="Teren">{tPost("options.propLand")}</option>
+                          <option value="Spațiu Comercial">{tPost("options.propCommercial")}</option>
                         </select>
                       </div>
                       <div>
                         <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">
-                          Suprafață Utilă (mp)
+                          {tPost("fields.usableArea")}
                         </label>
                         <input
                           type="number"
@@ -1714,7 +1679,7 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                       </div>
                       <div>
                         <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">
-                          Număr Camere
+                          {tPost("fields.rooms")}
                         </label>
                         <input
                           type="number"
@@ -1728,7 +1693,7 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                       </div>
                       <div>
                         <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">
-                          An Construcție
+                          {tPost("fields.buildYear")}
                         </label>
                         <input
                           type="number"
@@ -1742,7 +1707,7 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                       </div>
                       <div>
                         <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">
-                          Etaj / Regim
+                          {tPost("fields.floor")}
                         </label>
                         <input
                           type="text"
@@ -1750,13 +1715,13 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                           onChange={(e) =>
                             setFormData({ ...formData, floor: e.target.value })
                           }
-                          placeholder="Ex: 4 din 10"
+                          placeholder={tPost("fields.floorPlaceholder")}
                           className="w-full mt-2 p-3 border-[3px] border-black rounded-xl font-bold uppercase focus:outline-none focus:bg-gray-50"
                         />
                       </div>
                       <div>
                         <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">
-                          Loc de Parcare
+                          {tPost("fields.parking")}
                         </label>
                         <select
                           value={formData.parking}
@@ -1765,14 +1730,14 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                           }
                           className="w-full mt-2 p-3 border-[3px] border-black rounded-xl font-bold uppercase focus:outline-none focus:bg-gray-50 appearance-none"
                         >
-                          <option>Inclus în preț</option>
-                          <option>Disponibil contra cost</option>
-                          <option>Fără parcare</option>
+                          <option value="Inclus în preț">{tPost("options.parkingIncluded")}</option>
+                          <option value="Disponibil contra cost">{tPost("options.parkingPaid")}</option>
+                          <option value="Fără parcare">{tPost("options.parkingNone")}</option>
                         </select>
                       </div>
                       <div>
                         <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">
-                          Suprafață Teren (pt Case)
+                          {tPost("fields.landArea")}
                         </label>
                         <input
                           type="text"
@@ -1780,13 +1745,13 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                           onChange={(e) =>
                             setFormData({ ...formData, landSurface: e.target.value })
                           }
-                          placeholder="Ex: 500 mp"
+                          placeholder={tPost("fields.landAreaPlaceholder")}
                           className="w-full mt-2 p-3 border-[3px] border-black rounded-xl font-bold uppercase focus:outline-none focus:bg-gray-50"
                         />
                       </div>
                       <div className="md:col-span-2">
                         <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">
-                          Localizare Exactă
+                          {tPost("fields.location")}
                         </label>
                         <input
                           type="text"
@@ -1794,7 +1759,7 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                           onChange={(e) =>
                             setFormData({ ...formData, location: e.target.value })
                           }
-                          placeholder="Ex: București, Sector 1, Șos. Nordului"
+                          placeholder={tPost("fields.locationPlaceholder")}
                           className="w-full mt-2 p-3 border-[3px] border-black rounded-xl font-bold uppercase focus:outline-none focus:bg-gray-50"
                         />
                       </div>
@@ -1805,7 +1770,7 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                     <>
                       <div>
                         <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">
-                          Brand
+                          {tPost("fields.brand")}
                         </label>
                         <input
                           type="text"
@@ -1813,13 +1778,13 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                           onChange={(e) =>
                             setFormData({ ...formData, brand: e.target.value })
                           }
-                          placeholder="Ex: Patek Philippe, Rolex"
+                          placeholder={tPost("fields.brandPlaceholder")}
                           className="w-full mt-2 p-3 border-[3px] border-black rounded-xl font-bold uppercase focus:outline-none focus:bg-gray-50"
                         />
                       </div>
                       <div>
                         <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">
-                          Model & Referință
+                          {tPost("fields.refModel")}
                         </label>
                         <input
                           type="text"
@@ -1827,13 +1792,13 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                           onChange={(e) =>
                             setFormData({ ...formData, refModel: e.target.value })
                           }
-                          placeholder="Ex: Nautilus 5711"
+                          placeholder={tPost("fields.refModelPlaceholder")}
                           className="w-full mt-2 p-3 border-[3px] border-black rounded-xl font-bold uppercase focus:outline-none focus:bg-gray-50"
                         />
                       </div>
                       <div>
                         <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">
-                          An Achiziție
+                          {tPost("fields.purchaseYear")}
                         </label>
                         <input
                           type="number"
@@ -1850,7 +1815,7 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                       </div>
                       <div>
                         <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">
-                          Mecanism
+                          {tPost("fields.mechanism")}
                         </label>
                         <select
                           value={formData.mechanism}
@@ -1859,14 +1824,14 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                           }
                           className="w-full mt-2 p-3 border-[3px] border-black rounded-xl font-bold uppercase focus:outline-none focus:bg-gray-50 appearance-none"
                         >
-                          <option>Automat</option>
-                          <option>Manual</option>
-                          <option>Quartz</option>
+                          <option value="Automat">{tPost("options.mechanismAuto")}</option>
+                          <option value="Manual">{tPost("options.mechanismManual")}</option>
+                          <option value="Quartz">{tPost("options.mechanismQuartz")}</option>
                         </select>
                       </div>
                       <div>
                         <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">
-                          Material Carcasă
+                          {tPost("fields.caseMaterial")}
                         </label>
                         <input
                           type="text"
@@ -1874,13 +1839,13 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                           onChange={(e) =>
                             setFormData({ ...formData, material: e.target.value })
                           }
-                          placeholder="Ex: Aur roz, Oțel"
+                          placeholder={tPost("fields.caseMaterialPlaceholder")}
                           className="w-full mt-2 p-3 border-[3px] border-black rounded-xl font-bold uppercase focus:outline-none focus:bg-gray-50"
                         />
                       </div>
                       <div>
                         <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">
-                          Pachet & Proveniență
+                          {tPost("fields.boxPapers")}
                         </label>
                         <select
                           value={formData.boxPapers}
@@ -1889,9 +1854,9 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                           }
                           className="w-full mt-2 p-3 border-[3px] border-black rounded-xl font-bold uppercase focus:outline-none focus:bg-gray-50 appearance-none"
                         >
-                          <option>Full Set (Cutie + Acte)</option>
-                          <option>Doar Ceasul</option>
-                          <option>Ceas + Cutie</option>
+                          <option value="Full Set (Cutie + Acte)">{tPost("options.setFull")}</option>
+                          <option value="Doar Ceasul">{tPost("options.setWatchOnly")}</option>
+                          <option value="Ceas + Cutie">{tPost("options.setWatchBox")}</option>
                         </select>
                       </div>
                     </>
@@ -1901,7 +1866,7 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                     <>
                       <div className="md:col-span-2">
                         <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">
-                          Domeniu de Activitate
+                          {tPost("fields.businessDomain")}
                         </label>
                         <input
                           type="text"
@@ -1912,13 +1877,13 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                               businessDomain: e.target.value,
                             })
                           }
-                          placeholder="Ex: E-commerce, Restaurant, Producție"
+                          placeholder={tPost("fields.businessDomainPlaceholder")}
                           className="w-full mt-2 p-3 border-[3px] border-black rounded-xl font-bold uppercase focus:outline-none focus:bg-gray-50"
                         />
                       </div>
                       <div>
                         <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">
-                          Vechime Business
+                          {tPost("fields.businessAge")}
                         </label>
                         <input
                           type="text"
@@ -1926,13 +1891,13 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                           onChange={(e) =>
                             setFormData({ ...formData, businessAge: e.target.value })
                           }
-                          placeholder="Ex: 5 ani"
+                          placeholder={tPost("fields.businessAgePlaceholder")}
                           className="w-full mt-2 p-3 border-[3px] border-black rounded-xl font-bold uppercase focus:outline-none focus:bg-gray-50"
                         />
                       </div>
                       <div>
                         <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">
-                          Cifră Afaceri Anuală (€)
+                          {tPost("fields.revenue")}
                         </label>
                         <input
                           type="number"
@@ -1946,7 +1911,7 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                       </div>
                       <div>
                         <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">
-                          Profit Net Anual (€)
+                          {tPost("fields.profit")}
                         </label>
                         <input
                           type="number"
@@ -1960,7 +1925,7 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                       </div>
                       <div>
                         <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">
-                          Număr Angajați
+                          {tPost("fields.employees")}
                         </label>
                         <input
                           type="number"
@@ -1974,7 +1939,7 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                       </div>
                       <div className="md:col-span-3">
                         <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">
-                          Ce include prețul?
+                          {tPost("fields.includes")}
                         </label>
                         <input
                           type="text"
@@ -1982,7 +1947,7 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                           onChange={(e) =>
                             setFormData({ ...formData, includes: e.target.value })
                           }
-                          placeholder="Ex: Stocuri de 20k EUR, firmă curată, bază 10k clienți"
+                          placeholder={tPost("fields.includesPlaceholder")}
                           className="w-full mt-2 p-3 border-[3px] border-black rounded-xl font-bold uppercase focus:outline-none focus:bg-gray-50"
                         />
                       </div>
@@ -1993,7 +1958,7 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                     <>
                       <div className="md:col-span-2">
                         <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">
-                          Brand & Model Exact
+                          {tPost("fields.gadgetBrandModel")}
                         </label>
                         <input
                           type="text"
@@ -2001,13 +1966,13 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                           onChange={(e) =>
                             setFormData({ ...formData, brand: e.target.value })
                           }
-                          placeholder="Ex: Apple MacBook Pro M3 Max"
+                          placeholder={tPost("fields.gadgetBrandPlaceholder")}
                           className="w-full mt-2 p-3 border-[3px] border-black rounded-xl font-bold uppercase focus:outline-none focus:bg-gray-50"
                         />
                       </div>
                       <div>
                         <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">
-                          An Achiziție
+                          {tPost("fields.purchaseYear")}
                         </label>
                         <input
                           type="number"
@@ -2024,7 +1989,7 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                       </div>
                       <div className="md:col-span-2">
                         <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">
-                          Specificații Principale
+                          {tPost("fields.specs")}
                         </label>
                         <input
                           type="text"
@@ -2032,13 +1997,13 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                           onChange={(e) =>
                             setFormData({ ...formData, specs: e.target.value })
                           }
-                          placeholder="Ex: 36GB RAM, 1TB SSD, Baterie 100%"
+                          placeholder={tPost("fields.specsPlaceholder")}
                           className="w-full mt-2 p-3 border-[3px] border-black rounded-xl font-bold uppercase focus:outline-none focus:bg-gray-50"
                         />
                       </div>
                       <div>
                         <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">
-                          Garanție Rămasă
+                          {tPost("fields.warranty")}
                         </label>
                         <input
                           type="text"
@@ -2046,7 +2011,7 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                           onChange={(e) =>
                             setFormData({ ...formData, warranty: e.target.value })
                           }
-                          placeholder="Ex: 12 Luni Apple"
+                          placeholder={tPost("fields.warrantyPlaceholder")}
                           className="w-full mt-2 p-3 border-[3px] border-black rounded-xl font-bold uppercase focus:outline-none focus:bg-gray-50"
                         />
                       </div>
@@ -2073,7 +2038,7 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                       return;
                     }
                     if (!adTitle.trim()) {
-                      setFlowError("Completează titlul anunțului.");
+                      setFlowError(tPost("validation.title"));
                       return;
                     }
                     setFlowError(null);
@@ -2092,7 +2057,7 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                   }}
                   className="w-full rounded-2xl border-[3px] border-black bg-[#FFD100] py-5 text-sm font-black uppercase tracking-[0.15em] text-black shadow-[6px_6px_0_0_#000] transition hover:brightness-105 active:translate-y-0.5 active:shadow-[4px_4px_0_0_#000]"
                 >
-                  Continuă la poze și descriere →
+                  {tPost("step1.continue")}
                 </button>
               </div>
             </div>
@@ -2102,28 +2067,28 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
             <div className="relative z-10 space-y-8">
               <div>
                 <h2 className="mb-3 text-xl font-black uppercase italic tracking-tight text-black md:text-2xl">
-                  2. Poze și descriere
+                  {tPost("step2.title")}
                 </h2>
                 <p className="text-sm font-medium text-neutral-600">
-                  Pozele reale și descrierea sinceră cresc încrederea și numărul de oferte.
+                  {tPost("step2.intro")}
                 </p>
               </div>
 
               <div className="rounded-3xl border border-black/[0.08] bg-[#F7F4EC]/80 p-6 md:border-2 md:border-black/[0.06] md:p-10">
                 <label className="block text-[10px] font-bold uppercase tracking-widest text-neutral-500">
-                  Descriere anunț
+                  {tPost("step2.descriptionLabel")}
                 </label>
                 <textarea
                   rows={5}
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Stare, dotări, motivul vânzării, eventuale defecte — transparența ajută la tranzacție."
+                  placeholder={tPost("step2.descriptionPlaceholder")}
                   className={`${inputBase} mt-2 resize-none font-medium leading-relaxed normal-case`}
                 />
 
                 <div className="mt-10">
                   <p className="text-[10px] font-bold uppercase tracking-widest text-neutral-500">
-                    Fotografii
+                    {tPost("step2.photosLabel")}
                   </p>
                   <div className="relative mt-3 flex min-h-[180px] cursor-pointer flex-col items-center justify-center rounded-2xl border-[3px] border-dashed border-black bg-white p-8 transition hover:border-[#FFD100] hover:bg-[#FFFDF8] md:min-h-[200px]">
                     <input
@@ -2137,14 +2102,14 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                       📷
                     </span>
                     <p className="mt-4 text-center text-sm font-black text-neutral-900">
-                      Adaugă poze reale ale activului
+                      {tPost("step2.dropTitle")}
                     </p>
                     <p className="mt-2 max-w-md text-center text-xs font-medium text-neutral-600">
-                      Pozele cresc încrederea și viteza ofertelor.
+                      {tPost("step2.dropHint")}
                     </p>
                     {images.length > 0 && (
                       <p className="mt-4 text-[11px] font-bold uppercase tracking-wider text-[#FFD100]">
-                        {images.length} fișiere selectate
+                        {tPost("step2.filesSelected", { count: images.length })}
                       </p>
                     )}
                   </div>
@@ -2152,7 +2117,7 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                   {imagePreviews.length > 0 && (
                     <div className="mt-6">
                       <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-neutral-400">
-                        Ordine poze — prima imagine este coperta anunțului
+                        {tPost("step2.orderHint")}
                       </p>
                       <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
                         {imagePreviews.map((src, index) => {
@@ -2169,7 +2134,7 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                               {/* eslint-disable-next-line @next/next/no-img-element */}
                               <img
                                 src={src}
-                                alt={`Fotografie ${index + 1}`}
+                                alt={tPost("step2.photoAlt", { n: index + 1 })}
                                 className="h-full w-full object-cover"
                               />
                               <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/15 via-transparent to-black/15" />
@@ -2177,14 +2142,14 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                               {isCover && (
                                 <span className="absolute left-2.5 top-2.5 flex items-center gap-1 rounded-full bg-[#FFD100] px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.12em] text-black shadow-[0_2px_8px_rgba(0,0,0,0.18)]">
                                   <Star size={10} strokeWidth={2.5} className="fill-black" aria-hidden />
-                                  Principală
+                                  {tPost("step2.coverBadge")}
                                 </span>
                               )}
 
                               <button
                                 type="button"
                                 onClick={() => removeImage(index)}
-                                aria-label={`Șterge fotografia ${index + 1}`}
+                                aria-label={tPost("step2.removePhoto", { n: index + 1 })}
                                 className="absolute right-2.5 top-2.5 flex h-8 w-8 items-center justify-center rounded-full border border-white/25 bg-black/50 text-white backdrop-blur-md transition hover:bg-red-600"
                               >
                                 <X size={14} strokeWidth={2.5} aria-hidden />
@@ -2194,11 +2159,11 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                                 <button
                                   type="button"
                                   onClick={() => setAsCover(index)}
-                                  aria-label={`Setează fotografia ${index + 1} ca imagine principală`}
+                                  aria-label={tPost("step2.setCover", { n: index + 1 })}
                                   className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-1.5 bg-black/55 py-2 text-[9px] font-semibold uppercase tracking-[0.12em] text-white backdrop-blur-md transition hover:bg-black/75"
                                 >
                                   <Star size={10} strokeWidth={2.5} aria-hidden />
-                                  Setează ca principală
+                                  {tPost("step2.setCoverShort")}
                                 </button>
                               )}
                             </div>
@@ -2233,7 +2198,7 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                   onClick={() => setStep(1)}
                   className="w-full rounded-2xl border-[3px] border-black bg-white py-4 text-xs font-black uppercase tracking-widest text-black shadow-[4px_4px_0_0_rgba(0,0,0,1)] transition hover:bg-neutral-50 sm:w-1/3"
                 >
-                  Înapoi
+                  {tPost("actions.back")}
                 </button>
                 <button
                   type="button"
@@ -2264,15 +2229,17 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                       aria-hidden
                     />
                     <h2 className="text-lg font-black uppercase tracking-wider text-white md:text-xl">
-                      Analizăm piața…
+                      {tPost("step3.analyzingTitle")}
                     </h2>
                     <p className="mt-3 text-sm font-medium text-neutral-300">
-                      Căutăm repere pentru: {adTitle || "anunțul tău"}
+                      {tPost("step3.analyzingFor", {
+                        title: adTitle || tPost("step3.analyzingFallbackTitle"),
+                      })}
                     </p>
                     <ul className="mx-auto mt-8 max-w-sm space-y-2 border-l-4 border-[#FFD100] pl-4 text-left text-xs font-semibold text-neutral-300">
-                      <li>Comparăm anunțuri similare</li>
-                      <li>Verificăm tendințe de preț</li>
-                      <li>Pregătim estimarea</li>
+                      <li>{tPost("step3.analyzingCompare")}</li>
+                      <li>{tPost("step3.analyzingTrends")}</li>
+                      <li>{tPost("step3.analyzingPrepare")}</li>
                     </ul>
                   </div>
                 </div>
@@ -2413,13 +2380,10 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                     /* Active premium/rare: ascundem estimarea automată și afișăm atenționarea. */
                     <div className="rounded-[2rem] border-[3px] border-amber-500 bg-amber-50 p-6 text-left shadow-[8px_8px_0_0_rgba(217,119,6,0.25)] md:p-8">
                       <p className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-700">
-                        Activ Premium sau Rar
+                        {tPost("step3.premiumOrRare")}
                       </p>
                       <p className="mt-3 text-sm font-semibold leading-relaxed text-amber-900">
-                        💡 Algoritmul nostru indică date insuficiente în piață pentru o
-                        estimare automată precisă a acestui bun. Te rugăm să introduci
-                        manual prețul de piață (sau de listă) pentru a calcula corect
-                        discountul.
+                        {tPost("step3.lowConfidenceBody")}
                       </p>
                     </div>
                   ) : (
@@ -2427,43 +2391,40 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                       <div
                         className={`absolute right-0 top-0 rounded-bl-xl px-4 py-2 text-[9px] font-black uppercase tracking-widest ${marketPrice > 0 ? "bg-black text-[#FFD100]" : "bg-amber-600 text-white"}`}
                       >
-                        {marketPrice > 0 ? "Estimare disponibilă" : "Puține repere în piață"}
+                        {marketPrice > 0 ? tPost("step3.estimateReady") : tPost("step3.estimateSparse")}
                       </div>
 
                       {marketPrice > 0 ? (
                         <>
                           <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-500">
-                            Preț estimat de piață
+                            {tPost("step3.estimatedMarketPrice")}
                           </p>
                           <p className="mt-2 font-black italic tracking-tighter text-black text-4xl md:text-5xl">
-                            €{marketPrice.toLocaleString("ro-RO")}
+                            €{marketPrice.toLocaleString(locale === "en" ? "en-US" : "ro-RO")}
                           </p>
                           <div className="mt-4 flex flex-col gap-2 border-t border-neutral-200 pt-4">
                             <p className="text-sm font-medium text-neutral-600">
-                              Comparație cu{" "}
-                              <span className="font-black text-black">{analyzedItems}</span>{" "}
-                              anunțuri similare.
+                              {tPost("step3.comparedWith", { count: analyzedItems })}
                             </p>
                             <p className="text-[10px] font-semibold uppercase tracking-wider text-neutral-400">
-                              Încredere estimare:{" "}
-                              {Number.isFinite(confidencePercent)
-                                ? Math.round(confidencePercent)
-                                : 0}
-                              %
+                              {tPost("step3.confidence", {
+                                percent: Number.isFinite(confidencePercent)
+                                  ? Math.round(confidencePercent)
+                                  : 0,
+                              })}
                             </p>
                           </div>
                         </>
                       ) : (
                         <>
                           <p className="text-[10px] font-bold uppercase tracking-wider text-amber-700">
-                            Repere limitate
+                            {tPost("step3.limitedRefs")}
                           </p>
                           <p className="mt-2 text-2xl font-black italic tracking-tighter text-black md:text-3xl">
-                            Activ mai rar pe piață
+                            {tPost("step3.rarerAsset")}
                           </p>
                           <p className="mt-4 text-sm font-medium text-neutral-600">
-                            Nu avem suficiente anunțuri identice pentru o medie clară.
-                            Stabilește mai jos prețul la care ești dispus să vinzi.
+                            {tPost("step3.notEnoughComps")}
                           </p>
                         </>
                       )}
@@ -2475,7 +2436,7 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                       {isLowConfidence && (
                         <div className="flex-1 rounded-2xl border-[3px] border-black bg-[#F7F4EC]/80 p-6">
                           <label className="text-[10px] font-bold uppercase tracking-widest text-neutral-500">
-                            Preț estimat de piață / Preț de listă (EUR)
+                            {tPost("step3.manualMarketLabel")}
                           </label>
                           <div className="relative mt-2">
                             <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl font-black text-neutral-900">
@@ -2490,15 +2451,14 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                             />
                           </div>
                           <p className="mt-3 text-xs font-medium text-neutral-500">
-                            Prețul de referință (listă dealer / piață) pentru a calcula
-                            discountul.
+                            {tPost("step3.manualMarketHint")}
                           </p>
                         </div>
                       )}
 
                       <div className="flex-1 rounded-2xl border-[3px] border-black bg-[#F7F4EC]/80 p-6">
                         <label className="text-[10px] font-bold uppercase tracking-widest text-neutral-500">
-                          Preț de vânzare rapidă (EUR)
+                          {tPost("step3.exitPriceLabel")}
                         </label>
                         <div className="relative mt-2">
                           <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl font-black text-neutral-900">
@@ -2518,10 +2478,10 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                         </div>
                         <p className="mt-3 text-xs font-medium text-neutral-500">
                           {isLowConfidence
-                            ? "Prețul la care vrei să vinzi rapid acest activ."
+                            ? tPost("step3.exitHintLowConfidence")
                             : marketPrice > 0
-                              ? "Poți sub prețul pieței pentru lichiditate mai rapidă."
-                              : "Introdu prețul la care vrei să încasezi."}
+                              ? tPost("step3.exitHintWithMarket")
+                              : tPost("step3.exitHintManual")}
                         </p>
                       </div>
 
@@ -2538,7 +2498,7 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                           }`}
                         >
                           <span className="text-[10px] font-black uppercase tracking-widest">
-                            Discount aplicat
+                            {tPost("step3.discountApplied")}
                           </span>
                           <span className="mt-1 text-3xl font-black italic tabular-nums leading-none">
                             -{currentDiscountPercent}%
@@ -2548,8 +2508,7 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                     </div>
 
                     <p className="border-t border-neutral-200 pt-6 text-sm font-medium text-neutral-600">
-                      La pasul următor alegi cât timp rămâne promovat anunțul și cât de
-                      urgent vrei oferte.
+                      {tPost("step3.nextStepHint")}
                     </p>
                   </div>
                   </>
@@ -2564,7 +2523,7 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                       }}
                       className="w-full rounded-2xl border-[3px] border-black bg-white py-4 text-xs font-black uppercase tracking-widest text-black shadow-[4px_4px_0_0_rgba(0,0,0,1)] transition hover:bg-neutral-50 sm:w-1/3"
                     >
-                      Înapoi
+                      {tPost("actions.back")}
                     </button>
                     <button
                       type="button"
@@ -2580,7 +2539,7 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                       disabled={!canProceedFromPrice}
                       className="w-full flex-1 rounded-2xl border-[3px] border-black bg-black py-4 text-xs font-black uppercase tracking-widest text-[#FFD100] shadow-[6px_6px_0_0_#000] transition hover:bg-neutral-900 disabled:cursor-not-allowed disabled:opacity-40"
                     >
-                      Alege viteza de vânzare →
+                      {tPost("step3.continueToPackages")}
                     </button>
                   </div>
                 </div>
@@ -2633,37 +2592,37 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                           : "border-neutral-200 bg-white hover:border-black hover:shadow-[4px_4px_0_0_rgba(0,0,0,0.12)]"
                       }`}
                     >
-                      {pkg.badge && (
+                      {pkg.badgeKey && (
                         <span className="absolute -right-2 -top-2 rounded-full border-2 border-black bg-black px-3 py-1 text-[9px] font-black uppercase tracking-wider text-[#FFD100]">
-                          {pkg.badge}
+                          {tPost(`packages.${pkg.badgeKey}`)}
                         </span>
                       )}
                       <div className="flex flex-wrap items-baseline justify-between gap-2">
                         <p className="text-lg font-black uppercase italic text-black">
-                          {pkg.title}
+                          {tPost(`packages.${pkg.id}.title`)}
                         </p>
                         <span className="rounded-md border-2 border-black bg-white px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-black">
-                          {pkg.durationLabel}
+                          {tPost(`packages.${pkg.id}.duration`)}
                         </span>
                       </div>
                       <p className="mt-3 text-[11px] font-semibold leading-snug text-neutral-700">
-                        {pkg.description}
+                        {tPost(`packages.${pkg.id}.description`)}
                       </p>
-                      {pkg.benefits && pkg.benefits.length > 0 && (
+                      {pkg.benefitKeys && pkg.benefitKeys.length > 0 && (
                         <ul className="mt-3 space-y-1.5 border-l-2 border-[#FFD100] pl-3">
-                          {pkg.benefits.map((benefit) => (
+                          {pkg.benefitKeys.map((benefitKey) => (
                             <li
-                              key={benefit}
+                              key={benefitKey}
                               className="text-[10px] font-semibold leading-snug text-neutral-700"
                             >
-                              {benefit}
+                              {tPost(`packages.${benefitKey}`)}
                             </li>
                           ))}
                         </ul>
                       )}
                       {pkg.id === "auction" && (
                         <p className="mt-2 text-[10px] font-bold uppercase tracking-wide text-neutral-600">
-                          Nu există câștigător automat. Plata și predarea se stabilesc direct între părți.
+                          {tPost("packages.auction.noAutoWinner")}
                         </p>
                       )}
                       <p className="mt-5 font-black tabular-nums text-2xl text-black">
@@ -2681,7 +2640,9 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                 <dl className="mt-3 space-y-2 text-sm font-semibold text-neutral-800">
                   <div className="flex justify-between gap-4">
                     <dt className="text-neutral-500">{tPost("review.category")}</dt>
-                    <dd className="text-right font-black uppercase tracking-wide">{category}</dd>
+                    <dd className="text-right font-black uppercase tracking-wide">
+                      {tPost(`categories.${CATEGORY_I18N_KEYS[category as keyof typeof CATEGORY_I18N_KEYS]}`)}
+                    </dd>
                   </div>
                   <div className="flex justify-between gap-4">
                     <dt className="text-neutral-500">{tPost("review.saleMethod")}</dt>
@@ -2702,13 +2663,13 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                   <div className="flex justify-between gap-4">
                     <dt className="text-neutral-500">{tPost("review.package")}</dt>
                     <dd className="text-right font-black uppercase tracking-wide">
-                      {selectedPackageMeta.title}
+                      {tPost(`packages.${selectedPackageMeta.id}.title`)}
                     </dd>
                   </div>
                   <div className="flex justify-between gap-4">
                     <dt className="text-neutral-500">{tPost("review.duration")}</dt>
                     <dd className="text-right font-black uppercase tracking-wide">
-                      {selectedPackageMeta.durationLabel}
+                      {tPost(`packages.${selectedPackageMeta.id}.duration`)}
                     </dd>
                   </div>
                   <div className="flex justify-between gap-4">
@@ -2731,7 +2692,7 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                 disabled={isSaving}
                 className="w-full bg-black py-5 text-[#FFD100] border-[3px] border-black rounded-2xl font-black uppercase tracking-widest text-sm italic transition-transform hover:scale-[1.01] shadow-[8px_8px_0_0_rgba(0,0,0,1)] active:translate-y-0.5 active:shadow-none disabled:opacity-50"
               >
-                {isSaving ? "Se pregătește plata..." : "Plătește și publică anunțul"}
+                {isSaving ? tPost("actions.preparingPayment") : tPost("actions.payAndPublish")}
               </button>
 
               <button
@@ -2742,7 +2703,7 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                 }}
                 className="mx-auto block w-fit border-b-2 border-transparent pb-1 text-center text-[10px] font-black uppercase italic text-neutral-500 transition-colors hover:border-black hover:text-black"
               >
-                ← Înapoi la preț
+                {tPost("actions.backToPrice")}
               </button>
             </div>
           )}
