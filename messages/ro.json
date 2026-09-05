@@ -689,13 +689,14 @@
       "comingSoon": "În curând: poți salva criterii și primi notificări pentru anunțuri noi."
     },
     "seller": {
-      "title": "Vânzător",
+      "title": "Despre vânzător",
       "displayName": "Nume pe platformă",
       "status": "Status",
       "memberSince": "Membru din",
-      "activeListings": "Anunțuri active listate",
-      "role": "Rol",
-      "contactHint": "Datele de contact se transmit doar prin ofertă, pentru protecția ambelor părți.",
+      "activeListings": "Anunțuri active",
+      "activeCount": "{count, plural, =1 {1 anunț activ} other {# anunțuri active}}",
+      "verifiedBadge": "Identitate verificată",
+      "contactHint": "Datele de contact nu sunt afișate public. Trimite o ofertă pentru a iniția contactul.",
       "transactionHistory": "Istoricul de tranzacții va fi disponibil după primele vânzări confirmate pe platformă."
     },
     "premiumSeller": {

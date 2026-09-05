@@ -689,13 +689,14 @@
       "comingSoon": "Coming soon: save criteria and get alerts for new listings."
     },
     "seller": {
-      "title": "Seller",
+      "title": "About the seller",
       "displayName": "Platform name",
       "status": "Status",
       "memberSince": "Member since",
       "activeListings": "Active listings",
-      "role": "Role",
-      "contactHint": "Contact details are shared only through an offer, to protect both parties.",
+      "activeCount": "{count, plural, =1 {1 active listing} other {# active listings}}",
+      "verifiedBadge": "Verified identity",
+      "contactHint": "Contact details are not displayed publicly. Submit an offer to start the conversation.",
       "transactionHistory": "Transaction history will be available after the first confirmed sales on the platform."
     },
     "premiumSeller": {

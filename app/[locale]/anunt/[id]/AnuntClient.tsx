@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import { useTranslations, useLocale } from "next-intl";
@@ -35,7 +35,7 @@ import type {
   ListingSellerContext,
   PublicListingRow,
 } from "@/lib/listingSeo";
-import { labelBase, type ListingModalId } from "./listingModalShared";
+import { type ListingModalId } from "./listingModalShared";
 import {
   getFutureMobilityDetails,
   isFutureMobilityOrderLike,
@@ -50,6 +50,11 @@ import FutureMobilitySections, {
 import ListingKeyFactsStrip from "./ListingKeyFactsStrip";
 import ListingPriceAdvantage from "./ListingPriceAdvantage";
 import ListingTrustSnapshot from "./ListingTrustSnapshot";
+import SellerAboutCard from "./SellerAboutCard";
+import {
+  resolvePublicSellerDisplayName,
+  resolveSellerActiveListingCount,
+} from "@/lib/sellerPublicProfile";
 import { isPremiumSellerListing } from "@/lib/listingPremium";
 import {
   getFinancingVehiclePrice,
@@ -243,23 +248,6 @@ export default function AnuntClient({
     kmUnit: t("details.kmUnit"),
     yesLabel: t("details.yes"),
     noLabel: t("details.no"),
-  };
-
-  const kycStatusLabel = useCallback(
-    (status: string | null | undefined): string => {
-      if (status === "verified") return t("kyc.verified");
-      if (status === "processing") return t("kyc.processing");
-      if (status === "requires_input") return t("kyc.requiresInput");
-      return t("kyc.pending");
-    },
-    [t],
-  );
-
-  const userTypeLabel = (userType: string | null | undefined): string => {
-    if (userType === "buyer") return t("userType.buyer");
-    if (userType === "seller") return t("userType.seller");
-    if (userType === "guest") return t("userType.guest");
-    return t("userType.default");
   };
 
   const listingTitle = resolveListingField(
@@ -628,10 +616,14 @@ export default function AnuntClient({
           "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1200&q=80",
         ];
 
-  const sellerDisplayName =
-    sellerProfile?.full_name?.trim() || t("defaults.sellerName");
-  const displayedActiveListingCount =
-    sellerActiveCount !== null ? sellerActiveCount : sellerOtherListings.length + 1;
+  const sellerDisplayName = resolvePublicSellerDisplayName(
+    sellerProfile,
+    t("defaults.sellerName"),
+  );
+  const displayedActiveListingCount = resolveSellerActiveListingCount({
+    counted: sellerActiveCount,
+    otherPublicCount: sellerOtherListings.length,
+  });
 
   const isAuctionDetail = normalizeSaleType(adData.sale_strategy) === "auction";
   const auctionOfferTotalForUi = isAuctionDetail ? parseListingOfferCount(adData.offer_count) : 0;
@@ -1214,48 +1206,12 @@ export default function AnuntClient({
                     details={adData.details}
                   />
                 ) : (
-                  <div className="rounded-[2rem] border-[3px] border-black bg-white p-6 shadow-[8px_8px_0_0_rgba(0,0,0,0.85)]">
-                    <h3 className="mb-4 text-sm font-black uppercase italic tracking-tight text-black">
-                      {t("seller.title")}
-                    </h3>
-                    <ul className="space-y-3 text-sm font-medium text-neutral-800">
-                      <li>
-                        <span className={labelBase}>{t("seller.displayName")}</span>
-                        <span className="mt-1 block font-bold text-black">{sellerDisplayName}</span>
-                      </li>
-                      {sellerProfile?.kyc_status === "verified" ? (
-                        <li>
-                          <span className={labelBase}>{t("seller.status")}</span>
-                          <span className="mt-1 block font-bold text-black">
-                            {kycStatusLabel(sellerProfile.kyc_status)}
-                          </span>
-                        </li>
-                      ) : null}
-                      {sellerMemberSince && (
-                        <li>
-                          <span className={labelBase}>{t("seller.memberSince")}</span>
-                          <span className="mt-1 block font-bold capitalize text-black">
-                            {sellerMemberSince}
-                          </span>
-                        </li>
-                      )}
-                      <li>
-                        <span className={labelBase}>{t("seller.activeListings")}</span>
-                        <span className="mt-1 block font-bold text-black">
-                          {displayedActiveListingCount}
-                        </span>
-                      </li>
-                      <li>
-                        <span className={labelBase}>{t("seller.role")}</span>
-                        <span className="mt-1 block font-bold text-black">
-                          {userTypeLabel(sellerProfile?.user_type ?? null)}
-                        </span>
-                      </li>
-                    </ul>
-                    <p className="mt-5 border-t border-neutral-200 pt-4 text-xs font-medium leading-relaxed text-neutral-600">
-                      {t("seller.contactHint")}
-                    </p>
-                  </div>
+                  <SellerAboutCard
+                    sellerProfile={sellerProfile}
+                    displayNameFallback={t("defaults.sellerName")}
+                    activeListingCount={displayedActiveListingCount}
+                    memberSince={sellerMemberSince}
+                  />
                 ))}
 
               {fm ? <FutureMobilityDealerCard fm={fm} /> : null}

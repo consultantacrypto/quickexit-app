@@ -39,6 +39,9 @@ export type ListingSellerContext = {
   activeCount: number | null;
 };
 
+export const SELLER_PUBLIC_LISTING_STATUS = "active";
+export const SELLER_PUBLIC_LISTING_IS_SEED = false;
+
 const LISTING_CARD_FIELDS =
   "id,title,images,market_price,exit_price,discount,deal_score,sale_strategy,offer_count,highest_offer,expires_at,status,is_seed,category,user_id,description,created_at,details";
 
@@ -145,8 +148,8 @@ export async function fetchListingSellerContext(
       .from("listings")
       .select(LISTING_CARD_FIELDS)
       .eq("user_id", userId)
-      .eq("status", "active")
-      .eq("is_seed", false)
+      .eq("status", SELLER_PUBLIC_LISTING_STATUS)
+      .eq("is_seed", SELLER_PUBLIC_LISTING_IS_SEED)
       .neq("id", listingId)
       .order("created_at", { ascending: false })
       .limit(3),
@@ -154,8 +157,8 @@ export async function fetchListingSellerContext(
       .from("listings")
       .select("id", { count: "exact", head: true })
       .eq("user_id", userId)
-      .eq("status", "active")
-      .eq("is_seed", false),
+      .eq("status", SELLER_PUBLIC_LISTING_STATUS)
+      .eq("is_seed", SELLER_PUBLIC_LISTING_IS_SEED),
   ]);
 
   return {
