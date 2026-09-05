@@ -379,6 +379,7 @@ export default function AnuntClient({
       return;
     }
 
+    // user_id is required here: negotiation_rooms.seller_id and the own-listing guard.
     const sellerId =
       typeof adData.user_id === "string" && adData.user_id.trim()
         ? adData.user_id.trim()

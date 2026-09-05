@@ -99,5 +99,8 @@ assert(en.includes("Managed by Quick Exit"), "EN managed-listing title");
 assert(premiumCard.includes('t("managedTitle")'), "premium card uses managed-listing title");
 assert(premiumCard.includes("phoneHref"), "managed card keeps intentional operator phone");
 assert(listingPremium.includes("premium_seller_enabled"), "premium path requires listing opt-in, not founder-only");
+assert(!listingSeo.includes('.select("*")'), "public listing detail no longer uses select *");
+assert(listingSeo.includes("LISTING_DETAIL_FIELDS"), "public listing detail uses explicit projection");
+assert(listingSeo.includes("negotiation_rooms"), "user_id retention is documented");
 
 console.log("OK seller-profile");

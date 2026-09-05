@@ -13,6 +13,11 @@ export type ListingSeoRow = {
 };
 
 export type PublicListingRow = ListingSeoRow & {
+  /**
+   * Owner id stays on the public detail payload because AnuntClient opens
+   * negotiation_rooms with seller_id and blocks own-listing offers.
+   * Card/similar queries omit this field.
+   */
   user_id?: string | null;
   market_price?: number | null;
   discount?: number | null;
@@ -42,8 +47,28 @@ export type ListingSellerContext = {
 export const SELLER_PUBLIC_LISTING_STATUS = "active";
 export const SELLER_PUBLIC_LISTING_IS_SEED = false;
 
-const LISTING_CARD_FIELDS =
-  "id,title,images,market_price,exit_price,discount,deal_score,sale_strategy,offer_count,highest_offer,expires_at,status,is_seed,category,user_id,description,created_at,details";
+const LISTING_CARD_FIELDS = [
+  "id",
+  "title",
+  "images",
+  "market_price",
+  "exit_price",
+  "discount",
+  "deal_score",
+  "sale_strategy",
+  "offer_count",
+  "highest_offer",
+  "expires_at",
+  "status",
+  "is_seed",
+  "category",
+  "description",
+  "created_at",
+  "details",
+].join(",");
+
+/** Same public listing columns plus owner id. See PublicListingRow.user_id. */
+const LISTING_DETAIL_FIELDS = `${LISTING_CARD_FIELDS},user_id`;
 
 function getEnv(name: string): string | null {
   const v = process.env[name];
@@ -119,14 +144,14 @@ export async function fetchPublicListingDetail(id: string): Promise<PublicListin
 
   const { data, error } = await supabase
     .from("listings")
-    .select("*")
+    .select(LISTING_DETAIL_FIELDS)
     .eq("id", listingId)
     .eq("status", "active")
     .eq("is_seed", false)
     .maybeSingle();
 
   if (error || !data) return null;
-  return data as PublicListingRow;
+  return data as unknown as PublicListingRow;
 }
 
 export async function fetchListingSellerContext(
@@ -163,7 +188,7 @@ export async function fetchListingSellerContext(
 
   return {
     profile: (profileRes.data as SellerProfileRow | null) ?? null,
-    otherListings: (othersRes.data ?? []) as PublicListingRow[],
+    otherListings: (othersRes.data ?? []) as unknown as PublicListingRow[],
     activeCount: countRes.count ?? null,
   };
 }
@@ -184,7 +209,7 @@ export async function fetchSimilarListings(
     .neq("id", listingId)
     .limit(3);
 
-  return (data ?? []) as PublicListingRow[];
+  return (data ?? []) as unknown as PublicListingRow[];
 }
 
 export async function fetchFutureMobilityListings(): Promise<PublicListingRow[]> {
@@ -207,5 +232,5 @@ export async function fetchFutureMobilityListings(): Promise<PublicListingRow[]>
     return [];
   }
 
-  return (data ?? []) as PublicListingRow[];
+  return (data ?? []) as unknown as PublicListingRow[];
 }
