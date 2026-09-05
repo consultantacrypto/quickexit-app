@@ -25,7 +25,9 @@ function assert(condition: unknown, message: string) {
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const listingSeo = readFileSync(join(root, "lib/listingSeo.ts"), "utf8");
 const sellerCard = readFileSync(join(root, "app/[locale]/anunt/[id]/SellerAboutCard.tsx"), "utf8");
+const premiumCard = readFileSync(join(root, "app/[locale]/anunt/[id]/PremiumSellerCard.tsx"), "utf8");
 const anuntClient = readFileSync(join(root, "app/[locale]/anunt/[id]/AnuntClient.tsx"), "utf8");
+const listingPremium = readFileSync(join(root, "lib/listingPremium.ts"), "utf8");
 const ro = readFileSync(join(root, "messages/ro.json"), "utf8");
 const en = readFileSync(join(root, "messages/en.json"), "utf8");
 
@@ -92,5 +94,10 @@ assert(
   en.includes("Contact details are not displayed publicly. Submit an offer to start the conversation."),
   "EN protected-contact copy",
 );
+assert(ro.includes("Listare administrată de Quick Exit"), "RO managed-listing title");
+assert(en.includes("Managed by Quick Exit"), "EN managed-listing title");
+assert(premiumCard.includes('t("managedTitle")'), "premium card uses managed-listing title");
+assert(premiumCard.includes("phoneHref"), "managed card keeps intentional operator phone");
+assert(listingPremium.includes("premium_seller_enabled"), "premium path requires listing opt-in, not founder-only");
 
 console.log("OK seller-profile");

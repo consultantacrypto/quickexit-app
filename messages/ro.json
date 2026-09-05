@@ -701,6 +701,7 @@
     },
     "premiumSeller": {
       "title": "Profil profesional QuickExit",
+      "managedTitle": "Listare administrată de Quick Exit",
       "enableProfile": "Activează profilul meu profesional pe acest anunț",
       "vehicleReviewed": "Am filmat și testat personal acest vehicul",
       "verifiedProfile": "Profil verificat",
@@ -709,7 +710,8 @@
       "whatsapp": "WhatsApp",
       "followTikTok": "Urmărește pe TikTok",
       "memberSince": "Membru din",
-      "activeListings": "Anunțuri active listate"
+      "activeListings": "Anunțuri active listate",
+      "managedContactHint": "Contactul direct este al operatorului Quick Exit pentru această listare administrată."
     },
     "financing": {
       "calculateCta": "Calculează rata",

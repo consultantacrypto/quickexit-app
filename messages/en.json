@@ -701,6 +701,7 @@
     },
     "premiumSeller": {
       "title": "QuickExit professional profile",
+      "managedTitle": "Managed by Quick Exit",
       "enableProfile": "Enable my professional profile on this listing",
       "vehicleReviewed": "I personally filmed and tested this vehicle",
       "verifiedProfile": "Verified profile",
@@ -709,7 +710,8 @@
       "whatsapp": "WhatsApp",
       "followTikTok": "Follow on TikTok",
       "memberSince": "Member since",
-      "activeListings": "Active listings"
+      "activeListings": "Active listings",
+      "managedContactHint": "Direct contact is the Quick Exit operator for this managed listing."
     },
     "financing": {
       "calculateCta": "Calculate monthly payment",
