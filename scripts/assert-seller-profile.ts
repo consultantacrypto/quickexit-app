@@ -28,6 +28,7 @@ const sellerCard = readFileSync(join(root, "app/[locale]/anunt/[id]/SellerAboutC
 const premiumCard = readFileSync(join(root, "app/[locale]/anunt/[id]/PremiumSellerCard.tsx"), "utf8");
 const anuntClient = readFileSync(join(root, "app/[locale]/anunt/[id]/AnuntClient.tsx"), "utf8");
 const listingPremium = readFileSync(join(root, "lib/listingPremium.ts"), "utf8");
+const qaLocal = readFileSync(join(root, "scripts/qa-seller-profile-local.mjs"), "utf8");
 const ro = readFileSync(join(root, "messages/ro.json"), "utf8");
 const en = readFileSync(join(root, "messages/en.json"), "utf8");
 
@@ -102,5 +103,8 @@ assert(listingPremium.includes("premium_seller_enabled"), "premium path requires
 assert(!listingSeo.includes('.select("*")'), "public listing detail no longer uses select *");
 assert(listingSeo.includes("LISTING_DETAIL_FIELDS"), "public listing detail uses explicit projection");
 assert(listingSeo.includes("negotiation_rooms"), "user_id retention is documented");
+assert(!qaLocal.includes("D:/"), "local QA script has no D:/ absolute paths");
+assert(!qaLocal.includes("D:\\\\"), "local QA script has no escaped D: paths");
+assert(qaLocal.includes('require("playwright")'), "local QA resolves playwright from the repository");
 
 console.log("OK seller-profile");
