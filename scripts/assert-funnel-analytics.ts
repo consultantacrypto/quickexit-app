@@ -347,6 +347,9 @@ captureAttribution();
 assert(localStorage.getItem(ATTRIBUTION_STORAGE_KEY) === null, "malformed UTM is not stored");
 
 const publish = readFileSync("app/[locale]/pune-anunt/PuneAnuntClient.tsx", "utf8");
+const ro = JSON.parse(readFileSync("messages/ro.json", "utf8")) as {
+  PostListing: { step2: { intro: string } };
+};
 assert(publish.includes('trackFunnelEvent("publish_page_view"'), "publish_page_view instrumented");
 assert(publish.includes('trackFunnelEvent("listing_started"'), "listing_started instrumented");
 assert(publish.includes('trackFunnelEvent("listing_step_1_complete"'), "step 1 complete instrumented");
@@ -360,7 +363,11 @@ assert(
 );
 assert(publish.includes("skipOnce: true"), "failed checkout retry uses skipOnce");
 assert(publish.includes("trackListingStepCompleted(2)"), "step 2 complete uses existing leave-step-2 path");
-assert(publish.includes("Pozele reale și descrierea sinceră"), "step 2 copy treats photos/description as optional encouragement");
+assert(publish.includes('tPost("step2.intro")'), "step 2 copy uses i18n encouragement key");
+assert(
+  ro.PostListing.step2.intro.includes("Pozele reale și descrierea sinceră"),
+  "RO step 2 copy still treats photos/description as optional encouragement",
+);
 
 const listing = readFileSync("app/[locale]/anunt/[id]/AnuntClient.tsx", "utf8");
 assert(listing.includes('trackFunnelEvent("listing_view"'), "listing_view instrumented");

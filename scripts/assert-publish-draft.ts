@@ -390,10 +390,10 @@ assert(!existsSync(resolve("app/api/hq/inquiries")), "Phase 2B hq inquiries API 
 assert(!publish.includes("listingInquiry"), "publish client has no Phase 2B inquiry");
 
 const messagesRo = JSON.parse(readFileSync("messages/ro.json", "utf8")) as {
-  PostListing: { draft: Record<string, string> };
+  PostListing: { draft: Record<string, string>; step1: { continue: string } };
 };
 const messagesEn = JSON.parse(readFileSync("messages/en.json", "utf8")) as {
-  PostListing: { draft: Record<string, string> };
+  PostListing: { draft: Record<string, string>; step1: { continue: string } };
 };
 assert(messagesRo.PostListing.draft.continue === "Continuă ciorna", "RO continue label");
 assert(
@@ -404,6 +404,16 @@ assert(
   messagesRo.PostListing.draft.recoveryConsequence.includes("Contul tău rămâne neschimbat"),
   "RO copy explains account is unaffected",
 );
+assert(
+  messagesRo.PostListing.step1.continue === "Continuă la poze și descriere →",
+  "RO first-step CTA preserved",
+);
+assert(
+  messagesEn.PostListing.step1.continue === "Continue to photos and description →",
+  "EN first-step CTA is English",
+);
+assert(publish.includes("step1.continue"), "publish uses first-step CTA key");
+assert(!publish.includes("Continuă la poze și descriere"), "publish has no hardcoded first-step RO CTA");
 assert(messagesEn.PostListing.draft.continue === "Continue draft", "EN continue label");
 assert(
   messagesEn.PostListing.draft.startNew === "Delete draft and start a new listing",
