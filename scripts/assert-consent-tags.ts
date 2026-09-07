@@ -27,9 +27,17 @@ import {
 import {
   buildTrackingCookieExpiryAssignments,
   isAnalyticsTrackingCookieName,
+  isForbiddenExpiryDomain,
   isGoogleAdsClickCookieName,
   trackingCookieExpiryDomains,
 } from "../lib/consentCookieCleanup";
+
+function cookieDomainAttributes(assignments: string[]): string[] {
+  return assignments.flatMap((row) => {
+    const match = /(?:^|;)\s*Domain=([^;]+)/i.exec(row);
+    return match ? [match[1].trim()] : [];
+  });
+}
 import { trackFunnelEvent, resetFunnelOnceGateForTests } from "../lib/funnelAnalytics";
 
 function fail(message: string): never {
@@ -390,15 +398,28 @@ assert(apexDomains.includes("www.quickexit.ro") && apexDomains.includes(".www.qu
 
 const previewHost = "quickexit-preview-daniel-mihais-projects-31598ec8.vercel.app";
 const previewDomains = trackingCookieExpiryDomains(previewHost);
-assert(previewDomains.length === 1 && previewDomains[0] === null, "Preview uses host-only expiry");
+assert(previewDomains.includes(null), "Preview includes host-only expiry");
+assert(previewDomains.includes(previewHost), "Preview includes exact-host Domain");
+assert(previewDomains.includes(`.${previewHost}`), "Preview includes dotted exact-host Domain");
+assert(!previewDomains.includes("vercel.app"), "Preview domains omit vercel.app");
+assert(!previewDomains.includes(".vercel.app"), "Preview domains omit .vercel.app");
+assert(!previewDomains.includes("com"), "Preview domains omit public suffix com");
+assert(!previewDomains.includes(".com"), "Preview domains omit public suffix .com");
 const previewAssignments = buildTrackingCookieExpiryAssignments("_ga", previewHost);
+const previewAttrs = cookieDomainAttributes(previewAssignments);
+assert(previewAttrs.includes(previewHost), "Preview assignments expire Domain=exact host");
+assert(previewAttrs.includes(`.${previewHost}`), "Preview assignments expire Domain=.exact host");
 assert(
-  previewAssignments.every((row) => !/Domain=/i.test(row)),
-  "Preview assignments have no Domain attribute",
+  previewAttrs.every((domain) => domain !== "vercel.app" && domain !== ".vercel.app"),
+  "Preview never targets vercel.app or .vercel.app",
 );
 assert(
-  previewAssignments.every((row) => !/\.vercel\.app/i.test(row)),
-  "Preview never targets .vercel.app",
+  previewAttrs.every((domain) => !isForbiddenExpiryDomain(domain)),
+  "Preview Domain attributes are not public suffixes",
+);
+assert(
+  previewAssignments.some((row) => !/Domain=/i.test(row)),
+  "Preview still emits host-only expiry",
 );
 
 const localhostDomains = trackingCookieExpiryDomains("localhost");
@@ -408,12 +429,25 @@ assert(
   localhostAssignments.every((row) => !/Domain=/i.test(row)),
   "localhost never targets a parent domain",
 );
+const ipv4Domains = trackingCookieExpiryDomains("127.0.0.1");
+assert(ipv4Domains.length === 1 && ipv4Domains[0] === null, "IPv4 uses host-only expiry");
+const ipv4Assignments = buildTrackingCookieExpiryAssignments("_ga", "127.0.0.1");
+assert(ipv4Assignments.every((row) => !/Domain=/i.test(row)), "IPv4 never targets a parent domain");
+const publicSuffixDomains = trackingCookieExpiryDomains("vercel.app");
+assert(publicSuffixDomains.length === 1 && publicSuffixDomains[0] === null, "public suffix vercel.app stays host-only");
 
 const wwwAssignments = buildTrackingCookieExpiryAssignments("_ga_TEST", "www.quickexit.ro");
+const wwwAttrs = cookieDomainAttributes(wwwAssignments);
+assert(wwwAttrs.includes("www.quickexit.ro"), "www expires exact-host Domain=www.quickexit.ro");
+assert(wwwAttrs.includes(".www.quickexit.ro"), "www expires dotted exact-host Domain=.www.quickexit.ro");
 assert(wwwAssignments.some((row) => /Domain=\.quickexit\.ro(?:;|$)/i.test(row)), "www expires .quickexit.ro");
 assert(wwwAssignments.some((row) => /Domain=quickexit\.ro(?:;|$)/i.test(row)), "www expires quickexit.ro");
 assert(wwwAssignments.every((row) => /Path=\//.test(row) && /Max-Age=0/.test(row) && /Expires=Thu, 01 Jan 1970/i.test(row)), "expiry uses Path=/ Max-Age=0 past Expires");
-assert(wwwAssignments.every((row) => !/\.vercel\.app/i.test(row)), "approved host assignments never mention vercel.app");
+assert(
+  wwwAttrs.every((domain) => domain !== "vercel.app" && domain !== ".vercel.app"),
+  "approved host assignments never target vercel.app",
+);
+assert(wwwAssignments.some((row) => !/Domain=/i.test(row)), "www still emits host-only expiry");
 
 cookieJar.clear();
 cookieAssignments.length = 0;

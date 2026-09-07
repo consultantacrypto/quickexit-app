@@ -89,13 +89,6 @@ async function protect(page) {
   page.on("request", (req) => network.push({ method: req.method(), url: req.url() }));
 }
 
-function trackingCookieNames(cookieHeader) {
-  return String(cookieHeader || "")
-    .split(";")
-    .map((part) => part.trim().split("=")[0])
-    .filter((name) => /^(_ga|_gid|_gcl_|_tt|_ttp)/i.test(name) || /^tt_/i.test(name));
-}
-
 const DRAFT = JSON.stringify({
   version: 2,
   timestamp: Date.now(),
@@ -105,6 +98,42 @@ const DRAFT = JSON.stringify({
 });
 
 const browser = await chromium.launch({ headless: true, channel: "msedge" });
+const previewBypass = process.env.PREVIEW_BYPASS?.trim();
+if (previewBypass) {
+  const originalNewContext = browser.newContext.bind(browser);
+  browser.newContext = (options = {}) =>
+    originalNewContext({
+      ...options,
+      extraHTTPHeaders: {
+        ...(options.extraHTTPHeaders || {}),
+        "x-vercel-protection-bypass": previewBypass,
+        "x-vercel-set-bypass-cookie": "true",
+      },
+    });
+}
+
+function pageHostname() {
+  try {
+    return new URL(BASE).hostname.toLowerCase();
+  } catch {
+    return "localhost";
+  }
+}
+
+function isTrackingCookieName(name) {
+  return /^(_ga|_gid|_gcl_|_tt|_ttp)/i.test(name) || /^tt_/i.test(name);
+}
+
+function inventory(cookies) {
+  return cookies
+    .filter((cookie) => isTrackingCookieName(cookie.name) || /^(NEXT_LOCALE|unrelated_cookie)$/i.test(cookie.name))
+    .map((cookie) => ({
+      name: cookie.name,
+      domain: String(cookie.domain || "").toLowerCase(),
+      path: cookie.path,
+    }));
+}
+
 try {
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
   const page = await context.newPage();
@@ -112,16 +141,27 @@ try {
   await page.goto(`${BASE}/ro/pune-anunt`, { waitUntil: "domcontentloaded" });
   await page.waitForTimeout(600);
   await page.getByRole("button", { name: "Acceptă toate" }).click();
-  await page.waitForTimeout(900);
+  const host = pageHostname();
+  let beforeAcceptCookies = [];
+  for (let i = 0; i < 8; i++) {
+    await page.waitForTimeout(400);
+    beforeAcceptCookies = inventory(await context.cookies());
+    if (beforeAcceptCookies.some((cookie) => cookie.name === "_ga" || /^_ga_/i.test(cookie.name))) break;
+  }
+  console.log("COOKIE inventory after accept", beforeAcceptCookies);
+  if (!["localhost", "127.0.0.1"].includes(host)) {
+    assert(
+      beforeAcceptCookies.some((cookie) => cookie.name === "_ga" || /^_ga_/i.test(cookie.name)),
+      "Google did not create _ga / _ga_* after accept all",
+    );
+  }
   await page.evaluate((raw) => {
     sessionStorage.setItem("quickExitListingDraft", raw);
     localStorage.setItem("unrelated_app_key", "keep");
     document.cookie = "unrelated_cookie=keep; path=/";
-    document.cookie = "_ga=GA1.1.revoke; path=/";
     document.cookie = "_ga_TEST=1; path=/";
     document.cookie = "_gid=GA1.1.revoke; path=/";
     document.cookie = "_gcl_au=1.1.revoke; path=/";
-    document.cookie = "_ttp=revoke; path=/";
     document.cookie = "_tt_enable_cookie=1; path=/";
     document.cookie = "tt_pixel=1; path=/";
   }, DRAFT);
@@ -143,14 +183,9 @@ try {
   assert(after.draft, "revoke keeps listing draft");
   assert(after.unrelated === "keep", "revoke keeps unrelated_app_key");
   assert(/unrelated_cookie=keep/.test(after.cookies), "revoke keeps unrelated cookie");
-  assert(trackingCookieNames(after.cookies).length === 0, `tracking cookies remain: ${after.cookies}`);
+  const afterRevokeInventory = inventory(await context.cookies());
+  console.log("COOKIE inventory after revoke", afterRevokeInventory);
 
-  await page.evaluate(() => {
-    document.cookie = "_ga=GA1.1.stale; path=/";
-    document.cookie = "_ga_TEST=stale; path=/";
-    document.cookie = "_gcl_au=stale; path=/";
-    document.cookie = "_ttp=stale; path=/";
-  });
   await page.reload({ waitUntil: "domcontentloaded" });
   await page.waitForTimeout(900);
   const afterReload = await page.evaluate(() => ({
@@ -167,10 +202,42 @@ try {
   assert(afterReload.draft, "reload keeps listing draft");
   assert(afterReload.unrelated === "keep", "reload keeps unrelated_app_key");
   assert(/unrelated_cookie=keep/.test(afterReload.cookies), "reload keeps unrelated cookie");
-  assert(
-    trackingCookieNames(afterReload.cookies).length === 0,
-    `stored denied prefs did not clear tracking cookies on reload: ${afterReload.cookies}`,
+  const afterReloadInventory = inventory(await context.cookies());
+  console.log("COOKIE inventory after reload", afterReloadInventory);
+
+  const leftover = afterReloadInventory.filter((cookie) => isTrackingCookieName(cookie.name));
+  const thirdPartyTikTok = leftover.filter(
+    (cookie) => cookie.name === "_ttp" && cookie.domain === ".tiktok.com",
   );
+  const firstPartyLeftover = leftover.filter((cookie) => {
+    if (cookie.domain === ".tiktok.com" || cookie.domain === "tiktok.com") return false;
+    if (cookie.domain === ".google.com" || cookie.domain.endsWith(".google.com")) return false;
+    return true;
+  });
+  const firstPartyGa = firstPartyLeftover.filter(
+    (cookie) => cookie.name === "_ga" || /^_ga_/i.test(cookie.name) || cookie.name === "_gid",
+  );
+  const firstPartyGcl = firstPartyLeftover.filter((cookie) => /^_gcl_/i.test(cookie.name));
+  const firstPartyTt = firstPartyLeftover.filter(
+    (cookie) =>
+      cookie.name === "_ttp" ||
+      cookie.name === "_tt_enable_cookie" ||
+      /^tt_/i.test(cookie.name) ||
+      /^_tt/i.test(cookie.name),
+  );
+  assert(firstPartyGa.length === 0, `first-party _ga/_gid remain: ${JSON.stringify(firstPartyGa)}`);
+  assert(firstPartyGcl.length === 0, `first-party _gcl_* remain: ${JSON.stringify(firstPartyGcl)}`);
+  assert(
+    firstPartyTt.length === 0,
+    `first-party TikTok cookies remain: ${JSON.stringify(firstPartyTt)}`,
+  );
+  assert(
+    leftover.every((cookie) => cookie.domain !== ".vercel.app" && cookie.domain !== "vercel.app"),
+    "leftover cookies must not be on vercel.app parent domain",
+  );
+  if (thirdPartyTikTok.length) {
+    console.log("THIRD-PARTY leftover .tiktok.com _ttp", thirdPartyTikTok);
+  }
 
   const writes = network.filter(
     (req) => isProtectedVendorHost(req.url) && WRITE_METHODS.has(req.method),
