@@ -46,7 +46,7 @@ Ciorna de publicare este doar în browser. Nu există draft în baza de date.
 
 Nu se persistă: File, imagini base64, blob/object URL, token Supabase, Stripe session/client secret. `pendingListingId` este UUID pentru resume checkout, nu este trimis în helper-ul de funnel.
 
-## Consent (Basic Consent Mode)
+## Consent (Advanced Consent Mode v2, fail-closed)
 
 Cheia: `quickexit_consent_preferences` (obiect versionat). Migrare din `quickexit_analytics_consent`:
 - `granted` → `analytics: true`, `marketing: false` (marketing nu se activează automat);
@@ -56,21 +56,21 @@ Cheia: `quickexit_consent_preferences` (obiect versionat). Migrare din `quickexi
 | Categorie | Ce include | Implicit |
 |---|---|---|
 | necessary | auth, limbă, ciorne, securitate, continuitate checkout, preferințe esențiale | mereu true |
-| analytics | GA4, funnel, UTM sanitizat | false până la acord |
-| marketing | TikTok Pixel. Nu există destinație Google Ads AW-; ad_storage rămâne denied fără marketing | false până la acord |
+| analytics | cookie-uri GA4, funnel complet, UTM sanitizat | false până la acord |
+| marketing | TikTok Pixel; `ad_storage` / `ad_user_data` granted pentru măsurarea conversiilor Google Ads **prin GA4** (fără tag AW-). `ad_personalization` rămâne denied | false până la acord |
 
-GA4 și TikTok **nu** sunt necesare. Nu există destinație Google Ads `AW-` instalată; conversiile Ads, dacă vor exista, ar veni doar din importuri viitoare GA4. Scripturile nu se injectează înainte de acordul potrivit. „Consent default denied” nu este folosit ca substitut pentru blocarea rețelei: `gtag.js` și TikTok nu se încarcă deloc fără grant.
+Ordine garantată: `gtag('consent', 'default', denied…)` înainte de orice `config` sau `event`. `gtag.js` se poate încărca **o singură dată** pentru ping-uri cookieless (modelare). Nu pretindem că Advanced Consent Mode transformă toate clickurile în sesiuni GA4. TikTok se încarcă **doar** după marketing granted. Nu există GTM, AW-*, enhanced conversions sau advanced matching.
 
-| Stare | gtag.js / GA4 | Funnel | UTM | TikTok |
-|---|---|---|---|---|
-| absent | 0 | 0 | 0 | 0 |
-| respinge opționale | 0 | 0 | 0 | 0 |
-| doar analiză | permis | permis | permis | 0 |
-| doar marketing | fără evenimente GA4 | 0 | 0 | permis după grant |
-| acceptă toate | permis | permis | permis | permis |
-| retrage tot + reload | 0 request-uri noi | 0 | șters | 0 |
+| Stare | gtag.js | Consent | Funnel | UTM persistat | TikTok | Cookie-uri Google/TikTok |
+|---|---|---|---|---|---|---|
+| absent | max 1 load | default denied | cookieless, fără PII | 0 | 0 | 0 |
+| respinge opționale | max 1 load | denied | cookieless | 0 | 0 | 0 |
+| doar analiză | 1 | analytics granted, ad_* denied | complet + UTM | da | 0 | doar analiză, după grant |
+| doar marketing | 1 | analytics denied; ad_storage/ad_user_data granted; ad_personalization denied | cookieless | 0 | da | fără analytics cookies |
+| acceptă toate | 1 | analytics + ad_storage/ad_user_data granted; ad_personalization denied | complet + UTM, fără dubluri | da | da | după grant |
+| retrage tot | rămâne încărcat | denied | doar cookieless | șters | 0 (reload dacă era încărcat) | first-party Google/TikTok șterse |
 
-Namespace UTM canonic în payload: `utm_source`, `utm_medium`, `utm_campaign`, `utm_content`, `utm_term` (fără `attribution_utm_*`).
+Namespace UTM canonic în payload: `utm_source`, `utm_medium`, `utm_campaign`, `utm_content`, `utm_term` (fără `attribution_utm_*`, fără `source`/`medium`/`campaign`/`campaign_id`/`term`/`content`/`gclid`/`dclid` custom). Parametrul de funnel este `funnel_source`. Evenimentele legacy și TrackedLink folosesc `interaction_source`. Protecția centrală din `lib/analyticsParams.ts` elimină cheile rezervate chiar dacă un call site le trimite accidental.
 
 Formularul de publicare rămâne funcțional fără consimțământ opțional. Revoke nu șterge ciorne, auth sau limbă.
 
@@ -111,16 +111,16 @@ Key events recomandate pentru funnel-ul inițial (document only): `listing_step_
 
 | event_name | boundary | params (enums only) |
 |---|---|---|
-| `publish_page_view` | mount `/pune-anunt` | `locale`, `source=publish_form` |
-| `listing_started` | first successful step 1, or continue draft | `locale`, `category`, `source`, `sale_strategy` |
-| `listing_step_1_complete` | after step 1 validation | `locale`, `category`, `step=1`, `source`, `sale_strategy` |
-| `listing_step_2_complete` | after leaving step 2 via existing validation path | `locale`, `category`, `step=2`, `source`, `sale_strategy` |
-| `listing_step_3_complete` | after step 3 pricing validation | `locale`, `category`, `step=3`, `source`, `sale_strategy` |
-| `begin_checkout` | immediately before existing `/api/stripe/checkout` request | `locale`, `category`, `source`, `sale_strategy` |
-| `listing_view` | active listing detail load | `locale`, `category`, `source=listing_detail`, `sale_strategy` |
-| `request_details_click` | primary listing CTA | `locale`, `category`, `source`, `sale_strategy` |
-| `offer_started` | offer modal opens | `locale`, `category`, `source`, `sale_strategy` |
-| `offer_submitted` | successful listing offer insert | `locale`, `category`, `source`, `sale_strategy` |
+| `publish_page_view` | mount `/pune-anunt` | `locale`, `funnel_source=publish_form` |
+| `listing_started` | first successful step 1, or continue draft | `locale`, `category`, `funnel_source`, `sale_strategy` |
+| `listing_step_1_complete` | after step 1 validation | `locale`, `category`, `step=1`, `funnel_source`, `sale_strategy` |
+| `listing_step_2_complete` | after leaving step 2 via existing validation path | `locale`, `category`, `step=2`, `funnel_source`, `sale_strategy` |
+| `listing_step_3_complete` | after step 3 pricing validation | `locale`, `category`, `step=3`, `funnel_source`, `sale_strategy` |
+| `begin_checkout` | immediately before existing `/api/stripe/checkout` request | `locale`, `category`, `funnel_source`, `sale_strategy` |
+| `listing_view` | active listing detail load | `locale`, `category`, `funnel_source=listing_detail`, `sale_strategy` |
+| `request_details_click` | primary listing CTA | `locale`, `category`, `funnel_source`, `sale_strategy` |
+| `offer_started` | offer modal opens | `locale`, `category`, `funnel_source`, `sale_strategy` |
+| `offer_submitted` | successful listing offer insert | `locale`, `category`, `funnel_source`, `sale_strategy` |
 
 Helper-ul `lib/funnelAnalytics.ts` **nu** trimite email, telefon, titlu, descriere, user id, listing id, image URL, click IDs, texte libere, `purchase` sau valoare/monedă neverificată.
 
@@ -130,28 +130,28 @@ Evenimentele legacy rămân pentru HQ Copilot. Nu au fost șterse.
 
 | event_name | pagină | moment declanșare | parametri | scop business |
 |---|---|---|---|---|
-| `click_evaluate` | `app/page.tsx` | click CTA către `/evaluare` | `source` | măsoară intrarea în funnel-ul de evaluare |
-| `click_post_listing` | `app/page.tsx` | click CTA către `/pune-anunt` | `source` | măsoară intenția directă de publicare anunț |
-| `click_capital_available` | `app/page.tsx` | click CTA către `/capital-disponibil` | `source` | măsoară interesul pentru cereri active |
+| `click_evaluate` | `app/page.tsx` | click CTA către `/evaluare` | `interaction_source` | măsoară intrarea în funnel-ul de evaluare |
+| `click_post_listing` | `app/page.tsx` | click CTA către `/pune-anunt` | `interaction_source` | măsoară intenția directă de publicare anunț |
+| `click_capital_available` | `app/page.tsx` | click CTA către `/capital-disponibil` | `interaction_source` | măsoară interesul pentru cereri active |
 | `start_evaluation` | `app/[locale]/evaluare/EvaluareClient.tsx` | la pornirea evaluării | `category` | măsoară începutul evaluării pe categorii |
 | `evaluation_success` | `app/[locale]/evaluare/EvaluareClient.tsx` | la evaluare reușită | `category`, `data_quality_label`, `confidence_score` | măsoară calitatea și finalizarea evaluării |
 | `evaluation_failed` | `app/[locale]/evaluare/EvaluareClient.tsx` | API error / timeout / 429 / 400 | `category`, `status_code`, `reason` | măsoară eșecul evaluării |
 | `selected_price_strategy` | `app/[locale]/evaluare/EvaluareClient.tsx` | la alegerea uneia dintre cele 4 strategii | `category`, `selected_price_type`, `data_quality_label`, `confidence_score` | distribuție strategii preț |
-| `click_evaluation_to_listing` | `app/[locale]/evaluare/EvaluareClient.tsx` | CTA listare după evaluare | `category`, `selected_price_type`, `data_quality_label`, `confidence_score`, `source` | conversie evaluare → listare |
+| `click_evaluation_to_listing` | `app/[locale]/evaluare/EvaluareClient.tsx` | CTA listare după evaluare | `category`, `selected_price_type`, `data_quality_label`, `confidence_score`, `interaction_source` | conversie evaluare → listare |
 | `listing_prefilled_from_evaluation` | `app/[locale]/pune-anunt/PuneAnuntClient.tsx` | la prefill din draft/query | `category`, `has_exit_price`, `selected_price_type`, `prefill_level` | handoff reușit evaluator → formular |
-| `listing_step_completed` | `app/[locale]/pune-anunt/PuneAnuntClient.tsx` | la finalizarea pașilor 1–4 | `step`, `category`, `source`, `selected_price_type`, `prefill_level` | abandon pe pași formular |
-| `listing_submit_attempt` | `app/[locale]/pune-anunt/PuneAnuntClient.tsx` | înainte/după submit listing | `category`, `package_id`, `status`, `reason`, `source`, `selected_price_type` | fricțiune auth/upload/save |
+| `listing_step_completed` | `app/[locale]/pune-anunt/PuneAnuntClient.tsx` | la finalizarea pașilor 1–4 | `step`, `category`, `interaction_source`, `selected_price_type`, `prefill_level` | abandon pe pași formular |
+| `listing_submit_attempt` | `app/[locale]/pune-anunt/PuneAnuntClient.tsx` | înainte/după submit listing | `category`, `package_id`, `status`, `reason`, `interaction_source`, `selected_price_type` | fricțiune auth/upload/save |
 | `listing_draft_saved` | `app/[locale]/pune-anunt/PuneAnuntClient.tsx` | autosave / auth gate | `step`, `category`, `package`, `draft_version`, `reason` | persist draft (fără PII text) |
-| `listing_draft_restored` | `app/[locale]/pune-anunt/PuneAnuntClient.tsx` | la mount dacă există draft | `step`, `category`, `package`, `draft_version`, `reason`, `source` (`session` \| `auth_handoff`) | restore după refresh/auth |
+| `listing_draft_restored` | `app/[locale]/pune-anunt/PuneAnuntClient.tsx` | la mount dacă există draft | `step`, `category`, `package`, `draft_version`, `reason`, `interaction_source` (`session` \| `auth_handoff`) | restore după refresh/auth |
 | `listing_auth_opened` | `app/[locale]/pune-anunt/PuneAnuntClient.tsx` | AuthModal la auth_required | `step`, `category`, `package`, `draft_version`, `reason` | intent auth din publish |
-| `listing_auth_resumed` | `app/[locale]/pune-anunt/PuneAnuntClient.tsx` | după callback auth + draft | `step`, `category`, `package`, `draft_version`, `reason`, `source` | resume funnel |
+| `listing_auth_resumed` | `app/[locale]/pune-anunt/PuneAnuntClient.tsx` | după callback auth + draft | `step`, `category`, `package`, `draft_version`, `reason`, `interaction_source` | resume funnel |
 | `listing_draft_cleared` | `app/[locale]/pune-anunt/PuneAnuntClient.tsx`, `dashboard` | abandon sau `payment=success` | `step`, `category`, `package`, `draft_version`, `reason` (`user_discard` \| `payment_success`) | cleanup draft |
-| `listing_pending_reused` | `app/[locale]/pune-anunt/PuneAnuntClient.tsx` | submit reutilizează listing `pending_payment` existent | `source=publish_form`, `category`, `package`, `reason` | evita INSERT duplicat |
-| `listing_checkout_resumed` | `app/[locale]/dashboard/page.tsx` | CTA „Finalizează plata” (card sau banner cancel) | `source` (`dashboard` \| `cancel_banner`), `category`, `package`, `reason` | resume checkout fără listing nou |
-| `listing_checkout_cancelled` | `app/[locale]/dashboard/page.tsx` | return Stripe `payment=cancel` pentru listing propriu | `source=cancel_banner`, `category`, `package`, `reason` | abandon plată cu listing salvat |
-| `start_post_listing` | `app/[locale]/pune-anunt/PuneAnuntClient.tsx` | step 1 → 2 | `category`, `source`, `selected_price_type`, `prefill_level` | început funnel listare |
-| `checkout_listing_started` | `app/[locale]/pune-anunt/PuneAnuntClient.tsx` | înainte de Stripe redirect | `category`, `package_id`, `amount`, `checkout_type`, `source`, `selected_price_type`, `prefill_level` | intenție plată |
-| `checkout_created` | `app/[locale]/pune-anunt/PuneAnuntClient.tsx` | sesiune Stripe creată | `checkout_type`, `listing_id`, `package_id`, `amount`, `status`, `source`, `selected_price_type` | confirmare creare checkout |
+| `listing_pending_reused` | `app/[locale]/pune-anunt/PuneAnuntClient.tsx` | submit reutilizează listing `pending_payment` existent | `interaction_source=publish_form`, `category`, `package`, `reason` | evita INSERT duplicat |
+| `listing_checkout_resumed` | `app/[locale]/dashboard/page.tsx` | CTA „Finalizează plata” (card sau banner cancel) | `interaction_source` (`dashboard` \| `cancel_banner`), `category`, `package`, `reason` | resume checkout fără listing nou |
+| `listing_checkout_cancelled` | `app/[locale]/dashboard/page.tsx` | return Stripe `payment=cancel` pentru listing propriu | `interaction_source=cancel_banner`, `category`, `package`, `reason` | abandon plată cu listing salvat |
+| `start_post_listing` | `app/[locale]/pune-anunt/PuneAnuntClient.tsx` | step 1 → 2 | `category`, `interaction_source`, `selected_price_type`, `prefill_level` | început funnel listare |
+| `checkout_listing_started` | `app/[locale]/pune-anunt/PuneAnuntClient.tsx` | înainte de Stripe redirect | `category`, `package_id`, `amount`, `checkout_type`, `interaction_source`, `selected_price_type`, `prefill_level` | intenție plată |
+| `checkout_created` | `app/[locale]/pune-anunt/PuneAnuntClient.tsx` | sesiune Stripe creată | `checkout_type`, `listing_id`, `package_id`, `amount`, `status`, `interaction_source`, `selected_price_type` | confirmare creare checkout |
 | `start_post_demand` | `app/[locale]/posteaza-cerere/page.tsx` | la intrarea în flow-ul de cerere | `category` | măsoară începutul funnel-ului buyer |
 | `checkout_demand_started` | `app/[locale]/posteaza-cerere/page.tsx` | înainte de pornirea checkout demand | `category`, `price` | măsoară intenția de plată buyer |
 | `view_capital_disponibil` | `app/capital-disponibil/page.tsx` | la încărcare pagină (client-side) | `page_path` | măsoară trafic pe zona de cereri active |
@@ -195,21 +195,21 @@ Evenimentele legacy rămân pentru HQ Copilot. Nu au fost șterse.
 
 | event_name | când se trimite | params | flow | notes |
 |---|---|---|---|---|
-| `checkout_listing_success` | la redirect în `dashboard` după checkout listing cu `payment=success` | `source`, `checkout_type`, `status`, `listing_id`, `session_id`, `payment` | listing | tracking client-side pe redirect; webhook rămâne sursa finală pentru activare |
-| `checkout_listing_cancel` | la redirect în `dashboard` după anulare checkout listing cu `payment=cancel` | `source`, `checkout_type`, `status`, `listing_id`, `session_id`, `payment` | listing | tracking client-side pe redirect; webhook nu activează listing-ul la cancel |
-| `payment_success_from_evaluation` | dashboard success când `listings.details.acquisition_source === "evaluation"` | `checkout_type`, `status`, `category`, `selected_price_type`, `prefill_level`, `listing_id`, `source=evaluation` | listing | conversie finală din funnel evaluator |
-| `payment_cancel_from_evaluation` | dashboard cancel când listing vine din evaluator | `checkout_type`, `status`, `category`, `selected_price_type`, `prefill_level`, `listing_id`, `source=evaluation` | listing | abandon plată din funnel evaluator |
-| `checkout_demand_success` | la redirect în `dashboard` după checkout demand cu `payment=success` | `source`, `checkout_type`, `status`, `demand_id`, `session_id`, `payment` | demand | tracking client-side pe redirect; webhook rămâne sursa finală pentru activare |
-| `checkout_demand_cancel` | la redirect în `dashboard` după anulare checkout demand cu `payment=cancel` | `source`, `checkout_type`, `status`, `demand_id`, `session_id`, `payment` | demand | tracking client-side pe redirect; webhook nu activează demand-ul la cancel |
+| `checkout_listing_success` | la redirect în `dashboard` după checkout listing cu `payment=success` | `interaction_source`, `checkout_type`, `status`, `listing_id`, `session_id`, `payment` | listing | tracking client-side pe redirect; webhook rămâne sursa finală pentru activare |
+| `checkout_listing_cancel` | la redirect în `dashboard` după anulare checkout listing cu `payment=cancel` | `interaction_source`, `checkout_type`, `status`, `listing_id`, `session_id`, `payment` | listing | tracking client-side pe redirect; webhook nu activează listing-ul la cancel |
+| `payment_success_from_evaluation` | dashboard success când `listings.details.acquisition_source === "evaluation"` | `checkout_type`, `status`, `category`, `selected_price_type`, `prefill_level`, `listing_id`, `interaction_source=evaluation` | listing | conversie finală din funnel evaluator |
+| `payment_cancel_from_evaluation` | dashboard cancel când listing vine din evaluator | `checkout_type`, `status`, `category`, `selected_price_type`, `prefill_level`, `listing_id`, `interaction_source=evaluation` | listing | abandon plată din funnel evaluator |
+| `checkout_demand_success` | la redirect în `dashboard` după checkout demand cu `payment=success` | `interaction_source`, `checkout_type`, `status`, `demand_id`, `session_id`, `payment` | demand | tracking client-side pe redirect; webhook rămâne sursa finală pentru activare |
+| `checkout_demand_cancel` | la redirect în `dashboard` după anulare checkout demand cu `payment=cancel` | `interaction_source`, `checkout_type`, `status`, `demand_id`, `session_id`, `payment` | demand | tracking client-side pe redirect; webhook nu activează demand-ul la cancel |
 
 ## Offer intent events
 
 | event_name | când se trimite | params | PII note | scop business |
 |---|---|---|---|---|
-| `submit_listing_offer` | după insert reușit în `listing_offers` din `app/anunt/[id]/AnuntClient.tsx` (ofertă custom) | `source`, `listing_id`, `category`, `offer_type`, `amount`, `status` | nu trimite `buyer_phone`, `buyer_email`, `message` | măsoară conversia de ofertare pe listing activ |
-| `submit_accept_exit_price` | după insert reușit în `listing_offers` din `app/anunt/[id]/AnuntClient.tsx` (accept preț exit) | `source`, `listing_id`, `category`, `offer_type`, `amount`, `status` | nu trimite `acceptPhone`, `acceptEmail`, text liber | măsoară intenția fermă de cumpărare la prețul afișat |
-| `dashboard_offer_accept` | după update reușit al statusului ofertei în `app/dashboard/page.tsx` | `source`, `offer_id`, `listing_id`, `demand_id`, `offer_context`, `status` | nu trimite date de contact din ofertă | măsoară deciziile de acceptare în camera de negociere |
-| `dashboard_offer_reject` | după update reușit al statusului ofertei în `app/dashboard/page.tsx` | `source`, `offer_id`, `listing_id`, `demand_id`, `offer_context`, `status` | nu trimite date de contact din ofertă | măsoară deciziile de respingere în camera de negociere |
+| `submit_listing_offer` | după insert reușit în `listing_offers` din `app/anunt/[id]/AnuntClient.tsx` (ofertă custom) | `interaction_source`, `listing_id`, `category`, `offer_type`, `amount`, `status` | nu trimite `buyer_phone`, `buyer_email`, `message` | măsoară conversia de ofertare pe listing activ |
+| `submit_accept_exit_price` | după insert reușit în `listing_offers` din `app/anunt/[id]/AnuntClient.tsx` (accept preț exit) | `interaction_source`, `listing_id`, `category`, `offer_type`, `amount`, `status` | nu trimite `acceptPhone`, `acceptEmail`, text liber | măsoară intenția fermă de cumpărare la prețul afișat |
+| `dashboard_offer_accept` | după update reușit al statusului ofertei în `app/dashboard/page.tsx` | `interaction_source`, `offer_id`, `listing_id`, `demand_id`, `offer_context`, `status` | nu trimite date de contact din ofertă | măsoară deciziile de acceptare în camera de negociere |
+| `dashboard_offer_reject` | după update reușit al statusului ofertei în `app/dashboard/page.tsx` | `interaction_source`, `offer_id`, `listing_id`, `demand_id`, `offer_context`, `status` | nu trimite date de contact din ofertă | măsoară deciziile de respingere în camera de negociere |
 
 ## Attribution fields
 
@@ -248,13 +248,13 @@ Evenimentele legacy rămân pentru HQ Copilot. Nu au fost șterse.
 
 ### Parametri evaluator (safe)
 
-Permise în GA4: `category`, `source`, `selected_price_type`, `prefill_level`, `package_id`, `amount` (doar preț pachet RON), `checkout_type`, `status`, `data_quality_label`, `confidence_score`, `has_exit_price`, `has_market_reference`, `step`, `reason`.
+Permise în GA4: `category`, `interaction_source`, `funnel_source`, `selected_price_type`, `prefill_level`, `package_id`, `amount` (doar preț pachet RON), `checkout_type`, `status`, `data_quality_label`, `confidence_score`, `has_exit_price`, `has_market_reference`, `step`, `reason`.
 
 **Nu trimite niciodată:** brand, model, km, titlu anunț, description, email, telefon, nume, texte libere, preț exact al activului.
 
 ### Metadata listing (JSON `details`, fără schema change)
 
-Când listingul este creat din flow-ul evaluator (`source=evaluation` pe `/pune-anunt`, draft sau query prefill):
+Când listingul este creat din flow-ul evaluator (query `source=evaluation` pe `/pune-anunt`, draft sau query prefill):
 - `acquisition_source: "evaluation"`
 - `evaluation_handoff: true`
 - `selected_price_type` (enum valid: `market`, `quick_exit`, `fast_sale`, `liquidation`, `manual`)
@@ -266,7 +266,7 @@ Folosit pentru atribuire checkout și evenimente `payment_*_from_evaluation`.
 
 ## Recomandări Viitoare (Sprint 3B+)
 
-- standardizare parametru `source` pe toate evenimentele de click/importante
+- protecția centrală rămâne fail-closed pe cheile rezervate GA4; nu reintroduce `source`/`medium`/`campaign` în payloaduri
 - integrare Google Analytics Data API în HQ Copilot pentru insight-uri automate
 - evaluare `page_view` custom doar dacă apare nevoie reală (evităm dublări inutile)
 - tracking conversii reale din webhook, separat, server-side, într-un sprint viitor

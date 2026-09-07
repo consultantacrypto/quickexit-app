@@ -95,7 +95,7 @@ export function ConsentProvider({ children }: { children: ReactNode }) {
   const [preferencesOpen, setPreferencesOpen] = useState(false);
 
   useEffect(() => {
-    if (!isClient || !preferences) return;
+    if (!isClient) return;
     applyConsentTags(preferences);
   }, [isClient, preferences]);
 

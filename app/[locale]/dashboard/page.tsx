@@ -177,7 +177,7 @@ function DashboardContent() {
 
     const trackCheckoutOutcome = async () => {
       const baseParams = {
-        source: "dashboard",
+        interaction_source: "dashboard",
         checkout_type: normalizedType,
         status: normalizedPayment,
         session_id: sessionIdParam || undefined,
@@ -246,7 +246,7 @@ function DashboardContent() {
                   : "standard";
 
             trackEvent("listing_checkout_cancelled", {
-              source: "cancel_banner",
+              interaction_source: "cancel_banner",
               category: categoryLabelToTrackingKey(String(listingRow.category ?? "")),
               package: pkg,
               reason: "stripe_cancel",
@@ -327,7 +327,7 @@ function DashboardContent() {
       const packageId = pkgFromStrategy || pkgFromDetails || "standard";
 
       trackEvent("listing_checkout_resumed", {
-        source,
+        interaction_source: source,
         category: categoryLabelToTrackingKey(String(listing?.category ?? "")),
         package: packageId,
         reason: "pending_payment",
@@ -702,7 +702,7 @@ function DashboardContent() {
         });
       }
       trackEvent(action === "accepted" ? "dashboard_offer_accept" : "dashboard_offer_reject", {
-        source: "dashboard",
+        interaction_source: "dashboard",
         offer_id: offerId,
         listing_id: type === "listing" ? matchedOffer?.listing_id : undefined,
         demand_id: type === "demand" ? matchedOffer?.demand_id : undefined,

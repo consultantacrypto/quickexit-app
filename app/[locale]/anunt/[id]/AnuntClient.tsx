@@ -282,7 +282,7 @@ export default function AnuntClient({
     () => ({
       locale: locale === "en" ? "en" : "ro",
       category: categoryLabelToTrackingKey(String(adData.category || "")),
-      source: "listing_detail" as const,
+      funnel_source: "listing_detail" as const,
       sale_strategy:
         normalizeSaleType(adData.sale_strategy) === "auction"
           ? ("auction" as const)
@@ -518,7 +518,7 @@ export default function AnuntClient({
       });
       if (error) throw error;
       trackEvent("submit_listing_offer", {
-        source: "listing_detail",
+        interaction_source: "listing_detail",
         listing_id: adData.id,
         category: adData.category || "unknown",
         offer_type: "custom_offer",
@@ -560,7 +560,7 @@ export default function AnuntClient({
       });
       if (error) throw error;
       trackEvent("submit_accept_exit_price", {
-        source: "listing_detail",
+        interaction_source: "listing_detail",
         listing_id: adData.id,
         category: adData.category || "unknown",
         offer_type: "exit_price",

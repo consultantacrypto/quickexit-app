@@ -141,7 +141,8 @@ export function googleConsentUpdateFromPreferences(
     analytics_storage: analytics ? "granted" : "denied",
     ad_storage: marketing ? "granted" : "denied",
     ad_user_data: marketing ? "granted" : "denied",
-    ad_personalization: marketing ? "granted" : "denied",
+    // No separate personalization consent exists in the banner.
+    ad_personalization: "denied",
   };
 }
 

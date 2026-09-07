@@ -133,7 +133,7 @@ export default function PentruInvestitoriPage() {
             <TrackedLink
               href="/ghid/active-sub-pretul-pietei"
               eventName="click_investor_below_market_guide"
-              eventParams={{ source: "pentru-investitori", destination: "/ghid/active-sub-pretul-pietei" }}
+              eventParams={{ interaction_source: "pentru-investitori", destination: "/ghid/active-sub-pretul-pietei" }}
               className="font-bold text-black underline decoration-[#FFD100] decoration-2 underline-offset-2 hover:text-neutral-700"
             >
               Active sub prețul pieței
@@ -209,7 +209,7 @@ export default function PentruInvestitoriPage() {
             <TrackedLink
               href="/capital-disponibil"
               eventName="click_investor_view_assets"
-              eventParams={{ source: "pentru-investitori", destination: "/capital-disponibil" }}
+              eventParams={{ interaction_source: "pentru-investitori", destination: "/capital-disponibil" }}
               className="inline-flex items-center justify-center rounded-xl border-[3px] border-black bg-[#FFD100] px-6 py-3 text-xs font-black uppercase tracking-widest text-black shadow-[4px_4px_0_0_#fff] transition hover:brightness-105"
             >
               Vezi active disponibile
@@ -217,7 +217,7 @@ export default function PentruInvestitoriPage() {
             <TrackedLink
               href="/posteaza-cerere"
               eventName="click_investor_post_demand"
-              eventParams={{ source: "pentru-investitori", destination: "/posteaza-cerere" }}
+              eventParams={{ interaction_source: "pentru-investitori", destination: "/posteaza-cerere" }}
               className="inline-flex items-center justify-center rounded-xl border-[3px] border-white bg-transparent px-6 py-3 text-xs font-black uppercase tracking-widest text-white transition hover:bg-white hover:text-black"
             >
               Publică o cerere de cumpărare

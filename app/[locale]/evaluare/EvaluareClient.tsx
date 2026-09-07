@@ -300,7 +300,7 @@ export default function EvaluareClient() {
         ? String(result.data_quality_label)
         : "unknown",
       confidence_score: formatConfidenceScore(result?.confidence_score),
-      source: "evaluation_result",
+      interaction_source: "evaluation_result",
       selected_price_type: "manual",
     });
   };
@@ -343,7 +343,7 @@ export default function EvaluareClient() {
         ? String(result.data_quality_label)
         : "unknown",
       confidence_score: formatConfidenceScore(result?.confidence_score),
-      source: "evaluation_result",
+      interaction_source: "evaluation_result",
       selected_price_type: priceType,
     });
   };

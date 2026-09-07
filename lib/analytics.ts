@@ -12,7 +12,13 @@ import {
   type ConsentPreferences,
   LEGACY_ANALYTICS_CONSENT_STORAGE_KEY,
 } from "@/lib/consentPreferences";
-import { applyConsentTags, clearFirstPartyTikTokCookies, dispatchGtagEvent } from "@/lib/consentTags";
+import { stripReservedAnalyticsParams } from "@/lib/analyticsParams";
+import {
+  applyConsentTags,
+  clearFirstPartyGoogleCookies,
+  clearFirstPartyTikTokCookies,
+  dispatchGtagEvent,
+} from "@/lib/consentTags";
 
 export const GA_MEASUREMENT_ID =
   process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID || "G-8LLK172SCX";
@@ -171,6 +177,7 @@ export function applyConsentPreferences(input: ConsentChoiceInput): ConsentPrefe
     captureAttribution();
   } else {
     clearAnalyticsAttribution();
+    clearFirstPartyGoogleCookies();
   }
   if (!next.marketing) {
     clearFirstPartyTikTokCookies();
@@ -257,7 +264,7 @@ export function appendAttributionParams(
   params?: EventParams,
   mode: AnalyticsTrackOptions["attributionMode"] = "utm_only",
 ): EventParams {
-  if (mode === "none") return { ...(params ?? {}) };
+  if (mode === "none") return stripReservedAnalyticsParams({ ...(params ?? {}) });
   const attribution = getAttribution();
   const utmParams: EventParams = {
     utm_source: attribution.utm_source,
@@ -266,7 +273,7 @@ export function appendAttributionParams(
     utm_content: attribution.utm_content,
     utm_term: attribution.utm_term,
   };
-  return { ...utmParams, ...(params ?? {}) };
+  return stripReservedAnalyticsParams({ ...utmParams, ...(params ?? {}) });
 }
 
 export function pageview(url: string): void {
@@ -287,9 +294,11 @@ function trackTikTokEvent(eventName: string, params?: EventParams): void {
   if (typeof window.ttq?.track !== "function") return;
 
   try {
-    const payload = Object.fromEntries(
-      Object.entries(params ?? {}).filter(([, value]) => value != null),
-    ) as Record<string, unknown>;
+    const payload = stripReservedAnalyticsParams(
+      Object.fromEntries(
+        Object.entries(params ?? {}).filter(([, value]) => value != null),
+      ) as EventParams,
+    );
     window.ttq.track(tiktokEvent, payload);
   } catch {
     // TikTok tracking is best-effort; never break runtime
@@ -327,7 +336,7 @@ export function trackEvent(
     }
 
     if (marketingOk) {
-      trackTikTokEvent(eventName, params);
+      trackTikTokEvent(eventName, stripReservedAnalyticsParams(params));
     }
   } catch {
     // Consent denial, missing gtag, or blocked storage must never crash the app.

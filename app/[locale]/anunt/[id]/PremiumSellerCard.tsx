@@ -36,21 +36,21 @@ export default function PremiumSellerCard({
   const trackPhone = () => {
     trackEvent("click_premium_seller_phone", {
       listing_id: listingId,
-      source: "sidebar",
+      interaction_source: "sidebar",
     });
   };
 
   const trackWhatsApp = () => {
     trackEvent("click_premium_seller_whatsapp", {
       listing_id: listingId,
-      source: "sidebar",
+      interaction_source: "sidebar",
     });
   };
 
   const trackTikTok = () => {
     trackEvent("click_premium_seller_tiktok", {
       listing_id: listingId,
-      source: "sidebar",
+      interaction_source: "sidebar",
     });
   };
 

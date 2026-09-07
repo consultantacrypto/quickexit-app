@@ -265,7 +265,7 @@ export default async function Home({ params }: HomePageProps) {
               <TrackedLink
                 href="/pune-anunt"
                 eventName="click_post_listing"
-                eventParams={{ source: "home_hero" }}
+                eventParams={{ interaction_source: "home_hero" }}
                 className="group relative inline-flex min-h-12 items-center justify-center overflow-hidden whitespace-nowrap rounded-full border border-black/[0.12] bg-black/90 px-8 py-3.5 text-sm font-semibold uppercase tracking-[0.12em] text-[#FFD100] shadow-[0_14px_36px_-10px_rgba(0,0,0,0.45)] backdrop-blur-md transition-all duration-300 hover:border-[#FFD100]/35 hover:bg-black hover:shadow-[0_22px_48px_-14px_rgba(0,0,0,0.5)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#FFD100] md:min-h-12 md:px-11 md:py-4 md:text-base xl:px-12 xl:py-[1.125rem] xl:text-[17px]"
               >
                 <span className="relative z-10 whitespace-nowrap">{tHero("primaryCta")}</span>
@@ -315,7 +315,7 @@ export default async function Home({ params }: HomePageProps) {
               <TrackedLink
                 href="/pune-anunt"
                 eventName="click_post_listing"
-                eventParams={{ source: "home_listings_section" }}
+                eventParams={{ interaction_source: "home_listings_section" }}
                 className="inline-flex items-center justify-center rounded-2xl border-[3px] border-black bg-[#FDFCF8] px-6 py-3 text-[11px] font-black uppercase tracking-widest text-black shadow-[6px_6px_0_0_rgba(0,0,0,1)] transition hover:-translate-y-0.5 hover:bg-white hover:shadow-[6px_6px_0_0_#FFD100] md:text-xs"
               >
                 {tHome("listings.postListing")}
@@ -366,7 +366,7 @@ export default async function Home({ params }: HomePageProps) {
               <TrackedLink
                 href="/capital-disponibil"
                 eventName="click_capital_available"
-                eventParams={{ source: "home_capital_section" }}
+                eventParams={{ interaction_source: "home_capital_section" }}
                 className="whitespace-nowrap border-b-2 border-transparent text-[11px] font-black uppercase tracking-widest text-neutral-600 underline-offset-4 transition hover:border-black hover:text-black md:text-xs"
               >
                 {tHome("capital.viewAll")}
@@ -407,7 +407,7 @@ export default async function Home({ params }: HomePageProps) {
                   <TrackedLink
                     href="/capital-disponibil"
                     eventName="click_capital_available"
-                    eventParams={{ source: "home_capital_fallback" }}
+                    eventParams={{ interaction_source: "home_capital_fallback" }}
                     className="border-b-2 border-transparent text-[11px] font-black uppercase tracking-widest text-neutral-600 underline-offset-4 transition hover:border-black hover:text-black md:text-xs"
                   >
                     {tHome("capital.fallbackSecondaryCta")}
@@ -421,7 +421,7 @@ export default async function Home({ params }: HomePageProps) {
             <TrackedLink
               href="/capital-disponibil"
               eventName="click_capital_available"
-              eventParams={{ source: "home_capital_section_footer" }}
+              eventParams={{ interaction_source: "home_capital_section_footer" }}
               className="group inline-flex items-center gap-1.5 border-b-2 border-transparent text-[11px] font-black uppercase tracking-widest text-neutral-600 transition hover:border-black hover:text-black md:text-xs"
             >
               {tHome("capital.viewAllFooter")}

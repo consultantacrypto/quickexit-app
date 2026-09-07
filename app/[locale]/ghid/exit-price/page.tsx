@@ -204,7 +204,7 @@ export default function ExitPriceGuidePage() {
             <TrackedLink
               href="/evaluare"
               eventName="click_guide_exit_price_evaluate"
-              eventParams={{ source: "ghid-exit-price", destination: "/evaluare" }}
+              eventParams={{ interaction_source: "ghid-exit-price", destination: "/evaluare" }}
               className="inline-flex items-center justify-center rounded-xl border-[3px] border-black bg-[#FFD100] px-6 py-3 text-xs font-black uppercase tracking-widest text-black shadow-[4px_4px_0_0_#fff] transition hover:brightness-105"
             >
               Evaluează un activ
@@ -212,7 +212,7 @@ export default function ExitPriceGuidePage() {
             <TrackedLink
               href="/pune-anunt"
               eventName="click_guide_exit_price_post_listing"
-              eventParams={{ source: "ghid-exit-price", destination: "/pune-anunt" }}
+              eventParams={{ interaction_source: "ghid-exit-price", destination: "/pune-anunt" }}
               className="inline-flex items-center justify-center rounded-xl border-[3px] border-white bg-transparent px-6 py-3 text-xs font-black uppercase tracking-widest text-white transition hover:bg-white hover:text-black"
             >
               Publică anunț
@@ -220,7 +220,7 @@ export default function ExitPriceGuidePage() {
             <TrackedLink
               href="/"
               eventName="click_guide_exit_price_view_assets"
-              eventParams={{ source: "ghid-exit-price", destination: "/" }}
+              eventParams={{ interaction_source: "ghid-exit-price", destination: "/" }}
               className="inline-flex items-center justify-center rounded-xl border-[3px] border-white bg-transparent px-6 py-3 text-xs font-black uppercase tracking-widest text-white transition hover:bg-white hover:text-black"
             >
               Vezi active disponibile

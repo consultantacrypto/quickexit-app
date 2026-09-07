@@ -3,6 +3,7 @@ import {
   type EvaluationPriceType,
   type PrefillLevel,
 } from "@/lib/evaluationDraft";
+import { stripReservedAnalyticsParams } from "@/lib/analyticsParams";
 
 export type EvaluationTrackingContext = {
   source: "evaluation" | "direct";
@@ -66,11 +67,13 @@ export function toEvaluationTrackingEventParams(
   };
 
   if (!ctx || ctx.source !== "evaluation") {
-    base.source = base.source ?? "direct";
-    return base;
+    base.interaction_source = typeof base.interaction_source === "string"
+      ? base.interaction_source
+      : "direct";
+    return stripReservedAnalyticsParams(base);
   }
 
-  base.source = "evaluation";
+  base.interaction_source = "evaluation";
   if (ctx.selected_price_type) base.selected_price_type = ctx.selected_price_type;
   if (ctx.prefill_level) base.prefill_level = ctx.prefill_level;
   if (ctx.has_exit_price !== undefined) base.has_exit_price = ctx.has_exit_price;
@@ -79,7 +82,7 @@ export function toEvaluationTrackingEventParams(
   }
   base.evaluation_handoff = true;
 
-  return base;
+  return stripReservedAnalyticsParams(base);
 }
 
 export function categoryLabelToTrackingKey(categoryLabel: string): string {

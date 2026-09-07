@@ -5,9 +5,10 @@ import {
   hasAnalyticsConsent,
   trackEvent,
 } from "@/lib/analytics";
-import { applyConsentTags } from "@/lib/consentTags";
+import { applyConsentTags, dispatchGtagEvent } from "@/lib/consentTags";
 import { readConsentPreferences } from "@/lib/consentPreferences";
 import { categoryLabelToTrackingKey } from "@/lib/evaluationTracking";
+import { RESERVED_ANALYTICS_PARAM_KEYS } from "@/lib/analyticsParams";
 
 export const SELLER_FUNNEL_EVENTS = [
   "publish_page_view",
@@ -65,7 +66,7 @@ export type FunnelEventParams = {
   locale?: FunnelLocale;
   category?: FunnelCategory;
   step?: FunnelStep;
-  source?: FunnelSource;
+  funnel_source?: FunnelSource;
   sale_strategy?: FunnelSaleStrategy;
 };
 
@@ -75,11 +76,13 @@ const PII_KEY_RE =
 const PII_VALUE_RE =
   /(@[a-z0-9.-]+\.[a-z]{2,})|(^\+?\d[\d\s().-]{7,}$)/i;
 
+const RESERVED_TRAFFIC_KEYS = new Set<string>(RESERVED_ANALYTICS_PARAM_KEYS);
+
 const ALLOWED_PARAM_KEYS = new Set([
   "locale",
   "category",
   "step",
-  "source",
+  "funnel_source",
   "sale_strategy",
 ]);
 
@@ -221,6 +224,7 @@ export function sanitizeFunnelParams(
   if (!params || typeof params !== "object") return out;
 
   for (const [rawKey, rawValue] of Object.entries(params)) {
+    if (RESERVED_TRAFFIC_KEYS.has(rawKey)) continue;
     if (!ALLOWED_PARAM_KEYS.has(rawKey)) continue;
     if (looksLikePiiKey(rawKey) || looksLikePiiValue(rawValue)) continue;
     if (rawKey === "locale") {
@@ -238,9 +242,9 @@ export function sanitizeFunnelParams(
       if (step) out.step = step;
       continue;
     }
-    if (rawKey === "source") {
+    if (rawKey === "funnel_source") {
       const source = parseFunnelSource(rawValue);
-      if (source) out.source = source;
+      if (source) out.funnel_source = source;
       continue;
     }
     if (rawKey === "sale_strategy") {
@@ -302,15 +306,9 @@ export function trackFunnelEvent(
   try {
     if (!isFunnelEventName(eventName)) return false;
     if (isBlockedFabricatedPurchaseEvent(eventName)) return false;
-    // Consent is checked before the once-gate so a denied/absent first call
-    // cannot consume the key and block a later granted dispatch.
-    if (!hasAnalyticsConsent()) return false;
-
-    // Inject permitted tags before the once-gate. Hydration can fire this
-    // helper before ConsentProvider's effect creates window.gtag; consuming
-    // the gate then would drop the event forever.
+    // Inject gtag (cookieless until analytics is granted) before the once-gate.
     const prefs = readConsentPreferences();
-    if (prefs) applyConsentTags(prefs);
+    applyConsentTags(prefs);
     if (typeof window !== "undefined" && typeof window.gtag !== "function") {
       return false;
     }
@@ -319,7 +317,11 @@ export function trackFunnelEvent(
     if (!options?.skipOnce && !defaultOnceGate.shouldFire(onceKey)) return false;
 
     const clean = sanitizeFunnelParams(params);
-    trackEvent(eventName, clean, { attributionMode: "utm_only" });
+    if (hasAnalyticsConsent()) {
+      trackEvent(eventName, clean, { attributionMode: "utm_only" });
+    } else {
+      dispatchGtagEvent(eventName, clean);
+    }
     return true;
   } catch {
     return false;

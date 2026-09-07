@@ -166,7 +166,7 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
   const funnelParams = () => ({
     locale,
     category: categoryLabelToTrackingKey(category),
-    source: "publish_form" as const,
+    funnel_source: "publish_form" as const,
     sale_strategy: saleMethod,
   });
 
@@ -284,7 +284,7 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
     }
     trackFunnelEvent("publish_page_view", {
       locale,
-      source: "publish_form",
+      funnel_source: "publish_form",
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only draft gate; funnel once-gate + consent gate prevent Strict Mode duplicates
   }, []);
@@ -394,7 +394,7 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
     }
     trackFunnelEvent("listing_started", {
       ...funnelParams(),
-      source: "draft_recovery",
+      funnel_source: "draft_recovery",
       category: categoryLabelToTrackingKey(recoveryDraft.category),
       sale_strategy: recoveryDraft.saleMethod,
     });
@@ -1119,7 +1119,7 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
 
           setFlowError(tPost("checkoutErrors.pendingReuse"));
           trackEvent("listing_pending_reused", {
-            source: "publish_form",
+            interaction_source: "publish_form",
             category: categoryLabelToTrackingKey(category),
             package: selectedPackage,
             reason: "pending_payment",

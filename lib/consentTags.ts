@@ -2,8 +2,10 @@ import {
   GA_MEASUREMENT_ID,
   TIKTOK_PIXEL_ID,
 } from "@/lib/analytics";
+import { stripReservedAnalyticsParams } from "@/lib/analyticsParams";
 import {
   googleConsentUpdateFromPreferences,
+  readConsentPreferences,
   type ConsentPreferences,
 } from "@/lib/consentPreferences";
 
@@ -51,7 +53,8 @@ export function dispatchGtagEvent(
 ): void {
   if (typeof window === "undefined") return;
   if (typeof window.gtag !== "function") return;
-  const payload = GA_MEASUREMENT_ID ? { ...params, send_to: GA_MEASUREMENT_ID } : params;
+  const clean = stripReservedAnalyticsParams(params);
+  const payload = GA_MEASUREMENT_ID ? { ...clean, send_to: GA_MEASUREMENT_ID } : clean;
   if (!gtagConfigReady) {
     pendingGtagEvents.push({ name, params: payload });
     return;
@@ -85,26 +88,110 @@ export function shouldReloadToUnloadTags(
   previous: ConsentPreferences | null,
   next: ConsentPreferences,
 ): boolean {
-  const gtagLoaded = gtagScriptIsPresent();
   const tiktokLoaded = tiktokScriptIsPresent();
-  if (previous?.analytics && !next.analytics && gtagLoaded) return true;
+  // Keep gtag.js loaded for Advanced Consent Mode cookieless pings.
   if (previous?.marketing && !next.marketing && tiktokLoaded) return true;
   return false;
+}
+
+let consentDefaultSent = false;
+
+export function googleConsentDefaultWasSent(): boolean {
+  return consentDefaultSent;
 }
 
 export function applyGoogleConsentUpdate(prefs: ConsentPreferences | null): void {
   if (typeof window === "undefined") return;
   if (typeof window.gtag !== "function") return;
   try {
-    window.gtag("consent", "update", googleConsentUpdateFromPreferences(prefs));
+    const update = googleConsentUpdateFromPreferences(prefs);
+    window.gtag("consent", "update", update);
+    window.gtag("set", "ads_data_redaction", update.ad_storage === "denied");
   } catch {
     // never crash the app
   }
 }
 
+export function ensureGoogleConsentDefault(): void {
+  if (typeof window === "undefined") return;
+  ensureGtagStub();
+  if (typeof window.gtag !== "function") return;
+  if (consentDefaultSent) return;
+  try {
+    window.gtag("consent", "default", {
+      analytics_storage: "denied",
+      ad_storage: "denied",
+      ad_user_data: "denied",
+      ad_personalization: "denied",
+      wait_for_update: 500,
+    });
+    window.gtag("set", "ads_data_redaction", true);
+    consentDefaultSent = true;
+  } catch {
+    // never crash the app
+  }
+}
+
+function isFirstPartyGoogleStorageKey(key: string): boolean {
+  if (/^(quickexit|quickExit)/i.test(key)) return false;
+  return /^(_ga|_gid|_gat|_gcl|_gac)/i.test(key);
+}
+
+function isFirstPartyGoogleCookieName(name: string): boolean {
+  return /^(_ga|_gid|_gat|_gcl|_gac)/i.test(name);
+}
+
+export function clearFirstPartyGoogleStorage(): void {
+  if (typeof window === "undefined") return;
+  try {
+    clearStorageKeysMatching(window.localStorage, isFirstPartyGoogleStorageKey);
+    clearStorageKeysMatching(window.sessionStorage, isFirstPartyGoogleStorageKey);
+  } catch {
+    // ignore
+  }
+}
+
+export function clearFirstPartyGoogleCookies(): void {
+  if (typeof document === "undefined" || typeof window === "undefined") return;
+  let raw = "";
+  try {
+    raw = document.cookie || "";
+  } catch {
+    raw = "";
+  }
+  const names = raw
+    .split(";")
+    .map((part) => part.trim().split("=")[0])
+    .filter((name) => isFirstPartyGoogleCookieName(name));
+  const host = window.location.hostname;
+  const expire = "Thu, 01 Jan 1970 00:00:00 GMT";
+  for (const name of names) {
+    const variants = [
+      `${name}=; expires=${expire}; path=/; Max-Age=0`,
+      `${name}=; expires=${expire}; path=/; Max-Age=0; domain=${host}`,
+      `${name}=; expires=${expire}; path=/; Max-Age=0; SameSite=Lax`,
+    ];
+    if (host && host !== "localhost") {
+      variants.push(`${name}=; expires=${expire}; path=/; Max-Age=0; domain=.${host}`);
+    }
+    for (const cookie of variants) {
+      try {
+        document.cookie = cookie;
+      } catch {
+        // ignore
+      }
+    }
+  }
+  clearFirstPartyGoogleStorage();
+}
+
 function isFirstPartyTikTokStorageKey(key: string): boolean {
   if (/^(quickexit|quickExit)/i.test(key)) return false;
   return /^tt_/i.test(key) || /^_tt/i.test(key) || /tiktok/i.test(key);
+}
+
+function isFirstPartyTikTokCookieName(name: string): boolean {
+  return /^(_tt|_ttp)/i.test(name) || /^tt_/i.test(name);
 }
 
 function clearStorageKeysMatching(
@@ -154,7 +241,7 @@ export function clearFirstPartyTikTokCookies(): void {
   const names = raw
     .split(";")
     .map((part) => part.trim().split("=")[0])
-    .filter((name) => /^_tt/i.test(name));
+    .filter((name) => isFirstPartyTikTokCookieName(name));
   const host = window.location.hostname;
   const expire = "Thu, 01 Jan 1970 00:00:00 GMT";
   for (const name of names) {
@@ -177,32 +264,20 @@ export function clearFirstPartyTikTokCookies(): void {
   clearFirstPartyTikTokStorage();
 }
 
-export function injectGtagIfAllowed(prefs: ConsentPreferences): boolean {
+export function injectGtagOnce(prefs: ConsentPreferences | null = null): boolean {
   if (typeof window === "undefined" || typeof document === "undefined") return false;
-  if (!prefs.analytics) return false;
   if (!GA_MEASUREMENT_ID) return false;
+  ensureGoogleConsentDefault();
   if (typeof document.createElement !== "function") {
-    ensureGtagStub();
     applyGoogleConsentUpdate(prefs);
     markGtagConfigReady();
     return false;
   }
   if (gtagScriptIsPresent()) {
     applyGoogleConsentUpdate(prefs);
-    // The script tag can exist before gtag.js onload has run config.
-    // Marking ready here flushed events into dataLayer before `config`,
-    // and gtag dropped them (no /g/collect).
     return false;
   }
 
-  ensureGtagStub();
-  window.gtag?.("consent", "default", {
-    analytics_storage: "denied",
-    ad_storage: "denied",
-    ad_user_data: "denied",
-    ad_personalization: "denied",
-    wait_for_update: 500,
-  });
   applyGoogleConsentUpdate(prefs);
 
   const script = document.createElement("script");
@@ -212,7 +287,7 @@ export function injectGtagIfAllowed(prefs: ConsentPreferences): boolean {
   script.onload = () => {
     try {
       window.gtag?.("js", new Date());
-      applyGoogleConsentUpdate(prefs);
+      applyGoogleConsentUpdate(readConsentPreferences());
       window.gtag?.("config", GA_MEASUREMENT_ID, { send_page_view: false });
       markGtagConfigReady();
     } catch {
@@ -221,6 +296,11 @@ export function injectGtagIfAllowed(prefs: ConsentPreferences): boolean {
   };
   document.head.appendChild(script);
   return true;
+}
+
+/** @deprecated use injectGtagOnce — gtag loads once for cookieless Consent Mode pings. */
+export function injectGtagIfAllowed(prefs: ConsentPreferences): boolean {
+  return injectGtagOnce(prefs);
 }
 
 export function injectTikTokIfAllowed(prefs: ConsentPreferences): boolean {
@@ -309,21 +389,22 @@ export function injectTikTokIfAllowed(prefs: ConsentPreferences): boolean {
   return true;
 }
 
-export function applyConsentTags(prefs: ConsentPreferences): void {
-  if (prefs.analytics) {
-    injectGtagIfAllowed(prefs);
-  } else {
-    applyGoogleConsentUpdate(prefs);
-  }
-  if (prefs.marketing) {
+export function applyConsentTags(prefs: ConsentPreferences | null): void {
+  injectGtagOnce(prefs);
+  if (prefs?.marketing) {
     injectTikTokIfAllowed(prefs);
-  } else if (typeof window !== "undefined") {
+    return;
+  }
+  if (typeof window !== "undefined") {
     try {
       window.ttq?.revokeConsent?.();
     } catch {
       // ignore
     }
     clearFirstPartyTikTokCookies();
+  }
+  if (!prefs?.analytics) {
+    clearFirstPartyGoogleCookies();
   }
 }
 

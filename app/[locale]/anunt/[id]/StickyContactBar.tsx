@@ -15,14 +15,14 @@ export default function StickyContactBar({ listingId }: StickyContactBarProps) {
   const trackPhone = () => {
     trackEvent("click_premium_seller_phone", {
       listing_id: listingId,
-      source: "sticky_bar",
+      interaction_source: "sticky_bar",
     });
   };
 
   const trackWhatsApp = () => {
     trackEvent("click_premium_seller_whatsapp", {
       listing_id: listingId,
-      source: "sticky_bar",
+      interaction_source: "sticky_bar",
     });
   };
 

@@ -143,7 +143,7 @@ export default function PentruVanzatoriPage() {
             <TrackedLink
               href="/ghid/exit-price"
               eventName="click_seller_exit_price_guide"
-              eventParams={{ source: "pentru-vanzatori", destination: "/ghid/exit-price" }}
+              eventParams={{ interaction_source: "pentru-vanzatori", destination: "/ghid/exit-price" }}
               className="font-bold text-black underline decoration-[#FFD100] decoration-2 underline-offset-2 hover:text-neutral-700"
             >
               Ce este prețul de exit
@@ -205,7 +205,7 @@ export default function PentruVanzatoriPage() {
             <TrackedLink
               href="/evaluare"
               eventName="click_seller_evaluate_asset"
-              eventParams={{ source: "pentru-vanzatori", destination: "/evaluare" }}
+              eventParams={{ interaction_source: "pentru-vanzatori", destination: "/evaluare" }}
               className="inline-flex items-center justify-center rounded-xl border-[3px] border-black bg-[#FFD100] px-6 py-3 text-xs font-black uppercase tracking-widest text-black shadow-[4px_4px_0_0_#fff] transition hover:brightness-105"
             >
               Evaluează un activ
@@ -213,7 +213,7 @@ export default function PentruVanzatoriPage() {
             <TrackedLink
               href="/pune-anunt"
               eventName="click_seller_post_listing"
-              eventParams={{ source: "pentru-vanzatori", destination: "/pune-anunt" }}
+              eventParams={{ interaction_source: "pentru-vanzatori", destination: "/pune-anunt" }}
               className="inline-flex items-center justify-center rounded-xl border-[3px] border-white bg-transparent px-6 py-3 text-xs font-black uppercase tracking-widest text-white transition hover:bg-white hover:text-black"
             >
               Publică anunț
@@ -221,7 +221,7 @@ export default function PentruVanzatoriPage() {
             <TrackedLink
               href="/tarife"
               eventName="click_seller_view_pricing"
-              eventParams={{ source: "pentru-vanzatori", destination: "/tarife" }}
+              eventParams={{ interaction_source: "pentru-vanzatori", destination: "/tarife" }}
               className="inline-flex items-center justify-center rounded-xl border-[3px] border-white bg-transparent px-6 py-3 text-xs font-black uppercase tracking-widest text-white transition hover:bg-white hover:text-black"
             >
               Vezi tarife

@@ -173,7 +173,7 @@ export type ListingDraftAnalyticsParams = {
   package: string;
   draft_version: number;
   reason: string;
-  source?: string;
+  interaction_source?: string;
 };
 
 const VALID_PRICING_MODES = new Set<PricingMode>([
@@ -597,7 +597,7 @@ export function listingDraftAnalyticsParams(
     package: draft.selectedPackage,
     draft_version: draft.version,
     reason,
-    ...(source ? { source } : {}),
+    ...(source ? { interaction_source: source } : {}),
   };
 }
 

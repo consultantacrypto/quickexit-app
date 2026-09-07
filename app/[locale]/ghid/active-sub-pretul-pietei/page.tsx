@@ -207,7 +207,7 @@ export default function ActiveSubPretGuidePage() {
             <TrackedLink
               href="/pentru-investitori"
               eventName="click_guide_below_market_investors"
-              eventParams={{ source: "ghid-active-sub-pretul-pietei", destination: "/pentru-investitori" }}
+              eventParams={{ interaction_source: "ghid-active-sub-pretul-pietei", destination: "/pentru-investitori" }}
               className="inline-flex items-center justify-center rounded-xl border-[3px] border-black bg-[#FFD100] px-6 py-3 text-xs font-black uppercase tracking-widest text-black shadow-[4px_4px_0_0_#fff] transition hover:brightness-105"
             >
               Pentru investitori
@@ -215,7 +215,7 @@ export default function ActiveSubPretGuidePage() {
             <TrackedLink
               href="/"
               eventName="click_guide_below_market_view_assets"
-              eventParams={{ source: "ghid-active-sub-pretul-pietei", destination: "/" }}
+              eventParams={{ interaction_source: "ghid-active-sub-pretul-pietei", destination: "/" }}
               className="inline-flex items-center justify-center rounded-xl border-[3px] border-white bg-transparent px-6 py-3 text-xs font-black uppercase tracking-widest text-white transition hover:bg-white hover:text-black"
             >
               Vezi active disponibile
@@ -223,7 +223,7 @@ export default function ActiveSubPretGuidePage() {
             <TrackedLink
               href="/posteaza-cerere"
               eventName="click_guide_below_market_post_demand"
-              eventParams={{ source: "ghid-active-sub-pretul-pietei", destination: "/posteaza-cerere" }}
+              eventParams={{ interaction_source: "ghid-active-sub-pretul-pietei", destination: "/posteaza-cerere" }}
               className="inline-flex items-center justify-center rounded-xl border-[3px] border-white bg-transparent px-6 py-3 text-xs font-black uppercase tracking-widest text-white transition hover:bg-white hover:text-black"
             >
               Publică o cerere de cumpărare
