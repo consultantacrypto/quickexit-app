@@ -8,6 +8,15 @@ import {
   readConsentPreferences,
   type ConsentPreferences,
 } from "@/lib/consentPreferences";
+import {
+  buildTrackingCookieExpiryAssignments,
+  isAnalyticsTrackingCookieName,
+  isAnalyticsTrackingStorageKey,
+  isGoogleAdsClickCookieName,
+  isMarketingTrackingStorageKey,
+  isTikTokTrackingCookieName,
+  readDocumentCookieNames,
+} from "@/lib/consentCookieCleanup";
 
 export const GTAG_SCRIPT_ATTR = "data-qe-tag";
 export const GTAG_SCRIPT_VALUE = "gtag";
@@ -132,26 +141,7 @@ export function ensureGoogleConsentDefault(): void {
   }
 }
 
-function isFirstPartyGoogleStorageKey(key: string): boolean {
-  if (/^(quickexit|quickExit)/i.test(key)) return false;
-  return /^(_ga|_gid|_gat|_gcl|_gac)/i.test(key);
-}
-
-function isFirstPartyGoogleCookieName(name: string): boolean {
-  return /^(_ga|_gid|_gat|_gcl|_gac)/i.test(name);
-}
-
-export function clearFirstPartyGoogleStorage(): void {
-  if (typeof window === "undefined") return;
-  try {
-    clearStorageKeysMatching(window.localStorage, isFirstPartyGoogleStorageKey);
-    clearStorageKeysMatching(window.sessionStorage, isFirstPartyGoogleStorageKey);
-  } catch {
-    // ignore
-  }
-}
-
-export function clearFirstPartyGoogleCookies(): void {
+function expireMatchingCookies(predicate: (name: string) => boolean): void {
   if (typeof document === "undefined" || typeof window === "undefined") return;
   let raw = "";
   try {
@@ -159,39 +149,52 @@ export function clearFirstPartyGoogleCookies(): void {
   } catch {
     raw = "";
   }
-  const names = raw
-    .split(";")
-    .map((part) => part.trim().split("=")[0])
-    .filter((name) => isFirstPartyGoogleCookieName(name));
+  const names = readDocumentCookieNames(raw).filter(predicate);
   const host = window.location.hostname;
-  const expire = "Thu, 01 Jan 1970 00:00:00 GMT";
   for (const name of names) {
-    const variants = [
-      `${name}=; expires=${expire}; path=/; Max-Age=0`,
-      `${name}=; expires=${expire}; path=/; Max-Age=0; domain=${host}`,
-      `${name}=; expires=${expire}; path=/; Max-Age=0; SameSite=Lax`,
-    ];
-    if (host && host !== "localhost") {
-      variants.push(`${name}=; expires=${expire}; path=/; Max-Age=0; domain=.${host}`);
-    }
-    for (const cookie of variants) {
+    for (const assignment of buildTrackingCookieExpiryAssignments(name, host)) {
       try {
-        document.cookie = cookie;
+        document.cookie = assignment;
       } catch {
         // ignore
       }
     }
   }
+}
+
+export function clearFirstPartyGoogleStorage(): void {
+  if (typeof window === "undefined") return;
+  try {
+    clearStorageKeysMatching(window.localStorage, isAnalyticsTrackingStorageKey);
+    clearStorageKeysMatching(window.sessionStorage, isAnalyticsTrackingStorageKey);
+  } catch {
+    // ignore
+  }
+}
+
+/** First-party GA cookies (_ga, _ga_*, _gid) only. Cannot delete .google.com. */
+export function clearFirstPartyGoogleCookies(): void {
+  expireMatchingCookies(isAnalyticsTrackingCookieName);
   clearFirstPartyGoogleStorage();
 }
 
 function isFirstPartyTikTokStorageKey(key: string): boolean {
-  if (/^(quickexit|quickExit)/i.test(key)) return false;
-  return /^tt_/i.test(key) || /^_tt/i.test(key) || /tiktok/i.test(key);
+  return isMarketingTrackingStorageKey(key) && !isGoogleAdsClickCookieName(key);
 }
 
 function isFirstPartyTikTokCookieName(name: string): boolean {
-  return /^(_tt|_ttp)/i.test(name) || /^tt_/i.test(name);
+  return isTikTokTrackingCookieName(name);
+}
+
+function clearFirstPartyGoogleAdsClickCookies(): void {
+  expireMatchingCookies(isGoogleAdsClickCookieName);
+  if (typeof window === "undefined") return;
+  try {
+    clearStorageKeysMatching(window.localStorage, isGoogleAdsClickCookieName);
+    clearStorageKeysMatching(window.sessionStorage, isGoogleAdsClickCookieName);
+  } catch {
+    // ignore
+  }
 }
 
 function clearStorageKeysMatching(
@@ -231,36 +234,7 @@ export function clearFirstPartyTikTokStorage(): void {
 
 /** First-party QuickExit/localhost cookies only. Cannot delete .tiktok.com cookies. */
 export function clearFirstPartyTikTokCookies(): void {
-  if (typeof document === "undefined" || typeof window === "undefined") return;
-  let raw = "";
-  try {
-    raw = document.cookie || "";
-  } catch {
-    raw = "";
-  }
-  const names = raw
-    .split(";")
-    .map((part) => part.trim().split("=")[0])
-    .filter((name) => isFirstPartyTikTokCookieName(name));
-  const host = window.location.hostname;
-  const expire = "Thu, 01 Jan 1970 00:00:00 GMT";
-  for (const name of names) {
-    const variants = [
-      `${name}=; expires=${expire}; path=/; Max-Age=0`,
-      `${name}=; expires=${expire}; path=/; Max-Age=0; domain=${host}`,
-      `${name}=; expires=${expire}; path=/; Max-Age=0; SameSite=Lax`,
-    ];
-    if (host && host !== "localhost") {
-      variants.push(`${name}=; expires=${expire}; path=/; Max-Age=0; domain=.${host}`);
-    }
-    for (const cookie of variants) {
-      try {
-        document.cookie = cookie;
-      } catch {
-        // ignore
-      }
-    }
-  }
+  expireMatchingCookies(isFirstPartyTikTokCookieName);
   clearFirstPartyTikTokStorage();
 }
 
@@ -389,23 +363,29 @@ export function injectTikTokIfAllowed(prefs: ConsentPreferences): boolean {
   return true;
 }
 
+export function clearDeniedCategoryTracking(prefs: ConsentPreferences | null): void {
+  if (!prefs?.analytics) {
+    clearFirstPartyGoogleCookies();
+  }
+  if (!prefs?.marketing) {
+    clearFirstPartyGoogleAdsClickCookies();
+    clearFirstPartyTikTokCookies();
+  }
+}
+
 export function applyConsentTags(prefs: ConsentPreferences | null): void {
   injectGtagOnce(prefs);
   if (prefs?.marketing) {
     injectTikTokIfAllowed(prefs);
-    return;
-  }
-  if (typeof window !== "undefined") {
+  } else if (typeof window !== "undefined") {
     try {
       window.ttq?.revokeConsent?.();
     } catch {
       // ignore
     }
-    clearFirstPartyTikTokCookies();
   }
-  if (!prefs?.analytics) {
-    clearFirstPartyGoogleCookies();
-  }
+  // Re-run on every init so a prior revoke on www still clears .quickexit.ro cookies.
+  clearDeniedCategoryTracking(prefs);
 }
 
 export function optionalTagHosts(): string[] {

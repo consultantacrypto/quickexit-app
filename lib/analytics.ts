@@ -15,8 +15,7 @@ import {
 import { stripReservedAnalyticsParams } from "@/lib/analyticsParams";
 import {
   applyConsentTags,
-  clearFirstPartyGoogleCookies,
-  clearFirstPartyTikTokCookies,
+  clearDeniedCategoryTracking,
   dispatchGtagEvent,
 } from "@/lib/consentTags";
 
@@ -177,11 +176,8 @@ export function applyConsentPreferences(input: ConsentChoiceInput): ConsentPrefe
     captureAttribution();
   } else {
     clearAnalyticsAttribution();
-    clearFirstPartyGoogleCookies();
   }
-  if (!next.marketing) {
-    clearFirstPartyTikTokCookies();
-  }
+  clearDeniedCategoryTracking(next);
   syncVendorConsent(next);
   emitConsentChange(next);
   return next;

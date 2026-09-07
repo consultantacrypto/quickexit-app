@@ -19,10 +19,17 @@ import {
 import {
   GTAG_HOST,
   TIKTOK_HOST,
+  applyConsentTags,
   injectGtagIfAllowed,
   injectGtagOnce,
   injectTikTokIfAllowed,
 } from "../lib/consentTags";
+import {
+  buildTrackingCookieExpiryAssignments,
+  isAnalyticsTrackingCookieName,
+  isGoogleAdsClickCookieName,
+  trackingCookieExpiryDomains,
+} from "../lib/consentCookieCleanup";
 import { trackFunnelEvent, resetFunnelOnceGateForTests } from "../lib/funnelAnalytics";
 
 function fail(message: string): never {
@@ -65,6 +72,7 @@ const gtagCalls: unknown[][] = [];
 const ttqCalls: unknown[][] = [];
 let lastGtagOnload: unknown = null;
 const cookieJar = new Map<string, string>();
+const cookieAssignments: string[] = [];
 
 Object.defineProperty(globalThis, "document", {
   value: {
@@ -101,6 +109,7 @@ Object.defineProperty(globalThis, "document", {
       return [...cookieJar.entries()].map(([name, value]) => `${name}=${value}`).join("; ");
     },
     set cookie(value: string) {
+      cookieAssignments.push(String(value));
       const [pair] = String(value).split(";");
       const eq = pair.indexOf("=");
       const name = (eq >= 0 ? pair.slice(0, eq) : pair).trim();
@@ -359,6 +368,111 @@ assert(!sessionStorage.getItem("tt_appInfo"), "tt_appInfo is removed");
 assert(!sessionStorage.getItem("_tt_enable_cookie"), "_tt_enable_cookie storage is removed");
 assert(sessionStorage.getItem("quickExitListingDraft") === '{"keep":"draft"}', "revoke does not clear listing draft");
 assert(localStorage.getItem("unrelated_app_key") === "keep", "revoke does not clear unrelated storage");
+assert(cookieJar.get("NEXT_LOCALE") === undefined, "NEXT_LOCALE was not seeded in revoke jar");
+
+assert(isAnalyticsTrackingCookieName("_ga"), "_ga is analytics");
+assert(isAnalyticsTrackingCookieName("_ga_TEST"), "_ga_* is analytics");
+assert(isAnalyticsTrackingCookieName("_ga_G-8LLK172SCX"), "_ga_MEASUREMENT is analytics");
+assert(isAnalyticsTrackingCookieName("_gid"), "_gid is analytics");
+assert(!isAnalyticsTrackingCookieName("_gcl_au"), "_gcl_au is not analytics");
+assert(isGoogleAdsClickCookieName("_gcl_au"), "_gcl_au is marketing click");
+assert(!isGoogleAdsClickCookieName("_ga"), "_ga is not a gcl cookie");
+
+const wwwDomains = trackingCookieExpiryDomains("www.quickexit.ro");
+assert(wwwDomains.includes(null), "www includes host-only expiry");
+assert(wwwDomains.includes("www.quickexit.ro"), "www includes Domain=www.quickexit.ro");
+assert(wwwDomains.includes(".www.quickexit.ro"), "www includes Domain=.www.quickexit.ro");
+assert(wwwDomains.includes("quickexit.ro"), "www includes Domain=quickexit.ro");
+assert(wwwDomains.includes(".quickexit.ro"), "www includes Domain=.quickexit.ro");
+const apexDomains = trackingCookieExpiryDomains("quickexit.ro");
+assert(apexDomains.includes(null) && apexDomains.includes("quickexit.ro") && apexDomains.includes(".quickexit.ro"), "apex includes root-domain expiry");
+assert(apexDomains.includes("www.quickexit.ro") && apexDomains.includes(".www.quickexit.ro"), "apex also expires www Domain attributes");
+
+const previewHost = "quickexit-preview-daniel-mihais-projects-31598ec8.vercel.app";
+const previewDomains = trackingCookieExpiryDomains(previewHost);
+assert(previewDomains.length === 1 && previewDomains[0] === null, "Preview uses host-only expiry");
+const previewAssignments = buildTrackingCookieExpiryAssignments("_ga", previewHost);
+assert(
+  previewAssignments.every((row) => !/Domain=/i.test(row)),
+  "Preview assignments have no Domain attribute",
+);
+assert(
+  previewAssignments.every((row) => !/\.vercel\.app/i.test(row)),
+  "Preview never targets .vercel.app",
+);
+
+const localhostDomains = trackingCookieExpiryDomains("localhost");
+assert(localhostDomains.length === 1 && localhostDomains[0] === null, "localhost uses host-only expiry");
+const localhostAssignments = buildTrackingCookieExpiryAssignments("_ga", "localhost");
+assert(
+  localhostAssignments.every((row) => !/Domain=/i.test(row)),
+  "localhost never targets a parent domain",
+);
+
+const wwwAssignments = buildTrackingCookieExpiryAssignments("_ga_TEST", "www.quickexit.ro");
+assert(wwwAssignments.some((row) => /Domain=\.quickexit\.ro(?:;|$)/i.test(row)), "www expires .quickexit.ro");
+assert(wwwAssignments.some((row) => /Domain=quickexit\.ro(?:;|$)/i.test(row)), "www expires quickexit.ro");
+assert(wwwAssignments.every((row) => /Path=\//.test(row) && /Max-Age=0/.test(row) && /Expires=Thu, 01 Jan 1970/i.test(row)), "expiry uses Path=/ Max-Age=0 past Expires");
+assert(wwwAssignments.every((row) => !/\.vercel\.app/i.test(row)), "approved host assignments never mention vercel.app");
+
+cookieJar.clear();
+cookieAssignments.length = 0;
+cookieJar.set("_ga", "keep-or-drop");
+cookieJar.set("_ga_TEST", "1");
+cookieJar.set("_gcl_au", "1.1.test");
+cookieJar.set("_ttp", "tiktok");
+cookieJar.set("NEXT_LOCALE", "ro");
+cookieJar.set("unrelated_cookie", "keep");
+sessionStorage.setItem("quickExitListingDraft", '{"keep":"draft"}');
+localStorage.setItem("unrelated_app_key", "keep");
+(window as { location: { hostname: string } }).location.hostname = "www.quickexit.ro";
+applyConsentPreferences({ analytics: true, marketing: false });
+assert(cookieJar.has("_ga"), "analytics-only keeps _ga");
+assert(cookieJar.has("_ga_TEST"), "analytics-only keeps _ga_*");
+assert(!cookieJar.has("_gcl_au"), "marketing-denied removes _gcl_au");
+assert(!cookieJar.has("_ttp"), "marketing-denied removes _ttp");
+assert(cookieJar.get("NEXT_LOCALE") === "ro", "partial consent keeps NEXT_LOCALE");
+assert(cookieJar.get("unrelated_cookie") === "keep", "partial consent keeps unrelated cookies");
+assert(sessionStorage.getItem("quickExitListingDraft") === '{"keep":"draft"}', "partial consent keeps draft");
+assert(localStorage.getItem("unrelated_app_key") === "keep", "partial consent keeps unrelated storage");
+
+cookieJar.set("_ga", "1");
+cookieJar.set("_gid", "1");
+cookieJar.set("_gcl_au", "should-keep");
+applyConsentPreferences({ analytics: false, marketing: true });
+assert(!cookieJar.has("_ga"), "analytics-denied removes _ga");
+assert(!cookieJar.has("_gid"), "analytics-denied removes _gid");
+assert(cookieJar.has("_gcl_au"), "marketing-only keeps _gcl_au");
+
+cookieJar.set("_ga", "stale");
+cookieJar.set("_gcl_au", "stale");
+cookieJar.set("_ttp", "stale");
+localStorage.setItem(
+  CONSENT_PREFERENCES_STORAGE_KEY,
+  JSON.stringify({
+    version: CONSENT_PREFERENCES_VERSION,
+    timestamp: Date.now(),
+    necessary: true,
+    analytics: false,
+    marketing: false,
+  }),
+);
+applyConsentTags(readConsentPreferences());
+assert(!cookieJar.has("_ga"), "stored denied prefs clear _ga on init");
+assert(!cookieJar.has("_gcl_au"), "stored denied prefs clear _gcl_au on init");
+assert(!cookieJar.has("_ttp"), "stored denied prefs clear _ttp on init");
+assert(cookieJar.get("NEXT_LOCALE") === "ro", "init cleanup keeps NEXT_LOCALE");
+assert(cookieJar.get("unrelated_cookie") === "keep", "init cleanup keeps unrelated cookies");
+
+cookieAssignments.length = 0;
+(window as { location: { hostname: string } }).location.hostname = "www.quickexit.ro";
+cookieJar.set("_ga", "1");
+applyConsentTags(buildConsentPreferences({ analytics: false, marketing: false }));
+assert(
+  cookieAssignments.some((row) => /Domain=\.quickexit\.ro\b/i.test(row)),
+  "runtime revoke on www writes Domain=.quickexit.ro",
+);
+(window as { location: { hostname: string } }).location.hostname = "localhost";
 
 const footer = readFileSync("app/components/Footer.tsx", "utf8");
 assert(footer.includes("cookieSettings"), "footer exposes cookie settings without redesign");
