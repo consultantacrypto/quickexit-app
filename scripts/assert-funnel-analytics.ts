@@ -162,6 +162,9 @@ const dirty = sanitizeFunnelParams({
   category: "Auto & Moto",
   step: 2,
   source: "publish_form",
+  medium: "cpc",
+  campaign: "spring",
+  funnel_source: "publish_form",
   sale_strategy: "direct",
   email: "seller@example.com",
   phone: "0712345678",
@@ -176,7 +179,10 @@ const dirty = sanitizeFunnelParams({
 assert(dirty.locale === "ro", "locale kept");
 assert(dirty.category === "auto", "category mapped to enum");
 assert(dirty.step === 2, "step kept");
-assert(dirty.source === "publish_form", "source kept");
+assert(dirty.funnel_source === "publish_form", "funnel_source kept");
+assert(!("source" in dirty), "reserved source is not copied");
+assert(!("medium" in dirty), "reserved medium is not copied");
+assert(!("campaign" in dirty), "reserved campaign is not copied");
 assert(dirty.sale_strategy === "direct", "sale_strategy kept");
 assert(!("email" in dirty), "email stripped");
 assert(!("listing_id" in dirty), "listing_id stripped");
@@ -201,19 +207,22 @@ captureAttribution();
 assert(localStorage.getItem(ATTRIBUTION_STORAGE_KEY) === null, "absent consent stores no attribution");
 assert(sessionStorage.getItem(ATTRIBUTION_STORAGE_KEY) === null, "absent consent does not use sessionStorage");
 assert(cookieStore === "", "absent consent writes no cookies");
-assert(trackFunnelEvent("publish_page_view", { locale: "ro", source: "publish_form" }) === false, "absent consent blocks funnel");
-assert(gtagCalls.filter((call) => call[0] === "event").length === 0, "absent consent dispatches zero gtag events");
+assert(trackFunnelEvent("publish_page_view", { locale: "ro", funnel_source: "publish_form" }) === true, "absent consent allows cookieless funnel");
+assert(gtagCalls.some((call) => call[0] === "consent" && call[1] === "default"), "consent default is sent");
+assert(gtagCalls.some((call) => call[0] === "event" && call[1] === "publish_page_view"), "absent consent cookieless page view");
+const absentPayload = gtagCalls.find((call) => call[0] === "event" && call[1] === "publish_page_view")?.[2] as Record<string, unknown> | undefined;
+assert(absentPayload && !("utm_source" in absentPayload), "cookieless funnel has no UTM");
+assert(absentPayload && !("source" in absentPayload), "cookieless funnel has no reserved source");
 
 setAnalyticsConsent("denied");
 gtagCalls.length = 0;
 captureAttribution();
 assert(getAnalyticsConsent() === "denied", "denied persisted");
 assert(localStorage.getItem(ATTRIBUTION_STORAGE_KEY) === null, "denied consent stores no attribution");
-assert(trackFunnelEvent("publish_page_view", { locale: "ro", source: "publish_form" }) === false, "denied consent blocks funnel");
-assert(gtagCalls.filter((call) => call[0] === "event").length === 0, "denied consent dispatches zero gtag events");
+assert(trackFunnelEvent("publish_page_view", { locale: "ro", funnel_source: "publish_form" }) === false, "denied duplicate still gated");
 assert(
-  trackFunnelEvent("publish_page_view", { locale: "ro", source: "publish_form" }) === false,
-  "denied first calls do not consume the once-gate",
+  trackFunnelEvent("listing_started", { locale: "ro", funnel_source: "publish_form" }) === true,
+  "denied consent still allows a later cookieless funnel event",
 );
 
 sessionStorage.setItem(LISTING_DRAFT_STORAGE_KEY, '{"keep":"draft"}');
@@ -261,37 +270,37 @@ assert(!JSON.stringify(utm).includes("@"), "UTM payload has no email");
 
 resetFunnelOnceGateForTests();
 gtagCalls.length = 0;
-assert(trackFunnelEvent("publish_page_view", { locale: "ro", source: "publish_form" }) === true, "first page view fires");
-assert(trackFunnelEvent("publish_page_view", { locale: "ro", source: "publish_form" }) === false, "duplicate page view suppressed");
-assert(trackFunnelEvent("publish_page_view", { locale: "ro", source: "publish_form" }) === false, "Strict Mode remount does not duplicate page view");
+assert(trackFunnelEvent("publish_page_view", { locale: "ro", funnel_source: "publish_form" }) === true, "first page view fires");
+assert(trackFunnelEvent("publish_page_view", { locale: "ro", funnel_source: "publish_form" }) === false, "duplicate page view suppressed");
+assert(trackFunnelEvent("publish_page_view", { locale: "ro", funnel_source: "publish_form" }) === false, "Strict Mode remount does not duplicate page view");
 assert(trackFunnelEvent("purchase", { locale: "ro" }) === false, "purchase is not fabricated");
 assert(
   trackFunnelEvent("listing_started", {
     locale: "ro",
     category: "auto",
-    source: "publish_form",
+    funnel_source: "publish_form",
     sale_strategy: "direct",
     listing_id: "abc",
     email: "a@b.c",
   }) === true,
   "listing_started fires",
 );
-assert(trackFunnelEvent("listing_step_1_complete", { locale: "ro", category: "auto", step: 1, source: "publish_form" }) === true, "step 1 complete fires once");
-assert(trackFunnelEvent("listing_step_1_complete", { locale: "ro", category: "auto", step: 1, source: "publish_form" }) === false, "step 1 complete is not duplicated");
-assert(trackFunnelEvent("listing_view", { locale: "ro", category: "auto", source: "listing_detail" }) === true, "listing_view fires once");
-assert(trackFunnelEvent("listing_view", { locale: "ro", category: "auto", source: "listing_detail" }) === false, "listing_view Strict Mode remount suppressed");
-assert(trackFunnelEvent("offer_started", { locale: "ro", category: "auto", source: "listing_detail" }) === true, "offer_started on modal open");
-assert(trackFunnelEvent("offer_started", { locale: "ro", category: "auto", source: "listing_detail" }) === false, "closing/reopening does not duplicate offer_started once-gate");
+assert(trackFunnelEvent("listing_step_1_complete", { locale: "ro", category: "auto", step: 1, funnel_source: "publish_form" }) === true, "step 1 complete fires once");
+assert(trackFunnelEvent("listing_step_1_complete", { locale: "ro", category: "auto", step: 1, funnel_source: "publish_form" }) === false, "step 1 complete is not duplicated");
+assert(trackFunnelEvent("listing_view", { locale: "ro", category: "auto", funnel_source: "listing_detail" }) === true, "listing_view fires once");
+assert(trackFunnelEvent("listing_view", { locale: "ro", category: "auto", funnel_source: "listing_detail" }) === false, "listing_view Strict Mode remount suppressed");
+assert(trackFunnelEvent("offer_started", { locale: "ro", category: "auto", funnel_source: "listing_detail" }) === true, "offer_started on modal open");
+assert(trackFunnelEvent("offer_started", { locale: "ro", category: "auto", funnel_source: "listing_detail" }) === false, "closing/reopening does not duplicate offer_started once-gate");
 assert(
-  trackFunnelEvent("offer_submitted", { locale: "ro", category: "auto", source: "listing_detail" }, { skipOnce: true }) === true,
+  trackFunnelEvent("offer_submitted", { locale: "ro", category: "auto", funnel_source: "listing_detail" }, { skipOnce: true }) === true,
   "offer_submitted can fire after insert",
 );
 assert(
-  trackFunnelEvent("begin_checkout", { locale: "ro", category: "auto", source: "publish_form" }, { skipOnce: true }) === true,
+  trackFunnelEvent("begin_checkout", { locale: "ro", category: "auto", funnel_source: "publish_form" }, { skipOnce: true }) === true,
   "begin_checkout retry is allowed with skipOnce",
 );
 assert(
-  trackFunnelEvent("begin_checkout", { locale: "ro", category: "auto", source: "publish_form" }, { skipOnce: true }) === true,
+  trackFunnelEvent("begin_checkout", { locale: "ro", category: "auto", funnel_source: "publish_form" }, { skipOnce: true }) === true,
   "failed checkout may be retried",
 );
 
@@ -302,13 +311,18 @@ assert(!sent.some((call) => call[1] === "purchase"), "no purchase gtag event");
 const sample = sent.find((call) => call[1] === "listing_started");
 assert(sample, "listing_started sample exists");
 for (const call of sent) {
-  const payload = JSON.stringify(call[2] ?? {});
+  const params = (call[2] ?? {}) as Record<string, unknown>;
+  const payload = JSON.stringify(params);
+  assert(!("source" in params), "gtag payload has no reserved source key");
+  assert(!("medium" in params), "gtag payload has no reserved medium key");
+  assert(!("campaign" in params), "gtag payload has no reserved campaign key");
   assert(!payload.includes("listing_id"), "gtag payload has no listing_id");
   assert(!payload.includes("@"), "gtag payload has no email");
   assert(!payload.toLowerCase().includes("bmw secret"), "gtag payload has no free text title");
   assert(!payload.includes("0712345678"), "gtag payload has no phone");
   assert(!payload.includes("attribution_utm_"), "gtag payload has a single UTM namespace");
 }
+assert((sample?.[2] as { funnel_source?: string })?.funnel_source === "publish_form", "listing_started uses funnel_source");
 
 revokeAnalyticsConsent();
 assert(getAnalyticsConsent() === "denied", "revoke persists denied");
@@ -319,8 +333,9 @@ assert(localStorage.getItem(CONSENT_PREFERENCES_STORAGE_KEY), "revoke writes ver
 assert(!localStorage.getItem(ANALYTICS_CONSENT_STORAGE_KEY), "legacy consent key is not left granted");
 gtagCalls.length = 0;
 resetFunnelOnceGateForTests();
-assert(trackFunnelEvent("listing_started", { locale: "ro", source: "publish_form" }) === false, "revoked consent blocks future funnel events");
-assert(gtagCalls.filter((call) => call[0] === "event").length === 0, "revoked consent dispatches zero events");
+assert(trackFunnelEvent("listing_started", { locale: "ro", funnel_source: "publish_form" }) === true, "revoked consent still allows cookieless funnel");
+const revoked = gtagCalls.find((call) => call[0] === "event" && call[1] === "listing_started")?.[2] as Record<string, unknown> | undefined;
+assert(revoked && !("utm_source" in revoked), "revoked cookieless funnel has no UTM");
 clearAnalyticsAttribution();
 
 setLocation(
@@ -370,6 +385,10 @@ assert(
 );
 
 const listing = readFileSync("app/[locale]/anunt/[id]/AnuntClient.tsx", "utf8");
+assert(publish.includes('funnel_source: "publish_form"'), "publish funnel uses funnel_source");
+assert(!/\bsource:\s*"publish_form"\s+as const/.test(publish), "publish funnel no longer uses reserved source");
+assert(listing.includes('funnel_source: "listing_detail"'), "listing funnel uses funnel_source");
+assert(!/\bsource:\s*"listing_detail"\s+as const/.test(listing), "listing funnel no longer uses reserved source");
 assert(listing.includes('trackFunnelEvent("listing_view"'), "listing_view instrumented");
 assert(listing.includes("listingViewOnceRef"), "listing_view has Strict Mode once-ref");
 assert(listing.includes('trackFunnelEvent("request_details_click"'), "request_details_click instrumented");
@@ -396,7 +415,8 @@ assert(!analyticsSrc.includes("landing_path"), "helper no longer persists landin
 assert(!analyticsSrc.includes("first_seen_at"), "helper no longer persists first_seen_at");
 
 const docs = readFileSync("docs/analytics-events.md", "utf8");
-assert(docs.includes("Canonical ↔ legacy mapping"), "docs include legacy mapping");
+assert(docs.includes("funnel_source"), "docs use funnel_source");
+assert(docs.includes("Advanced Consent Mode"), "docs describe Advanced Consent Mode");
 assert(docs.includes("listing_step_1_complete"), "docs list step 1");
 assert(docs.includes("do not count both") || docs.includes("Nu importa ambele"), "docs warn against double Ads conversions");
 assert(docs.includes("Nu există eveniment `purchase`") || docs.includes("nu fabrică purchase"), "docs confirm no purchase yet");
