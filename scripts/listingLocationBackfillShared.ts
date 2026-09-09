@@ -294,6 +294,24 @@ export function requestUrlOf(input: RequestInfo | URL): string {
   return input.url;
 }
 
+/** Fetch null-body statuses. Node/undici rejects a non-null body with these codes. */
+const NULL_BODY_STATUSES = new Set([204, 205, 304]);
+
+export function buildFetchResponse(input: {
+  status: number;
+  statusText: string;
+  headers: Headers;
+  body: Buffer;
+}): Response {
+  const status = input.status;
+  const body: BodyInit | null = NULL_BODY_STATUSES.has(status) ? null : new Uint8Array(input.body);
+  return new Response(body, {
+    status,
+    statusText: input.statusText,
+    headers: input.headers,
+  });
+}
+
 export function ipv4Request(
   input: RequestInfo | URL,
   init: RequestInit | undefined,
@@ -342,10 +360,11 @@ export function ipv4Request(
             else if (value) resHeaders.set(key, value);
           }
           resolve(
-            new Response(Buffer.concat(chunks), {
+            buildFetchResponse({
               status: res.statusCode ?? 0,
               statusText: res.statusMessage ?? "",
               headers: resHeaders,
+              body: Buffer.concat(chunks),
             }),
           );
         });
