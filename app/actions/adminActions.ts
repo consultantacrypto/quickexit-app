@@ -339,36 +339,49 @@ export async function adminRenewAuctionExpiry(
 export async function adminPatchListingLocation(
   listingId: string,
   accessToken: string,
-  input: { county: string; city: string; district?: string },
+  input: { country_code?: string; county: string; city: string; district?: string },
+): Promise<AdminActionResult> {
+  return adminPatchListingsLocation([listingId], accessToken, input);
+}
+
+export async function adminPatchListingsLocation(
+  listingIds: string[],
+  accessToken: string,
+  input: { country_code?: string; county: string; city: string; district?: string },
 ): Promise<AdminActionResult> {
   try {
-    if (!listingId) return { ok: false, error: "ID invalid." };
+    const ids = Array.from(new Set(listingIds.map((id) => String(id || "").trim()).filter(Boolean))).slice(0, 100);
+    if (ids.length === 0) return { ok: false, error: "Selectează cel puțin un anunț." };
     const supabase = await assertAdminAndGetServiceClient(accessToken);
-    const { data: row, error } = await supabase
-      .from("listings")
-      .select("id, details")
-      .eq("id", listingId)
-      .maybeSingle();
-    if (error || !row) return { ok: false, error: "Anunțul nu a fost găsit." };
-
     const check = locationFromFormData({
-      country_code: "RO",
+      country_code: input.country_code || "RO",
       county: input.county,
       city: input.city,
       district: input.district ?? "",
     });
     if (!check.ok) return { ok: false, error: check.error };
 
-    const current =
-      row.details && typeof row.details === "object" && !Array.isArray(row.details)
-        ? (row.details as Record<string, unknown>)
-        : {};
-    const details = applyListingLocationToDetails(current, check.location);
-    const { error: updateError } = await supabase
+    const { data: rows, error } = await supabase
       .from("listings")
-      .update({ details })
-      .eq("id", listingId);
-    if (updateError) return { ok: false, error: updateError.message };
+      .select("id, details")
+      .in("id", ids);
+    if (error) return { ok: false, error: error.message };
+    if (!rows || rows.length !== ids.length) {
+      return { ok: false, error: "Unul dintre anunțuri nu a fost găsit." };
+    }
+
+    for (const row of rows) {
+      const current =
+        row.details && typeof row.details === "object" && !Array.isArray(row.details)
+          ? (row.details as Record<string, unknown>)
+          : {};
+      const details = applyListingLocationToDetails(current, check.location);
+      const { error: updateError } = await supabase
+        .from("listings")
+        .update({ details })
+        .eq("id", row.id);
+      if (updateError) return { ok: false, error: updateError.message };
+    }
     return { ok: true };
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : "Eroare necunoscută.";

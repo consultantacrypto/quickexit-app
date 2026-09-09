@@ -25,6 +25,24 @@ type Row = {
   details: unknown;
 };
 
+const DETERMINISTIC_SUGGESTIONS: Record<
+  string,
+  { country: string; county: string; city: string; note: string }
+> = {
+  "d3fa3f7e-81d9-4c86-83c0-9baa2f98a199": {
+    country: "RO",
+    county: "Giurgiu",
+    city: "Săbăreni",
+    note: "Catalog locality Săbăreni (Giurgiu). Not written.",
+  },
+  "1523c382-ecdb-4e4a-9221-e4460252fe8d": {
+    country: "RO",
+    county: "Tulcea",
+    city: "Murighiol",
+    note: "Catalog locality Murighiol (Tulcea). Not written.",
+  },
+};
+
 async function main() {
   const outDir = path.resolve(process.cwd(), "docs/internal");
   const outFile = path.join(outDir, "listing-location-missing-report.md");
@@ -104,6 +122,16 @@ async function main() {
     missing.push(row);
   }
 
+  const categoryTotals = new Map<string, number>();
+  for (const row of missing) {
+    const category = String(row.category ?? "Necunoscut");
+    categoryTotals.set(category, (categoryTotals.get(category) ?? 0) + 1);
+  }
+
+  const suggestions = missing
+    .filter((row) => DETERMINISTIC_SUGGESTIONS[row.id])
+    .map((row) => ({ row, suggestion: DETERMINISTIC_SUGGESTIONS[row.id] }));
+
   const lines = [
     "# Active listings missing structured location",
     "",
@@ -111,9 +139,22 @@ async function main() {
     `Deterministic catalog matches (not written): **${wouldBackfill.length}**.`,
     `Still missing a reliable structured location: **${missing.length}**.`,
     "",
-    "No database writes were performed. No locations were invented.",
+    "Location means the place where the exact asset can be viewed or collected. Titles were not used to invent locations. No database writes were performed.",
+    "",
+    "### Totals by category",
     "",
   ];
+
+  if (categoryTotals.size === 0) {
+    lines.push("None.");
+  } else {
+    lines.push("| Category | Count |");
+    lines.push("|---|---|");
+    for (const [category, count] of [...categoryTotals.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))) {
+      lines.push(`| ${category} | ${count} |`);
+    }
+  }
+  lines.push("");
 
   if (wouldBackfill.length > 0) {
     lines.push("## Deterministic matches (dry-run only)", "");
@@ -124,6 +165,20 @@ async function main() {
         `| ${row.id} | ${String(row.title ?? "").replace(/\|/g, "/")} | ${String(row.category ?? "")} | ${row.label} |`,
       );
     }
+    lines.push("");
+  }
+
+  if (suggestions.length > 0) {
+    lines.push("## Deterministic suggestions (not written)", "");
+    lines.push("| Listing ID | Title | Suggested location | Note |");
+    lines.push("|---|---|---|---|");
+    for (const { row, suggestion } of suggestions) {
+      lines.push(
+        `| ${row.id} | ${String(row.title ?? "").replace(/\|/g, "/")} | ${suggestion.country} / ${suggestion.county} / ${suggestion.city} | ${suggestion.note} |`,
+      );
+    }
+    lines.push("");
+    lines.push("No other missing listings were guessed.");
     lines.push("");
   }
 

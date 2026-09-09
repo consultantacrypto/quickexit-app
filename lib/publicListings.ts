@@ -1,4 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { findCountry } from "@/lib/countries";
+import { foldLocationSearch } from "@/lib/locationFold";
 import { isActivePublicListingRow } from "@/lib/sitemapEntries";
 import {
   listingMatchesKeyword,
@@ -9,6 +11,7 @@ import {
   canonicalRomaniaCity,
   canonicalRomaniaCounty,
   foldRo,
+  looksLikeStreetLocation,
   uniqueCatalogLocality,
 } from "@/lib/romaniaLocations";
 
@@ -42,6 +45,7 @@ export type PublicSearchListing = {
 
 export type PublicListingSearchParams = {
   q?: string | null;
+  country?: string | null;
   county?: string | null;
   city?: string | null;
   district?: string | null;
@@ -51,6 +55,7 @@ export type PublicListingSearchParams = {
 
 export type ParsedPublicListingSearchParams = {
   q: string;
+  country: string;
   county: string;
   city: string;
   district: string;
@@ -83,26 +88,33 @@ export function quotePostgrestLiteral(value: string): string | null {
   return `"${trimmed}"`;
 }
 
-function uniqueCountyForCity(cityRaw: string): { county: string; city: string } | null {
-  return uniqueCatalogLocality(cityRaw);
-}
-
 export function canonicalizePublicLocationFilter(input: {
+  country?: string | null;
   county?: string | null;
   city?: string | null;
   district?: string | null;
-}): { county: string; city: string; district: string; invalid: boolean } {
+}): { country: string; county: string; city: string; district: string; invalid: boolean } {
+  const countryMatched = findCountry(sanitizeLocationParam(input.country));
+  let country = countryMatched?.code ?? "";
   let countyRaw = sanitizeLocationParam(input.county);
   let cityRaw = sanitizeLocationParam(input.city);
   let districtRaw = sanitizeLocationParam(input.district);
 
-  if (!countyRaw && !cityRaw && !districtRaw) {
-    return { county: "", city: "", district: "", invalid: false };
+  if (!country && !countyRaw && !cityRaw && !districtRaw) {
+    return { country: "", county: "", city: "", district: "", invalid: false };
+  }
+
+  if (cityRaw && looksLikeStreetLocation(cityRaw)) {
+    return { country: "", county: "", city: "", district: "", invalid: true };
+  }
+  if (countyRaw && looksLikeStreetLocation(countyRaw)) {
+    return { country: "", county: "", city: "", district: "", invalid: true };
   }
 
   if (!countyRaw && districtRaw) {
     const sector = canonicalBucharestDistrict(districtRaw);
     if (sector) {
+      country = country || "RO";
       countyRaw = "București";
       cityRaw = cityRaw || "București";
       districtRaw = sector;
@@ -110,21 +122,26 @@ export function canonicalizePublicLocationFilter(input: {
   }
 
   if (!countyRaw && cityRaw) {
-    const inferred = uniqueCountyForCity(cityRaw);
+    const inferred = uniqueCatalogLocality(cityRaw);
     if (inferred) {
+      country = country || "RO";
       countyRaw = inferred.county;
       cityRaw = inferred.city;
     }
   }
 
-  const county = countyRaw ? canonicalRomaniaCounty(countyRaw) : null;
-  if (countyRaw && !county) {
-    return { county: "", city: "", district: "", invalid: true };
+  const countyCanonical = countyRaw ? canonicalRomaniaCounty(countyRaw) : null;
+  if (countyRaw && countyCanonical) {
+    country = country || "RO";
+  } else if (countyRaw && (country === "RO" || (!country && !cityRaw))) {
+    if (!countyCanonical) {
+      return { country: "", county: "", city: "", district: "", invalid: true };
+    }
   }
 
   let city = cityRaw;
-  if (cityRaw && county) {
-    city = canonicalRomaniaCity(county, cityRaw) ?? cityRaw;
+  if (cityRaw && countyCanonical) {
+    city = canonicalRomaniaCity(countyCanonical, cityRaw) ?? cityRaw;
   }
 
   let district = districtRaw;
@@ -133,7 +150,8 @@ export function canonicalizePublicLocationFilter(input: {
   }
 
   return {
-    county: county ?? "",
+    country,
+    county: countyCanonical ?? countyRaw,
     city,
     district,
     invalid: false,
@@ -150,6 +168,7 @@ export function parsePublicListingSearchParams(
     return value ?? "";
   };
   const location = canonicalizePublicLocationFilter({
+    country: get("country"),
     county: get("county"),
     city: get("city"),
     district: get("district"),
@@ -160,6 +179,7 @@ export function parsePublicListingSearchParams(
     : 1;
   return {
     q: sanitizeSearchQuery(get("q")),
+    country: location.country,
     county: location.county,
     city: location.city,
     district: location.district,
@@ -196,42 +216,68 @@ export function buildKeywordOrFilter(rawQuery: string): string | null {
 }
 
 export function buildLocationOrFilters(filter: {
+  country?: string;
   county?: string;
   city?: string;
   district?: string;
 }): string[] {
   const ors: string[] = [];
+  const country = sanitizeLocationParam(filter.country).toUpperCase();
   const county = sanitizeLocationParam(filter.county);
   const city = sanitizeLocationParam(filter.city);
   const district = sanitizeLocationParam(filter.district);
 
-  const pushEqOrLegacy = (column: string, value: string) => {
-    const quoted = quotePostgrestLiteral(value);
-    if (!quoted) return;
-    const inner = quoted.slice(1, -1);
-    ors.push(`${column}.eq.${quoted},details->>location.ilike."%${inner}%"`);
+  const pushValue = (value: string, columns: string[]) => {
+    const variants = Array.from(
+      new Set([value, foldLocationSearch(value)].map((item) => item.trim()).filter(Boolean)),
+    );
+    const clauses: string[] = [];
+    for (const variant of variants) {
+      const quoted = quotePostgrestLiteral(variant);
+      if (!quoted) continue;
+      const inner = quoted.slice(1, -1);
+      for (const column of columns) {
+        if (column.endsWith("location") || column.endsWith("location_search") || column.endsWith("country_name")) {
+          clauses.push(`${column}.ilike."%${inner}%"`);
+        } else {
+          clauses.push(`${column}.eq.${quoted}`);
+        }
+      }
+    }
+    if (clauses.length > 0) ors.push(clauses.join(","));
   };
 
-  if (county) pushEqOrLegacy("details->>county", county);
-  if (city) {
-    const quoted = quotePostgrestLiteral(city);
-    if (quoted) {
-      const inner = quoted.slice(1, -1);
-      ors.push(
-        `details->>city.eq.${quoted},details->>district.eq.${quoted},details->>location.ilike."%${inner}%"`,
-      );
+  if (country && country !== "RO") {
+    pushValue(country, ["details->>country_code"]);
+    const named = findCountry(country);
+    if (named) {
+      pushValue(named.nameRo, ["details->>country_name", "details->>location", "details->>location_search"]);
     }
   }
-  if (district) pushEqOrLegacy("details->>district", district);
+
+  if (city) {
+    pushValue(city, [
+      "details->>city",
+      "details->>district",
+      "details->>location",
+      "details->>location_search",
+    ]);
+  } else if (district) {
+    pushValue(district, ["details->>district", "details->>location", "details->>location_search"]);
+  } else if (county) {
+    pushValue(county, ["details->>county", "details->>location", "details->>location_search"]);
+  }
+
   return ors;
 }
 
 export function filterPublicSearchListings(
   rows: unknown,
-  params: { q?: string; county?: string; city?: string; district?: string },
+  params: { q?: string; country?: string; county?: string; city?: string; district?: string },
 ): PublicSearchListing[] {
   if (!Array.isArray(rows)) return [];
   const q = sanitizeSearchQuery(params.q);
+  const country = sanitizeLocationParam(params.country);
   const county = sanitizeLocationParam(params.county);
   const city = sanitizeLocationParam(params.city);
   const district = sanitizeLocationParam(params.district);
@@ -241,17 +287,24 @@ export function filterPublicSearchListings(
     const row = raw as PublicSearchListing;
     if (!isActivePublicListingRow(row)) return false;
     if (!listingMatchesKeyword(row, q)) return false;
-    if (!listingMatchesLocationFilter(row.details, { county, city, district })) return false;
+    if (!listingMatchesLocationFilter(row.details, { country, county, city, district })) return false;
     return true;
   });
 }
 
 export function buildPublicSearchPath(
-  filters: Pick<ParsedPublicListingSearchParams, "q" | "county" | "city" | "district">,
+  filters: {
+    q?: string;
+    country?: string;
+    county?: string;
+    city?: string;
+    district?: string;
+  },
   page = 1,
 ): string {
   const params = new URLSearchParams();
   if (filters.q) params.set("q", filters.q);
+  if (filters.country) params.set("country", filters.country);
   if (filters.county) params.set("county", filters.county);
   if (filters.city) params.set("city", filters.city);
   if (filters.district) params.set("district", filters.district);
@@ -272,6 +325,7 @@ export async function fetchPublicSearchListings(
 }> {
   const parsed = parsePublicListingSearchParams({
     q: params.q ?? "",
+    country: params.country ?? "",
     county: params.county ?? "",
     city: params.city ?? "",
     district: params.district ?? "",

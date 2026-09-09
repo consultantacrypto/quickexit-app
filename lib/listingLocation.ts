@@ -1,3 +1,5 @@
+import { canonicalCountryName, findCountry } from "@/lib/countries";
+import { foldLocationSearch } from "@/lib/locationFold";
 import {
   BUCHAREST_DISTRICTS,
   canonicalBucharestDistrict,
@@ -10,6 +12,7 @@ import {
 
 export type ListingLocation = {
   country_code: string;
+  country_name: string;
   county: string;
   city: string;
   district: string | null;
@@ -17,7 +20,17 @@ export type ListingLocation = {
 
 export type ListingLocationValidation =
   | { ok: true; location: ListingLocation }
-  | { ok: false; error: string; code: "missing_county" | "missing_city" | "invalid_county" | "invalid_country" | "invalid_city" | "invalid_district" };
+  | {
+      ok: false;
+      error: string;
+      code:
+        | "missing_county"
+        | "missing_city"
+        | "invalid_county"
+        | "invalid_country"
+        | "invalid_city"
+        | "invalid_district";
+    };
 
 const MAX_LOCALITY = 80;
 const LOCALITY_RE = /^[\p{L}0-9][\p{L}0-9 .'\-\/]*[\p{L}0-9.]$/u;
@@ -37,10 +50,25 @@ function looksLikeStreetAddress(value: string): boolean {
   );
 }
 
+export function buildLocationSearchValue(location: ListingLocation): string {
+  return foldLocationSearch(
+    [location.country_code, location.country_name, location.county, location.city, location.district ?? ""]
+      .filter(Boolean)
+      .join(" "),
+  );
+}
+
 export function formatListingLocation(location: ListingLocation): string {
+  const country = location.country_code.trim().toUpperCase() || ROMANIA_COUNTRIES_DEFAULT;
   const county = location.county.trim();
   const city = location.city.trim();
   const district = location.district?.trim() || "";
+  const countryName = location.country_name.trim() || canonicalCountryName(country);
+
+  if (country !== "RO") {
+    const parts = [city, county && foldRo(county) !== foldRo(city) ? county : "", countryName].filter(Boolean);
+    return parts.join(", ");
+  }
 
   if (foldRo(county) === "bucuresti" || foldRo(city) === "bucuresti") {
     return district ? `București, ${district}` : "București";
@@ -55,40 +83,42 @@ export function formatListingLocation(location: ListingLocation): string {
     return `${county}, ${city}`;
   }
 
-  return county;
+  return county || city;
 }
 
 /**
  * Canonical location source is `listings.details` JSON.
- * Production needs no location table migration: county, city, district and
- * country_code are stored on the listing details object.
+ * Production needs no location table migration: country, county/region, city,
+ * district and location_search are stored on the listing details object.
  *
- * Read precedence:
- * 1. details.location_structured (county + city)
- * 2. details.county + details.city (+ district, country_code, locality aliases)
- * 3. catalog-parseable compact details.location / locatie / zona
- * 4. leftover row-level fields only if details cannot resolve
- *
- * Writes always go through applyListingLocationToDetails (details only).
- * Missing legacy location is not fabricated.
- * Future performance indexes can be designed separately after query-volume analysis.
+ * Location means the place where the exact asset can be viewed or collected.
+ * Availability ("on order", import) is a separate attribute.
  */
 export function parseListingLocationFromDetails(details: unknown): ListingLocation | null {
   if (!isRecord(details)) return null;
   const nested = isRecord(details.location_structured)
     ? details.location_structured
     : details;
-  const country_code =
+  const countryRaw =
     asText(nested.country_code || details.country_code).toUpperCase() ||
     ROMANIA_COUNTRIES_DEFAULT;
-  const county = asText(nested.county || details.county);
+  const country = findCountry(countryRaw);
+  const country_code = country?.code || countryRaw;
+  const country_name =
+    asText(nested.country_name || details.country_name) ||
+    (country ? country.nameRo : canonicalCountryName(country_code));
+  const county = asText(
+    nested.county || details.county || nested.region || details.region,
+  );
   const city = asText(nested.city || details.city || nested.locality || details.locality);
   const districtRaw = asText(
     nested.district || details.district || nested.neighborhood || details.neighborhood,
   );
-  if (!county || !city) return null;
+  if (!city) return null;
+  if (country_code === "RO" && !county) return null;
   return {
     country_code,
+    country_name,
     county,
     city,
     district: districtRaw || null,
@@ -118,7 +148,7 @@ export function resolveListingLocation(source: ListingLocationRowSource): Listin
 
   const county = asText(source.county);
   const city = asText(source.city);
-  if (!county || !city) return null;
+  if (!city) return null;
   const validated = validateListingLocationInput({
     country_code: asText(source.country_code) || ROMANIA_COUNTRIES_DEFAULT,
     county,
@@ -167,28 +197,40 @@ export function listingLocationLabelFromUnknown(
   return null;
 }
 
+function readLocationField(
+  input: Partial<ListingLocation> | Record<string, unknown> | null | undefined,
+  key: string,
+): unknown {
+  if (!input || typeof input !== "object") return "";
+  return (input as Record<string, unknown>)[key];
+}
+
 export function validateListingLocationInput(
   input: Partial<ListingLocation> | Record<string, unknown> | null | undefined,
 ): ListingLocationValidation {
-  const countryRaw = asText(
-    input && "country_code" in (input as object) ? (input as ListingLocation).country_code : "",
-  ).toUpperCase();
-  const country_code = countryRaw || ROMANIA_COUNTRIES_DEFAULT;
+  const countryRaw = asText(readLocationField(input, "country_code")).toUpperCase();
+  const matchedCountry = findCountry(countryRaw || ROMANIA_COUNTRIES_DEFAULT);
+  const country_code = matchedCountry?.code || countryRaw || ROMANIA_COUNTRIES_DEFAULT;
   if (!/^[A-Z]{2}$/.test(country_code)) {
     return { ok: false, error: "Codul țării este invalid.", code: "invalid_country" };
   }
 
-  const countyRaw = asText(input && "county" in (input as object) ? (input as ListingLocation).county : "");
-  const cityRaw = asText(input && "city" in (input as object) ? (input as ListingLocation).city : "");
-  const districtRaw = asText(
-    input && "district" in (input as object) ? ((input as ListingLocation).district ?? "") : "",
-  );
+  const country_name =
+    asText(readLocationField(input, "country_name")) ||
+    matchedCountry?.nameRo ||
+    canonicalCountryName(country_code);
 
-  if (!countyRaw) {
-    return { ok: false, error: "Selectează județul.", code: "missing_county" };
-  }
+  const countyRaw = asText(
+    readLocationField(input, "county") || readLocationField(input, "region"),
+  );
+  const cityRaw = asText(readLocationField(input, "city"));
+  const districtRaw = asText(readLocationField(input, "district"));
+
   if (!cityRaw) {
     return { ok: false, error: "Completează localitatea.", code: "missing_city" };
+  }
+  if (country_code === "RO" && !countyRaw) {
+    return { ok: false, error: "Selectează județul.", code: "missing_county" };
   }
   if (countyRaw.length > MAX_LOCALITY || cityRaw.length > MAX_LOCALITY) {
     return { ok: false, error: "Localitatea este prea lungă.", code: "invalid_city" };
@@ -202,6 +244,9 @@ export function validateListingLocationInput(
   }
   if (!LOCALITY_RE.test(cityRaw)) {
     return { ok: false, error: "Localitatea conține caractere invalide.", code: "invalid_city" };
+  }
+  if (countyRaw && !LOCALITY_RE.test(countyRaw) && country_code !== "RO") {
+    return { ok: false, error: "Regiunea conține caractere invalide.", code: "invalid_county" };
   }
 
   if (country_code === "RO") {
@@ -223,7 +268,13 @@ export function validateListingLocationInput(
       }
       return {
         ok: true,
-        location: { country_code: "RO", county: "București", city: cityOut, district },
+        location: {
+          country_code: "RO",
+          country_name: canonicalCountryName("RO"),
+          county: "București",
+          city: cityOut,
+          district,
+        },
       };
     }
     if (district && looksLikeStreetAddress(district)) {
@@ -240,6 +291,7 @@ export function validateListingLocationInput(
       ok: true,
       location: {
         country_code: "RO",
+        country_name: canonicalCountryName("RO"),
         county,
         city,
         district: district || null,
@@ -247,10 +299,19 @@ export function validateListingLocationInput(
     };
   }
 
+  if (districtRaw && looksLikeStreetAddress(districtRaw)) {
+    return {
+      ok: false,
+      error: "Zona opțională nu trebuie să conțină stradă.",
+      code: "invalid_district",
+    };
+  }
+
   return {
     ok: true,
     location: {
       country_code,
+      country_name,
       county: countyRaw,
       city: cityRaw,
       district: districtRaw || null,
@@ -260,21 +321,32 @@ export function validateListingLocationInput(
 
 export function applyListingLocationToDetails(
   details: Record<string, unknown>,
-  location: ListingLocation,
+  location: Omit<ListingLocation, "country_name"> & { country_name?: string },
 ): Record<string, unknown> {
-  const label = formatListingLocation(location);
+  const normalized: ListingLocation = {
+    ...location,
+    country_name: location.country_name?.trim() || canonicalCountryName(location.country_code),
+  };
+  const label = formatListingLocation(normalized);
+  const location_search = buildLocationSearchValue(normalized);
+  const region = normalized.country_code === "RO" ? null : normalized.county || null;
   return {
     ...details,
-    country_code: location.country_code,
-    county: location.county,
-    city: location.city,
-    district: location.district,
+    country_code: normalized.country_code,
+    country_name: normalized.country_name,
+    county: normalized.county,
+    region,
+    city: normalized.city,
+    district: normalized.district,
     location: label,
+    location_search,
     location_structured: {
-      country_code: location.country_code,
-      county: location.county,
-      city: location.city,
-      district: location.district,
+      country_code: normalized.country_code,
+      country_name: normalized.country_name,
+      county: normalized.county,
+      region,
+      city: normalized.city,
+      district: normalized.district,
     },
   };
 }
@@ -292,7 +364,13 @@ export function tryParseLegacyLocationText(raw: string): ListingLocation | null 
   const firstCounty = canonicalRomaniaCounty(parts[0]);
   if (parts.length === 1) {
     if (firstCounty === "București") {
-      return { country_code: "RO", county: "București", city: "București", district: null };
+      return {
+        country_code: "RO",
+        country_name: canonicalCountryName("RO"),
+        county: "București",
+        city: "București",
+        district: null,
+      };
     }
     return null;
   }
@@ -304,6 +382,7 @@ export function tryParseLegacyLocationText(raw: string): ListingLocation | null 
     if (!sector) return null;
     return {
       country_code: "RO",
+      country_name: canonicalCountryName("RO"),
       county: "București",
       city: "București",
       district: sector,
@@ -322,6 +401,7 @@ export function tryParseLegacyLocationText(raw: string): ListingLocation | null 
   }
   return {
     country_code: "RO",
+    country_name: canonicalCountryName("RO"),
     county: firstCounty,
     city,
     district,
@@ -339,29 +419,78 @@ export function tryParseLegacyListingLocation(details: unknown): ListingLocation
   return compact ? tryParseLegacyLocationText(compact) : null;
 }
 
+function compactLegacyLocationText(details: unknown): string {
+  if (!isRecord(details)) return "";
+  return asText(details.location || details.locatie || details.zona);
+}
+
+function storedLocationSearchText(details: unknown): string {
+  if (!isRecord(details)) return "";
+  return foldLocationSearch(asText(details.location_search));
+}
+
+function countryMatches(location: ListingLocation, countryRaw: string): boolean {
+  const needle = foldLocationSearch(countryRaw);
+  if (!needle) return true;
+  const code = foldLocationSearch(location.country_code);
+  const name = foldLocationSearch(location.country_name);
+  const matched = findCountry(countryRaw);
+  if (matched) return location.country_code === matched.code;
+  return code === needle || name === needle;
+}
+
 export function listingMatchesLocationFilter(
   details: unknown,
-  filter: { county?: string; city?: string; district?: string },
+  filter: { country?: string; county?: string; city?: string; district?: string },
 ): boolean {
+  const country = asText(filter.country);
   const county = asText(filter.county);
   const city = asText(filter.city);
   const district = asText(filter.district);
-  if (!county && !city && !district) return true;
+  if (!country && !county && !city && !district) return true;
 
-  const loc =
-    parseListingLocationFromDetails(details) ?? tryParseLegacyListingLocation(details);
-  if (!loc) return false;
+  const loc = parseListingLocationFromDetails(details);
+  if (loc) {
+    if (country && !countryMatches(loc, country)) return false;
+    if (county && loc.county && foldRo(loc.county) !== foldRo(county)) return false;
+    if (county && !loc.county && loc.country_code === "RO") return false;
+    if (city) {
+      const cityFold = foldRo(city);
+      const matchesCity = foldRo(loc.city) === cityFold;
+      const matchesDistrict = loc.district ? foldRo(loc.district) === cityFold : false;
+      if (!matchesCity && !matchesDistrict) return false;
+    }
+    if (district) {
+      if (!loc.district || foldRo(loc.district) !== foldRo(district)) return false;
+    }
+    return true;
+  }
 
-  if (county && foldRo(loc.county) !== foldRo(county)) return false;
+  const searchHay = storedLocationSearchText(details);
+  const legacyFold = foldLocationSearch(compactLegacyLocationText(details));
+  const haystack = `${searchHay} ${legacyFold}`.trim();
+  if (!haystack) return false;
+
+  if (country) {
+    const matched = findCountry(country);
+    const countryFold = matched
+      ? foldLocationSearch(`${matched.code} ${matched.nameRo} ${matched.nameEn}`)
+      : foldLocationSearch(country);
+    const isRomania =
+      (matched?.code ?? foldLocationSearch(country)) === "ro" ||
+      countryFold.includes("romania") ||
+      countryFold.includes("ro ");
+    if (!isRomania && !haystack.includes(foldLocationSearch(country)) && !haystack.includes(countryFold.split(" ")[0] ?? "")) {
+      return false;
+    }
+  }
+
   if (city) {
-    const cityFold = foldRo(city);
-    const matchesCity = foldRo(loc.city) === cityFold;
-    const matchesDistrict = loc.district ? foldRo(loc.district) === cityFold : false;
-    if (!matchesCity && !matchesDistrict) return false;
+    if (!haystack.includes(foldRo(city))) return false;
+  } else if (county) {
+    if (!haystack.includes(foldRo(county))) return false;
   }
-  if (district) {
-    if (!loc.district || foldRo(loc.district) !== foldRo(district)) return false;
-  }
+  if (district && !haystack.includes(foldRo(district))) return false;
   return true;
 }
 
@@ -391,6 +520,8 @@ export function listingMatchesKeyword(
       "propType",
       "businessDomain",
       "location",
+      "location_search",
+      "country_name",
       "county",
       "city",
       "district",
@@ -406,13 +537,16 @@ export function listingMatchesKeyword(
 
 export function locationFromFormData(form: {
   country_code?: string;
+  country_name?: string;
   county?: string;
+  region?: string;
   city?: string;
   district?: string;
 }): ListingLocationValidation {
   return validateListingLocationInput({
     country_code: form.country_code,
-    county: form.county,
+    country_name: form.country_name,
+    county: form.county || form.region,
     city: form.city,
     district: form.district ?? null,
   });

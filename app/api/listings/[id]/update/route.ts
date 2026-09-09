@@ -65,7 +65,12 @@ export async function POST(
 
     const locationCheck = locationFromFormData({
       country_code: typeof detailsIn.country_code === "string" ? detailsIn.country_code : "RO",
-      county: typeof detailsIn.county === "string" ? detailsIn.county : "",
+      county:
+        typeof detailsIn.county === "string"
+          ? detailsIn.county
+          : typeof detailsIn.region === "string"
+            ? detailsIn.region
+            : "",
       city: typeof detailsIn.city === "string" ? detailsIn.city : "",
       district: typeof detailsIn.district === "string" ? detailsIn.district : "",
     });

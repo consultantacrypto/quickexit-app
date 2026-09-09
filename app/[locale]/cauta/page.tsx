@@ -25,6 +25,7 @@ type PageProps = {
   params: Promise<{ locale: string }>;
   searchParams: Promise<{
     q?: string;
+    country?: string;
     county?: string;
     city?: string;
     district?: string;
@@ -51,6 +52,7 @@ export default async function SearchPage({ params, searchParams }: PageProps) {
   const raw = await searchParams;
   const filters = parsePublicListingSearchParams({
     q: raw.q,
+    country: raw.country,
     county: raw.county,
     city: raw.city,
     district: raw.district,
@@ -60,7 +62,7 @@ export default async function SearchPage({ params, searchParams }: PageProps) {
   const numberLocale = getNumberLocale(locale);
   const { listings, total, page, pageSize } = await fetchPublicSearchListings(supabase, filters);
   const hasFilters = Boolean(
-    filters.q || filters.county || filters.city || filters.district || filters.locationInvalid,
+    filters.q || filters.country || filters.county || filters.city || filters.district || filters.locationInvalid,
   );
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const showPrev = page > 1;
@@ -74,8 +76,9 @@ export default async function SearchPage({ params, searchParams }: PageProps) {
             {t("title")}
           </h1>
           <HeroSearchBar
-            key={`${filters.q}|${filters.county}|${filters.city}|${filters.district}`}
+            key={`${filters.q}|${filters.country}|${filters.county}|${filters.city}|${filters.district}`}
             initialQuery={filters.q}
+            initialCountry={filters.country}
             initialCounty={filters.county}
             initialCity={filters.city}
             initialDistrict={filters.district}
@@ -86,7 +89,7 @@ export default async function SearchPage({ params, searchParams }: PageProps) {
 
       <section className="px-4 py-12 md:px-8 md:py-16">
         <div className="mx-auto max-w-7xl">
-          <div className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div className="mb-8 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-sm font-bold text-neutral-600">
               {t("resultsCount", { count: total })}
             </p>

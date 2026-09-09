@@ -1935,7 +1935,7 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                     value={formData}
                     onChange={(patch) =>
                       setFormData((prev) => {
-                        const next = { ...prev, ...patch, country_code: "RO" };
+                        const next = { ...prev, ...patch };
                         const loc = locationFromFormData(next);
                         return {
                           ...next,

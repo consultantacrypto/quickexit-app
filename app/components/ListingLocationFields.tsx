@@ -1,10 +1,12 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { COUNTRY_OPTIONS } from "@/lib/countries";
 import {
   BUCHAREST_DISTRICTS,
   ROMANIA_CITIES_BY_COUNTY,
   ROMANIA_COUNTIES,
+  ROMANIA_COUNTRIES_DEFAULT,
   canonicalRomaniaCounty,
   type RomaniaCounty,
 } from "@/lib/romaniaLocations";
@@ -35,57 +37,104 @@ export default function ListingLocationFields({
   required = true,
 }: ListingLocationFieldsProps) {
   const t = useTranslations("ListingLocation");
+  const country_code = (value.country_code || ROMANIA_COUNTRIES_DEFAULT).toUpperCase();
   const county = value.county ?? "";
   const city = value.city ?? "";
   const district = value.district ?? "";
-  const canonicalCounty = county ? canonicalRomaniaCounty(county) : null;
+  const isRomania = country_code === "RO";
+  const canonicalCounty = isRomania && county ? canonicalRomaniaCounty(county) : null;
   const cityOptions: readonly string[] = canonicalCounty
     ? ROMANIA_CITIES_BY_COUNTY[canonicalCounty]
     : [];
   const isBucharest = canonicalCounty === "București";
 
   function patch(next: Partial<LocationFormValue>) {
-    const merged = {
-      country_code: "RO",
+    onChange({
+      country_code,
       county,
       city,
       district,
       ...next,
-    };
-    onChange(merged);
+    });
   }
 
   return (
     <div className="md:col-span-2 grid grid-cols-1 gap-4 md:grid-cols-2">
-      <input type="hidden" name="country_code" value="RO" />
+      <div className="md:col-span-2">
+        <p className="text-[11px] font-semibold leading-relaxed text-neutral-600">{t("helper")}</p>
+      </div>
       <div>
-        <label htmlFor={`${idPrefix}-county`} className="text-[10px] font-black uppercase tracking-widest text-gray-500">
-          {t("countyLabel")}
+        <label htmlFor={`${idPrefix}-country`} className="text-[10px] font-black uppercase tracking-widest text-gray-500">
+          {t("countryLabel")}
           {required ? " *" : ""}
         </label>
         <select
-          id={`${idPrefix}-county`}
+          id={`${idPrefix}-country`}
+          name="country_code"
           required={required}
-          value={county}
+          value={country_code}
           onChange={(e) => {
-            const nextCounty = e.target.value;
-            const nextCanonical = nextCounty ? canonicalRomaniaCounty(nextCounty) : null;
+            const nextCountry = e.target.value.toUpperCase() || ROMANIA_COUNTRIES_DEFAULT;
             patch({
-              county: nextCounty,
-              city: nextCanonical === "București" ? "București" : "",
+              country_code: nextCountry,
+              county: "",
+              city: "",
               district: "",
             });
           }}
           className={`${inputClass} appearance-none`}
         >
-          <option value="">{t("countyPlaceholder")}</option>
-          {ROMANIA_COUNTIES.map((name) => (
-            <option key={name} value={name}>
-              {name}
+          {COUNTRY_OPTIONS.map((country) => (
+            <option key={country.code} value={country.code}>
+              {country.nameRo}
             </option>
           ))}
         </select>
       </div>
+      {isRomania ? (
+        <div>
+          <label htmlFor={`${idPrefix}-county`} className="text-[10px] font-black uppercase tracking-widest text-gray-500">
+            {t("countyLabel")}
+            {required ? " *" : ""}
+          </label>
+          <select
+            id={`${idPrefix}-county`}
+            required={required}
+            value={county}
+            onChange={(e) => {
+              const nextCounty = e.target.value;
+              const nextCanonical = nextCounty ? canonicalRomaniaCounty(nextCounty) : null;
+              patch({
+                county: nextCounty,
+                city: nextCanonical === "București" ? "București" : "",
+                district: "",
+              });
+            }}
+            className={`${inputClass} appearance-none`}
+          >
+            <option value="">{t("countyPlaceholder")}</option>
+            {ROMANIA_COUNTIES.map((name) => (
+              <option key={name} value={name}>
+                {name}
+              </option>
+            ))}
+          </select>
+        </div>
+      ) : (
+        <div>
+          <label htmlFor={`${idPrefix}-region`} className="text-[10px] font-black uppercase tracking-widest text-gray-500">
+            {t("regionLabel")}
+          </label>
+          <input
+            id={`${idPrefix}-region`}
+            value={county}
+            onChange={(e) => patch({ county: e.target.value })}
+            placeholder={t("regionPlaceholder")}
+            autoComplete="off"
+            className={inputClass}
+          />
+        </div>
+      )}
       <div>
         <label htmlFor={`${idPrefix}-city`} className="text-[10px] font-black uppercase tracking-widest text-gray-500">
           {t("cityLabel")}
@@ -93,7 +142,7 @@ export default function ListingLocationFields({
         </label>
         <input
           id={`${idPrefix}-city`}
-          list={`${idPrefix}-city-list`}
+          list={isRomania ? `${idPrefix}-city-list` : undefined}
           required={required}
           value={isBucharest ? "București" : city}
           readOnly={isBucharest}
@@ -102,14 +151,16 @@ export default function ListingLocationFields({
           autoComplete="off"
           className={inputClass}
         />
-        <datalist id={`${idPrefix}-city-list`}>
-          {cityOptions.map((name) => (
-            <option key={name} value={name} />
-          ))}
-        </datalist>
+        {isRomania ? (
+          <datalist id={`${idPrefix}-city-list`}>
+            {cityOptions.map((name) => (
+              <option key={name} value={name} />
+            ))}
+          </datalist>
+        ) : null}
       </div>
       {showDistrict ? (
-        <div className={isBucharest ? "md:col-span-2" : "md:col-span-2"}>
+        <div className="md:col-span-2">
           <label htmlFor={`${idPrefix}-district`} className="text-[10px] font-black uppercase tracking-widest text-gray-500">
             {isBucharest ? t("sectorLabel") : t("districtLabel")}
           </label>

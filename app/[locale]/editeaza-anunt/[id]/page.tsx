@@ -384,7 +384,7 @@ export default function EditAdPage() {
                 district: formData.district,
               }}
               onChange={(patch) =>
-                setFormData((prev: Record<string, unknown>) => ({ ...prev, ...patch, country_code: "RO" }))
+                setFormData((prev: Record<string, unknown>) => ({ ...prev, ...patch }))
               }
             />
 

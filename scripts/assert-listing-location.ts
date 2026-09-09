@@ -17,9 +17,12 @@ import {
   canonicalizePublicLocationFilter,
   filterPublicSearchListings,
   parsePublicListingSearchParams,
+  PUBLIC_SEARCH_MAX_PAGE,
+  PUBLIC_SEARCH_PAGE_SIZE,
   quotePostgrestLiteral,
   sanitizeSearchQuery,
 } from "../lib/publicListings";
+import { foldLocationSearch } from "../lib/locationFold";
 import {
   decodeRomaniaLocationSearchValue,
   encodeRomaniaLocationSearchValue,
@@ -95,6 +98,7 @@ assert(hasStructuredListingLocation(details), "applied details are structured");
 assert(details.country_code === "RO", "country stored");
 assert(details.county === "Cluj", "county stored");
 assert(details.location === "Cluj, Cluj-Napoca", "compact location stored");
+assert(typeof details.location_search === "string" && String(details.location_search).includes("cluj"), "normalized search stored");
 
 const publicId = "50e8decd-635a-46f7-908e-2ac1fddf8ac6";
 const rows = [
@@ -273,18 +277,39 @@ assert(
   "București sector",
 );
 
-const sabareniTyped = resolveTypedLocationSearch("Săbăreni");
-assert(sabareniTyped.city === "Săbăreni" && !sabareniTyped.county && !sabareniTyped.invalid, "Săbăreni typed manually");
+assert(foldLocationSearch("Sabareni") === foldLocationSearch("Săbăreni"), "Sabareni diacritics fold");
+assert(foldLocationSearch("SABARENI") === foldLocationSearch("Săbăreni"), "SABARENI case fold");
+assert(foldLocationSearch("Săbăreni, Giurgiu") === foldLocationSearch("Săbăreni Giurgiu"), "comma and space fold");
+
+const sabareniTyped = resolveTypedLocationSearch("Sabareni");
+assert(
+  sabareniTyped.country === "RO" &&
+    sabareniTyped.county === "Giurgiu" &&
+    sabareniTyped.city === "Săbăreni" &&
+    !sabareniTyped.invalid,
+  "Sabareni canonicalizes to Giurgiu / Săbăreni",
+);
+const sabareniDiacritics = resolveTypedLocationSearch("Săbăreni");
+assert(
+  sabareniDiacritics.county === "Giurgiu" && sabareniDiacritics.city === "Săbăreni",
+  "Săbăreni canonicalizes to Giurgiu",
+);
 const sabareniWithCounty = resolveTypedLocationSearch("Săbăreni, Ilfov");
 assert(
   sabareniWithCounty.county === "Ilfov" &&
     sabareniWithCounty.city === "Săbăreni" &&
     !sabareniWithCounty.invalid,
-  "Săbăreni, Ilfov typed",
+  "Săbăreni, Ilfov typed keeps explicit county",
 );
 
 const murighiolTyped = resolveTypedLocationSearch("Murighiol");
-assert(murighiolTyped.city === "Murighiol" && !murighiolTyped.county && !murighiolTyped.invalid, "Murighiol typed manually");
+assert(
+  murighiolTyped.country === "RO" &&
+    murighiolTyped.county === "Tulcea" &&
+    murighiolTyped.city === "Murighiol" &&
+    !murighiolTyped.invalid,
+  "Murighiol canonicalizes to Tulcea",
+);
 
 const arbitraryVillage = resolveTypedLocationSearch("Ciocănești");
 assert(arbitraryVillage.city === "Ciocănești" && !arbitraryVillage.county && !arbitraryVillage.invalid, "arbitrary valid locality");
@@ -295,23 +320,97 @@ assert(!emptyLocation.county && !emptyLocation.city && !emptyLocation.district &
 const streetRejected = resolveTypedLocationSearch("Str. Memorandumului 12");
 assert(streetRejected.invalid, "street-style input rejected");
 assert(!streetRejected.city && !streetRejected.county, "street input is not used as city");
+assert(!streetRejected.country, "street input is not reused as location");
 
-const sabareniUrl = parsePublicListingSearchParams({ city: "Săbăreni" });
-assert(sabareniUrl.city === "Săbăreni" && !sabareniUrl.county && !sabareniUrl.locationInvalid, "city-only query without county");
+const franceCity = resolveTypedLocationSearch("Paris, Franța");
 assert(
-  buildPublicSearchPath({ q: "", county: "", city: "Săbăreni", district: "" }) ===
-    `/cauta?city=${encodeURIComponent("Săbăreni")}`,
-  "shareable city-only URL",
+  franceCity.country === "FR" && franceCity.city === "Paris" && !franceCity.invalid,
+  "foreign locality with country",
 );
+const moldovaCountry = resolveTypedLocationSearch("Republica Moldova");
+assert(moldovaCountry.country === "MD" && !moldovaCountry.invalid, "foreign country name");
+
+assert(
+  validateListingLocationInput({ country_code: "FR", city: "Paris" }).ok,
+  "foreign country + city accepted without Romanian county",
+);
+assert(
+  !validateListingLocationInput({ country_code: "RO", city: "Paris" }).ok,
+  "Romania still requires county",
+);
+assert(
+  validateListingLocationInput({ country_code: "MD", county: "Ungheni", city: "Ungheni" }).ok,
+  "foreign region optional and accepted",
+);
+
+const sabareniUrl = parsePublicListingSearchParams({ city: "Sabareni" });
+assert(sabareniUrl.city === "Săbăreni" && sabareniUrl.county === "Giurgiu", "shareable Sabareni infers Giurgiu");
+assert(sabareniUrl.country === "RO" && !sabareniUrl.locationInvalid, "shareable Sabareni is RO");
+assert(
+  buildPublicSearchPath({
+    q: "",
+    country: "RO",
+    county: "Giurgiu",
+    city: "Săbăreni",
+    district: "",
+  }) === `/cauta?country=RO&county=Giurgiu&city=${encodeURIComponent("Săbăreni")}`,
+  "shareable country/county/city URL",
+);
+assert(
+  buildPublicSearchPath({ q: "Urus", country: "FR", county: "", city: "Paris", district: "" }) ===
+    `/cauta?q=Urus&country=FR&city=Paris`,
+  "shareable foreign city URL",
+);
+
+assert(PUBLIC_SEARCH_PAGE_SIZE === 24, "page size 24");
+assert(PUBLIC_SEARCH_MAX_PAGE === 20, "max page 20");
+assert(parsePublicListingSearchParams({ page: "99" }).page === 20, "page clamped to max 20");
+assert(parsePublicListingSearchParams({ page: "0" }).page === 1, "page clamped to min 1");
 
 const sabareniListing = applyListingLocationToDetails(
   {},
-  { country_code: "RO", county: "Ilfov", city: "Săbăreni", district: null },
+  { country_code: "RO", county: "Giurgiu", city: "Săbăreni", district: null },
 );
-assert(listingMatchesLocationFilter(sabareniListing, { city: "Săbăreni" }), "city-only filter matches Săbăreni listing");
+assert(listingMatchesLocationFilter(sabareniListing, { city: "Sabareni" }), "folded city filter matches Săbăreni listing");
+assert(listingMatchesLocationFilter(sabareniListing, { county: "Giurgiu", city: "Săbăreni" }), "canonical county+city match");
 assert(!listingMatchesLocationFilter(sabareniListing, { city: "Otopeni" }), "city-only filter does not coerce nearest catalog city");
 
-assert(formatTypedLocationSearch({ city: "Săbăreni" }) === "Săbăreni", "format city-only");
+const legacySabareni = { location: "Sabareni ,zona de case" };
+assert(
+  listingMatchesLocationFilter(legacySabareni, { city: "Săbăreni" }),
+  "legacy compact location matches folded city",
+);
+assert(
+  !listingMatchesLocationFilter({ location: "Sabareni ,zona de case" }, { city: "Otopeni" }),
+  "legacy location does not match a different city",
+);
+
+const titledOnly = {
+  id: publicId,
+  title: "Teren Loc Sabareni",
+  description: "lot",
+  category: "Imobiliare",
+  status: "active",
+  is_seed: false,
+  details: {},
+};
+assert(
+  !listingMatchesLocationFilter(titledOnly.details, { city: "Săbăreni" }),
+  "title is not a location fallback",
+);
+assert(
+  filterPublicSearchListings([titledOnly], { city: "Săbăreni" }).length === 0,
+  "location search ignores title",
+);
+assert(
+  filterPublicSearchListings([titledOnly], { q: "Sabareni" }).length === 1,
+  "keyword search may use title",
+);
+
+const keywordLocationIndependence = filterPublicSearchListings(rows, { q: "Urus", county: "București" });
+assert(keywordLocationIndependence.length === 0, "keyword and location combine with AND");
+
+assert(formatTypedLocationSearch({ city: "Săbăreni", county: "Giurgiu" }) === "Săbăreni, Giurgiu", "format city+county");
 assert(formatTypedLocationSearch({}) === "", "format empty");
 
 console.log("OK listing-location");
