@@ -9,7 +9,7 @@ import {
   canonicalRomaniaCity,
   canonicalRomaniaCounty,
   foldRo,
-  ROMANIA_COUNTIES,
+  uniqueCatalogLocality,
 } from "@/lib/romaniaLocations";
 
 export const PUBLIC_LISTING_SEARCH_FIELDS =
@@ -84,12 +84,7 @@ export function quotePostgrestLiteral(value: string): string | null {
 }
 
 function uniqueCountyForCity(cityRaw: string): { county: string; city: string } | null {
-  const matches: { county: string; city: string }[] = [];
-  for (const county of ROMANIA_COUNTIES) {
-    const city = canonicalRomaniaCity(county, cityRaw);
-    if (city) matches.push({ county, city });
-  }
-  return matches.length === 1 ? matches[0] : null;
+  return uniqueCatalogLocality(cityRaw);
 }
 
 export function canonicalizePublicLocationFilter(input: {

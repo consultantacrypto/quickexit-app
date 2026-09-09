@@ -60,18 +60,18 @@ export function formatListingLocation(location: ListingLocation): string {
 
 /**
  * Canonical location source is `listings.details` JSON.
- * Public and owner queries never SELECT optional top-level
- * country_code/county/city/district columns, so PostgREST stays valid
- * before the staged SQL is applied.
+ * Production needs no location table migration: county, city, district and
+ * country_code are stored on the listing details object.
  *
  * Read precedence:
  * 1. details.location_structured (county + city)
  * 2. details.county + details.city (+ district, country_code, locality aliases)
  * 3. catalog-parseable compact details.location / locatie / zona
- * 4. optional top-level columns on the row object, only if details cannot resolve
+ * 4. leftover row-level fields only if details cannot resolve
  *
  * Writes always go through applyListingLocationToDetails (details only).
  * Missing legacy location is not fabricated.
+ * Future performance indexes can be designed separately after query-volume analysis.
  */
 export function parseListingLocationFromDetails(details: unknown): ListingLocation | null {
   if (!isRecord(details)) return null;

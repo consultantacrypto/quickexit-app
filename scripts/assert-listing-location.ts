@@ -13,6 +13,7 @@ import {
 import {
   buildKeywordOrFilter,
   buildLocationOrFilters,
+  buildPublicSearchPath,
   canonicalizePublicLocationFilter,
   filterPublicSearchListings,
   parsePublicListingSearchParams,
@@ -22,6 +23,8 @@ import {
 import {
   decodeRomaniaLocationSearchValue,
   encodeRomaniaLocationSearchValue,
+  formatTypedLocationSearch,
+  resolveTypedLocationSearch,
 } from "../lib/romaniaLocations";
 import { isActivePublicListingRow } from "../lib/sitemapEntries";
 
@@ -254,5 +257,61 @@ assert(columnFallback?.city === "Otopeni", "top-level columns used only when det
 
 const missingLegacy = resolveListingLocation({ details: { title: "no location" } });
 assert(missingLegacy === null, "missing legacy location is not fabricated");
+
+const catalogCounty = resolveTypedLocationSearch("Ilfov");
+assert(catalogCounty.county === "Ilfov" && !catalogCounty.city && !catalogCounty.invalid, "catalog county");
+
+const catalogCity = resolveTypedLocationSearch("Otopeni");
+assert(catalogCity.county === "Ilfov" && catalogCity.city === "Otopeni" && !catalogCity.invalid, "catalog city");
+
+const sectorTyped = resolveTypedLocationSearch("Sector 1");
+assert(
+  sectorTyped.county === "București" &&
+    sectorTyped.city === "București" &&
+    sectorTyped.district === "Sector 1" &&
+    !sectorTyped.invalid,
+  "București sector",
+);
+
+const sabareniTyped = resolveTypedLocationSearch("Săbăreni");
+assert(sabareniTyped.city === "Săbăreni" && !sabareniTyped.county && !sabareniTyped.invalid, "Săbăreni typed manually");
+const sabareniWithCounty = resolveTypedLocationSearch("Săbăreni, Ilfov");
+assert(
+  sabareniWithCounty.county === "Ilfov" &&
+    sabareniWithCounty.city === "Săbăreni" &&
+    !sabareniWithCounty.invalid,
+  "Săbăreni, Ilfov typed",
+);
+
+const murighiolTyped = resolveTypedLocationSearch("Murighiol");
+assert(murighiolTyped.city === "Murighiol" && !murighiolTyped.county && !murighiolTyped.invalid, "Murighiol typed manually");
+
+const arbitraryVillage = resolveTypedLocationSearch("Ciocănești");
+assert(arbitraryVillage.city === "Ciocănești" && !arbitraryVillage.county && !arbitraryVillage.invalid, "arbitrary valid locality");
+
+const emptyLocation = resolveTypedLocationSearch("   ");
+assert(!emptyLocation.county && !emptyLocation.city && !emptyLocation.district && !emptyLocation.invalid, "empty location");
+
+const streetRejected = resolveTypedLocationSearch("Str. Memorandumului 12");
+assert(streetRejected.invalid, "street-style input rejected");
+assert(!streetRejected.city && !streetRejected.county, "street input is not used as city");
+
+const sabareniUrl = parsePublicListingSearchParams({ city: "Săbăreni" });
+assert(sabareniUrl.city === "Săbăreni" && !sabareniUrl.county && !sabareniUrl.locationInvalid, "city-only query without county");
+assert(
+  buildPublicSearchPath({ q: "", county: "", city: "Săbăreni", district: "" }) ===
+    `/cauta?city=${encodeURIComponent("Săbăreni")}`,
+  "shareable city-only URL",
+);
+
+const sabareniListing = applyListingLocationToDetails(
+  {},
+  { country_code: "RO", county: "Ilfov", city: "Săbăreni", district: null },
+);
+assert(listingMatchesLocationFilter(sabareniListing, { city: "Săbăreni" }), "city-only filter matches Săbăreni listing");
+assert(!listingMatchesLocationFilter(sabareniListing, { city: "Otopeni" }), "city-only filter does not coerce nearest catalog city");
+
+assert(formatTypedLocationSearch({ city: "Săbăreni" }) === "Săbăreni", "format city-only");
+assert(formatTypedLocationSearch({}) === "", "format empty");
 
 console.log("OK listing-location");

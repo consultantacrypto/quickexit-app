@@ -158,6 +158,139 @@ export function canonicalBucharestDistrict(value: string): string | null {
   return BUCHAREST_DISTRICTS.find((d) => foldRo(d) === folded) ?? null;
 }
 
+const MAX_TYPED_LOCALITY = 80;
+const TYPED_LOCALITY_RE = /^[\p{L}0-9][\p{L}0-9 .'\-\/]*[\p{L}0-9.]$/u;
+
+export function looksLikeStreetLocation(value: string): boolean {
+  return /\b(str\.?|strada|bd\.?|bulevard(?:ul)?|șos\.?|sos\.?|soseaua|șoseaua|aleea|alea|nr\.?)\b/i.test(
+    value,
+  );
+}
+
+export function isValidRomaniaLocalityName(value: string): boolean {
+  const text = value.replace(/\s+/g, " ").trim();
+  if (!text || text.length > MAX_TYPED_LOCALITY) return false;
+  if (looksLikeStreetLocation(text)) return false;
+  return TYPED_LOCALITY_RE.test(text);
+}
+
+export function uniqueCatalogLocality(value: string): { county: RomaniaCounty; city: string } | null {
+  const matches: { county: RomaniaCounty; city: string }[] = [];
+  for (const county of ROMANIA_COUNTIES) {
+    const city = canonicalRomaniaCity(county, value);
+    if (city) matches.push({ county, city });
+  }
+  return matches.length === 1 ? matches[0] : null;
+}
+
+export type ResolvedTypedLocationSearch = {
+  county: string;
+  city: string;
+  district: string;
+  invalid: boolean;
+};
+
+/**
+ * Resolve free-typed hero location text.
+ * Catalog names are suggestions only — unknown valid localities stay city-only.
+ */
+export function resolveTypedLocationSearch(raw: string | null | undefined): ResolvedTypedLocationSearch {
+  const empty = { county: "", city: "", district: "", invalid: false };
+  const text = String(raw ?? "").replace(/\s+/g, " ").trim();
+  if (!text) return empty;
+  if (text.length > MAX_TYPED_LOCALITY || looksLikeStreetLocation(text)) {
+    return { ...empty, invalid: true };
+  }
+
+  const asCounty = canonicalRomaniaCounty(text);
+  if (asCounty) return { county: asCounty, city: "", district: "", invalid: false };
+
+  const asSector = canonicalBucharestDistrict(text);
+  if (asSector) {
+    return { county: "București", city: "București", district: asSector, invalid: false };
+  }
+
+  const parts = text.split(",").map((part) => part.trim()).filter(Boolean);
+  if (parts.length >= 2) {
+    const first = parts[0];
+    const second = parts[1];
+    const countyFirst = canonicalRomaniaCounty(first);
+    const countySecond = canonicalRomaniaCounty(second);
+    const sectorFirst = canonicalBucharestDistrict(first);
+    const sectorSecond = canonicalBucharestDistrict(second);
+
+    if (countyFirst === "București" && sectorSecond) {
+      return { county: "București", city: "București", district: sectorSecond, invalid: false };
+    }
+    if (countySecond === "București" && sectorFirst) {
+      return { county: "București", city: "București", district: sectorFirst, invalid: false };
+    }
+
+    if (countyFirst && isValidRomaniaLocalityName(second)) {
+      if (countyFirst === "București") {
+        const sector = canonicalBucharestDistrict(second);
+        return {
+          county: "București",
+          city: "București",
+          district: sector ?? "",
+          invalid: false,
+        };
+      }
+      return {
+        county: countyFirst,
+        city: canonicalRomaniaCity(countyFirst, second) ?? second,
+        district: "",
+        invalid: false,
+      };
+    }
+
+    if (countySecond && isValidRomaniaLocalityName(first)) {
+      if (countySecond === "București") {
+        const sector = canonicalBucharestDistrict(first);
+        return {
+          county: "București",
+          city: "București",
+          district: sector ?? "",
+          invalid: false,
+        };
+      }
+      return {
+        county: countySecond,
+        city: canonicalRomaniaCity(countySecond, first) ?? first,
+        district: "",
+        invalid: false,
+      };
+    }
+
+    return { ...empty, invalid: true };
+  }
+
+  const catalog = uniqueCatalogLocality(text);
+  if (catalog) {
+    return { county: catalog.county, city: catalog.city, district: "", invalid: false };
+  }
+
+  if (isValidRomaniaLocalityName(text)) {
+    return { county: "", city: text, district: "", invalid: false };
+  }
+
+  return { ...empty, invalid: true };
+}
+
+export function formatTypedLocationSearch(token: {
+  county?: string;
+  city?: string;
+  district?: string;
+}): string {
+  const county = (token.county ?? "").trim();
+  const city = (token.city ?? "").trim();
+  const district = (token.district ?? "").trim();
+  if (district) return `București, ${district}`;
+  if (city && county) return `${city}, ${county}`;
+  if (city) return city;
+  return county;
+}
+
 export type RomaniaLocationSearchToken = {
   county: string;
   city: string;
