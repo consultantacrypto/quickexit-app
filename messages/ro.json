@@ -51,6 +51,32 @@
     "viewBuyerRequests": "Vezi cereri de cumpărare",
     "packagesSectionTitle": "Alege ritmul de vânzare"
   },
+  "HeroSearch": {
+    "queryLabel": "Ce cauți?",
+    "placeholder": "Ce cauți?",
+    "hint": "Ex: Urus, Rolex, apartament",
+    "locationLabel": "Locație",
+    "locationDefault": "Toată România",
+    "action": "Caută"
+  },
+  "ListingSearch": {
+    "metaTitle": "Caută anunțuri | Quick Exit",
+    "metaDescription": "Caută anunțuri publice Quick Exit după produs și locație.",
+    "title": "Rezultate căutare",
+    "resultsCount": "{count} anunțuri publice",
+    "empty": "Nu am găsit anunțuri publice pentru aceste filtre.",
+    "reset": "Resetează filtrele"
+  },
+  "ListingLocation": {
+    "countyLabel": "Județ",
+    "countyPlaceholder": "Selectează județul",
+    "cityLabel": "Localitate",
+    "cityPlaceholder": "Ex: Otopeni",
+    "sectorLabel": "Sector (opțional)",
+    "sectorPlaceholder": "Alege sectorul",
+    "districtLabel": "Zonă / cartier (opțional)",
+    "districtPlaceholder": "Ex: Mamaia Nord"
+  },
   "Packages": {
     "auction": {
       "title": "Licitație deschisă 30 zile",
@@ -329,6 +355,7 @@
       "genericFailed": "Nu am putut finaliza solicitarea sau pornirea plății. Te rugăm să încerci din nou.",
       "pendingReuse": "Ai deja un anunț salvat în așteptarea plății. Continuăm plata pentru acesta.",
       "pendingInvalid": "Anunțul salvat pentru plată nu mai este disponibil. Confirmă din nou publicarea pentru a crea unul nou.",
+      "locationRequired": "Completează județul și localitatea înainte de plată.",
       "incompatibleSaleIntent": "Metoda de vânzare și pachetul nu coincid. Alege din nou metoda de vânzare înainte de plată."
     },
     "draft": {

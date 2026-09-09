@@ -49,6 +49,12 @@ import {
   type ListingDraftV1,
 } from "@/lib/listingDraft";
 import { type PricingMode } from "@/lib/pricingMode";
+import ListingLocationFields from "@/app/components/ListingLocationFields";
+import {
+  applyListingLocationToDetails,
+  formatListingLocation,
+  locationFromFormData,
+} from "@/lib/listingLocation";
 import {
   coerceCompatibleSaleIntent,
   mergeSaleFieldsIntoDetails,
@@ -609,12 +615,14 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
 
   function validatePrimaryAssetFields(): string | null {
     if (!adTitle.trim()) return "Completează titlul anunțului.";
+    const locationCheck = locationFromFormData(formData);
+    if (!locationCheck.ok) return locationCheck.error;
     if (category === "Auto & Moto") {
       if (!formData.make.trim() || !formData.model.trim())
         return "Completează marca și modelul vehiculului.";
     } else if (category === "Imobiliare") {
-      if (!formData.location.trim() || !formData.surface.trim())
-        return "Completează localizarea și suprafața.";
+      if (!formData.surface.trim())
+        return "Completează suprafața.";
     } else if (category === "Lux & Ceasuri") {
       if (!formData.brand.trim() || !formData.refModel.trim())
         return "Completează brandul și modelul.";
@@ -937,6 +945,11 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
       setFlowError(tPost("pricingMode.validation.selectOptionToContinue"));
       return;
     }
+    const locationCheck = locationFromFormData(formData);
+    if (!locationCheck.ok) {
+      setFlowError(locationCheck.error);
+      return;
+    }
     const saleIntent = coerceCompatibleSaleIntent({
       saleMethod,
       packageId: selectedPackage,
@@ -1027,10 +1040,13 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
           existingListing.status === "pending_payment"
         ) {
           const saleFields = saleIntent;
-          const nextDetails = mergeSaleFieldsIntoDetails(
-            existingListing.details,
-            saleIntent.packageId,
-            saleIntent.saleMethod,
+          const nextDetails = applyListingLocationToDetails(
+            mergeSaleFieldsIntoDetails(
+              existingListing.details,
+              saleIntent.packageId,
+              saleIntent.saleMethod,
+            ),
+            locationCheck.location,
           );
           if (pricingMode) nextDetails.pricing_mode = pricingMode;
           const { error: syncPackageError } = await supabase
@@ -1157,14 +1173,17 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
           deal_score: dealScore,
           discount: finalDiscount,
           images: uploadedImageUrls,
-          details: {
+          details: applyListingLocationToDetails(
+            {
             ...formData,
             package: saleFields.detailsPackage,
             strategy: saleFields.detailsStrategy,
             sale_method: saleFields.detailsSaleMethod,
             pricing_mode: pricingMode,
             ...buildListingAcquisitionDetails(evaluationTrackingRef.current),
-          },
+            },
+            locationCheck.location,
+          ),
         })
         .select()
         .single();
@@ -1658,20 +1677,6 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                           className="w-full mt-2 p-3 border-[3px] border-black rounded-xl font-bold uppercase focus:outline-none focus:bg-gray-50"
                         />
                       </div>
-                      <div className="md:col-span-2">
-                        <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">
-                          Localizare Exactă
-                        </label>
-                        <input
-                          type="text"
-                          value={formData.location}
-                          onChange={(e) =>
-                            setFormData({ ...formData, location: e.target.value })
-                          }
-                          placeholder="Ex: București, Sector 1, Șos. Nordului"
-                          className="w-full mt-2 p-3 border-[3px] border-black rounded-xl font-bold uppercase focus:outline-none focus:bg-gray-50"
-                        />
-                      </div>
                     </>
                   )}
                   {/* LUX & CEASURI */}
@@ -1926,6 +1931,20 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                       </div>
                     </>
                   )}
+                  <ListingLocationFields
+                    value={formData}
+                    onChange={(patch) =>
+                      setFormData((prev) => {
+                        const next = { ...prev, ...patch, country_code: "RO" };
+                        const loc = locationFromFormData(next);
+                        return {
+                          ...next,
+                          location: loc.ok ? formatListingLocation(loc.location) : prev.location,
+                        };
+                      })
+                    }
+                    showDistrict={true}
+                  />
                 </div>
               </div>
 

@@ -51,6 +51,32 @@
     "viewBuyerRequests": "View buyer requests",
     "packagesSectionTitle": "Choose your sale pace"
   },
+  "HeroSearch": {
+    "queryLabel": "What are you looking for?",
+    "placeholder": "What are you looking for?",
+    "hint": "E.g. Urus, Rolex, apartment",
+    "locationLabel": "Location",
+    "locationDefault": "All Romania",
+    "action": "Search"
+  },
+  "ListingSearch": {
+    "metaTitle": "Search listings | Quick Exit",
+    "metaDescription": "Search public Quick Exit listings by product and location.",
+    "title": "Search results",
+    "resultsCount": "{count} public listings",
+    "empty": "No public listings match these filters.",
+    "reset": "Reset filters"
+  },
+  "ListingLocation": {
+    "countyLabel": "County",
+    "countyPlaceholder": "Select county",
+    "cityLabel": "City / locality",
+    "cityPlaceholder": "E.g. Otopeni",
+    "sectorLabel": "District (optional)",
+    "sectorPlaceholder": "Choose sector",
+    "districtLabel": "Area / neighborhood (optional)",
+    "districtPlaceholder": "E.g. Mamaia Nord"
+  },
   "Packages": {
     "auction": {
       "title": "Open auction — 30 days",
@@ -329,6 +355,7 @@
       "genericFailed": "We couldn't complete your request or start checkout. Please try again.",
       "pendingReuse": "You already have a listing saved awaiting payment. We'll continue checkout for that one.",
       "pendingInvalid": "The saved listing awaiting payment is no longer available. Confirm publish again to create a new one.",
+      "locationRequired": "Add the county and locality before payment.",
       "incompatibleSaleIntent": "Sale method and package do not match. Choose the sale method again before paying."
     },
     "draft": {

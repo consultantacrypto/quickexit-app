@@ -1,4 +1,5 @@
 import { normalizeSaleType } from "@/utils/normalizeSaleType";
+import { listingLocationLabelFromUnknown } from "@/lib/listingLocation";
 
 type ListingLike = {
   category?: string | null;
@@ -154,6 +155,7 @@ export function getListingKeyFacts(
   const category = String(listing.category ?? "").toLowerCase();
   const saleType = normalizeSaleType(listing.sale_strategy);
   const facts: ListingFact[] = [];
+  const locationLabel = listingLocationLabelFromUnknown(details);
 
   if (saleType === "auction") {
     addFact(facts, labels, "offers", toText(listing.offer_count), 0);
@@ -171,13 +173,14 @@ export function getListingKeyFacts(
     addFact(facts, labels, "drivetrain", toText(pick(details, ["drivetrain", "traction"])), 7);
     addFact(facts, labels, "range", toText(pick(details, ["range_km_cltc", "range_km_wltp"])), 8);
     addFact(facts, labels, "battery", toText(pick(details, ["battery_kwh"])), 9);
+    addFact(facts, labels, "location", locationLabel, 10);
   } else if (category.includes("imobil")) {
     const surface = formatSurface(pick(details, ["surface", "suprafata"]), locale);
     const land = formatSurface(pick(details, ["landSurface", "land_surface"]), locale);
     addFact(facts, labels, "surface", surface, 1);
     addFact(facts, labels, "landSurface", land, 2);
     addFact(facts, labels, "rooms", toText(pick(details, ["rooms", "camere"])), 3);
-    addFact(facts, labels, "location", toText(pick(details, ["location", "locatie"])), 4);
+    addFact(facts, labels, "location", locationLabel, 4);
     const surfaceNum = toFiniteNumber(pick(details, ["surface", "suprafata"]));
     const exitPrice = toFiniteNumber(listing.exit_price);
     if (surfaceNum && surfaceNum > 0 && exitPrice && exitPrice > 0) {
@@ -196,17 +199,31 @@ export function getListingKeyFacts(
     addFact(facts, labels, "condition", toText(pick(details, ["condition", "stare"])), 4);
     addFact(facts, labels, "fullSet", toText(pick(details, ["boxPapers", "documents"])), 5);
     addFact(facts, labels, "material", toText(pick(details, ["material"])), 6);
+    addFact(facts, labels, "location", locationLabel, 7);
   } else if (category.includes("afaceri") || category.includes("business")) {
     addFact(facts, labels, "revenue", toText(pick(details, ["revenue", "cifra"])), 1);
     addFact(facts, labels, "profit", toText(pick(details, ["profit"])), 2);
     addFact(facts, labels, "employees", toText(pick(details, ["employees"])), 3);
-    addFact(facts, labels, "location", toText(pick(details, ["location", "locatie"])), 4);
+    addFact(facts, labels, "location", locationLabel, 4);
   } else if (category.includes("gadget")) {
     addFact(facts, labels, "brand", toText(pick(details, ["brand"])), 1);
     addFact(facts, labels, "model", toText(pick(details, ["model", "specs"])), 2);
     addFact(facts, labels, "condition", toText(pick(details, ["condition", "stare"])), 3);
     addFact(facts, labels, "warranty", toText(pick(details, ["warranty"])), 4);
     addFact(facts, labels, "storage", toText(pick(details, ["storage"])), 5);
+    addFact(facts, labels, "location", locationLabel, 6);
+  } else if (category.includes("foto") || category.includes("audio")) {
+    addFact(facts, labels, "brand", toText(pick(details, ["brand"])), 1);
+    addFact(facts, labels, "model", toText(pick(details, ["model", "specs"])), 2);
+    addFact(facts, labels, "condition", toText(pick(details, ["condition", "stare"])), 3);
+    addFact(facts, labels, "warranty", toText(pick(details, ["warranty"])), 4);
+    addFact(facts, labels, "location", locationLabel, 5);
+  }
+
+  if (
+    !facts.some((fact) => fact.key === "location")
+  ) {
+    addFact(facts, labels, "location", locationLabel, 20);
   }
 
   return facts.sort((a, b) => a.priority - b.priority).slice(0, 6);

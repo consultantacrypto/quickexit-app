@@ -1,4 +1,5 @@
 import { getSiteUrl } from "@/lib/siteUrl";
+import { listingLocationLabelFromUnknown } from "@/lib/listingLocation";
 
 type SocialChannel = "x" | "linkedin" | "whatsapp" | "telegram" | "instagram" | "hq";
 
@@ -41,16 +42,7 @@ const UTM_BY_CHANNEL: Record<SocialChannel, { source: string; medium: string }> 
 };
 
 function pickLocation(listing: ListingForShare): string | null {
-  if (listing.location && listing.location.trim()) return listing.location.trim();
-  const details = listing.details;
-  if (details && typeof details === "object") {
-    const raw =
-      (details.location as string | undefined) ||
-      (details.locatie as string | undefined) ||
-      (details.zona as string | undefined);
-    if (raw && raw.trim()) return raw.trim();
-  }
-  return null;
+  return listingLocationLabelFromUnknown(listing.details, listing.location);
 }
 
 export function formatSocialPrice(value: number | null | undefined): string | null {

@@ -3,6 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { normalizeSaleType } from "@/utils/normalizeSaleType";
+import {
+  applyListingLocationToDetails,
+  locationFromFormData,
+} from "@/lib/listingLocation";
 
 // Tabelele pe care le poate administra adminul prin aceste acțiuni.
 export type AdminTable = "listings" | "demands";
@@ -312,6 +316,46 @@ export async function adminRenewAuctionExpiry(
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : "Eroare necunoscută.";
     console.error("[adminRenewAuctionExpiry] excepție:", msg);
+    return { ok: false, error: msg };
+  }
+}
+
+export async function adminPatchListingLocation(
+  listingId: string,
+  accessToken: string,
+  input: { county: string; city: string; district?: string },
+): Promise<AdminActionResult> {
+  try {
+    if (!listingId) return { ok: false, error: "ID invalid." };
+    const supabase = await assertAdminAndGetServiceClient(accessToken);
+    const { data: row, error } = await supabase
+      .from("listings")
+      .select("id, details")
+      .eq("id", listingId)
+      .maybeSingle();
+    if (error || !row) return { ok: false, error: "Anunțul nu a fost găsit." };
+
+    const check = locationFromFormData({
+      country_code: "RO",
+      county: input.county,
+      city: input.city,
+      district: input.district ?? "",
+    });
+    if (!check.ok) return { ok: false, error: check.error };
+
+    const current =
+      row.details && typeof row.details === "object" && !Array.isArray(row.details)
+        ? (row.details as Record<string, unknown>)
+        : {};
+    const details = applyListingLocationToDetails(current, check.location);
+    const { error: updateError } = await supabase
+      .from("listings")
+      .update({ details })
+      .eq("id", listingId);
+    if (updateError) return { ok: false, error: updateError.message };
+    return { ok: true };
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : "Eroare necunoscută.";
     return { ok: false, error: msg };
   }
 }

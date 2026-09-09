@@ -5,6 +5,7 @@ import { trackEvent } from "@/lib/analytics";
 import type { PublicListingRow } from "@/lib/listingSeo";
 import { getFutureMobilityDetails } from "@/lib/futureMobility";
 import { formatEurAmount } from "@/lib/i18n/format";
+import { listingLocationLabelFromUnknown } from "@/lib/listingLocation";
 import { normalizeSaleType } from "@/utils/normalizeSaleType";
 import { useLocale, useTranslations } from "next-intl";
 
@@ -60,6 +61,7 @@ export default function FutureMobilityListingGrid({
               discount={item.discount?.toString() || "0"}
               score={item.deal_score ? item.deal_score / 10 : 9.0}
               type={normalizeSaleType(item.sale_strategy)}
+              location={listingLocationLabelFromUnknown(item.details)}
               priority={index === 0}
               extraBadges={extraBadges}
             />

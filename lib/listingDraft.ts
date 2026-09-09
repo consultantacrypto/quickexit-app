@@ -40,6 +40,10 @@ export type ListingDraftFormData = {
   parking: string;
   landSurface: string;
   location: string;
+  country_code: string;
+  county: string;
+  city: string;
+  district: string;
   brand: string;
   refModel: string;
   purchaseYear: string;
@@ -131,6 +135,10 @@ const FORM_DATA_KEYS = [
   "parking",
   "landSurface",
   "location",
+  "country_code",
+  "county",
+  "city",
+  "district",
   "brand",
   "refModel",
   "purchaseYear",
@@ -166,6 +174,10 @@ export const DEFAULT_LISTING_FORM_DATA: ListingDraftFormData = {
   parking: "Inclus în preț",
   landSurface: "",
   location: "",
+  country_code: "RO",
+  county: "",
+  city: "",
+  district: "",
   brand: "",
   refModel: "",
   purchaseYear: "",

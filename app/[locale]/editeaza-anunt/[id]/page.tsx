@@ -10,7 +10,14 @@ import { premiumSellerConfig } from "@/lib/premiumSeller";
 import { financingConfig } from "@/lib/financingConfig";
 import { LISTING_AUTO_CATEGORY } from "@/lib/listingPremium";
 import ListingMedia from "@/app/components/ListingMedia";
+import ListingLocationFields from "@/app/components/ListingLocationFields";
 import { reorderListingImagesCover } from "@/lib/listingMedia";
+import {
+  applyListingLocationToDetails,
+  locationFromFormData,
+  parseListingLocationFromDetails,
+  tryParseLegacyListingLocation,
+} from "@/lib/listingLocation";
 
 export default function EditAdPage() {
   const tPost = useTranslations("PostListing");
@@ -64,7 +71,19 @@ export default function EditAdPage() {
         const mode = getPricingMode(details);
         setPricingMode(mode);
         setInitialPricingMode(mode);
-        setFormData(details);
+        const parsedLocation =
+          parseListingLocationFromDetails(details) ?? tryParseLegacyListingLocation(details);
+        setFormData(
+          parsedLocation
+            ? {
+                ...details,
+                country_code: parsedLocation.country_code,
+                county: parsedLocation.county,
+                city: parsedLocation.city,
+                district: parsedLocation.district ?? "",
+              }
+            : details,
+        );
         const images = Array.isArray(data.images)
           ? data.images.filter((url: unknown): url is string => typeof url === "string" && url.trim().length > 0)
           : [];
@@ -78,8 +97,22 @@ export default function EditAdPage() {
 
   const handleUpdate = async () => {
     setIsSaving(true);
+    const locationCheck = locationFromFormData({
+      country_code: formData.country_code,
+      county: formData.county,
+      city: formData.city,
+      district: formData.district,
+    });
+    if (!locationCheck.ok) {
+      alert(locationCheck.error);
+      setIsSaving(false);
+      return;
+    }
     const trimmedExit = exitPrice.trim();
-    const mergedDetails: Record<string, unknown> = { ...formData, pricing_mode: pricingMode };
+    const mergedDetails: Record<string, unknown> = applyListingLocationToDetails(
+      { ...formData, pricing_mode: pricingMode },
+      locationCheck.location,
+    );
 
     if (isOwner) {
       mergedDetails.premium_seller_enabled = formData.premium_seller_enabled === true;
@@ -132,13 +165,27 @@ export default function EditAdPage() {
       updatePayload.discount = null;
       updatePayload.deal_score = null;
     }
-    const { error } = await supabase
-      .from('listings')
-      .update(updatePayload)
-      .eq('id', id);
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    if (!session?.access_token) {
+      alert("Autentificare necesară.");
+      setIsSaving(false);
+      return;
+    }
 
-    if (error) {
-      alert("Eroare la salvare. Ai rulat politica SQL de UPDATE?");
+    const res = await fetch(`/api/listings/${id}/update`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify(updatePayload),
+    });
+    const payload = await res.json().catch(() => null);
+
+    if (!res.ok) {
+      alert(payload?.error || "Eroare la salvare. Ai rulat politica SQL de UPDATE?");
     } else {
       router.push('/dashboard');
     }
@@ -298,13 +345,9 @@ export default function EditAdPage() {
                   <label className="text-[10px] font-black uppercase text-gray-400">Etaj / Regim</label>
                   <input type="text" value={formData.floor || ""} onChange={(e) => updateField('floor', e.target.value)} className="w-full mt-1 p-3 border-2 border-black rounded-lg font-bold uppercase" />
                 </div>
-                <div>
+                <div className="md:col-span-2">
                   <label className="text-[10px] font-black uppercase text-gray-400">An Construcție</label>
                   <input type="number" value={formData.buildYear || ""} onChange={(e) => updateField('buildYear', e.target.value)} className="w-full mt-1 p-3 border-2 border-black rounded-lg font-bold" />
-                </div>
-                <div className="md:col-span-2">
-                  <label className="text-[10px] font-black uppercase text-gray-400">Localizare Exactă</label>
-                  <input type="text" value={formData.location || ""} onChange={(e) => updateField('location', e.target.value)} className="w-full mt-1 p-3 border-2 border-black rounded-lg font-bold uppercase focus:border-[#FFD100] outline-none" />
                 </div>
               </>
             )}
@@ -332,6 +375,18 @@ export default function EditAdPage() {
                 </div>
               </>
             )}
+
+            <ListingLocationFields
+              value={{
+                country_code: formData.country_code,
+                county: formData.county,
+                city: formData.city,
+                district: formData.district,
+              }}
+              onChange={(patch) =>
+                setFormData((prev: Record<string, unknown>) => ({ ...prev, ...patch, country_code: "RO" }))
+              }
+            />
 
             <div className="md:col-span-2 mt-4 space-y-4">
               <div>

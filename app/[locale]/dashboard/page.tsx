@@ -22,6 +22,7 @@ import AdCard from "@/app/components/AdCard";
 import { normalizeSaleType } from "@/utils/normalizeSaleType";
 import { getNumberLocale } from "@/lib/i18n/format";
 import { adCardPricingProps } from "@/lib/listingPrice";
+import { listingLocationLabelFromUnknown } from "@/lib/listingLocation";
 import { Wallet, Inbox, PlusCircle, Search, Settings, Power, Play, PiggyBank, ClipboardList } from "lucide-react";
 import KycBanner from "@/app/components/KycBanner";
 import { getPriceIdForPackageId } from "@/lib/stripePackages";
@@ -1030,6 +1031,7 @@ function DashboardContent() {
                       }
                       {...adCardPricingProps(item, numberLocale)}
                       type={normalizeSaleType(item.sale_strategy)}
+                      location={listingLocationLabelFromUnknown(item.details)}
                       {...(normalizeSaleType(item.sale_strategy) === "auction"
                         ? {
                             offerCount: item.offer_count,

@@ -13,6 +13,8 @@ import { categoryPath } from "@/src/i18n/paths";
 import { getNumberLocale, formatEurAmount } from "@/lib/i18n/format";
 import { adCardPricingProps } from "@/lib/listingPrice";
 import { isPublicAuctionOpen } from "@/lib/auctionOpen";
+import HeroSearchBar from "@/app/components/HeroSearchBar";
+import { listingLocationLabelFromUnknown } from "@/lib/listingLocation";
 
 export const revalidate = 60;
 
@@ -262,14 +264,7 @@ export default async function Home({ params }: HomePageProps) {
             </div>
 
             <div className="flex flex-col items-center">
-              <TrackedLink
-                href="/pune-anunt"
-                eventName="click_post_listing"
-                eventParams={{ source: "home_hero" }}
-                className="group relative inline-flex min-h-12 items-center justify-center overflow-hidden whitespace-nowrap rounded-full border border-black/[0.12] bg-black/90 px-8 py-3.5 text-sm font-semibold uppercase tracking-[0.12em] text-[#FFD100] shadow-[0_14px_36px_-10px_rgba(0,0,0,0.45)] backdrop-blur-md transition-all duration-300 hover:border-[#FFD100]/35 hover:bg-black hover:shadow-[0_22px_48px_-14px_rgba(0,0,0,0.5)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#FFD100] md:min-h-12 md:px-11 md:py-4 md:text-base xl:px-12 xl:py-[1.125rem] xl:text-[17px]"
-              >
-                <span className="relative z-10 whitespace-nowrap">{tHero("primaryCta")}</span>
-              </TrackedLink>
+              <HeroSearchBar />
             </div>
           </div>
         </div>
@@ -342,6 +337,7 @@ export default async function Home({ params }: HomePageProps) {
                   }
                   {...adCardPricingProps(item, numberLocale)}
                   type={normalizeSaleType(item.sale_strategy)}
+                  location={listingLocationLabelFromUnknown(item.details)}
                 />
               ))
             ) : (
@@ -489,6 +485,7 @@ export default async function Home({ params }: HomePageProps) {
                   offerCount={item.offer_count}
                   highestOffer={item.highest_offer}
                   expiresAt={item.expires_at}
+                  location={listingLocationLabelFromUnknown(item.details)}
                 />
               ))}
             </div>

@@ -74,8 +74,8 @@ assert(
 
 const staticEntries = buildStaticSitemapEntries(PRODUCTION_SITE_URL, now);
 assert(
-  staticEntries.some((e) => e.url === `${PRODUCTION_SITE_URL}/ro`),
-  "ro home present",
+  staticEntries.some((e) => e.url === `${PRODUCTION_SITE_URL}/ro/cauta`),
+  "ro search present",
 );
 assert(
   staticEntries.some((e) => e.url === `${PRODUCTION_SITE_URL}/en`),
