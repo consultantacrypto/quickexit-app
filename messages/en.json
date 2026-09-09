@@ -57,6 +57,9 @@
     "hint": "E.g. Urus, Rolex, apartment",
     "locationLabel": "Location",
     "locationDefault": "All Romania",
+    "groupCounties": "Counties",
+    "groupCities": "Cities / localities",
+    "groupDistricts": "Bucharest districts",
     "action": "Search"
   },
   "ListingSearch": {
@@ -65,7 +68,10 @@
     "title": "Search results",
     "resultsCount": "{count} public listings",
     "empty": "No public listings match these filters.",
-    "reset": "Reset filters"
+    "reset": "Reset filters",
+    "prevPage": "Previous page",
+    "nextPage": "Next page",
+    "pageStatus": "Page {page} of {totalPages}"
   },
   "ListingLocation": {
     "countyLabel": "County",

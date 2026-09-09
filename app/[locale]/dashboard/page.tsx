@@ -550,12 +550,28 @@ function DashboardContent() {
       }
     }
 
-    const { error } = await supabase
-      .from('listings')
-      .update({ status: newStatus })
-      .eq('id', item.id);
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    if (!session?.access_token) {
+      setStatusActionMessage({
+        type: "error",
+        text: "Autentificare necesară pentru a actualiza statusul anunțului.",
+      });
+      return;
+    }
 
-    if (!error) {
+    const res = await fetch(`/api/listings/${item.id}/status`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({ status: newStatus }),
+    });
+    const data = await res.json().catch(() => null);
+
+    if (res.ok) {
       setStatusActionMessage({
         type: "success",
         text: "Statusul anunțului a fost actualizat.",
@@ -564,7 +580,10 @@ function DashboardContent() {
     } else {
       setStatusActionMessage({
         type: "error",
-        text: "Nu am putut actualiza statusul anunțului. Te rugăm să reîncerci.",
+        text:
+          typeof data?.error === "string"
+            ? data.error
+            : "Nu am putut actualiza statusul anunțului. Te rugăm să reîncerci.",
       });
     }
   };

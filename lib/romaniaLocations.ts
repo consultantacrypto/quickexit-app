@@ -157,3 +157,78 @@ export function canonicalBucharestDistrict(value: string): string | null {
   const folded = foldRo(value.replace(/sectorul/i, "sector"));
   return BUCHAREST_DISTRICTS.find((d) => foldRo(d) === folded) ?? null;
 }
+
+export type RomaniaLocationSearchToken = {
+  county: string;
+  city: string;
+  district: string;
+};
+
+export type RomaniaLocationSearchOption = {
+  value: string;
+  label: string;
+  group: "county" | "city" | "district";
+};
+
+/** Compact hero control: county, locality, or București district. */
+export function encodeRomaniaLocationSearchValue(token: RomaniaLocationSearchToken): string {
+  const county = token.county.trim();
+  const city = token.city.trim();
+  const district = token.district.trim();
+  if (district && county) {
+    return `d:${county}:${city || county}:${district}`;
+  }
+  if (city && county) return `l:${county}:${city}`;
+  if (county) return `c:${county}`;
+  return "";
+}
+
+export function decodeRomaniaLocationSearchValue(raw: string | null | undefined): RomaniaLocationSearchToken {
+  const token = String(raw ?? "").trim();
+  if (!token) return { county: "", city: "", district: "" };
+  const parts = token.split(":");
+  const kind = parts[0];
+  if (kind === "c" && parts[1]) {
+    return { county: parts.slice(1).join(":"), city: "", district: "" };
+  }
+  if (kind === "l" && parts[1] && parts[2]) {
+    return { county: parts[1], city: parts.slice(2).join(":"), district: "" };
+  }
+  if (kind === "d" && parts[1] && parts[2] && parts[3]) {
+    return { county: parts[1], city: parts[2], district: parts.slice(3).join(":") };
+  }
+  return { county: "", city: "", district: "" };
+}
+
+export function romaniaLocationSearchOptions(): RomaniaLocationSearchOption[] {
+  const options: RomaniaLocationSearchOption[] = ROMANIA_COUNTIES.map((county) => ({
+    value: encodeRomaniaLocationSearchValue({ county, city: "", district: "" }),
+    label: county,
+    group: "county" as const,
+  }));
+
+  for (const county of ROMANIA_COUNTIES) {
+    if (county === "București") continue;
+    for (const city of ROMANIA_CITIES_BY_COUNTY[county]) {
+      options.push({
+        value: encodeRomaniaLocationSearchValue({ county, city, district: "" }),
+        label: `${county}, ${city}`,
+        group: "city",
+      });
+    }
+  }
+
+  for (const district of BUCHAREST_DISTRICTS) {
+    options.push({
+      value: encodeRomaniaLocationSearchValue({
+        county: "București",
+        city: "București",
+        district,
+      }),
+      label: `București, ${district}`,
+      group: "district",
+    });
+  }
+
+  return options;
+}

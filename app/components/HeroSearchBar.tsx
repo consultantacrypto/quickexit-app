@@ -4,41 +4,57 @@ import { FormEvent, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "@/src/i18n/navigation";
 import { trackEvent } from "@/lib/analytics";
-import { ROMANIA_COUNTIES } from "@/lib/romaniaLocations";
+import {
+  decodeRomaniaLocationSearchValue,
+  encodeRomaniaLocationSearchValue,
+  romaniaLocationSearchOptions,
+} from "@/lib/romaniaLocations";
 
 type HeroSearchBarProps = {
   initialQuery?: string;
   initialCounty?: string;
+  initialCity?: string;
+  initialDistrict?: string;
   source?: string;
 };
 
 export default function HeroSearchBar({
   initialQuery = "",
   initialCounty = "",
+  initialCity = "",
+  initialDistrict = "",
   source = "home_hero",
 }: HeroSearchBarProps) {
   const t = useTranslations("HeroSearch");
   const router = useRouter();
   const [query, setQuery] = useState(initialQuery);
-  const [county, setCounty] = useState(initialCounty);
-
-  const countyOptions = useMemo(
-    () => ROMANIA_COUNTIES.map((name) => ({ value: name, label: name })),
-    [],
+  const [locationToken, setLocationToken] = useState(() =>
+    encodeRomaniaLocationSearchValue({
+      county: initialCounty,
+      city: initialCity,
+      district: initialDistrict,
+    }),
   );
+
+  const locationOptions = useMemo(() => romaniaLocationSearchOptions(), []);
+  const countyOptions = locationOptions.filter((opt) => opt.group === "county");
+  const cityOptions = locationOptions.filter((opt) => opt.group === "city");
+  const districtOptions = locationOptions.filter((opt) => opt.group === "district");
 
   function submitSearch(event?: FormEvent) {
     event?.preventDefault();
     const q = query.trim();
-    const loc = county.trim();
+    const loc = decodeRomaniaLocationSearchValue(locationToken);
     const params = new URLSearchParams();
     if (q) params.set("q", q);
-    if (loc) params.set("county", loc);
+    if (loc.county) params.set("county", loc.county);
+    if (loc.city) params.set("city", loc.city);
+    if (loc.district) params.set("district", loc.district);
     const qs = params.toString();
     trackEvent("search_listings", {
       source,
       has_query: q.length > 0,
-      has_location: loc.length > 0,
+      has_location: Boolean(loc.county || loc.city || loc.district),
     });
     router.push(qs ? `/cauta?${qs}` : "/cauta");
   }
@@ -67,17 +83,33 @@ export default function HeroSearchBar({
         <label className="flex min-w-0 flex-1 flex-col border-b-[3px] border-black md:border-b-0 md:border-r-[3px]">
           <span className="sr-only">{t("locationLabel")}</span>
           <select
-            name="county"
-            value={county}
-            onChange={(e) => setCounty(e.target.value)}
-            className={`${fieldClass} cursor-pointer appearance-none bg-[#FDFCF8]`}
+            name="location"
+            value={locationToken}
+            onChange={(e) => setLocationToken(e.target.value)}
+            className={`${fieldClass} max-w-full cursor-pointer appearance-none truncate bg-[#FDFCF8]`}
           >
             <option value="">{t("locationDefault")}</option>
-            {countyOptions.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
+            <optgroup label={t("groupCounties")}>
+              {countyOptions.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </optgroup>
+            <optgroup label={t("groupCities")}>
+              {cityOptions.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </optgroup>
+            <optgroup label={t("groupDistricts")}>
+              {districtOptions.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </optgroup>
           </select>
         </label>
         <button

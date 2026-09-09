@@ -1,7 +1,8 @@
 -- Listing structured location (OPTIONAL, not applied remotely).
 -- Safe staged migration: nullable columns only. NO NOT NULL.
 -- Application stores the same fields in listings.details JSON so the app
--- works before this SQL is applied.
+-- works before this SQL is applied. App queries do not SELECT these columns
+-- yet; reads use details first, then optional row-level columns only if present.
 --
 -- Do NOT run against production from this change set.
 

@@ -15,6 +15,7 @@ import {
   resolveActivationPlan,
   type CheckoutObjectType,
 } from "@/lib/stripeWebhookActivation";
+import { publicationLocationFromDetails } from "@/lib/listingLocation";
 
 export type ForceActivateMode = "stripe_sync" | "manual";
 export type ForceActivateEntityType = "listing" | "demand";
@@ -55,7 +56,8 @@ export type ForceActivateFailure = {
     | "stripe_entity_mismatch"
     | "stripe_session_invalid"
     | "missing_reason"
-    | "activation_failed";
+    | "activation_failed"
+    | "missing_listing_location";
 };
 
 export type ForceActivateResult = ForceActivateSuccess | ForceActivateFailure;
@@ -253,6 +255,16 @@ async function forceActivateListingRow(
   }
 
   const row = listing as ListingRow;
+  if (input.mode === "manual" && row.status !== "active") {
+    const locationCheck = publicationLocationFromDetails(row.details);
+    if (!locationCheck.ok) {
+      return {
+        ok: false,
+        error: locationCheck.error,
+        code: "missing_listing_location",
+      };
+    }
+  }
   return executeForceActivate({
     supabase,
     input,

@@ -57,6 +57,9 @@
     "hint": "Ex: Urus, Rolex, apartament",
     "locationLabel": "Locație",
     "locationDefault": "Toată România",
+    "groupCounties": "Județe",
+    "groupCities": "Localități",
+    "groupDistricts": "Sectoare București",
     "action": "Caută"
   },
   "ListingSearch": {
@@ -65,7 +68,10 @@
     "title": "Rezultate căutare",
     "resultsCount": "{count} anunțuri publice",
     "empty": "Nu am găsit anunțuri publice pentru aceste filtre.",
-    "reset": "Resetează filtrele"
+    "reset": "Resetează filtrele",
+    "prevPage": "Pagina anterioară",
+    "nextPage": "Pagina următoare",
+    "pageStatus": "Pagina {page} din {totalPages}"
   },
   "ListingLocation": {
     "countyLabel": "Județ",

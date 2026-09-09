@@ -6,6 +6,7 @@ import { normalizeSaleType } from "@/utils/normalizeSaleType";
 import {
   applyListingLocationToDetails,
   locationFromFormData,
+  publicationLocationFromDetails,
 } from "@/lib/listingLocation";
 
 // Tabelele pe care le poate administra adminul prin aceste acțiuni.
@@ -221,6 +222,21 @@ export async function adminForcePublish(
     }
 
     const supabase = await assertAdminAndGetServiceClient(accessToken);
+
+    if (table === "listings") {
+      const { data: listing, error: listingError } = await supabase
+        .from("listings")
+        .select("id, details")
+        .eq("id", id)
+        .maybeSingle();
+      if (listingError || !listing) {
+        return { ok: false, error: listingError?.message ?? "Anunțul nu a fost găsit." };
+      }
+      const locationCheck = publicationLocationFromDetails(listing.details);
+      if (!locationCheck.ok) {
+        return { ok: false, error: locationCheck.error };
+      }
+    }
 
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 30);

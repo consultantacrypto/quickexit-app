@@ -5,10 +5,24 @@ import {
   listingMatchesKeyword,
   listingMatchesLocationFilter,
   locationFromFormData,
+  publicationLocationFromDetails,
+  resolveListingLocation,
   tryParseLegacyLocationText,
   validateListingLocationInput,
 } from "../lib/listingLocation";
-import { filterPublicSearchListings } from "../lib/publicListings";
+import {
+  buildKeywordOrFilter,
+  buildLocationOrFilters,
+  canonicalizePublicLocationFilter,
+  filterPublicSearchListings,
+  parsePublicListingSearchParams,
+  quotePostgrestLiteral,
+  sanitizeSearchQuery,
+} from "../lib/publicListings";
+import {
+  decodeRomaniaLocationSearchValue,
+  encodeRomaniaLocationSearchValue,
+} from "../lib/romaniaLocations";
 import { isActivePublicListingRow } from "../lib/sitemapEntries";
 
 function fail(message: string): never {
@@ -144,5 +158,101 @@ assert(zero.length === 0, "zero results");
 assert(listingMatchesKeyword(rows[0], "auto"), "category keyword");
 assert(listingMatchesLocationFilter(details, { county: "Cluj" }), "location filter match");
 assert(!listingMatchesLocationFilter(details, { county: "Timiș" }), "location filter miss");
+
+const otopeniDetails = applyListingLocationToDetails({}, {
+  country_code: "RO",
+  county: "Ilfov",
+  city: "Otopeni",
+  district: null,
+});
+assert(
+  listingMatchesLocationFilter(otopeniDetails, { county: "Ilfov", city: "Otopeni" }),
+  "Otopeni city filter matches Otopeni",
+);
+assert(
+  !listingMatchesLocationFilter(otopeniDetails, { county: "Ilfov", city: "Voluntari" }),
+  "Otopeni is not Voluntari",
+);
+
+const sectorRows = filterPublicSearchListings(rows, {
+  county: "București",
+  city: "București",
+  district: "Sector 1",
+});
+assert(sectorRows.length === 1 && String(sectorRows[0].title).includes("Rolex"), "Sector 1 city/district filter");
+
+const otopeniToken = encodeRomaniaLocationSearchValue({
+  county: "Ilfov",
+  city: "Otopeni",
+  district: "",
+});
+assert(otopeniToken.includes("Otopeni"), "Otopeni token encodes city");
+assert(decodeRomaniaLocationSearchValue(otopeniToken).city === "Otopeni", "Otopeni token decodes city");
+const sectorToken = encodeRomaniaLocationSearchValue({
+  county: "București",
+  city: "București",
+  district: "Sector 1",
+});
+assert(decodeRomaniaLocationSearchValue(sectorToken).district === "Sector 1", "Sector 1 token");
+
+const parsedOtopeniUrl = parsePublicListingSearchParams({
+  q: "Urus",
+  county: "Ilfov",
+  city: "Otopeni",
+});
+assert(parsedOtopeniUrl.q === "Urus", "shareable q");
+assert(parsedOtopeniUrl.county === "Ilfov", "shareable county");
+assert(parsedOtopeniUrl.city === "Otopeni", "shareable city");
+
+const parsedSectorUrl = parsePublicListingSearchParams({
+  q: "",
+  county: "București",
+  city: "București",
+  district: "Sector 1",
+});
+assert(parsedSectorUrl.district === "Sector 1", "shareable district");
+
+const inferredCity = canonicalizePublicLocationFilter({ city: "Otopeni" });
+assert(inferredCity.county === "Ilfov" && inferredCity.city === "Otopeni", "Otopeni infers Ilfov");
+const inferredSector = canonicalizePublicLocationFilter({ district: "Sector 1" });
+assert(
+  inferredSector.county === "București" && inferredSector.district === "Sector 1",
+  "Sector 1 infers București",
+);
+
+const poisoned = sanitizeSearchQuery("urus%).or(status.eq.draft,title.ilike.%");
+assert(!poisoned.includes("%"), "search query strips percent");
+assert(!poisoned.includes("("), "search query strips parentheses");
+assert(!poisoned.includes(","), "search query strips commas");
+const keywordOr = buildKeywordOrFilter("urus%).or(status.eq.draft");
+if (!keywordOr) fail("keyword or built");
+assert(keywordOr.includes('title.ilike."%'), "keyword or uses quoted ilike");
+assert(!/(?:^|,)status\.eq/.test(keywordOr), "raw or() injection cannot add clauses");
+assert(quotePostgrestLiteral('x","status.eq.draft') === null, "quotes rejected");
+
+const locationOrs = buildLocationOrFilters({ county: "Ilfov", city: "Otopeni" });
+assert(locationOrs.some((clause) => clause.includes("details->>city.eq.\"Otopeni\"")), "city pushed to PostgREST");
+assert(locationOrs.every((clause) => !clause.includes("status.eq")), "location or has no status injection");
+
+assert(!publicationLocationFromDetails({}).ok, "missing location blocked for publication");
+assert(publicationLocationFromDetails(details).ok, "structured details allowed for publication");
+
+const detailsWin = resolveListingLocation({
+  details: otopeniDetails,
+  county: "Cluj",
+  city: "Cluj-Napoca",
+});
+assert(detailsWin?.city === "Otopeni", "details take precedence over top-level columns");
+
+const columnFallback = resolveListingLocation({
+  details: {},
+  country_code: "RO",
+  county: "Ilfov",
+  city: "Otopeni",
+});
+assert(columnFallback?.city === "Otopeni", "top-level columns used only when details missing");
+
+const missingLegacy = resolveListingLocation({ details: { title: "no location" } });
+assert(missingLegacy === null, "missing legacy location is not fabricated");
 
 console.log("OK listing-location");

@@ -9,8 +9,10 @@ import { getNumberLocale } from "@/lib/i18n/format";
 import { adCardPricingProps } from "@/lib/listingPrice";
 import { listingLocationLabelFromUnknown } from "@/lib/listingLocation";
 import {
+  buildPublicSearchPath,
   fetchPublicSearchListings,
   parsePublicListingSearchParams,
+  PUBLIC_SEARCH_MAX_PAGE,
 } from "@/lib/publicListings";
 import { normalizeSaleType } from "@/utils/normalizeSaleType";
 
@@ -21,7 +23,13 @@ const FALLBACK_IMAGE =
 
 type PageProps = {
   params: Promise<{ locale: string }>;
-  searchParams: Promise<{ q?: string; county?: string; city?: string; district?: string }>;
+  searchParams: Promise<{
+    q?: string;
+    county?: string;
+    city?: string;
+    district?: string;
+    page?: string;
+  }>;
 };
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
@@ -46,11 +54,17 @@ export default async function SearchPage({ params, searchParams }: PageProps) {
     county: raw.county,
     city: raw.city,
     district: raw.district,
+    page: raw.page,
   });
   const t = await getTranslations("ListingSearch");
   const numberLocale = getNumberLocale(locale);
-  const { listings } = await fetchPublicSearchListings(supabase, filters);
-  const hasFilters = Boolean(filters.q || filters.county || filters.city || filters.district);
+  const { listings, total, page, pageSize } = await fetchPublicSearchListings(supabase, filters);
+  const hasFilters = Boolean(
+    filters.q || filters.county || filters.city || filters.district || filters.locationInvalid,
+  );
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const showPrev = page > 1;
+  const showNext = page < totalPages && page < PUBLIC_SEARCH_MAX_PAGE;
 
   return (
     <div className="min-h-screen bg-white font-sans text-black">
@@ -60,8 +74,11 @@ export default async function SearchPage({ params, searchParams }: PageProps) {
             {t("title")}
           </h1>
           <HeroSearchBar
+            key={`${filters.q}|${filters.county}|${filters.city}|${filters.district}`}
             initialQuery={filters.q}
             initialCounty={filters.county}
+            initialCity={filters.city}
+            initialDistrict={filters.district}
             source="search_page"
           />
         </div>
@@ -71,7 +88,7 @@ export default async function SearchPage({ params, searchParams }: PageProps) {
         <div className="mx-auto max-w-7xl">
           <div className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <p className="text-sm font-bold text-neutral-600">
-              {t("resultsCount", { count: listings.length })}
+              {t("resultsCount", { count: total })}
             </p>
             {hasFilters ? (
               <Link
@@ -84,26 +101,55 @@ export default async function SearchPage({ params, searchParams }: PageProps) {
           </div>
 
           {listings.length > 0 ? (
-            <div className="grid grid-cols-1 gap-8 md:grid-cols-2 xl:grid-cols-3 lg:gap-10">
-              {listings.map((item) => (
-                <AdCard
-                  key={item.id}
-                  id={item.id}
-                  title={item.title || ""}
-                  image={item.images?.[0] || FALLBACK_IMAGE}
-                  {...adCardPricingProps(item, numberLocale)}
-                  type={normalizeSaleType(item.sale_strategy)}
-                  location={listingLocationLabelFromUnknown(item.details)}
-                  offerCount={typeof item.offer_count === "number" ? item.offer_count : null}
-                  highestOffer={
-                    typeof item.highest_offer === "number" || typeof item.highest_offer === "string"
-                      ? item.highest_offer
-                      : null
-                  }
-                  expiresAt={item.expires_at}
-                />
-              ))}
-            </div>
+            <>
+              <div className="grid grid-cols-1 gap-8 md:grid-cols-2 xl:grid-cols-3 lg:gap-10">
+                {listings.map((item) => (
+                  <AdCard
+                    key={item.id}
+                    id={item.id}
+                    title={item.title || ""}
+                    image={item.images?.[0] || FALLBACK_IMAGE}
+                    {...adCardPricingProps(item, numberLocale)}
+                    type={normalizeSaleType(item.sale_strategy)}
+                    location={listingLocationLabelFromUnknown(item.details)}
+                    offerCount={typeof item.offer_count === "number" ? item.offer_count : null}
+                    highestOffer={
+                      typeof item.highest_offer === "number" || typeof item.highest_offer === "string"
+                        ? item.highest_offer
+                        : null
+                    }
+                    expiresAt={item.expires_at}
+                  />
+                ))}
+              </div>
+              {totalPages > 1 ? (
+                <div className="mt-10 flex items-center justify-between gap-4">
+                  {showPrev ? (
+                    <Link
+                      href={buildPublicSearchPath(filters, page - 1)}
+                      className="border-b-2 border-transparent text-[11px] font-black uppercase tracking-widest text-neutral-600 transition hover:border-black hover:text-black md:text-xs"
+                    >
+                      {t("prevPage")}
+                    </Link>
+                  ) : (
+                    <span />
+                  )}
+                  <p className="text-[11px] font-black uppercase tracking-widest text-neutral-500">
+                    {t("pageStatus", { page, totalPages })}
+                  </p>
+                  {showNext ? (
+                    <Link
+                      href={buildPublicSearchPath(filters, page + 1)}
+                      className="border-b-2 border-transparent text-[11px] font-black uppercase tracking-widest text-neutral-600 transition hover:border-black hover:text-black md:text-xs"
+                    >
+                      {t("nextPage")}
+                    </Link>
+                  ) : (
+                    <span />
+                  )}
+                </div>
+              ) : null}
+            </>
           ) : (
             <div className="rounded-2xl border-[3px] border-dashed border-black bg-[#FDFCF8] py-20 text-center shadow-[6px_6px_0_0_rgba(0,0,0,1)]">
               <p className="text-sm font-bold text-neutral-600">{t("empty")}</p>

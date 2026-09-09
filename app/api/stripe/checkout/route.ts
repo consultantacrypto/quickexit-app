@@ -4,7 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 import { getSiteUrl } from "@/lib/siteUrl";
 import { getSupabaseAnonKey, getSupabaseProjectUrl } from "@/lib/supabase/config";
 import { resolveListingPackageIdFromRow, validatePersistedSaleIntent } from "@/lib/listingSaleStrategy";
-import { locationFromFormData, parseListingLocationFromDetails } from "@/lib/listingLocation";
+import { publicationLocationFromDetails } from "@/lib/listingLocation";
 import {
   getPackageByPriceId,
   getPriceIdForPackageId,
@@ -175,13 +175,7 @@ export async function POST(req: Request) {
         );
       }
 
-      const storedLocation = parseListingLocationFromDetails(listingRow.details);
-      const locationCheck = locationFromFormData({
-        country_code: storedLocation?.country_code,
-        county: storedLocation?.county,
-        city: storedLocation?.city,
-        district: storedLocation?.district ?? "",
-      });
+      const locationCheck = publicationLocationFromDetails(listingRow.details);
       if (!locationCheck.ok) {
         return NextResponse.json(
           { error: locationCheck.error, code: "missing_listing_location" },

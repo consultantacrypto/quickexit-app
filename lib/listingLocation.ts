@@ -58,12 +58,29 @@ export function formatListingLocation(location: ListingLocation): string {
   return county;
 }
 
+/**
+ * Canonical location source is `listings.details` JSON.
+ * Public and owner queries never SELECT optional top-level
+ * country_code/county/city/district columns, so PostgREST stays valid
+ * before the staged SQL is applied.
+ *
+ * Read precedence:
+ * 1. details.location_structured (county + city)
+ * 2. details.county + details.city (+ district, country_code, locality aliases)
+ * 3. catalog-parseable compact details.location / locatie / zona
+ * 4. optional top-level columns on the row object, only if details cannot resolve
+ *
+ * Writes always go through applyListingLocationToDetails (details only).
+ * Missing legacy location is not fabricated.
+ */
 export function parseListingLocationFromDetails(details: unknown): ListingLocation | null {
   if (!isRecord(details)) return null;
   const nested = isRecord(details.location_structured)
     ? details.location_structured
     : details;
-  const country_code = asText(nested.country_code || details.country_code).toUpperCase() || ROMANIA_COUNTRIES_DEFAULT;
+  const country_code =
+    asText(nested.country_code || details.country_code).toUpperCase() ||
+    ROMANIA_COUNTRIES_DEFAULT;
   const county = asText(nested.county || details.county);
   const city = asText(nested.city || details.city || nested.locality || details.locality);
   const districtRaw = asText(
@@ -78,6 +95,45 @@ export function parseListingLocationFromDetails(details: unknown): ListingLocati
   };
 }
 
+export type ListingLocationRowSource = {
+  details?: unknown;
+  country_code?: unknown;
+  county?: unknown;
+  city?: unknown;
+  district?: unknown;
+};
+
+export function resolveListingLocation(source: ListingLocationRowSource): ListingLocation | null {
+  const fromStructured = parseListingLocationFromDetails(source.details);
+  if (fromStructured) {
+    const validated = validateListingLocationInput(fromStructured);
+    if (validated.ok) return validated.location;
+  }
+
+  const fromLegacy = tryParseLegacyListingLocation(source.details);
+  if (fromLegacy) {
+    const validated = validateListingLocationInput(fromLegacy);
+    if (validated.ok) return validated.location;
+  }
+
+  const county = asText(source.county);
+  const city = asText(source.city);
+  if (!county || !city) return null;
+  const validated = validateListingLocationInput({
+    country_code: asText(source.country_code) || ROMANIA_COUNTRIES_DEFAULT,
+    county,
+    city,
+    district: asText(source.district) || null,
+  });
+  return validated.ok ? validated.location : null;
+}
+
+export function publicationLocationFromDetails(details: unknown): ListingLocationValidation {
+  const resolved = resolveListingLocation({ details });
+  if (resolved) return { ok: true, location: resolved };
+  return validateListingLocationInput({});
+}
+
 export function hasStructuredListingLocation(details: unknown): boolean {
   return validateListingLocationInput(parseListingLocationFromDetails(details) ?? {}).ok;
 }
@@ -85,12 +141,10 @@ export function hasStructuredListingLocation(details: unknown): boolean {
 export function listingLocationLabelFromUnknown(
   details: unknown,
   topLevelLocation?: unknown,
+  rowColumns?: Omit<ListingLocationRowSource, "details">,
 ): string | null {
-  const structured = parseListingLocationFromDetails(details);
-  if (structured) {
-    const validated = validateListingLocationInput(structured);
-    if (validated.ok) return formatListingLocation(validated.location);
-  }
+  const resolved = resolveListingLocation({ details, ...rowColumns });
+  if (resolved) return formatListingLocation(resolved);
   const compact = asText(topLevelLocation);
   if (compact) {
     const parsed = tryParseLegacyLocationText(compact);
