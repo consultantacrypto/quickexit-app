@@ -53,6 +53,41 @@
     "viewBuyerRequests": "View buyer requests",
     "packagesSectionTitle": "Choose your sale pace"
   },
+  "HeroSearch": {
+    "queryLabel": "What are you looking for?",
+    "placeholder": "Search Urus, Rolex, apartment...",
+    "locationLabel": "Location",
+    "locationDefault": "All locations",
+    "groupCounties": "Counties",
+    "groupCities": "Cities / localities",
+    "groupDistricts": "Bucharest districts",
+    "action": "Search"
+  },
+  "ListingSearch": {
+    "metaTitle": "Search listings | Quick Exit",
+    "metaDescription": "Search public Quick Exit listings by product and location.",
+    "title": "Search results",
+    "resultsCount": "{count, plural, =0 {0 public listings} one {# public listing} other {# public listings}}",
+    "empty": "No public listings match these filters.",
+    "reset": "Reset filters",
+    "prevPage": "Previous page",
+    "nextPage": "Next page",
+    "pageStatus": "Page {page} of {totalPages}"
+  },
+  "ListingLocation": {
+    "helper": "The place where the asset can be viewed or collected. Do not enter a street address.",
+    "countryLabel": "Country",
+    "countyLabel": "County",
+    "countyPlaceholder": "Select county",
+    "regionLabel": "Region / province (optional)",
+    "regionPlaceholder": "E.g. Île-de-France",
+    "cityLabel": "City / locality",
+    "cityPlaceholder": "E.g. Otopeni",
+    "sectorLabel": "District (optional)",
+    "sectorPlaceholder": "Choose sector",
+    "districtLabel": "Area / neighborhood (optional)",
+    "districtPlaceholder": "E.g. Mamaia Nord"
+  },
   "Packages": {
     "auction": {
       "title": "Open auction — 30 days",
@@ -588,7 +623,8 @@
       "pendingReuse": "You already have a listing saved awaiting payment. We'll continue checkout for that one.",
       "pendingInvalid": "The saved listing awaiting payment is no longer available. Confirm publish again to create a new one.",
       "incompatibleSaleIntent": "Sale method and package do not match. Choose the sale method again before paying.",
-      "stepsIncomplete": "Complete the previous steps before payment. Checkout cannot start from an incomplete draft."
+      "stepsIncomplete": "Complete the previous steps before payment. Checkout cannot start from an incomplete draft.",
+      "locationRequired": "Add the county and locality before payment."
     },
     "draft": {
       "restoredBanner": "We restored your listing draft. Photos must be uploaded again.",

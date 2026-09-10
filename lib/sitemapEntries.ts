@@ -62,6 +62,7 @@ export function staticAndCategorySitemapPaths(): string[] {
     "/capital-disponibil",
     "/licitatii",
     "/anunturi",
+    "/cauta",
     "/tarife",
     "/cum-functioneaza",
     "/future-mobility",

@@ -4,6 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 import { getSiteUrl } from "@/lib/siteUrl";
 import { getSupabaseAnonKey, getSupabaseProjectUrl } from "@/lib/supabase/config";
 import { resolveListingPackageIdFromRow, validatePersistedSaleIntent } from "@/lib/listingSaleStrategy";
+import { publicationLocationFromDetails } from "@/lib/listingLocation";
 import {
   getPackageByPriceId,
   getPriceIdForPackageId,
@@ -170,6 +171,14 @@ export async function POST(req: Request) {
       if (clientPriceId && clientPriceId !== derivedPriceId) {
         return NextResponse.json(
           { error: "Pachet invalid: priceId necunoscut." },
+          { status: 400 },
+        );
+      }
+
+      const locationCheck = publicationLocationFromDetails(listingRow.details);
+      if (!locationCheck.ok) {
+        return NextResponse.json(
+          { error: locationCheck.error, code: "missing_listing_location" },
           { status: 400 },
         );
       }

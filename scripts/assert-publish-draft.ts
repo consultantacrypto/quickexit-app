@@ -104,7 +104,13 @@ function validStep1Draft(
     saleStrategy: "standard",
     selectedPackage: "standard",
     saleMethod: "direct",
-    formData: { ...DEFAULT_LISTING_FORM_DATA, make: "BMW", model: "320d" },
+    formData: {
+      ...DEFAULT_LISTING_FORM_DATA,
+      make: "BMW",
+      model: "320d",
+      county: "Ilfov",
+      city: "Otopeni",
+    },
     evaluationPrefillActive: false,
     evaluationHandoffActive: false,
     ...overrides,
@@ -127,7 +133,13 @@ function validCheckoutDraft() {
     saleStrategy: "standard",
     selectedPackage: "standard",
     saleMethod: "direct",
-    formData: { ...DEFAULT_LISTING_FORM_DATA, make: "BMW", model: "320d" },
+    formData: {
+      ...DEFAULT_LISTING_FORM_DATA,
+      make: "BMW",
+      model: "320d",
+      county: "Ilfov",
+      city: "Otopeni",
+    },
     evaluationPrefillActive: false,
     evaluationHandoffActive: false,
   });
@@ -203,7 +215,13 @@ assert(
   validatePublishStep2({
     category: "Auto & Moto",
     adTitle: "BMW 320d",
-    formData: { ...DEFAULT_LISTING_FORM_DATA, make: "BMW", model: "320d" },
+    formData: {
+      ...DEFAULT_LISTING_FORM_DATA,
+      make: "BMW",
+      model: "320d",
+      county: "Ilfov",
+      city: "Otopeni",
+    },
   }) === true,
   "step 2 does not require photos or description",
 );
@@ -385,7 +403,10 @@ assertButtonsAreTypeButton(combobox, "CarBrandCombobox");
 assertButtonsAreTypeButton(publish, "PuneAnuntClient");
 
 assert(!existsSync(resolve("lib/listingInquiry.ts")), "Phase 2B listingInquiry absent");
-assert(!existsSync(resolve("app/api/listings")), "Phase 2B listings inquiry API absent");
+assert(
+  !existsSync(resolve("app/api/listings/[id]/inquiry/route.ts")),
+  "Phase 2B listings inquiry API absent",
+);
 assert(!existsSync(resolve("app/api/hq/inquiries")), "Phase 2B hq inquiries API absent");
 assert(!publish.includes("listingInquiry"), "publish client has no Phase 2B inquiry");
 

@@ -22,6 +22,7 @@ import AdCard from "@/app/components/AdCard";
 import { normalizeSaleType } from "@/utils/normalizeSaleType";
 import { getNumberLocale } from "@/lib/i18n/format";
 import { adCardPricingProps } from "@/lib/listingPrice";
+import { listingLocationLabelFromUnknown } from "@/lib/listingLocation";
 import { Wallet, Inbox, PlusCircle, Search, Settings, Power, Play, PiggyBank, ClipboardList } from "lucide-react";
 import KycBanner from "@/app/components/KycBanner";
 import { getPriceIdForPackageId } from "@/lib/stripePackages";
@@ -549,12 +550,28 @@ function DashboardContent() {
       }
     }
 
-    const { error } = await supabase
-      .from('listings')
-      .update({ status: newStatus })
-      .eq('id', item.id);
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    if (!session?.access_token) {
+      setStatusActionMessage({
+        type: "error",
+        text: "Autentificare necesară pentru a actualiza statusul anunțului.",
+      });
+      return;
+    }
 
-    if (!error) {
+    const res = await fetch(`/api/listings/${item.id}/status`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({ status: newStatus }),
+    });
+    const data = await res.json().catch(() => null);
+
+    if (res.ok) {
       setStatusActionMessage({
         type: "success",
         text: "Statusul anunțului a fost actualizat.",
@@ -563,7 +580,10 @@ function DashboardContent() {
     } else {
       setStatusActionMessage({
         type: "error",
-        text: "Nu am putut actualiza statusul anunțului. Te rugăm să reîncerci.",
+        text:
+          typeof data?.error === "string"
+            ? data.error
+            : "Nu am putut actualiza statusul anunțului. Te rugăm să reîncerci.",
       });
     }
   };
@@ -1030,6 +1050,7 @@ function DashboardContent() {
                       }
                       {...adCardPricingProps(item, numberLocale)}
                       type={normalizeSaleType(item.sale_strategy)}
+                      location={listingLocationLabelFromUnknown(item.details)}
                       {...(normalizeSaleType(item.sale_strategy) === "auction"
                         ? {
                             offerCount: item.offer_count,

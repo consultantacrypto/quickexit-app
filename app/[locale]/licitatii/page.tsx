@@ -5,6 +5,7 @@ import { PAGE_METADATA_COPY } from "@/lib/pageMetadataCopy";
 import { buildPageMetadata, resolvePageLocale } from "@/lib/seo";
 import { supabase } from "@/lib/supabase";
 import { isPublicAuctionOpen } from "@/lib/auctionOpen";
+import { listingLocationLabelFromUnknown } from "@/lib/listingLocation";
 import { getNumberLocale } from "@/lib/i18n/format";
 import { adCardPricingProps } from "@/lib/listingPrice";
 
@@ -87,6 +88,7 @@ export default async function LicitatiiPage({ params }: PageProps) {
                   offerCount={item.offer_count}
                   highestOffer={item.highest_offer}
                   expiresAt={item.expires_at}
+                  location={listingLocationLabelFromUnknown(item.details)}
                 />
               ))}
             </div>

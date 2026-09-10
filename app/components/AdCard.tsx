@@ -27,6 +27,7 @@ interface AdCardProps {
   highestOffer?: number | string | null;
   expiresAt?: string | null;
   extraBadges?: string[];
+  location?: string | null;
 }
 
 export default function AdCard({
@@ -42,6 +43,7 @@ export default function AdCard({
   highestOffer,
   expiresAt,
   extraBadges,
+  location,
 }: AdCardProps) {
   const t = useTranslations("AdCard");
   const locale = useLocale();
@@ -70,6 +72,7 @@ export default function AdCard({
   const showExitPrice = exitPrice.trim().length > 0;
   const showAuctionBadge = type === "auction";
   const showDiscountBadge = discountNum > 0;
+  const locationLabel = typeof location === "string" ? location.trim() : "";
 
   return (
     <article className="group relative flex flex-col overflow-hidden rounded-3xl border border-line/70 bg-surface shadow-[0_1px_3px_rgba(0,0,0,0.04)] transition-all duration-500 ease-out hover:-translate-y-1 hover:border-neutral-300/80 hover:shadow-[0_28px_50px_-16px_rgba(0,0,0,0.22)]">
@@ -146,6 +149,35 @@ export default function AdCard({
           <h3 className="line-clamp-2 text-lg font-semibold leading-snug tracking-tight text-ink">
             {title}
           </h3>
+          <p className="mt-2 flex min-h-[1.25rem] items-center gap-1.5 text-[11px] font-medium uppercase tracking-[0.14em] text-muted">
+            {locationLabel ? (
+              <>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                  className="h-3.5 w-3.5 shrink-0"
+                  aria-hidden
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"
+                  />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z"
+                  />
+                </svg>
+                <span className="truncate normal-case tracking-normal">{locationLabel}</span>
+              </>
+            ) : (
+              <span className="invisible select-none">&nbsp;</span>
+            )}
+          </p>
         </div>
 
         {type === "auction" && (

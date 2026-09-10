@@ -6,8 +6,15 @@ import { supabase } from "@/lib/supabase";
 import { companyInfo } from "@/lib/company";
 import { buildSocialShareKit } from "@/lib/socialShare";
 import { trackEvent } from "@/lib/analytics";
-import { adminDeleteListing, adminForcePublish, adminRenewAuctionExpiry, type AdminTable } from "@/app/actions/adminActions";
+import { adminDeleteListing, adminForcePublish, adminPatchListingLocation, adminPatchListingsLocation, adminRenewAuctionExpiry, type AdminTable } from "@/app/actions/adminActions";
 import { formatAdminPriceCell } from "@/lib/listingPrice";
+import {
+  formatListingLocation,
+  hasStructuredListingLocation,
+  listingLocationLabelFromUnknown,
+  locationFromFormData,
+} from "@/lib/listingLocation";
+import ListingLocationFields from "@/app/components/ListingLocationFields";
 import { normalizeSaleType } from "@/utils/normalizeSaleType";
 
 const ADMIN_EMAILS = ["consultantacrypto.ro@gmail.com"];
@@ -287,6 +294,12 @@ export default function AdminHQ() {
   const [loadNote, setLoadNote] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [renewingAuctionId, setRenewingAuctionId] = useState<string | null>(null);
+  const [locationEditId, setLocationEditId] = useState<string | null>(null);
+  const [locationEdit, setLocationEdit] = useState({ country_code: "RO", county: "", city: "", district: "" });
+  const [listingsPendingOnly, setListingsPendingOnly] = useState(false);
+  const [listingsMissingLocationOnly, setListingsMissingLocationOnly] = useState(false);
+  const [selectedListingIds, setSelectedListingIds] = useState<string[]>([]);
+  const [bulkLocation, setBulkLocation] = useState({ country_code: "RO", county: "", city: "", district: "" });
   const [copilotLoading, setCopilotLoading] = useState(false);
   const [copilotError, setCopilotError] = useState<string | null>(null);
   const [copilotWarnings, setCopilotWarnings] = useState<string[]>([]);
@@ -298,7 +311,6 @@ export default function AdminHQ() {
   const [copilotAnalyticsAvailable, setCopilotAnalyticsAvailable] = useState<boolean | null>(null);
   const [copilotGaLookbackDays, setCopilotGaLookbackDays] = useState<number | null>(null);
   const [copilotGaWarnings, setCopilotGaWarnings] = useState<string[]>([]);
-  const [listingsPendingOnly, setListingsPendingOnly] = useState(false);
 
   const loadAdminData = useCallback(async () => {
     setLoadNote(null);
@@ -424,9 +436,25 @@ export default function AdminHQ() {
     [allListings]
   );
 
-  const visibleListings = useMemo(
-    () => (listingsPendingOnly ? pendingPaymentListings : allListings),
-    [allListings, listingsPendingOnly, pendingPaymentListings]
+  const missingLocationListings = useMemo(
+    () => allListings.filter((l) => l.is_seed !== true && !hasStructuredListingLocation(l.details)),
+    [allListings]
+  );
+
+  const visibleListings = useMemo(() => {
+    let rows = listingsPendingOnly ? pendingPaymentListings : allListings;
+    if (listingsMissingLocationOnly) {
+      rows = rows.filter((l) => l.is_seed !== true && !hasStructuredListingLocation(l.details));
+    }
+    return rows;
+  }, [allListings, listingsMissingLocationOnly, listingsPendingOnly, pendingPaymentListings]);
+
+  const visibleMissingIds = useMemo(
+    () =>
+      visibleListings
+        .filter((l) => l.is_seed !== true && !hasStructuredListingLocation(l.details))
+        .map((l) => String(l.id)),
+    [visibleListings]
   );
 
   const resolveOperationalRisk = async (risk: OperationalRiskItem) => {
@@ -826,6 +854,55 @@ export default function AdminHQ() {
     } finally {
       setRenewingAuctionId(null);
     }
+  };
+
+  const saveListingLocation = async (listingId: string) => {
+    setActionError(null);
+    const token = await getAccessToken();
+    if (!token) {
+      setActionError("Sesiunea a expirat. Reautentifică-te și încearcă din nou.");
+      return;
+    }
+    const res = await adminPatchListingLocation(listingId, token, locationEdit);
+    if (!res.ok) {
+      setActionError(`Locație: ${res.error}`);
+      return;
+    }
+    setLocationEditId(null);
+    setLoadNote("Locația anunțului a fost salvată.");
+    await loadAdminData();
+  };
+
+  const saveBulkListingLocation = async () => {
+    setActionError(null);
+    const ids = selectedListingIds.filter((id) => visibleMissingIds.includes(id));
+    if (ids.length === 0) {
+      setActionError("Selectează anunțurile fără locație pe care vrei să le actualizezi.");
+      return;
+    }
+    const check = locationFromFormData(bulkLocation);
+    if (!check.ok) {
+      setActionError(`Locație: ${check.error}`);
+      return;
+    }
+    const label = formatListingLocation(check.location);
+    const ok = window.confirm(
+      `Ești pe cale să atribui locația „${label}” la ${ids.length} anunțuri selectate. Continuă?`,
+    );
+    if (!ok) return;
+    const token = await getAccessToken();
+    if (!token) {
+      setActionError("Sesiunea a expirat. Reautentifică-te și încearcă din nou.");
+      return;
+    }
+    const res = await adminPatchListingsLocation(ids, token, bulkLocation);
+    if (!res.ok) {
+      setActionError(`Locație: ${res.error}`);
+      return;
+    }
+    setSelectedListingIds([]);
+    setLoadNote(`Locația „${label}” a fost atribuită la ${ids.length} anunțuri.`);
+    await loadAdminData();
   };
 
   const deleteRow = async (id: string, table: AdminTable) => {
@@ -1236,6 +1313,9 @@ export default function AdminHQ() {
                   <span className="rounded-full border-2 border-black bg-[#FFD100] px-3 py-1 text-[10px] font-black uppercase text-black">
                     {stats.listingsPending} așteaptă plata
                   </span>
+                  <span className="rounded-full border-2 border-black bg-amber-200 px-3 py-1 text-[10px] font-black uppercase text-black">
+                    {missingLocationListings.length} locație lipsă
+                  </span>
                   <button
                     type="button"
                     onClick={() => setListingsPendingOnly((v) => !v)}
@@ -1245,16 +1325,71 @@ export default function AdminHQ() {
                   >
                     {listingsPendingOnly ? "Toate listările" : "Doar pending_payment"}
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => setListingsMissingLocationOnly((v) => !v)}
+                    className={`rounded-lg border-2 border-black px-3 py-1.5 text-[10px] font-black uppercase ${
+                      listingsMissingLocationOnly ? "bg-black text-white" : "bg-white text-black hover:bg-neutral-50"
+                    }`}
+                  >
+                    {listingsMissingLocationOnly ? "Toate locațiile" : "Doar locație lipsă"}
+                  </button>
                 </div>
               </div>
               {listingsPendingOnly && pendingPaymentListings.length === 0 && (
                 <p className="mb-4 text-sm font-medium text-neutral-600">Nicio listare în așteptarea plății.</p>
               )}
+              {listingsMissingLocationOnly && missingLocationListings.length === 0 && (
+                <p className="mb-4 text-sm font-medium text-neutral-600">Nicio listare fără locație structurată.</p>
+              )}
+              {visibleMissingIds.length > 0 ? (
+                <div className="mb-5 rounded-2xl border-[3px] border-black bg-amber-50 p-4">
+                  <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-[11px] font-black uppercase tracking-widest text-black">
+                      Atribuire locație pentru {selectedListingIds.length} anunțuri selectate
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setSelectedListingIds((current) =>
+                          current.length === visibleMissingIds.length ? [] : visibleMissingIds,
+                        )
+                      }
+                      className="rounded-lg border-2 border-black bg-white px-3 py-1.5 text-[10px] font-black uppercase text-black hover:bg-neutral-50"
+                    >
+                      {selectedListingIds.length === visibleMissingIds.length
+                        ? "Debifează vizibilele"
+                        : "Selectează vizibilele fără locație"}
+                    </button>
+                  </div>
+                  <ListingLocationFields
+                    idPrefix="hq-bulk-location"
+                    value={bulkLocation}
+                    onChange={(patch) =>
+                      setBulkLocation({
+                        country_code: patch.country_code ?? "RO",
+                        county: patch.county ?? "",
+                        city: patch.city ?? "",
+                        district: patch.district ?? "",
+                      })
+                    }
+                  />
+                  <button
+                    type="button"
+                    onClick={() => void saveBulkListingLocation()}
+                    className="mt-3 inline-flex rounded-lg border-[3px] border-black bg-[#FFD100] px-4 py-2 text-[10px] font-black uppercase text-black"
+                  >
+                    Atribuie locația selectată
+                  </button>
+                </div>
+              ) : null}
               <table className="w-full min-w-[900px] text-left text-sm">
                 <thead>
                   <tr className="border-b-[3px] border-black">
+                    <th className="p-3 text-[10px] font-black uppercase tracking-widest text-neutral-500">Sel.</th>
                     <th className="p-3 text-[10px] font-black uppercase tracking-widest text-neutral-500">Titlu</th>
                     <th className="p-3 text-[10px] font-black uppercase tracking-widest text-neutral-500">Categorie</th>
+                    <th className="p-3 text-[10px] font-black uppercase tracking-widest text-neutral-500">Locație</th>
                     <th className="p-3 text-[10px] font-black uppercase tracking-widest text-neutral-500">Status</th>
                     <th className="p-3 text-[10px] font-black uppercase tracking-widest text-neutral-500">Seed</th>
                     <th className="p-3 text-[10px] font-black uppercase tracking-widest text-neutral-500">Piață</th>
@@ -1268,10 +1403,34 @@ export default function AdminHQ() {
                   {visibleListings.map((listing) => {
                     const canManualActivate =
                       listing.status === "pending_payment" && listing.is_seed !== true;
+                    const missingLocation =
+                      listing.is_seed !== true && !hasStructuredListingLocation(listing.details);
+                    const checked = selectedListingIds.includes(listing.id);
                     return (
                       <tr key={listing.id} className="bg-white/80">
+                        <td className="p-3">
+                          {missingLocation ? (
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={() => {
+                                setSelectedListingIds((current) =>
+                                  checked
+                                    ? current.filter((id) => id !== listing.id)
+                                    : [...current, listing.id],
+                                );
+                              }}
+                              aria-label={`Selectează ${listing.title || listing.id}`}
+                            />
+                          ) : null}
+                        </td>
                         <td className="p-3 font-bold text-black">{listing.title}</td>
                         <td className="p-3 text-neutral-700">{listing.category}</td>
+                        <td className="p-3 text-xs font-semibold text-neutral-700">
+                          {listingLocationLabelFromUnknown(listing.details) || (
+                            <span className="font-black uppercase text-amber-800">Locație lipsă</span>
+                          )}
+                        </td>
                         <td className="p-3">
                           <span className="inline-block rounded-full border border-black bg-neutral-100 px-2 py-0.5 text-[10px] font-black uppercase">
                             {listingStatusLabel(listing.status)}
@@ -1294,6 +1453,44 @@ export default function AdminHQ() {
                         </td>
                         <td className="p-3 font-mono text-[10px] text-neutral-500">{listing.user_id || "—"}</td>
                         <td className="p-3 space-y-1">
+                          {!hasStructuredListingLocation(listing.details) && listing.is_seed !== true && (
+                            <div className="mb-2 rounded-lg border-2 border-amber-500 bg-amber-50 p-2">
+                              {locationEditId === listing.id ? (
+                                <div className="space-y-2">
+                                  <ListingLocationFields
+                                    idPrefix={`hq-${listing.id}`}
+                                    value={locationEdit}
+                                    onChange={(patch) =>
+                                      setLocationEdit({
+                                        country_code: patch.country_code ?? "RO",
+                                        county: patch.county ?? "",
+                                        city: patch.city ?? "",
+                                        district: patch.district ?? "",
+                                      })
+                                    }
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => void saveListingLocation(listing.id)}
+                                    className="block w-full rounded-lg border-[3px] border-black bg-[#FFD100] px-2 py-1.5 text-[9px] font-black uppercase text-black"
+                                  >
+                                    Salvează locația
+                                  </button>
+                                </div>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setLocationEditId(listing.id);
+                                    setLocationEdit({ country_code: "RO", county: "", city: "", district: "" });
+                                  }}
+                                  className="block w-full rounded-lg border-[3px] border-black bg-amber-400 px-2 py-1.5 text-[9px] font-black uppercase text-black"
+                                >
+                                  Completează locația
+                                </button>
+                              )}
+                            </div>
+                          )}
                           {listing.status === "active" && listing.is_seed !== true && (
                             <button
                               type="button"

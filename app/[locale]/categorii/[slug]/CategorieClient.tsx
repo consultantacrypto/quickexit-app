@@ -9,6 +9,7 @@ import { normalizeSaleType } from "@/utils/normalizeSaleType";
 import { useLocale } from "next-intl";
 import { getNumberLocale } from "@/lib/i18n/format";
 import { adCardPricingProps } from "@/lib/listingPrice";
+import { listingLocationLabelFromUnknown } from "@/lib/listingLocation";
 
 // Am extras subcategoriile EXACT cum apar ele în formularele tale din pune-anunt
 const categoryDataMap: Record<string, { name: string; subs: string[] }> = {
@@ -205,6 +206,7 @@ function CategoryContent() {
                         offerCount={item.offer_count}
                         highestOffer={item.highest_offer}
                         expiresAt={item.expires_at}
+                        location={listingLocationLabelFromUnknown(item.details)}
                       />
                     </div>
                   ))}
@@ -245,6 +247,7 @@ function CategoryContent() {
                     }
                     {...adCardPricingProps(item, numberLocale)}
                     type={normalizeSaleType(item.sale_strategy)}
+                    location={listingLocationLabelFromUnknown(item.details)}
                   />
                 ))}
             </div>

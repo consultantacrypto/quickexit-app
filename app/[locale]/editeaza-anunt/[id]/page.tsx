@@ -11,7 +11,14 @@ import { financingConfig } from "@/lib/financingConfig";
 import { LISTING_AUTO_CATEGORY } from "@/lib/listingPremium";
 import ListingPhotoEditor from "@/app/components/ListingPhotoEditor";
 import CarBrandCombobox from "@/app/components/CarBrandCombobox";
+import ListingLocationFields from "@/app/components/ListingLocationFields";
 import { buildListingImagesPatch, sanitizeListingImageUrls } from "@/lib/listingImageUpload";
+import {
+  applyListingLocationToDetails,
+  locationFromFormData,
+  parseListingLocationFromDetails,
+  tryParseLegacyListingLocation,
+} from "@/lib/listingLocation";
 
 function EditAdPage() {
   const tPost = useTranslations("PostListing");
@@ -41,6 +48,13 @@ function EditAdPage() {
   const detailStr = (key: string) => {
     const value = formData[key];
     return value == null ? "" : String(value);
+  };
+
+  const locationFormValue = {
+    country_code: detailStr("country_code"),
+    county: detailStr("county"),
+    city: detailStr("city"),
+    district: detailStr("district"),
   };
 
   const isOwner = currentUserId === premiumSellerConfig.ownerUserId;
@@ -81,14 +95,25 @@ function EditAdPage() {
           ? String(data.exit_price)
           : "",
       );
-      const details = data.details || {};
+      const details =
+        data.details && typeof data.details === "object" && !Array.isArray(data.details)
+          ? (data.details as Record<string, unknown>)
+          : {};
       const mode = getPricingMode(details);
       setPricingMode(mode);
       setInitialPricingMode(mode);
+      const parsedLocation =
+        parseListingLocationFromDetails(details) ?? tryParseLegacyListingLocation(details);
       setFormData(
-        details && typeof details === "object" && !Array.isArray(details)
-          ? (details as Record<string, unknown>)
-          : {},
+        parsedLocation
+          ? {
+              ...details,
+              country_code: parsedLocation.country_code,
+              county: parsedLocation.county,
+              city: parsedLocation.city,
+              district: parsedLocation.district ?? "",
+            }
+          : details,
       );
       setListingImages(sanitizeListingImageUrls(data.images));
       setAccessError(null);
@@ -101,6 +126,12 @@ function EditAdPage() {
     setIsSaving(true);
     setSaveError(null);
     setSaveMessage(null);
+    const locationCheck = locationFromFormData(locationFormValue);
+    if (!locationCheck.ok) {
+      setSaveError(locationCheck.error);
+      setIsSaving(false);
+      return;
+    }
     const imagePatch = buildListingImagesPatch(listingImages);
     if ("error" in imagePatch) {
       setSaveError(tPost("photoEditor.errors.keepLast"));
@@ -108,7 +139,10 @@ function EditAdPage() {
       return;
     }
     const trimmedExit = exitPrice.trim();
-    const mergedDetails: Record<string, unknown> = { ...formData, pricing_mode: pricingMode };
+    const mergedDetails: Record<string, unknown> = applyListingLocationToDetails(
+      { ...formData, pricing_mode: pricingMode },
+      locationCheck.location,
+    );
 
     if (isOwner) {
       mergedDetails.premium_seller_enabled = formData.premium_seller_enabled === true;
@@ -166,14 +200,31 @@ function EditAdPage() {
       setIsSaving(false);
       return;
     }
-    const { error } = await supabase
-      .from("listings")
-      .update(updatePayload)
-      .eq("id", id)
-      .eq("user_id", currentUserId);
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    if (!session?.access_token) {
+      setAccessError("auth");
+      setIsSaving(false);
+      return;
+    }
 
-    if (error) {
-      setSaveError(tPost("photoEditor.errors.saveFailed"));
+    const res = await fetch(`/api/listings/${id}/update`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify(updatePayload),
+    });
+    const payload = await res.json().catch(() => null);
+
+    if (!res.ok) {
+      setSaveError(
+        typeof payload?.error === "string"
+          ? payload.error
+          : tPost("photoEditor.errors.saveFailed"),
+      );
     } else {
       router.push("/dashboard");
     }
@@ -335,13 +386,9 @@ function EditAdPage() {
                   <label className="text-[10px] font-black uppercase text-gray-400">Etaj / Regim</label>
                   <input type="text" value={detailStr("floor")} onChange={(e) => updateField('floor', e.target.value)} className="w-full mt-1 p-3 border-2 border-black rounded-lg font-bold uppercase" />
                 </div>
-                <div>
+                <div className="md:col-span-2">
                   <label className="text-[10px] font-black uppercase text-gray-400">An Construcție</label>
                   <input type="number" value={detailStr("buildYear")} onChange={(e) => updateField('buildYear', e.target.value)} className="w-full mt-1 p-3 border-2 border-black rounded-lg font-bold" />
-                </div>
-                <div className="md:col-span-2">
-                  <label className="text-[10px] font-black uppercase text-gray-400">Localizare Exactă</label>
-                  <input type="text" value={detailStr("location")} onChange={(e) => updateField('location', e.target.value)} className="w-full mt-1 p-3 border-2 border-black rounded-lg font-bold uppercase focus:border-[#FFD100] outline-none" />
                 </div>
               </>
             )}
@@ -369,6 +416,13 @@ function EditAdPage() {
                 </div>
               </>
             )}
+
+            <ListingLocationFields
+              value={locationFormValue}
+              onChange={(patch) =>
+                setFormData((prev: Record<string, unknown>) => ({ ...prev, ...patch }))
+              }
+            />
 
             <div className="md:col-span-2 mt-4 space-y-4">
               <div>

@@ -10,11 +10,13 @@ import {
   type SaleMethod,
 } from "@/lib/listingSaleStrategy";
 import { type PricingMode } from "@/lib/pricingMode";
+import { locationFromFormData } from "@/lib/listingLocation";
 
 export type PublishStep = 1 | 2 | 3 | 4;
 
 export type PublishStep1Code =
   | "title"
+  | "listing_location"
   | "auto_make_model"
   | "imobiliare_location_surface"
   | "lux_brand_model"
@@ -77,12 +79,13 @@ export function validatePublishStep1(
   input: Pick<PublishGuardInput, "category" | "adTitle" | "formData">,
 ): PublishStep1Code | null {
   if (!input.adTitle.trim()) return "title";
+  if (!locationFromFormData(input.formData).ok) return "listing_location";
   if (input.category === "Auto & Moto") {
     if (!input.formData.make.trim() || !input.formData.model.trim()) {
       return "auto_make_model";
     }
   } else if (input.category === "Imobiliare") {
-    if (!input.formData.location.trim() || !input.formData.surface.trim()) {
+    if (!input.formData.surface.trim()) {
       return "imobiliare_location_surface";
     }
   } else if (input.category === "Lux & Ceasuri") {

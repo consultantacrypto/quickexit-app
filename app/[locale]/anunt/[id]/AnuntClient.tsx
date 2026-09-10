@@ -29,6 +29,7 @@ import {
   adCardPricingProps,
   isValidPrice,
 } from "@/lib/listingPrice";
+import { listingLocationLabelFromUnknown } from "@/lib/listingLocation";
 import { getPricingMode } from "@/lib/pricingMode";
 import { resolveListingField } from "@/lib/i18n/listingContent";
 import type {
@@ -91,6 +92,7 @@ const DETAILS_BY_CATEGORY: Record<string, readonly DetailDef[]> = {
     { keys: ["bodyType", "body_type"], labelKey: "bodyType", format: "plain" },
     { keys: ["drivetrain", "traction"], labelKey: "drivetrain", format: "plain" },
     { keys: ["accident_status", "accidents"], labelKey: "accidentHistory", format: "plain" },
+    { keys: ["location"], labelKey: "location", format: "plain" },
   ],
   Imobiliare: [
     { keys: ["propType", "property_type", "tip_proprietate"], labelKey: "propertyType", format: "plain" },
@@ -109,6 +111,7 @@ const DETAILS_BY_CATEGORY: Record<string, readonly DetailDef[]> = {
     { keys: ["mechanism"], labelKey: "mechanism", format: "plain" },
     { keys: ["condition", "conditie", "stare"], labelKey: "condition", format: "plain" },
     { keys: ["year", "optionalYear", "purchaseYear"], labelKey: "year", format: "plain" },
+    { keys: ["location"], labelKey: "location", format: "plain" },
   ],
   Gadgets: [
     { keys: ["brand"], labelKey: "brand", format: "plain" },
@@ -116,12 +119,14 @@ const DETAILS_BY_CATEGORY: Record<string, readonly DetailDef[]> = {
     { keys: ["condition", "stare"], labelKey: "condition", format: "plain" },
     { keys: ["storage"], labelKey: "storage", format: "plain" },
     { keys: ["warranty", "waranty"], labelKey: "warranty", format: "plain" },
+    { keys: ["location"], labelKey: "location", format: "plain" },
   ],
   "Foto & Audio": [
     { keys: ["brand"], labelKey: "brand", format: "plain" },
     { keys: ["model", "specs"], labelKey: "model", format: "plain" },
     { keys: ["condition", "stare"], labelKey: "condition", format: "plain" },
     { keys: ["warranty", "waranty"], labelKey: "warranty", format: "plain" },
+    { keys: ["location"], labelKey: "location", format: "plain" },
   ],
   "Afaceri de vânzare": [
     { keys: ["industry", "businessDomain", "domeniu"], labelKey: "industry", format: "plain" },
@@ -717,7 +722,11 @@ export default function AnuntClient({
         if (hideOverlap && coveredByKeyFacts.has(def.labelKey as (typeof keyFacts)[number]["key"])) {
           continue;
         }
-        const raw = pickFirstPresent(ad, def.keys);
+        const raw =
+          def.labelKey === "location"
+            ? listingLocationLabelFromUnknown(ad.details, ad.location) ??
+              pickFirstPresent(ad, def.keys)
+            : pickFirstPresent(ad, def.keys);
         if (!detailValuePresent(raw)) continue;
         rows.push({
           label: t(`details.fields.${def.labelKey}` as "details.fields.year"),
@@ -1328,6 +1337,7 @@ export default function AnuntClient({
                     }
                     {...adCardPricingProps(item, getNumberLocale(locale))}
                     type={st}
+                    location={listingLocationLabelFromUnknown(item.details)}
                     extraBadges={fmBadgeLabelsForCard(item.details)}
                     {...(st === "auction"
                       ? {
@@ -1370,6 +1380,7 @@ export default function AnuntClient({
                   }
                   {...adCardPricingProps(item, getNumberLocale(locale))}
                   type={st}
+                  location={listingLocationLabelFromUnknown(item.details)}
                   extraBadges={fmBadgeLabelsForCard(item.details)}
                   {...(st === "auction"
                     ? {
