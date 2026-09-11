@@ -31,6 +31,15 @@ export default function AuthModal({ isOpen, onClose, nextPath = "/dashboard" }: 
     }
   }, [isOpen]);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   const handleEmailLogin = async (e: React.FormEvent) => {

@@ -399,9 +399,13 @@ assert(
   "offer_submitted fires only after insert succeeds",
 );
 assert(!listing.includes('trackFunnelEvent("purchase"'), "listing does not fabricate purchase");
-assert(!listing.includes("/api/listings/"), "Phase 2B inquiry route unused");
-assert(!existsSync(resolve("lib/listingInquiry.ts")), "Phase 2B helper absent");
-assert(!existsSync(resolve("docs/internal/sql/listing-inquiries.sql")), "Phase 2B SQL absent");
+assert(listing.includes("/api/listings/") && listing.includes("/inquiry"), "listing details request uses inquiry API");
+assert(existsSync(resolve("lib/listingInquiry.ts")), "inquiry helper present");
+assert(existsSync(resolve("docs/internal/sql/listing-inquiries.sql")), "inquiry SQL present");
+assert(
+  !listing.includes('trackFunnelEvent("submit_listing_inquiry"'),
+  "inquiry success is not a funnel purchase event",
+);
 
 const layout = readFileSync("app/[locale]/layout.tsx", "utf8");
 assert(!layout.includes("googletagmanager.com"), "layout does not load gtag.js before consent");

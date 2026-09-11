@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import type { PublicListingRow, SellerProfileRow } from "@/lib/listingSeo";
 import { formatEurAmount } from "@/lib/i18n/format";
@@ -41,6 +42,17 @@ export type ListingModalsProps = {
   onSubmitOffer: () => void;
   onOfferSuccessClose: () => void;
   clampOfferPrice: (value: number) => number;
+  inquirySuccess: boolean;
+  inquiryActionMessage: ListingOfferActionMessage;
+  inquiryPhone: string;
+  inquiryMessage: string;
+  inquiryConsent: boolean;
+  isSubmittingInquiry: boolean;
+  onInquiryPhoneChange: (value: string) => void;
+  onInquiryMessageChange: (value: string) => void;
+  onInquiryConsentChange: (value: boolean) => void;
+  onSubmitInquiry: () => void;
+  onInquirySuccessClose: () => void;
 };
 
 export default function ListingModals({
@@ -74,9 +86,35 @@ export default function ListingModals({
   onSubmitOffer,
   onOfferSuccessClose,
   clampOfferPrice,
+  inquirySuccess,
+  inquiryActionMessage,
+  inquiryPhone,
+  inquiryMessage,
+  inquiryConsent,
+  isSubmittingInquiry,
+  onInquiryPhoneChange,
+  onInquiryMessageChange,
+  onInquiryConsentChange,
+  onSubmitInquiry,
+  onInquirySuccessClose,
 }: ListingModalsProps) {
   const t = useTranslations("ListingDetail");
   const locale = useLocale();
+  const inquiryPhoneRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    if (activeModal === "inquiry" && !inquirySuccess) {
+      inquiryPhoneRef.current?.focus();
+    }
+  }, [activeModal, inquirySuccess]);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [onClose]);
 
   const formatPrice = (value: number | null | undefined) =>
     formatEurAmount(Number(value ?? 0), locale);
@@ -97,7 +135,12 @@ export default function ListingModals({
         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
         onClick={onClose}
       />
-      <div className="relative max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-[2rem] border-[3px] border-black bg-white p-8 shadow-[14px_14px_0_0_#FFD100] md:p-10">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="listing-modal-title"
+        className="relative max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-[2rem] border-[3px] border-black bg-white p-8 shadow-[14px_14px_0_0_#FFD100] md:p-10"
+      >
         <button
           type="button"
           onClick={onClose}
@@ -109,7 +152,7 @@ export default function ListingModals({
 
         {activeModal === "verified" && sellerProfile?.kyc_status === "verified" && (
           <div className="space-y-6 pt-4">
-            <h3 className="text-2xl font-black uppercase italic tracking-tighter md:text-3xl">
+            <h3 id="listing-modal-title" className="text-2xl font-black uppercase italic tracking-tighter md:text-3xl">
               {t("modals.verified.title")}{" "}
               <span className="text-[#FFD100]">{t("modals.verified.titleHighlight")}</span>
             </h3>
@@ -129,7 +172,7 @@ export default function ListingModals({
 
         {activeModal === "docs" && (
           <div className="space-y-6 pt-4">
-            <h3 className="text-2xl font-black uppercase italic tracking-tighter md:text-3xl">
+            <h3 id="listing-modal-title" className="text-2xl font-black uppercase italic tracking-tighter md:text-3xl">
               {t("modals.docs.title")}{" "}
               <span className="text-[#FFD100]">{t("modals.docs.titleHighlight")}</span>
             </h3>
@@ -154,7 +197,7 @@ export default function ListingModals({
 
         {activeModal === "ai-score" && (
           <div className="space-y-6 pt-4">
-            <h3 className="text-2xl font-black uppercase italic tracking-tighter md:text-3xl">
+            <h3 id="listing-modal-title" className="text-2xl font-black uppercase italic tracking-tighter md:text-3xl">
               {t("modals.aiScore.title")}{" "}
               <span className="text-[#FFD100]">{t("modals.aiScore.titleHighlight")}</span>
             </h3>
@@ -186,7 +229,7 @@ export default function ListingModals({
 
         {activeModal === "accept" && (
           <div className="space-y-8 pt-4 text-center">
-            <h3 className="text-2xl font-black uppercase italic tracking-tighter md:text-3xl">
+            <h3 id="listing-modal-title" className="text-2xl font-black uppercase italic tracking-tighter md:text-3xl">
               {t("modals.accept.title")}{" "}
               <span className="text-[#FFD100]">{t("modals.accept.titleHighlight")}</span>
             </h3>
@@ -252,9 +295,108 @@ export default function ListingModals({
           </div>
         )}
 
+        {activeModal === "inquiry" && (
+          <div className="space-y-6 pt-4">
+            <h3 id="listing-modal-title" className="text-2xl font-black uppercase italic tracking-tighter md:text-3xl">
+              {t("modals.inquiry.title")}{" "}
+              <span className="text-[#FFD100]">{t("modals.inquiry.titleHighlight")}</span>
+            </h3>
+            <p className="text-sm font-medium leading-relaxed text-neutral-700">
+              {t("modals.inquiry.intro", { title: adData.title ?? "" })}
+            </p>
+            <p className="rounded-xl border-2 border-black/10 bg-[#FDFCF8] px-3 py-2 text-[11px] font-bold uppercase tracking-wide text-neutral-600">
+              {t("modals.inquiry.listingRef")}: {String(adData.id).slice(0, 8)}
+            </p>
+
+            {inquirySuccess ? (
+              <div className="rounded-2xl border-[3px] border-black bg-[#FFD100] p-6 text-center shadow-[4px_4px_0_0_#000]">
+                <p className="mb-2 text-xl font-black uppercase italic text-black">
+                  {t("modals.inquiry.successTitle")}
+                </p>
+                <p className="text-[11px] font-bold uppercase leading-relaxed tracking-wide text-neutral-900">
+                  {t("modals.inquiry.successRecorded")}
+                </p>
+                <button
+                  type="button"
+                  onClick={onInquirySuccessClose}
+                  className="mt-6 w-full rounded-xl border-[3px] border-black bg-black py-4 text-[10px] font-black uppercase tracking-widest text-[#FFD100] transition hover:bg-neutral-900"
+                >
+                  {t("modals.close")}
+                </button>
+              </div>
+            ) : (
+              <form
+                className="space-y-4"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  onSubmitInquiry();
+                }}
+              >
+                {inquiryActionMessage ? (
+                  <div
+                    role="alert"
+                    className="rounded-xl border-2 border-red-700 bg-red-100 px-4 py-3 text-sm font-bold text-red-900"
+                  >
+                    {inquiryActionMessage.text}
+                  </div>
+                ) : null}
+                <div className="space-y-2">
+                  <label className={labelBase} htmlFor="inquiry-phone">
+                    {t("modals.inquiry.phoneLabel")}
+                  </label>
+                  <input
+                    ref={inquiryPhoneRef}
+                    id="inquiry-phone"
+                    type="tel"
+                    autoComplete="tel"
+                    inputMode="tel"
+                    value={inquiryPhone}
+                    onChange={(e) => onInquiryPhoneChange(e.target.value)}
+                    placeholder={t("modals.inquiry.phonePlaceholder")}
+                    className={inputBase}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className={labelBase} htmlFor="inquiry-message">
+                    {t("modals.inquiry.messageLabel")}
+                  </label>
+                  <textarea
+                    id="inquiry-message"
+                    value={inquiryMessage}
+                    onChange={(e) => onInquiryMessageChange(e.target.value)}
+                    placeholder={t("modals.inquiry.messagePlaceholder")}
+                    rows={4}
+                    maxLength={2000}
+                    className={`${inputBase} resize-none font-medium normal-case`}
+                  />
+                </div>
+                <label className="flex items-start gap-3 text-xs font-semibold leading-relaxed text-neutral-700">
+                  <input
+                    type="checkbox"
+                    checked={inquiryConsent}
+                    onChange={(e) => onInquiryConsentChange(e.target.checked)}
+                    className="mt-1 h-4 w-4 shrink-0 accent-black"
+                  />
+                  <span>{t("modals.inquiry.consent")}</span>
+                </label>
+                <button
+                  type="submit"
+                  disabled={isSubmittingInquiry || !inquiryPhone || !inquiryConsent}
+                  className="w-full rounded-2xl border-[3px] border-black bg-black py-5 font-black uppercase tracking-widest text-[#FFD100] shadow-[4px_4px_0_0_#000] transition hover:bg-neutral-900 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {isSubmittingInquiry
+                    ? t("modals.inquiry.submitting")
+                    : t("modals.inquiry.submit")}
+                </button>
+              </form>
+            )}
+          </div>
+        )}
+
         {activeModal === "offer" && (
           <div className="space-y-6 pt-4">
-            <h3 className="text-2xl font-black uppercase italic tracking-tighter md:text-3xl">
+            <h3 id="listing-modal-title" className="text-2xl font-black uppercase italic tracking-tighter md:text-3xl">
               {t("modals.offer.title")}{" "}
               <span className="text-[#FFD100]">{t("modals.offer.titleHighlight")}</span>
             </h3>

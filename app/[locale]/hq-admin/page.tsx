@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { companyInfo } from "@/lib/company";
@@ -19,7 +19,7 @@ import { normalizeSaleType } from "@/utils/normalizeSaleType";
 
 const ADMIN_EMAILS = ["consultantacrypto.ro@gmail.com"];
 
-type TabId = "overview" | "copilot" | "listings" | "demands" | "offers" | "profiles" | "risks";
+type TabId = "overview" | "copilot" | "listings" | "demands" | "offers" | "inquiries" | "profiles" | "risks";
 
 type OperationalRiskSeverity = "critical" | "high" | "medium" | "low";
 
@@ -273,6 +273,7 @@ const TAB_LABELS: { id: TabId; label: string }[] = [
   { id: "listings", label: "Listări" },
   { id: "demands", label: "Cereri" },
   { id: "offers", label: "Oferte" },
+  { id: "inquiries", label: "Solicitări" },
   { id: "profiles", label: "Profiluri / KYC" },
   { id: "risks", label: "Riscuri" },
 ];
@@ -285,6 +286,13 @@ export default function AdminHQ() {
   const [allDemands, setAllDemands] = useState<any[]>([]);
   const [listingOffers, setListingOffers] = useState<any[]>([]);
   const [demandOffers, setDemandOffers] = useState<any[]>([]);
+  const [listingInquiries, setListingInquiries] = useState<any[]>([]);
+  const [inquiriesNote, setInquiriesNote] = useState<string | null>(null);
+  const [inquiriesView, setInquiriesView] = useState<"fallback" | "all">("fallback");
+  const [inquiriesNextCursor, setInquiriesNextCursor] = useState<string | null>(null);
+  const inquiriesNextCursorRef = useRef<string | null>(null);
+  const [inquiriesPatchError, setInquiriesPatchError] = useState<string | null>(null);
+  const [updatingInquiryId, setUpdatingInquiryId] = useState<string | null>(null);
   const [profiles, setProfiles] = useState<any[]>([]);
   const [valuationReports, setValuationReports] = useState<any[]>([]);
   const [riskResolutionHistory, setRiskResolutionHistory] = useState<RiskResolutionRow[]>([]);
@@ -311,6 +319,45 @@ export default function AdminHQ() {
   const [copilotAnalyticsAvailable, setCopilotAnalyticsAvailable] = useState<boolean | null>(null);
   const [copilotGaLookbackDays, setCopilotGaLookbackDays] = useState<number | null>(null);
   const [copilotGaWarnings, setCopilotGaWarnings] = useState<string[]>([]);
+
+  const fetchHqInquiries = useCallback(async (view: "fallback" | "all", append: boolean) => {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    const accessToken = session?.access_token;
+    if (!accessToken) {
+      setListingInquiries([]);
+      setInquiriesNote("Sesiune HQ invalidă pentru solicitări.");
+      return;
+    }
+    try {
+      const params = new URLSearchParams({ view, limit: "50" });
+      if (append && inquiriesNextCursorRef.current) params.set("cursor", inquiriesNextCursorRef.current);
+      const inquiriesRes = await fetch(`/api/hq/inquiries?${params.toString()}`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      const payload = await inquiriesRes.json().catch(() => null);
+      if (!inquiriesRes.ok) {
+        if (!append) setListingInquiries([]);
+        setInquiriesNote(
+          typeof payload?.error === "string"
+            ? payload.error
+            : "Nu am putut încărca solicitările.",
+        );
+      } else {
+        const rows = Array.isArray(payload?.inquiries) ? payload.inquiries : [];
+        setListingInquiries((prev) => (append ? [...prev, ...rows] : rows));
+        setInquiriesView(view);
+        const nextCursor = typeof payload?.next_cursor === "string" ? payload.next_cursor : null;
+        inquiriesNextCursorRef.current = nextCursor;
+        setInquiriesNextCursor(nextCursor);
+        setInquiriesNote(null);
+      }
+    } catch {
+      if (!append) setListingInquiries([]);
+      setInquiriesNote("Nu am putut încărca solicitările.");
+    }
+  }, []);
 
   const loadAdminData = useCallback(async () => {
     setLoadNote(null);
@@ -350,7 +397,11 @@ export default function AdminHQ() {
     setDemandOffers(results[3].data ?? []);
     setProfiles(results[4].data ?? []);
     setValuationReports(results[5].data ?? []);
-  }, []);
+
+    await fetchHqInquiries("fallback", false);
+  }, [fetchHqInquiries]);
+
+
 
   useEffect(() => {
     let cancelled = false;
@@ -1690,6 +1741,137 @@ export default function AdminHQ() {
                   ))}
                 </div>
               </div>
+            </div>
+          )}
+
+          {activeTab === "inquiries" && (
+            <div className="space-y-5">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <h2 className="text-lg font-black uppercase italic text-black">
+                  Coadă solicitări (HQ)
+                </h2>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => void fetchHqInquiries("fallback", false)}
+                    className={`rounded-xl border-2 px-3 py-2 text-[10px] font-black uppercase tracking-widest ${
+                      inquiriesView === "fallback" ? "border-black bg-[#FFD100]" : "border-black bg-white"
+                    }`}
+                  >
+                    Livrare eșuată
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void fetchHqInquiries("all", false)}
+                    className={`rounded-xl border-2 px-3 py-2 text-[10px] font-black uppercase tracking-widest ${
+                      inquiriesView === "all" ? "border-black bg-[#FFD100]" : "border-black bg-white"
+                    }`}
+                  >
+                    Toate solicitările
+                  </button>
+                </div>
+              </div>
+              {inquiriesNote ? (
+                <p className="rounded-xl border-2 border-dashed border-black bg-[#FDFCF8] px-4 py-3 text-sm font-medium text-neutral-700">
+                  {inquiriesNote}
+                </p>
+              ) : null}
+              {inquiriesPatchError ? (
+                <p className="rounded-xl border-2 border-black bg-red-50 px-4 py-3 text-sm font-bold text-red-800">
+                  {inquiriesPatchError}
+                </p>
+              ) : null}
+              {listingInquiries.length === 0 && !inquiriesNote ? (
+                <p className="rounded-xl border-2 border-dashed border-black bg-[#FDFCF8] px-4 py-8 text-center text-sm font-medium text-neutral-600">
+                  Nicio solicitare în această vedere.
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {listingInquiries.map((inquiry) => (
+                    <article
+                      key={inquiry.id}
+                      className="rounded-2xl border-[3px] border-black bg-white p-4 shadow-[4px_4px_0_0_#000]"
+                    >
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                          <p className="text-xs font-black uppercase tracking-widest text-neutral-500">
+                            {inquiry.listing_title || inquiry.listing_id}
+                          </p>
+                          <p className="mt-1 text-sm font-bold text-black">{inquiry.buyer_phone}</p>
+                          {inquiry.buyer_message ? (
+                            <p className="mt-2 text-sm text-neutral-700">{inquiry.buyer_message}</p>
+                          ) : null}
+                          <p className="mt-2 text-[11px] font-bold uppercase tracking-widest text-neutral-500">
+                            {inquiry.status} · {inquiry.notification_status}
+                          </p>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {["new", "seen", "closed"].map((status) => (
+                            <button
+                              key={status}
+                              type="button"
+                              disabled={updatingInquiryId === inquiry.id}
+                              onClick={async () => {
+                                const {
+                                  data: { session },
+                                } = await supabase.auth.getSession();
+                                const accessToken = session?.access_token;
+                                if (!accessToken) return;
+                                setUpdatingInquiryId(inquiry.id);
+                                setInquiriesPatchError(null);
+                                try {
+                                  const res = await fetch("/api/hq/inquiries", {
+                                    method: "PATCH",
+                                    headers: {
+                                      "Content-Type": "application/json",
+                                      Authorization: `Bearer ${accessToken}`,
+                                    },
+                                    body: JSON.stringify({ id: inquiry.id, status }),
+                                  });
+                                  const payload = await res.json().catch(() => null);
+                                  if (!res.ok) {
+                                    setInquiriesPatchError(
+                                      typeof payload?.error === "string"
+                                        ? payload.error
+                                        : "Actualizarea a eșuat.",
+                                    );
+                                    return;
+                                  }
+                                  if (typeof payload?.status !== "string") {
+                                    setInquiriesPatchError("Actualizarea a eșuat.");
+                                    return;
+                                  }
+                                  setListingInquiries((rows) =>
+                                    rows.map((row) =>
+                                      row.id === inquiry.id ? { ...row, status: payload.status } : row,
+                                    ),
+                                  );
+                                } catch {
+                                  setInquiriesPatchError("Actualizarea a eșuat.");
+                                } finally {
+                                  setUpdatingInquiryId(null);
+                                }
+                              }}
+                              className="rounded-lg border-2 border-black bg-[#FDFCF8] px-3 py-1.5 text-[10px] font-black uppercase tracking-widest disabled:opacity-50"
+                            >
+                              {status}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </article>
+                  ))}
+                  {inquiriesNextCursor ? (
+                    <button
+                      type="button"
+                      onClick={() => void fetchHqInquiries(inquiriesView, true)}
+                      className="rounded-xl border-2 border-black bg-white px-4 py-2 text-[10px] font-black uppercase tracking-widest"
+                    >
+                      Încarcă mai multe
+                    </button>
+                  ) : null}
+                </div>
+              )}
             </div>
           )}
 

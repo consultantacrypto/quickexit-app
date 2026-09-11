@@ -33,6 +33,34 @@
     "web3Maintenance": "⚠ Sistemul WalletConnect este în mentenanță pentru Faza 2."
   },
   "Dashboard": {
+    "phonePrompt": {
+      "title": "Completează telefonul de contact",
+      "body": "Anunțurile tale rămân active. Adaugă un telefon privat ca vânzătorii și cumpărătorii să poată fi puși în legătură.",
+      "label": "Telefon (privat)",
+      "save": "Salvează telefonul",
+      "saving": "Se salvează...",
+      "saved": "Telefonul a fost salvat.",
+      "invalid": "Introdu un număr de telefon valid.",
+      "failed": "Nu am putut salva telefonul. Încearcă din nou."
+    },
+    "inquiries": {
+      "title": "Solicitări de detalii",
+      "empty": "Nu ai solicitări de detalii încă.",
+      "date": "Data",
+      "phone": "Telefon cumpărător",
+      "message": "Mesaj",
+      "status": "Status",
+      "statusNew": "Nouă",
+      "statusSeen": "Văzută",
+      "statusClosed": "Închisă",
+      "statusHq": "Preluată de QuickExit",
+      "notifySent": "Trimisă vânzătorului",
+      "notifyPending": "În așteptare",
+      "notifyFallback": "QuickExit o transmite",
+      "markSeen": "Marchează văzut",
+      "markClosed": "Închide",
+      "updateFailed": "Nu am putut actualiza solicitarea. Încearcă din nou."
+    },
     "paymentCancel": {
       "message": "Plata nu a fost finalizată. Anunțul tău este salvat și poți continua plata oricând.",
       "cta": "Finalizează plata",
@@ -624,7 +652,13 @@
       "pendingInvalid": "Anunțul salvat pentru plată nu mai este disponibil. Confirmă din nou publicarea pentru a crea unul nou.",
       "incompatibleSaleIntent": "Metoda de vânzare și pachetul nu coincid. Alege din nou metoda de vânzare înainte de plată.",
       "stepsIncomplete": "Completează pașii anteriori înainte de plată. Nu putem porni checkout-ul dintr-o ciornă incompletă.",
-      "locationRequired": "Completează județul și localitatea înainte de plată."
+      "locationRequired": "Completează județul și localitatea înainte de plată.",
+      "phoneRequired": "Adaugă un telefon de contact privat. Nu este public pe anunț."
+    },
+    "sellerPhone": {
+      "label": "Telefon de contact (privat)",
+      "hint": "Obligatoriu la publicare. Nu apare pe pagina publică a anunțului.",
+      "placeholder": "Număr de telefon"
     },
     "draft": {
       "restoredBanner": "Am restaurat ciorna ta de publicare. Pozele trebuie reîncărcate.",
@@ -915,7 +949,15 @@
       "ownListing": "Acesta este anunțul tău — negocierea pornește din partea cumpărătorilor.",
       "roomOpenFailed": "Nu am putut deschide camera de negociere. Reîncearcă.",
       "offerSubmitFailed": "Nu am putut trimite oferta. Te rugăm să reîncerci.",
-      "acceptSubmitFailed": "Nu am putut trimite confirmarea. Te rugăm să reîncerci."
+      "acceptSubmitFailed": "Nu am putut trimite confirmarea. Te rugăm să reîncerci.",
+      "inquirySubmitFailed": "Nu am putut înregistra solicitarea. Te rugăm să reîncerci.",
+      "inquiryInvalidPhone": "Introdu un număr de telefon valid.",
+      "inquiryMessageTooLong": "Mesajul este prea lung.",
+      "inquiryRateLimited": "Prea multe solicitări. Încearcă mai târziu.",
+      "inquiryDuplicate": "Ai trimis deja o solicitare recentă pentru acest anunț.",
+      "inquiryListingUnavailable": "Anunțul nu este disponibil.",
+      "inquiryOriginRejected": "Cererea nu a putut fi validată.",
+      "inquiryConsentRequired": "Este necesar acordul pentru contact."
     },
     "safety": {
       "warning": "Nu trimite bani în avans și nu introduce datele cardului în linkuri primite de la alți utilizatori. Verifică activul și detaliile direct cu vânzătorul.",
@@ -1129,6 +1171,23 @@
         "emailPlaceholder": "E-mail (opțional)",
         "submitting": "Se trimite...",
         "submit": "Trimite acordul"
+      },
+      "inquiry": {
+        "title": "Solicită",
+        "titleHighlight": "detalii",
+        "intro": "Trimite o solicitare pentru „{title}”. Nu este o ofertă de preț.",
+        "listingRef": "Referință anunț",
+        "phoneLabel": "Telefon",
+        "phonePlaceholder": "Număr de telefon",
+        "messageLabel": "Mesaj (opțional)",
+        "messagePlaceholder": "Întrebări despre activ, vizionare, acte…",
+        "consent": "Sunt de acord ca QuickExit să transmită această solicitare vânzătorului. Telefonul nu este public.",
+        "submitting": "Se trimite...",
+        "submit": "Trimite solicitarea",
+        "successTitle": "Solicitare înregistrată",
+        "successRecorded": "Solicitarea ta a fost înregistrată.",
+        "successSent": "Solicitarea ta a fost înregistrată.",
+        "successHqFallback": "Solicitarea ta a fost înregistrată."
       },
       "offer": {
         "title": "Trimite",

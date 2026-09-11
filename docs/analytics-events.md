@@ -158,6 +158,8 @@ Evenimentele legacy rămân pentru HQ Copilot. Nu au fost șterse.
 | `click_send_demand_offer` | `app/capital-disponibil/page.tsx` | click pe „Trimite ofertă” | `demand_id`, `category` | măsoară trecerea spre funnel ofertare |
 | `view_listing` | `app/anunt/[id]/page.tsx` | la încărcare anunț activ | `listing_id`, `category`, `status` | măsoară view-uri pe anunțuri active |
 | `click_listing_offer` | `app/anunt/[id]/page.tsx` | click CTA ofertă pe pagina anunțului | `listing_id`, `category` | măsoară intenția de ofertare pe listing |
+| `click_listing_inquiry` | `app/[locale]/anunt/[id]/AnuntClient.tsx` | click CTA „solicită detalii” (nu ofertă) | `listing_id`, `category` | măsoară deschiderea fluxului de solicitare detalii |
+| `submit_listing_inquiry` | `app/[locale]/anunt/[id]/AnuntClient.tsx` | după persist reușit al solicitării (`status=recorded`) | `listing_id`, `category`, `status` | măsoară conversia de solicitare; **nu** trimite telefon, mesaj, email, `notified` sau status de provider |
 | `copy_social_share` | `app/anunt/[id]/page.tsx` | la copy în Social Distribution Kit | `listing_id`, `channel` | măsoară distribuția organică per canal |
 | `submit_demand_offer` | `app/trimite-oferta/[id]/page.tsx` | după submit ofertă cu succes | `demand_id`, `category` | măsoară conversia în funnel-ul de ofertare |
 | `click_pricing_package` | `app/tarife/page.tsx` | click pe CTA pachet | `package_id`, `price` | măsoară interesul pe pachete și prețuri |
@@ -207,6 +209,8 @@ Evenimentele legacy rămân pentru HQ Copilot. Nu au fost șterse.
 | event_name | când se trimite | params | PII note | scop business |
 |---|---|---|---|---|
 | `submit_listing_offer` | după insert reușit în `listing_offers` din `app/anunt/[id]/AnuntClient.tsx` (ofertă custom) | `interaction_source`, `listing_id`, `category`, `offer_type`, `amount`, `status` | nu trimite `buyer_phone`, `buyer_email`, `message` | măsoară conversia de ofertare pe listing activ |
+| `click_listing_inquiry` | click CTA solicitare detalii | `listing_id`, `category` | nu trimite telefon/mesaj | intent de contact, nu ofertă |
+| `submit_listing_inquiry` | după răspuns 200 de la `POST /api/listings/[id]/inquiry` (înregistrare reușită) | `listing_id`, `category`, `status=recorded` | nu trimite telefon, mesaj, email, `notification_status` | conversie solicitare; eșecurile nu trimit eveniment (doar copy în UI), ca să nu duplicăm convenția `evaluation_failed` pe un flux fără reason enum stabilit |
 | `submit_accept_exit_price` | după insert reușit în `listing_offers` din `app/anunt/[id]/AnuntClient.tsx` (accept preț exit) | `interaction_source`, `listing_id`, `category`, `offer_type`, `amount`, `status` | nu trimite `acceptPhone`, `acceptEmail`, text liber | măsoară intenția fermă de cumpărare la prețul afișat |
 | `dashboard_offer_accept` | după update reușit al statusului ofertei în `app/dashboard/page.tsx` | `interaction_source`, `offer_id`, `listing_id`, `demand_id`, `offer_context`, `status` | nu trimite date de contact din ofertă | măsoară deciziile de acceptare în camera de negociere |
 | `dashboard_offer_reject` | după update reușit al statusului ofertei în `app/dashboard/page.tsx` | `interaction_source`, `offer_id`, `listing_id`, `demand_id`, `offer_context`, `status` | nu trimite date de contact din ofertă | măsoară deciziile de respingere în camera de negociere |

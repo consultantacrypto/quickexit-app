@@ -33,6 +33,34 @@
     "web3Maintenance": "⚠ WalletConnect is under maintenance for Phase 2."
   },
   "Dashboard": {
+    "phonePrompt": {
+      "title": "Add a contact phone number",
+      "body": "Your listings stay active. Add a private phone so QuickExit can connect buyers and sellers.",
+      "label": "Phone (private)",
+      "save": "Save phone",
+      "saving": "Saving...",
+      "saved": "Phone number saved.",
+      "invalid": "Enter a valid phone number.",
+      "failed": "We couldn't save the phone number. Please try again."
+    },
+    "inquiries": {
+      "title": "Detail requests",
+      "empty": "You have no detail requests yet.",
+      "date": "Date",
+      "phone": "Buyer phone",
+      "message": "Message",
+      "status": "Status",
+      "statusNew": "New",
+      "statusSeen": "Seen",
+      "statusClosed": "Closed",
+      "statusHq": "Handled by QuickExit",
+      "notifySent": "Sent to seller",
+      "notifyPending": "Pending",
+      "notifyFallback": "QuickExit will pass it on",
+      "markSeen": "Mark seen",
+      "markClosed": "Close",
+      "updateFailed": "We couldn't update this request. Please try again."
+    },
     "paymentCancel": {
       "message": "Payment was not completed. Your listing is saved and you can continue payment anytime.",
       "cta": "Complete payment",
@@ -624,7 +652,13 @@
       "pendingInvalid": "The saved listing awaiting payment is no longer available. Confirm publish again to create a new one.",
       "incompatibleSaleIntent": "Sale method and package do not match. Choose the sale method again before paying.",
       "stepsIncomplete": "Complete the previous steps before payment. Checkout cannot start from an incomplete draft.",
-      "locationRequired": "Add the county and locality before payment."
+      "locationRequired": "Add the county and locality before payment.",
+      "phoneRequired": "Add a private contact phone number. It is not shown on the public listing."
+    },
+    "sellerPhone": {
+      "label": "Contact phone (private)",
+      "hint": "Required to publish. It is not shown on the public listing page.",
+      "placeholder": "Phone number"
     },
     "draft": {
       "restoredBanner": "We restored your listing draft. Photos must be uploaded again.",
@@ -915,7 +949,15 @@
       "ownListing": "This is your listing — negotiation is initiated by buyers.",
       "roomOpenFailed": "We couldn't open the negotiation room. Please try again.",
       "offerSubmitFailed": "We couldn't submit your offer. Please try again.",
-      "acceptSubmitFailed": "We couldn't submit your confirmation. Please try again."
+      "acceptSubmitFailed": "We couldn't submit your confirmation. Please try again.",
+      "inquirySubmitFailed": "We couldn't record your request. Please try again.",
+      "inquiryInvalidPhone": "Enter a valid phone number.",
+      "inquiryMessageTooLong": "The message is too long.",
+      "inquiryRateLimited": "Too many requests. Please try again later.",
+      "inquiryDuplicate": "You already sent a recent request for this listing.",
+      "inquiryListingUnavailable": "This listing is not available.",
+      "inquiryOriginRejected": "The request could not be validated.",
+      "inquiryConsentRequired": "Contact consent is required."
     },
     "safety": {
       "warning": "Do not send money in advance and do not enter card details via links from other users. Verify the asset and details directly with the seller.",
@@ -1129,6 +1171,23 @@
         "emailPlaceholder": "Email (optional)",
         "submitting": "Submitting...",
         "submit": "Submit agreement"
+      },
+      "inquiry": {
+        "title": "Request",
+        "titleHighlight": "details",
+        "intro": "Send a request for “{title}”. This is not a price offer.",
+        "listingRef": "Listing reference",
+        "phoneLabel": "Phone",
+        "phonePlaceholder": "Phone number",
+        "messageLabel": "Message (optional)",
+        "messagePlaceholder": "Questions about the asset, viewing, documents…",
+        "consent": "I agree that QuickExit will pass this request to the seller. Your phone is not public.",
+        "submitting": "Sending...",
+        "submit": "Send request",
+        "successTitle": "Request recorded",
+        "successRecorded": "Your request was recorded.",
+        "successSent": "Your request was recorded.",
+        "successHqFallback": "Your request was recorded."
       },
       "offer": {
         "title": "Submit",

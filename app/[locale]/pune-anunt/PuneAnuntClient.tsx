@@ -14,6 +14,7 @@ import { trackFunnelEvent } from "@/lib/funnelAnalytics";
 import EvaluateTurnstile, { type EvaluateTurnstileHandle } from "@/components/EvaluateTurnstile";
 import { isEvaluateTurnstileUiEnabled } from "@/lib/turnstilePublic";
 import { getPriceIdForPackageId } from "@/lib/stripePackages";
+import { normalizePhone } from "@/lib/financingLead";
 import { resolveEvaluateCategoryKey } from "@/lib/evaluateSafety";
 import {
   computePrefillLevel,
@@ -149,6 +150,7 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
   const [flowError, setFlowError] = useState<string | null>(null);
   const [listingTurnstileToken, setListingTurnstileToken] = useState<string | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [sellerPhone, setSellerPhone] = useState("");
   const [draftReady, setDraftReady] = useState(false);
   const [draftRestored, setDraftRestored] = useState(false);
   const [draftDecision, setDraftDecision] = useState<
@@ -293,6 +295,23 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
       funnel_source: "publish_form",
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only draft gate; funnel once-gate + consent gate prevent Strict Mode duplicates
+  }, []);
+
+  useEffect(() => {
+    void (async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data: contact } = await supabase
+        .from("seller_contacts")
+        .select("phone")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (typeof contact?.phone === "string" && contact.phone.trim()) {
+        setSellerPhone((current) => current || contact.phone);
+      }
+    })();
   }, []);
 
   // Autosave textual draft (never Files / previews).
@@ -1043,6 +1062,12 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
       }),
     );
     setIsSaving(true);
+    const normalizedSellerPhone = normalizePhone(sellerPhone);
+    if (!normalizedSellerPhone) {
+      setFlowError(tPost("checkoutErrors.phoneRequired"));
+      setIsSaving(false);
+      return;
+    }
     if (pricingMode === "fixed_price") {
       if (!hasValidExitPriceInput) {
         setFlowError(tPost("pricingMode.validation.fixedPriceRequired"));
@@ -1082,6 +1107,16 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
         trackDraftEvent("listing_auth_opened", draft, "auth_required");
         setFlowError(tPost("checkoutErrors.authRequired"));
         setShowAuthModal(true);
+        setIsSaving(false);
+        return;
+      }
+
+      const { error: phoneSaveError } = await supabase.from("seller_contacts").upsert(
+        { user_id: user.id, phone: normalizedSellerPhone },
+        { onConflict: "user_id" },
+      );
+      if (phoneSaveError) {
+        setFlowError(tPost("checkoutErrors.phoneRequired"));
         setIsSaving(false);
         return;
       }
@@ -2704,6 +2739,25 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                     {tPost("saleMethod.auction.confirmation")}
                   </p>
                 ) : null}
+              </div>
+
+              <div className="rounded-2xl border-[3px] border-black bg-white px-5 py-5">
+                <label htmlFor="seller-phone" className="text-[10px] font-black uppercase tracking-widest text-neutral-500">
+                  {tPost("sellerPhone.label")}
+                </label>
+                <p className="mt-2 text-xs font-semibold leading-relaxed text-neutral-600">
+                  {tPost("sellerPhone.hint")}
+                </p>
+                <input
+                  id="seller-phone"
+                  type="tel"
+                  autoComplete="tel"
+                  value={sellerPhone}
+                  onChange={(e) => setSellerPhone(e.target.value)}
+                  placeholder={tPost("sellerPhone.placeholder")}
+                  className="mt-3 w-full rounded-xl border-[3px] border-black bg-[#FDFCF8] px-4 py-3 text-sm font-semibold text-black outline-none focus:border-[#FFD100]"
+                  required
+                />
               </div>
 
               <button

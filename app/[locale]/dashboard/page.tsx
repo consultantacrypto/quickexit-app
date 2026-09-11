@@ -26,6 +26,7 @@ import { listingLocationLabelFromUnknown } from "@/lib/listingLocation";
 import { Wallet, Inbox, PlusCircle, Search, Settings, Power, Play, PiggyBank, ClipboardList } from "lucide-react";
 import KycBanner from "@/app/components/KycBanner";
 import { getPriceIdForPackageId } from "@/lib/stripePackages";
+import { normalizePhone } from "@/lib/financingLead";
 
 type DashboardTab = "portofoliu" | "cumparari" | "oferte";
 const OWNER_USER_ID = "83da9725-68f3-4ded-9605-714b9094bf0e";
@@ -66,6 +67,13 @@ function DashboardContent() {
 
   const [myListings, setMyListings] = useState<any[]>([]);
   const [myOffers, setMyOffers] = useState<any[]>([]);
+  const [myInquiries, setMyInquiries] = useState<any[]>([]);
+  const [updatingInquiryId, setUpdatingInquiryId] = useState<string | null>(null);
+  const [inquiryActionMessage, setInquiryActionMessage] = useState<{ type: "error"; text: string } | null>(null);
+  const [sellerPhoneDraft, setSellerPhoneDraft] = useState("");
+  const [sellerHasPrivatePhone, setSellerHasPrivatePhone] = useState(false);
+  const [sellerPhoneSaving, setSellerPhoneSaving] = useState(false);
+  const [sellerPhoneMessage, setSellerPhoneMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [mySentListingOffers, setMySentListingOffers] = useState<any[]>([]);
   const [sentOffersListingMeta, setSentOffersListingMeta] = useState<Record<string, { title: string; category: string | null }>>({});
   
@@ -387,6 +395,18 @@ function DashboardContent() {
         .single();
       setUserProfile(profile);
 
+      const { data: sellerContact } = await supabase
+        .from("seller_contacts")
+        .select("phone")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      const savedPhone =
+        typeof sellerContact?.phone === "string" && sellerContact.phone.trim()
+          ? sellerContact.phone.trim()
+          : "";
+      setSellerHasPrivatePhone(Boolean(savedPhone));
+      setSellerPhoneDraft(savedPhone);
+
       // 1. Tragem Anunțurile de Vânzare
       const { data: listings } = await supabase
         .from('listings')
@@ -404,8 +424,16 @@ function DashboardContent() {
           .in('listing_id', listingIds)
           .order('created_at', { ascending: false });
         setMyOffers(offers || []);
+        const { data: inquiries, error: inquiriesError } = await supabase
+          .from("listing_inquiries")
+          .select("id, listing_id, buyer_phone, message, status, notification_status, created_at")
+          .eq("seller_id", user.id)
+          .in("listing_id", listingIds)
+          .order("created_at", { ascending: false });
+        setMyInquiries(inquiriesError ? [] : inquiries || []);
       } else {
         setMyOffers([]);
+        setMyInquiries([]);
       }
 
       // 2. Tragem Cererile de Cumpărare (Demands)
@@ -670,6 +698,75 @@ function DashboardContent() {
       type: "success",
       text: "Anunțul a fost marcat ca vândut.",
     });
+  };
+
+  const saveSellerPhone = async () => {
+    const normalized = normalizePhone(sellerPhoneDraft);
+    if (!normalized) {
+      setSellerPhoneMessage({ type: "error", text: tDash("phonePrompt.invalid") });
+      return;
+    }
+    if (!currentUserId) return;
+    setSellerPhoneSaving(true);
+    setSellerPhoneMessage(null);
+    try {
+      const { error } = await supabase.from("seller_contacts").upsert(
+        { user_id: currentUserId, phone: normalized },
+        { onConflict: "user_id" },
+      );
+      if (error) throw error;
+      setSellerHasPrivatePhone(true);
+      setSellerPhoneDraft(normalized);
+      setSellerPhoneMessage({ type: "success", text: tDash("phonePrompt.saved") });
+    } catch {
+      setSellerPhoneMessage({ type: "error", text: tDash("phonePrompt.failed") });
+    } finally {
+      setSellerPhoneSaving(false);
+    }
+  };
+
+  const inquiryStatusLabel = (status: string | null | undefined) => {
+    if (status === "seen") return tDash("inquiries.statusSeen");
+    if (status === "closed") return tDash("inquiries.statusClosed");
+    if (status === "hq_handling") return tDash("inquiries.statusHq");
+    return tDash("inquiries.statusNew");
+  };
+
+  const inquiryNotifyLabel = (status: string | null | undefined) => {
+    if (status === "sent") return tDash("inquiries.notifySent");
+    if (status === "pending") return tDash("inquiries.notifyPending");
+    return tDash("inquiries.notifyFallback");
+  };
+
+  const updateInquiryStatus = async (inquiryId: string, status: "seen" | "closed") => {
+    setInquiryActionMessage(null);
+    setUpdatingInquiryId(inquiryId);
+    try {
+      const response = await fetch(`/api/listing-inquiries/${inquiryId}/status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+      const payload = await response.json().catch(() => null);
+      if (!response.ok) {
+        setInquiryActionMessage({
+          type: "error",
+          text:
+            typeof payload?.error === "string"
+              ? payload.error
+              : tDash("inquiries.updateFailed"),
+        });
+        return;
+      }
+      const nextStatus = typeof payload?.status === "string" ? payload.status : status;
+      setMyInquiries((prev) =>
+        prev.map((item) => (item.id === inquiryId ? { ...item, status: nextStatus } : item)),
+      );
+    } catch {
+      setInquiryActionMessage({ type: "error", text: tDash("inquiries.updateFailed") });
+    } finally {
+      setUpdatingInquiryId(null);
+    }
   };
 
   const handleOfferAction = async (offerId: string, action: 'accepted' | 'rejected' | 'cancelled', type: 'listing' | 'demand' = 'listing') => {
@@ -937,6 +1034,53 @@ function DashboardContent() {
           kycStatus={kycStatusValue || "unverified"}
         />
       )}
+
+      {!isLoading && myListings.length > 0 && !sellerHasPrivatePhone ? (
+        <div
+          role="status"
+          className="mb-6 rounded-xl border-[3px] border-black bg-[#FDFCF8] p-4 shadow-[4px_4px_0_0_rgba(0,0,0,1)] md:p-5"
+        >
+          <p className="text-sm font-black uppercase tracking-wide text-black">
+            {tDash("phonePrompt.title")}
+          </p>
+          <p className="mt-2 text-sm font-semibold leading-relaxed text-neutral-700">
+            {tDash("phonePrompt.body")}
+          </p>
+          <form
+            className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end"
+            onSubmit={(event) => {
+              event.preventDefault();
+              void saveSellerPhone();
+            }}
+          >
+            <label className="flex-1 text-[10px] font-black uppercase tracking-widest text-neutral-500">
+              {tDash("phonePrompt.label")}
+              <input
+                type="tel"
+                autoComplete="tel"
+                value={sellerPhoneDraft}
+                onChange={(e) => setSellerPhoneDraft(e.target.value)}
+                className="mt-1 w-full rounded-lg border-2 border-black bg-white px-3 py-2 text-sm font-semibold text-black"
+              />
+            </label>
+            <button
+              type="submit"
+              disabled={sellerPhoneSaving}
+              className="inline-flex items-center justify-center rounded-lg border-2 border-black bg-[#FFD100] px-5 py-2.5 text-xs font-black uppercase tracking-wide text-black shadow-[2px_2px_0_0_rgba(0,0,0,1)] disabled:opacity-60"
+            >
+              {sellerPhoneSaving ? tDash("phonePrompt.saving") : tDash("phonePrompt.save")}
+            </button>
+          </form>
+          {sellerPhoneMessage ? (
+            <p
+              className={`mt-3 text-xs font-semibold ${sellerPhoneMessage.type === "success" ? "text-green-800" : "text-red-700"}`}
+              role="status"
+            >
+              {sellerPhoneMessage.text}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
 
       {paymentCancelListingId ? (
         <div
@@ -1261,8 +1405,84 @@ function DashboardContent() {
 
           {isLoading ? (
              <div className="text-center py-20 animate-pulse font-black uppercase tracking-widest text-xs text-neutral-600">Sincronizare mesaje...</div>
-          ) : (myOffers.length > 0 || myDemandOffers.length > 0 || mySentListingOffers.length > 0 || mySentDemandOffers.length > 0) ? (
+          ) : (myOffers.length > 0 || myDemandOffers.length > 0 || mySentListingOffers.length > 0 || mySentDemandOffers.length > 0 || myInquiries.length > 0) ? (
             <div className="space-y-12">
+
+              <div>
+                <h3 className="text-lg font-black uppercase italic tracking-widest text-neutral-600 mb-4 border-b-2 border-black inline-block">
+                  {tDash("inquiries.title")}
+                </h3>
+                {inquiryActionMessage ? (
+                  <p role="alert" className="mb-4 text-sm font-semibold text-red-800">
+                    {inquiryActionMessage.text}
+                  </p>
+                ) : null}
+                {myInquiries.length === 0 ? (
+                  <p className="text-sm font-semibold text-neutral-600">{tDash("inquiries.empty")}</p>
+                ) : (
+                  <div className="space-y-4">
+                    {myInquiries.map((inquiry) => {
+                      const listing = myListings.find((item) => item.id === inquiry.listing_id);
+                      return (
+                        <div
+                          key={inquiry.id}
+                          className="rounded-[1.5rem] border-[3px] border-black bg-white p-5 shadow-[6px_6px_0_0_rgba(0,0,0,1)]"
+                        >
+                          <div className="flex flex-wrap items-start justify-between gap-3">
+                            <p className="text-lg font-black uppercase italic tracking-tight">
+                              {listing?.title || "Anunț"}
+                            </p>
+                            <span className="rounded-full border-2 border-black bg-[#FFD100] px-3 py-1 text-[10px] font-black uppercase">
+                              {inquiryStatusLabel(inquiry.status)}
+                            </span>
+                          </div>
+                          <p className="mt-2 text-[10px] font-black uppercase tracking-widest text-neutral-500">
+                            {tDash("inquiries.date")}:{" "}
+                            {inquiry.created_at
+                              ? new Date(inquiry.created_at).toLocaleString(numberLocale)
+                              : "—"}
+                          </p>
+                          <p className="mt-3 text-xs font-black uppercase text-neutral-500">
+                            {tDash("inquiries.phone")}
+                          </p>
+                          <p className="font-black italic text-xl">{inquiry.buyer_phone || "—"}</p>
+                          <p className="mt-3 text-xs font-black uppercase text-neutral-500">
+                            {tDash("inquiries.message")}
+                          </p>
+                          <p className="text-sm font-semibold italic text-neutral-700">
+                            {String(inquiry.message || "").trim() || "—"}
+                          </p>
+                          <p className="mt-3 text-[10px] font-black uppercase tracking-widest text-neutral-500">
+                            {inquiryNotifyLabel(inquiry.notification_status)}
+                          </p>
+                          {inquiry.status === "new" || inquiry.status === "seen" ? (
+                            <div className="mt-4 flex flex-wrap gap-2">
+                              {inquiry.status === "new" ? (
+                                <button
+                                  type="button"
+                                  disabled={updatingInquiryId === inquiry.id}
+                                  onClick={() => void updateInquiryStatus(inquiry.id, "seen")}
+                                  className="rounded-xl border-2 border-black bg-white px-3 py-2 text-[10px] font-black uppercase tracking-widest disabled:opacity-50"
+                                >
+                                  {tDash("inquiries.markSeen")}
+                                </button>
+                              ) : null}
+                              <button
+                                type="button"
+                                disabled={updatingInquiryId === inquiry.id}
+                                onClick={() => void updateInquiryStatus(inquiry.id, "closed")}
+                                className="rounded-xl border-2 border-black bg-black px-3 py-2 text-[10px] font-black uppercase tracking-widest text-[#FFD100] disabled:opacity-50"
+                              >
+                                {tDash("inquiries.markClosed")}
+                              </button>
+                            </div>
+                          ) : null}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
               
               {/* SECȚIUNE: Oferte primite pentru Activele Tale (Vânzări) */}
               {myOffers.length > 0 && (

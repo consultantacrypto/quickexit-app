@@ -402,13 +402,13 @@ function assertButtonsAreTypeButton(src: string, label: string) {
 assertButtonsAreTypeButton(combobox, "CarBrandCombobox");
 assertButtonsAreTypeButton(publish, "PuneAnuntClient");
 
-assert(!existsSync(resolve("lib/listingInquiry.ts")), "Phase 2B listingInquiry absent");
+assert(existsSync(resolve("lib/listingInquiry.ts")), "listingInquiry helper is present for inquiries");
 assert(
-  !existsSync(resolve("app/api/listings/[id]/inquiry/route.ts")),
-  "Phase 2B listings inquiry API absent",
+  existsSync(resolve("app/api/listings/[id]/inquiry/route.ts")),
+  "listings inquiry API is present",
 );
-assert(!existsSync(resolve("app/api/hq/inquiries")), "Phase 2B hq inquiries API absent");
-assert(!publish.includes("listingInquiry"), "publish client has no Phase 2B inquiry");
+assert(existsSync(resolve("app/api/hq/inquiries/route.ts")), "hq inquiries API is present");
+assert(!publish.includes("listingInquiry"), "publish client stays isolated from inquiry helper");
 
 const messagesRo = JSON.parse(readFileSync("messages/ro.json", "utf8")) as {
   PostListing: { draft: Record<string, string>; step1: { continue: string } };
