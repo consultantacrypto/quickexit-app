@@ -10,9 +10,12 @@ export default function ConsentedPageViewTracker() {
   const { preferences } = useConsent();
 
   useEffect(() => {
-    if (preferences?.analytics !== true) return;
+    if (preferences?.analytics !== true) {
+      trackConsentedPageView();
+      return;
+    }
     trackConsentedPageView(pathname);
-  }, [pathname, preferences?.analytics]);
+  }, [preferences?.analytics, pathname]);
 
   return null;
 }

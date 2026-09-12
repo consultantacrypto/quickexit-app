@@ -169,6 +169,12 @@ export function clearAnalyticsAttribution(): void {
   }
 }
 
+let consentedPageViewSentThisCycle = false;
+
+function rearmConsentedPageViewCycle(): void {
+  consentedPageViewSentThisCycle = false;
+}
+
 export function applyConsentPreferences(input: ConsentChoiceInput): ConsentPreferences {
   const next = buildConsentPreferences(input);
   persistConsentPreferences(next);
@@ -176,6 +182,7 @@ export function applyConsentPreferences(input: ConsentChoiceInput): ConsentPrefe
     captureAttribution();
   } else {
     clearAnalyticsAttribution();
+    rearmConsentedPageViewCycle();
   }
   clearDeniedCategoryTracking(next);
   syncVendorConsent(next);
@@ -281,7 +288,6 @@ export function pageview(url: string): void {
 }
 
 const PAGE_PATH_RE = /^\/[A-Za-z0-9._\-/]*$/;
-let lastConsentedPageViewPath: string | null = null;
 
 export function sanitizePageViewPath(
   value: string | null | undefined,
@@ -296,15 +302,16 @@ export function sanitizePageViewPath(
 }
 
 export function resetConsentedPageViewGateForTests(): void {
-  lastConsentedPageViewPath = null;
+  rearmConsentedPageViewCycle();
 }
 
 export function trackConsentedPageView(path?: string): boolean {
   if (typeof window === "undefined") return false;
   if (!hasAnalyticsConsent()) {
-    lastConsentedPageViewPath = null;
+    rearmConsentedPageViewCycle();
     return false;
   }
+  if (consentedPageViewSentThisCycle) return false;
 
   const pagePath = sanitizePageViewPath(
     path ??
@@ -313,7 +320,6 @@ export function trackConsentedPageView(path?: string): boolean {
         : undefined),
   );
   if (!pagePath) return false;
-  if (pagePath === lastConsentedPageViewPath) return false;
 
   try {
     const prefs = readConsentPreferences();
@@ -324,7 +330,7 @@ export function trackConsentedPageView(path?: string): boolean {
       "page_view",
       stripReservedAnalyticsParams({ page_path: pagePath }),
     );
-    lastConsentedPageViewPath = pagePath;
+    consentedPageViewSentThisCycle = true;
     return true;
   } catch {
     return false;
