@@ -873,12 +873,24 @@ export default function AnuntClient({
 
   const submitListingInquiry = async () => {
     if (!inquiryPhone || !inquiryConsent) return;
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    if (!session?.access_token) {
+      setShowAuthModal(true);
+      return;
+    }
+    const accessToken = session.access_token;
     setIsSubmittingInquiry(true);
     setInquiryActionMessage(null);
     try {
       const response = await fetch(`/api/listings/${adData.id}/inquiry`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
         body: JSON.stringify({
           phone: inquiryPhone,
           message: inquiryMessage,

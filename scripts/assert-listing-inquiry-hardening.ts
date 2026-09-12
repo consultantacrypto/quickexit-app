@@ -72,6 +72,9 @@ assert(INQUIRY_RATE_LIMIT_SCOPE === "instance-local-supplemental", "instance map
 
 const inquiryRoute = readFileSync(resolve("app/api/listings/[id]/inquiry/route.ts"), "utf8");
 assert(inquiryRoute.includes("isSameOriginMutationRequest"), "7 same-origin gate");
+assert(inquiryRoute.includes("extractBearerToken"), "inquiry requires Authorization Bearer");
+assert(inquiryRoute.includes("supabase.auth.getUser()"), "inquiry verifies token with getUser");
+assert(!inquiryRoute.includes("createServerSupabaseClient"), "inquiry does not use cookie session fallback");
 assert(inquiryRoute.includes("consent_version: LISTING_INQUIRY_CONSENT_VERSION"), "6 server consent on insert");
 assert(!inquiryRoute.includes("buyer_id:"), "5 insert omits client buyer_id");
 assert(inquiryRoute.includes("{ success: true, persisted: true }"), "8 generic success object");

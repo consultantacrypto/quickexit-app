@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { getSupabaseAnonKey, getSupabaseProjectUrl } from "@/lib/supabase/config";
 import {
   MAX_INQUIRY_BODY_BYTES,
   NO_STORE_HEADERS,
@@ -40,6 +40,20 @@ function jsonOk() {
     { success: true, persisted: true },
     { status: 200, headers: NO_STORE_HEADERS },
   );
+}
+
+function extractBearerToken(req: Request): string | null {
+  const header = req.headers.get("authorization") || req.headers.get("Authorization");
+  if (!header?.startsWith("Bearer ")) return null;
+  const token = header.slice(7).trim();
+  return token || null;
+}
+
+function createUserClient(bearer: string) {
+  return createClient(getSupabaseProjectUrl(), getSupabaseAnonKey(), {
+    global: { headers: { Authorization: `Bearer ${bearer}` } },
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
 }
 
 function createServiceClient() {
@@ -98,12 +112,23 @@ export async function POST(
   }
   locale = validated.data.locale;
 
-  const supabase = await createServerSupabaseClient();
+  const bearer = extractBearerToken(req);
+  if (!bearer) {
+    return jsonError(401, "auth_required", locale);
+  }
+
+  let supabase;
+  try {
+    supabase = createUserClient(bearer);
+  } catch {
+    return jsonError(500, "server_error", locale);
+  }
   const {
     data: { user },
+    error: authError,
   } = await supabase.auth.getUser();
 
-  if (!user) {
+  if (authError || !user) {
     return jsonError(401, "auth_required", locale);
   }
 
