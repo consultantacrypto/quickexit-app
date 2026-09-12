@@ -280,6 +280,57 @@ export function pageview(url: string): void {
   window.gtag("config", GA_MEASUREMENT_ID, { page_path: url });
 }
 
+const PAGE_PATH_RE = /^\/[A-Za-z0-9._\-/]*$/;
+let lastConsentedPageViewPath: string | null = null;
+
+export function sanitizePageViewPath(
+  value: string | null | undefined,
+): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const path = value.trim().split("#")[0]?.split("?")[0] ?? "";
+  if (!path.startsWith("/")) return undefined;
+  if (path.includes("@") || path.includes("://")) return undefined;
+  if (CLICK_ID_RE.test(path)) return undefined;
+  if (!PAGE_PATH_RE.test(path)) return undefined;
+  return path.slice(0, MAX_ATTR_FIELD_LENGTH);
+}
+
+export function resetConsentedPageViewGateForTests(): void {
+  lastConsentedPageViewPath = null;
+}
+
+export function trackConsentedPageView(path?: string): boolean {
+  if (typeof window === "undefined") return false;
+  if (!hasAnalyticsConsent()) {
+    lastConsentedPageViewPath = null;
+    return false;
+  }
+
+  const pagePath = sanitizePageViewPath(
+    path ??
+      (typeof window.location?.pathname === "string"
+        ? window.location.pathname
+        : undefined),
+  );
+  if (!pagePath) return false;
+  if (pagePath === lastConsentedPageViewPath) return false;
+
+  try {
+    const prefs = readConsentPreferences();
+    if (prefs) applyConsentTags(prefs);
+    if (!GA_MEASUREMENT_ID) return false;
+    if (typeof window.gtag !== "function") return false;
+    dispatchGtagEvent(
+      "page_view",
+      stripReservedAnalyticsParams({ page_path: pagePath }),
+    );
+    lastConsentedPageViewPath = pagePath;
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function trackTikTokEvent(eventName: string, params?: EventParams): void {
   if (typeof window === "undefined") return;
   if (!hasMarketingConsent()) return;

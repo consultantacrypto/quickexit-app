@@ -7,6 +7,7 @@ import Footer from "../components/Footer";
 import StructuredData from "../components/StructuredData";
 import AuthHashCleaner from "../components/AuthHashCleaner";
 import { ConsentProvider } from "../components/ConsentProvider";
+import ConsentedPageViewTracker from "../components/ConsentedPageViewTracker";
 import ConsentBanner from "../components/ConsentBanner";
 import { getSiteUrl } from "@/lib/siteUrl";
 import { routing } from "@/src/i18n/routing";
@@ -90,6 +91,7 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
       <body className="bg-white text-black antialiased min-h-screen flex flex-col">
         <NextIntlClientProvider locale={locale} messages={messages}>
           <ConsentProvider>
+            <ConsentedPageViewTracker />
             <AuthHashCleaner />
             <StructuredData siteUrl={siteUrl} />
             <Header />
