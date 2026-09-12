@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createClient } from "@supabase/supabase-js";
+import { getSupabaseAnonKey, getSupabaseProjectUrl } from "@/lib/supabase/config";
 import {
   NO_STORE_HEADERS,
   isListingInquiryId,
@@ -16,6 +17,20 @@ export const runtime = "nodejs";
 function localeFromRequest(req: NextRequest): InquiryLocale {
   const header = req.headers.get("accept-language")?.toLowerCase() ?? "";
   return header.startsWith("en") ? "en" : "ro";
+}
+
+function extractBearerToken(req: Request): string | null {
+  const header = req.headers.get("authorization") || req.headers.get("Authorization");
+  if (!header?.startsWith("Bearer ")) return null;
+  const token = header.slice(7).trim();
+  return token || null;
+}
+
+function createUserClient(bearer: string) {
+  return createClient(getSupabaseProjectUrl(), getSupabaseAnonKey(), {
+    global: { headers: { Authorization: `Bearer ${bearer}` } },
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
 }
 
 function jsonError(status: number, error_code: string, locale: InquiryLocale) {
@@ -56,11 +71,22 @@ export async function PATCH(
     return jsonError(parsed.status, parsed.error_code, locale);
   }
 
-  const supabase = await createServerSupabaseClient();
+  const bearer = extractBearerToken(req);
+  if (!bearer) {
+    return jsonError(401, "auth_required", locale);
+  }
+
+  let supabase;
+  try {
+    supabase = createUserClient(bearer);
+  } catch {
+    return jsonError(500, "server_error", locale);
+  }
   const {
     data: { user },
+    error: authError,
   } = await supabase.auth.getUser();
-  if (!user) {
+  if (authError || !user) {
     return jsonError(401, "auth_required", locale);
   }
 

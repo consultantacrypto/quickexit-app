@@ -93,6 +93,10 @@ assert(hqUi.includes("/api/hq/inquiries?"), "HQ UI calls server inquiries API wi
 assert(hqUi.includes('view=fallback') || hqUi.includes('fetchHqInquiries("fallback"'), "initial HQ view is fallback");
 assert(hqUi.includes("Toate solicitările"), "all inquiries is an explicit action");
 assert(hqUi.includes("setInquiriesPatchError"), "HQ PATCH failure stays visible");
+assert(hqUi.includes('credentials: "same-origin"'), "HQ inquiries fetches stay same-origin");
+assert(hqUi.includes("Authorization: `Bearer ${accessToken}`"), "HQ inquiries send Bearer token");
+assert(hqUi.includes('if (!accessToken)'), "HQ missing session does not call inquiries API");
+assert(hqUi.includes("Sesiune HQ invalidă. Reautentifică-te."), "HQ PATCH missing session requests auth");
 assert(!/setListingInquiries\(\(rows\) =>[\s\S]{0,80}fetch\("\/api\/hq\/inquiries"/.test(hqUi), "HQ does not update before PATCH");
 assert(hqUi.includes("if (!res.ok)"), "HQ waits for PATCH success");
 

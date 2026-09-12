@@ -59,6 +59,7 @@
       "notifyFallback": "QuickExit will pass it on",
       "markSeen": "Mark seen",
       "markClosed": "Close",
+      "authRequired": "Sign in to update this request.",
       "updateFailed": "We couldn't update this request. Please try again."
     },
     "paymentCancel": {

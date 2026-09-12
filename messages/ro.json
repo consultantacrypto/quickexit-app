@@ -59,6 +59,7 @@
       "notifyFallback": "QuickExit o transmite",
       "markSeen": "Marchează văzut",
       "markClosed": "Închide",
+      "authRequired": "Autentifică-te pentru a actualiza solicitarea.",
       "updateFailed": "Nu am putut actualiza solicitarea. Încearcă din nou."
     },
     "paymentCancel": {

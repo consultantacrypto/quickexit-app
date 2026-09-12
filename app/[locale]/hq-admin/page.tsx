@@ -334,6 +334,7 @@ export default function AdminHQ() {
       const params = new URLSearchParams({ view, limit: "50" });
       if (append && inquiriesNextCursorRef.current) params.set("cursor", inquiriesNextCursorRef.current);
       const inquiriesRes = await fetch(`/api/hq/inquiries?${params.toString()}`, {
+        credentials: "same-origin",
         headers: { Authorization: `Bearer ${accessToken}` },
       });
       const payload = await inquiriesRes.json().catch(() => null);
@@ -1816,12 +1817,16 @@ export default function AdminHQ() {
                                   data: { session },
                                 } = await supabase.auth.getSession();
                                 const accessToken = session?.access_token;
-                                if (!accessToken) return;
+                                if (!accessToken) {
+                                  setInquiriesPatchError("Sesiune HQ invalidă. Reautentifică-te.");
+                                  return;
+                                }
                                 setUpdatingInquiryId(inquiry.id);
                                 setInquiriesPatchError(null);
                                 try {
                                   const res = await fetch("/api/hq/inquiries", {
                                     method: "PATCH",
+                                    credentials: "same-origin",
                                     headers: {
                                       "Content-Type": "application/json",
                                       Authorization: `Bearer ${accessToken}`,

@@ -151,6 +151,9 @@ assert(canSellerSetInquiryStatus("listingSeller", SAMPLE_INQUIRY, "closed"), "14
 
 const sellerRoute = readFileSync(resolve("app/api/listing-inquiries/[id]/status/route.ts"), "utf8");
 assert(sellerRoute.includes("listing_inquiries_seller_set_status"), "14 RPC-backed seller status");
+assert(sellerRoute.includes("extractBearerToken"), "seller status requires Authorization Bearer");
+assert(sellerRoute.includes("supabase.auth.getUser()"), "seller status verifies token with getUser");
+assert(!sellerRoute.includes("createServerSupabaseClient"), "seller status does not use cookie session fallback");
 assert(sellerRoute.includes("isSameOriginMutationRequest"), "seller status same-origin");
 assert(!parseSellerInquiryStatusBody({ status: "hq_handling" }).ok, "14 seller cannot set hq_handling");
 assert(!parseSellerInquiryStatusBody({ status: "seen", buyer_id: listingId }).ok, "14 extra seller fields rejected");

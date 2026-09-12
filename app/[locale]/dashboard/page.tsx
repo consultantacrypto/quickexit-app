@@ -740,21 +740,30 @@ function DashboardContent() {
 
   const updateInquiryStatus = async (inquiryId: string, status: "seen" | "closed") => {
     setInquiryActionMessage(null);
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    if (!session?.access_token) {
+      setInquiryActionMessage({ type: "error", text: tDash("inquiries.authRequired") });
+      return;
+    }
+    const accessToken = session.access_token;
     setUpdatingInquiryId(inquiryId);
     try {
       const response = await fetch(`/api/listing-inquiries/${inquiryId}/status`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
         body: JSON.stringify({ status }),
       });
       const payload = await response.json().catch(() => null);
       if (!response.ok) {
         setInquiryActionMessage({
           type: "error",
-          text:
-            typeof payload?.error === "string"
-              ? payload.error
-              : tDash("inquiries.updateFailed"),
+          text: tDash("inquiries.updateFailed"),
         });
         return;
       }
