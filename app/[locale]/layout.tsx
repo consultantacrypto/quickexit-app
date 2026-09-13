@@ -9,6 +9,7 @@ import AuthHashCleaner from "../components/AuthHashCleaner";
 import { ConsentProvider } from "../components/ConsentProvider";
 import ConsentedPageViewTracker from "../components/ConsentedPageViewTracker";
 import ConsentBanner from "../components/ConsentBanner";
+import VercelWebAnalytics from "../components/VercelWebAnalytics";
 import { getSiteUrl } from "@/lib/siteUrl";
 import { routing } from "@/src/i18n/routing";
 
@@ -89,6 +90,7 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
         />
       </head>
       <body className="bg-white text-black antialiased min-h-screen flex flex-col">
+        <VercelWebAnalytics />
         <NextIntlClientProvider locale={locale} messages={messages}>
           <ConsentProvider>
             <ConsentedPageViewTracker />
