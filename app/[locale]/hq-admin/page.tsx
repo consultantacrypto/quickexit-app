@@ -8,6 +8,7 @@ import { buildSocialShareKit } from "@/lib/socialShare";
 import { trackEvent } from "@/lib/analytics";
 import { adminDeleteListing, adminForcePublish, adminPatchListingLocation, adminPatchListingsLocation, adminRenewAuctionExpiry, type AdminTable } from "@/app/actions/adminActions";
 import { formatAdminPriceCell } from "@/lib/listingPrice";
+import { formatDemandBudgetCompact, readDemandBudgetAmount } from "@/lib/demandBudget";
 import {
   formatListingLocation,
   hasStructuredListingLocation,
@@ -1639,7 +1640,18 @@ export default function AdminHQ() {
                       <tr key={d.id} className={orphan ? "bg-amber-50/80" : "bg-white/80"}>
                         <td className="p-3 font-bold text-black">{d.target_asset}</td>
                         <td className="p-3">{d.category}</td>
-                        <td className="p-3 font-semibold tabular-nums">€{Number(d.budget || 0).toLocaleString("ro-RO")}</td>
+                        <td className="p-3 font-semibold tabular-nums">
+                          {(() => {
+                            const maxBudget = readDemandBudgetAmount(d.budget);
+                            if (maxBudget === null) return "—";
+                            const minBudget = readDemandBudgetAmount(d.budget_min);
+                            return formatDemandBudgetCompact(
+                              minBudget !== null && minBudget <= maxBudget ? minBudget : null,
+                              maxBudget,
+                              "ro",
+                            );
+                          })()}
+                        </td>
                         <td className="p-3">
                           <span className="inline-block rounded-full border border-black bg-neutral-100 px-2 py-0.5 text-[10px] font-black uppercase">
                             {demandStatusLabel(d.status)}

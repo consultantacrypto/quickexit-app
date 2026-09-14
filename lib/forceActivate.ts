@@ -79,6 +79,7 @@ type DemandRow = {
   target_asset: string | null;
   category: string | null;
   budget: number | null;
+  budget_min: number | null;
   created_at: string | null;
 };
 
@@ -287,7 +288,7 @@ async function forceActivateDemandRow(
 ): Promise<ForceActivateResult> {
   const { data: demand, error: fetchError } = await supabase
     .from("demands")
-    .select("id, status, buyer_id, target_asset, category, budget, created_at")
+    .select("id, status, buyer_id, target_asset, category, budget, budget_min, created_at")
     .eq("id", demandId)
     .maybeSingle();
 
@@ -473,6 +474,7 @@ export type PendingPaymentDemandSummary = {
   packageId: string;
   buyer_id: string | null;
   budget: number | null;
+  budget_min: number | null;
   created_at: string | null;
 };
 
@@ -515,7 +517,7 @@ export async function listPendingPaymentDemands(
 ): Promise<PendingPaymentDemandSummary[]> {
   const { data, error } = await supabase
     .from("demands")
-    .select("id, target_asset, category, status, buyer_id, budget, created_at")
+    .select("id, target_asset, category, status, buyer_id, budget, budget_min, created_at")
     .eq("status", "pending_payment")
     .order("created_at", { ascending: false })
     .limit(limit);
@@ -535,6 +537,7 @@ export async function listPendingPaymentDemands(
       packageId: DEMAND_PACKAGE_ID,
       buyer_id: demand.buyer_id,
       budget: demand.budget ?? null,
+      budget_min: demand.budget_min ?? null,
       created_at: demand.created_at,
     };
   });

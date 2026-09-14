@@ -31,12 +31,12 @@ export const PAGE_METADATA_COPY = {
     ro: {
       title: "Publică cerere de cumpărare | Quick Exit",
       description:
-        "Spune ce vrei să cumperi, setează bugetul și atrage vânzători compatibili.",
+        "Spune ce vrei să cumperi, setează bugetul minim și maxim și atrage vânzători compatibili.",
     },
     en: {
       title: "Post a buyer request | Quick Exit",
       description:
-        "State what you want to buy, set your budget, and attract compatible sellers.",
+        "State what you want to buy, set your minimum and maximum budget, and attract compatible sellers.",
     },
   },
   puneAnunt: {

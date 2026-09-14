@@ -1,6 +1,7 @@
 import type { PageLocale } from "@/lib/seo";
 import type { PublicDemandRow } from "@/lib/publicDemands";
 import { truncateForSchema } from "@/lib/publicDemands";
+import { formatDemandBudgetCompact } from "@/lib/demandBudget";
 
 export type CapitalDisponibilUiCopy = {
   backHome: string;
@@ -17,7 +18,7 @@ export type CapitalDisponibilUiCopy = {
   budgetCommunicated: string;
   budgetDisclaimer: string;
   statusActive: string;
-  maxBudgetLabel: string;
+  availableBudgetLabel: string;
   sendOfferCta: string;
   loading: string;
   emptyTitle: string;
@@ -71,7 +72,7 @@ export function getCapitalDisponibilUiCopy(locale: PageLocale): CapitalDisponibi
       budgetDisclaimer:
         "The budget is declared by the buyer and must be verified directly between parties.",
       statusActive: "Active request",
-      maxBudgetLabel: "Maximum allocated budget",
+      availableBudgetLabel: "Available budget",
       sendOfferCta: "Send offer",
       loading: "Loading requests…",
       emptyTitle: "No active requests at the moment.",
@@ -80,11 +81,11 @@ export function getCapitalDisponibilUiCopy(locale: PageLocale): CapitalDisponibi
       sections: {
         whatIs: {
           title: "What is Available Capital?",
-          body: "Available Capital is the buyer-side directory on Quick Exit where people with budget publish what they want to acquire — asset type, category, conditions and maximum budget. It makes purchase intent visible to sellers before a listing exists.",
+          body: "Available Capital is the buyer-side directory on Quick Exit where people with budget publish what they want to acquire — asset type, category, conditions and a declared budget range. It makes purchase intent visible to sellers before a listing exists.",
         },
         forBuyers: {
           title: "How it works for buyers",
-          body: "Buyers describe the asset they want, choose a category, set a maximum budget and publish a request. After activation, the request appears in this directory so compatible sellers can respond with a concrete asset offer.",
+          body: "Buyers describe the asset they want, choose a category, set a minimum and maximum budget and publish a request. After activation, the request appears in this directory so compatible sellers can respond with a concrete asset offer.",
         },
         forSellers: {
           title: "How it helps sellers",
@@ -137,7 +138,7 @@ export function getCapitalDisponibilUiCopy(locale: PageLocale): CapitalDisponibi
     budgetDisclaimer:
       "Bugetul este declarat de cumpărător și trebuie verificat direct între părți.",
     statusActive: "Cerere activă",
-    maxBudgetLabel: "Buget Maxim Alocat",
+    availableBudgetLabel: "Buget disponibil",
     sendOfferCta: "Trimite ofertă",
     loading: "Scuturăm baza de date...",
     emptyTitle: "Nu există cereri active momentan.",
@@ -146,11 +147,11 @@ export function getCapitalDisponibilUiCopy(locale: PageLocale): CapitalDisponibi
     sections: {
       whatIs: {
         title: "Ce este Capital Disponibil?",
-        body: "Capital Disponibil este directorul de cereri de cumpărare de pe Quick Exit: cumpărătorii cu buget publică ce vor să achiziționeze — tip activ, categorie, condiții și buget maxim. Intenția de cumpărare devine vizibilă pentru vânzători înainte ca un anunț să existe.",
+        body: "Capital Disponibil este directorul de cereri de cumpărare de pe Quick Exit: cumpărătorii cu buget publică ce vor să achiziționeze — tip activ, categorie, condiții și un interval de buget. Intenția de cumpărare devine vizibilă pentru vânzători înainte ca un anunț să existe.",
       },
       forBuyers: {
         title: "Cum funcționează pentru cumpărători?",
-        body: "Cumpărătorii descriu activul dorit, aleg categoria, setează bugetul maxim și publică cererea. După activare, cererea apare în acest director, iar vânzătorii compatibili pot răspunde cu o ofertă concretă de activ.",
+        body: "Cumpărătorii descriu activul dorit, aleg categoria, setează bugetul minim și maxim și publică cererea. După activare, cererea apare în acest director, iar vânzătorii compatibili pot răspunde cu o ofertă concretă de activ.",
       },
       forSellers: {
         title: "Cum ajută vânzătorii?",
@@ -193,12 +194,12 @@ function getCapitalFaqEntries(locale: PageLocale): FaqEntry[] {
       {
         question: "What is Available Capital on Quick Exit?",
         answer:
-          "Available Capital is the public directory where buyers with budget publish what they want to buy — asset type, category, conditions and maximum budget — so sellers can see real purchase intent.",
+          "Available Capital is the public directory where buyers with budget publish what they want to buy — asset type, category, conditions and a declared budget range — so sellers can see real purchase intent.",
       },
       {
         question: "Can buyers list what they want to buy?",
         answer:
-          "Yes. Buyers can publish a purchase request with target asset, category and maximum budget through the post buyer request flow.",
+          "Yes. Buyers can publish a purchase request with target asset, category and a minimum-to-maximum budget through the post buyer request flow.",
       },
       {
         question: "Can sellers respond to buyer requests?",
@@ -232,12 +233,12 @@ function getCapitalFaqEntries(locale: PageLocale): FaqEntry[] {
     {
       question: "Ce este Capital Disponibil pe Quick Exit?",
       answer:
-        "Capital Disponibil este directorul public unde cumpărătorii cu buget publică ce vor să cumpere — tip activ, categorie, condiții și buget maxim — astfel încât vânzătorii să vadă intenție reală de achiziție.",
+        "Capital Disponibil este directorul public unde cumpărătorii cu buget publică ce vor să cumpere — tip activ, categorie, condiții și un interval de buget — astfel încât vânzătorii să vadă intenție reală de achiziție.",
     },
     {
       question: "Pot cumpărătorii lista ce vor să cumpere?",
       answer:
-        "Da. Cumpărătorii pot publica o cerere de cumpărare cu activul țintă, categoria și bugetul maxim prin fluxul de publicare cerere.",
+        "Da. Cumpărătorii pot publica o cerere de cumpărare cu activul țintă, categoria și un buget minim–maxim prin fluxul de publicare cerere.",
     },
     {
       question: "Pot vânzătorii răspunde la cererile cumpărătorilor?",
@@ -292,11 +293,7 @@ export function buildCapitalItemListJsonLd(
   const itemListElement = demands.slice(0, 20).map((demand, index) => {
     const parts = [demand.target_asset];
     if (demand.category) parts.push(demand.category);
-    parts.push(
-      locale === "en"
-        ? `Budget up to EUR ${demand.budget.toLocaleString("en-GB")}`
-        : `Buget până la EUR ${demand.budget.toLocaleString("ro-RO")}`,
-    );
+    parts.push(formatDemandBudgetCompact(demand.budget_min, demand.budget, locale));
     if (demand.description) {
       parts.push(truncateForSchema(demand.description, 120));
     }

@@ -48,7 +48,7 @@ export default function DemandCard({
 
       <div className="mt-8 border-t border-line/60 pt-6">
         <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-muted">
-          {t("maxBudget")}
+          {t("availableBudget")}
         </p>
         <p className="mb-8 break-words text-4xl font-bold tracking-tight text-ink">{budget}</p>
 

@@ -3,7 +3,9 @@
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { trackEvent } from "@/lib/analytics";
+import { parseDemandBudgetRange, type DemandBudgetRangeErrorCode } from "@/lib/demandBudget";
 import { getPriceIdForPackageId } from "@/lib/stripePackages";
 
 const labelBase =
@@ -11,11 +13,17 @@ const labelBase =
 const inputBase =
   "w-full mt-2 rounded-xl border-[3px] border-black bg-white p-4 font-bold text-black outline-none transition focus:border-[#FFD100] focus:ring-4 focus:ring-[#FFD100]/30 placeholder:text-neutral-500";
 
+function acceptBudgetDigits(raw: string): boolean {
+  return raw === "" || /^\d{1,9}$/.test(raw);
+}
+
 export default function PosteazaCerereClient() {
+  const tBudget = useTranslations("PosteazaCerere");
   const [step, setStep] = useState(1);
   const [category, setCategory] = useState("Auto & Moto");
 
   const [targetAsset, setTargetAsset] = useState("");
+  const [budgetMin, setBudgetMin] = useState("");
   const [budget, setBudget] = useState("");
   const [description, setDescription] = useState("");
 
@@ -39,9 +47,21 @@ export default function PosteazaCerereClient() {
     setRequirements((prev) => ({ ...prev, [key]: value }));
   };
 
+  const budgetRangeErrorMessage = (code: DemandBudgetRangeErrorCode): string => {
+    if (code === "invalid_min") return tBudget("invalidMin");
+    if (code === "invalid_max") return tBudget("invalidMax");
+    return tBudget("minExceedsMax");
+  };
+
   const handleSubmitDemand = async () => {
-    if (!targetAsset || !budget) {
-      setErrorMsg("Activul căutat și bugetul sunt obligatorii.");
+    if (!targetAsset || !budgetMin || !budget) {
+      setErrorMsg(tBudget("budgetRequired"));
+      return;
+    }
+
+    const parsedRange = parseDemandBudgetRange(budgetMin, budget);
+    if (!parsedRange.ok) {
+      setErrorMsg(budgetRangeErrorMessage(parsedRange.code));
       return;
     }
 
@@ -99,7 +119,8 @@ export default function PosteazaCerereClient() {
             buyer_id: user.id,
             target_asset: targetAsset,
             category: category,
-            budget: Number(budget),
+            budget_min: parsedRange.budgetMin,
+            budget: parsedRange.budget,
             description: description,
             requirements: requirements,
             status: "pending_payment",
@@ -539,21 +560,54 @@ export default function PosteazaCerereClient() {
               </div>
 
               <div className="rounded-3xl border border-black/[0.08] bg-[#F7F4EC]/80 p-6 md:border-2 md:border-black/[0.06] md:p-10">
-                <label className={labelBase}>Buget maxim</label>
-                <div className="relative mt-2">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl font-black text-black">
-                    €
-                  </span>
-                  <input
-                    type="number"
-                    value={budget}
-                    onChange={(e) => setBudget(e.target.value)}
-                    placeholder="100000"
-                    className={`${inputBase} pl-12 text-2xl font-black tabular-nums md:text-3xl`}
-                  />
+                <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                  <div>
+                    <label className={labelBase} htmlFor="demand-budget-min">
+                      {tBudget("budgetMinLabel")}
+                    </label>
+                    <div className="relative mt-2">
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl font-black text-black">
+                        €
+                      </span>
+                      <input
+                        id="demand-budget-min"
+                        type="text"
+                        inputMode="numeric"
+                        autoComplete="off"
+                        value={budgetMin}
+                        onChange={(e) => {
+                          if (acceptBudgetDigits(e.target.value)) setBudgetMin(e.target.value);
+                        }}
+                        placeholder="100000"
+                        className={`${inputBase} pl-12 text-2xl font-black tabular-nums md:text-3xl`}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className={labelBase} htmlFor="demand-budget-max">
+                      {tBudget("budgetMaxLabel")}
+                    </label>
+                    <div className="relative mt-2">
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl font-black text-black">
+                        €
+                      </span>
+                      <input
+                        id="demand-budget-max"
+                        type="text"
+                        inputMode="numeric"
+                        autoComplete="off"
+                        value={budget}
+                        onChange={(e) => {
+                          if (acceptBudgetDigits(e.target.value)) setBudget(e.target.value);
+                        }}
+                        placeholder="500000"
+                        className={`${inputBase} pl-12 text-2xl font-black tabular-nums md:text-3xl`}
+                      />
+                    </div>
+                  </div>
                 </div>
                 <p className="mt-3 text-xs font-medium text-neutral-600">
-                  Acesta este bugetul maxim. Vânzătorii pot veni cu oferte sub acest prag.
+                  {tBudget("budgetHint")}
                 </p>
 
                 <label className={`${labelBase} mt-8`}>Mesaj pentru vânzători</label>
@@ -576,13 +630,29 @@ export default function PosteazaCerereClient() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setStep(3)}
-                  disabled={!budget}
+                  onClick={() => {
+                    const parsedRange = parseDemandBudgetRange(budgetMin, budget);
+                    if (!parsedRange.ok) {
+                      setErrorMsg(budgetRangeErrorMessage(parsedRange.code));
+                      return;
+                    }
+                    setErrorMsg("");
+                    setStep(3);
+                  }}
+                  disabled={!budgetMin || !budget}
                   className="w-full flex-1 rounded-2xl border-[3px] border-black bg-black py-4 text-xs font-black uppercase tracking-widest text-[#FFD100] shadow-[6px_6px_0_0_#000] transition hover:bg-neutral-900 disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   Continuă la plată →
                 </button>
               </div>
+              {errorMsg && (
+                <div
+                  role="alert"
+                  className="rounded-2xl border-2 border-red-800/40 bg-red-50/90 px-4 py-3 text-sm font-semibold text-red-900"
+                >
+                  {errorMsg}
+                </div>
+              )}
             </div>
           )}
 
@@ -634,7 +704,7 @@ export default function PosteazaCerereClient() {
                 <button
                   type="button"
                   onClick={() => void handleSubmitDemand()}
-                  disabled={isSubmitting || !budget}
+                  disabled={isSubmitting || !budgetMin || !budget}
                   className="w-full flex-1 rounded-2xl border-[3px] border-black bg-[#FFD100] py-4 text-xs font-black uppercase tracking-widest text-black shadow-[6px_6px_0_0_#000] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   {isSubmitting ? "Se pregătește plata..." : "Plătește și publică cererea"}

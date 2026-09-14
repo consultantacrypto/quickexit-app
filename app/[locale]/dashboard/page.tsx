@@ -23,6 +23,7 @@ import { normalizeSaleType } from "@/utils/normalizeSaleType";
 import { getNumberLocale } from "@/lib/i18n/format";
 import { adCardPricingProps } from "@/lib/listingPrice";
 import { listingLocationLabelFromUnknown } from "@/lib/listingLocation";
+import { formatDemandBudgetCompact, readDemandBudgetAmount } from "@/lib/demandBudget";
 import { Wallet, Inbox, PlusCircle, Search, Settings, Power, Play, PiggyBank, ClipboardList } from "lucide-react";
 import KycBanner from "@/app/components/KycBanner";
 import { getPriceIdForPackageId } from "@/lib/stripePackages";
@@ -1302,8 +1303,19 @@ function DashboardContent() {
                   <div>
                     <span className="text-xs font-black uppercase text-neutral-600 mb-1 inline-block">{demand.category}</span>
                     <h3 className="text-xl font-black uppercase italic leading-tight mb-4">{demand.target_asset}</h3>
-                    <p className="text-xs font-bold text-neutral-600 uppercase mb-1">Buget</p>
-                    <p className="text-3xl font-black italic">€{demand.budget?.toLocaleString('ro-RO')}</p>
+                    <p className="text-xs font-bold text-neutral-600 uppercase mb-1">Buget disponibil</p>
+                    <p className="text-3xl font-black italic">
+                      {(() => {
+                        const maxBudget = readDemandBudgetAmount(demand.budget);
+                        if (maxBudget === null) return "—";
+                        const minBudget = readDemandBudgetAmount(demand.budget_min);
+                        return formatDemandBudgetCompact(
+                          minBudget !== null && minBudget <= maxBudget ? minBudget : null,
+                          maxBudget,
+                          "ro",
+                        );
+                      })()}
+                    </p>
                   </div>
                   <div className="mt-6 pt-4 border-t-2 border-gray-100">
                     {demand.status === 'pending_payment' ? (
@@ -1723,7 +1735,16 @@ function DashboardContent() {
                                 </div>
                               )}
                               <p className="text-xs font-black uppercase text-neutral-600 mb-1">Pentru bugetul tău de:</p>
-                              <p className="text-xl md:text-2xl font-black uppercase italic tracking-tight mb-6">{demand?.target_asset || "Cerere Nelistată"} <span className="text-sm font-bold text-neutral-500">(Max €{demand?.budget?.toLocaleString()})</span></p>
+                              <p className="text-xl md:text-2xl font-black uppercase italic tracking-tight mb-6">{demand?.target_asset || "Cerere Nelistată"} <span className="text-sm font-bold text-neutral-500">({(() => {
+                                const maxBudget = readDemandBudgetAmount(demand?.budget);
+                                if (maxBudget === null) return "—";
+                                const minBudget = readDemandBudgetAmount(demand?.budget_min);
+                                return formatDemandBudgetCompact(
+                                  minBudget !== null && minBudget <= maxBudget ? minBudget : null,
+                                  maxBudget,
+                                  "ro",
+                                );
+                              })()})</span></p>
                               
                               <div>
                                 <p className="text-xs font-black uppercase text-neutral-600 mb-1">Preț solicitat de vânzător:</p>

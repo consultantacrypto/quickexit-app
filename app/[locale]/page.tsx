@@ -11,6 +11,7 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/src/i18n/navigation";
 import { categoryPath, listingsIndexPath } from "@/src/i18n/paths";
 import { getNumberLocale, formatEurAmount } from "@/lib/i18n/format";
+import { formatDemandBudgetCompact, readDemandBudgetAmount } from "@/lib/demandBudget";
 import { adCardPricingProps } from "@/lib/listingPrice";
 import { isPublicAuctionOpen } from "@/lib/auctionOpen";
 import HeroSearchBar from "@/app/components/HeroSearchBar";
@@ -177,7 +178,7 @@ export default async function Home({ params }: HomePageProps) {
 
   const { data: premiumDemands } = await supabase
     .from("demands")
-    .select("id,target_asset,category,budget,description,status,created_at")
+    .select("id,target_asset,category,budget_min,budget,description,status,created_at")
     .eq("status", "active")
     .gte("budget", 10000)
     .order("budget", { ascending: false })
@@ -375,16 +376,28 @@ export default async function Home({ params }: HomePageProps) {
 
           <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3 lg:gap-10">
             {showPremiumCapital ? (
-              premiumDemands!.map((demand) => (
+              premiumDemands!.map((demand) => {
+                const maxBudget = readDemandBudgetAmount(demand.budget);
+                const minBudget = readDemandBudgetAmount(demand.budget_min);
+                return (
                 <DemandCard
                   key={demand.id}
                   id={demand.id}
                   targetAsset={demand.target_asset}
-                  category={demand.category}
-                  budget={formatEurAmount(Number(demand.budget ?? 0), locale)}
-                  description={demand.description}
+                  category={demand.category ?? ""}
+                  budget={
+                    maxBudget === null
+                      ? formatEurAmount(0, locale)
+                      : formatDemandBudgetCompact(
+                          minBudget !== null && minBudget <= maxBudget ? minBudget : null,
+                          maxBudget,
+                          locale === "en" ? "en" : "ro",
+                        )
+                  }
+                  description={demand.description ?? ""}
                 />
-              ))
+                );
+              })
             ) : (
               <div className="col-span-full rounded-2xl border-[3px] border-dashed border-black bg-white py-16 px-8 text-center shadow-[6px_6px_0_0_rgba(0,0,0,1)]">
                 <h3 className="text-lg font-black uppercase italic tracking-tight text-black">

@@ -129,10 +129,10 @@ export default function CapitalDisponibilClient({
 
                 <div className="mt-8 pt-6 border-t-[3px] border-black/10">
                   <p className="text-[11px] font-black uppercase tracking-widest text-neutral-600 mb-1">
-                    {copy.maxBudgetLabel}
+                    {copy.availableBudgetLabel}
                   </p>
                   <p className="text-4xl md:text-5xl font-black italic tracking-tighter text-black mb-8 break-words">
-                    €{formatDemandBudget(buyer.budget, locale)}
+                    {formatDemandBudget(buyer.budget_min, buyer.budget, locale)}
                   </p>
 
                   <Link

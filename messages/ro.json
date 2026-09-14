@@ -327,9 +327,19 @@
     "declaredBudget": "Buget declarat",
     "generalCategory": "General",
     "budgetDisclaimer": "Bugetul este declarat de cumpărător și trebuie verificat direct între părți.",
+    "availableBudget": "Buget disponibil",
     "maxBudget": "Buget maxim",
     "sellCta": "Vinde-i activul tău",
     "sellCtaAria": "Vinde-i activul tău pentru cererea: {targetAsset}"
+  },
+  "PosteazaCerere": {
+    "budgetMinLabel": "Buget minim",
+    "budgetMaxLabel": "Buget maxim",
+    "budgetHint": "Interval în EUR, sume întregi. Vânzătorii pot oferi până la bugetul maxim.",
+    "budgetRequired": "Activul căutat, bugetul minim și bugetul maxim sunt obligatorii.",
+    "invalidMin": "Bugetul minim trebuie să fie un număr întreg între 1 și 100.000.000 EUR.",
+    "invalidMax": "Bugetul maxim trebuie să fie un număr întreg între 1 și 100.000.000 EUR.",
+    "minExceedsMax": "Bugetul minim nu poate fi mai mare decât bugetul maxim."
   },
   "Consent": {
     "bannerTitle": "Confidențialitatea ta contează",

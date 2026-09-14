@@ -10,6 +10,7 @@ import { useLocale } from "next-intl";
 import { getNumberLocale } from "@/lib/i18n/format";
 import { adCardPricingProps } from "@/lib/listingPrice";
 import { listingLocationLabelFromUnknown } from "@/lib/listingLocation";
+import { formatDemandBudgetCompact, readDemandBudgetAmount } from "@/lib/demandBudget";
 
 // Am extras subcategoriile EXACT cum apar ele în formularele tale din pune-anunt
 const categoryDataMap: Record<string, { name: string; subs: string[] }> = {
@@ -66,7 +67,7 @@ function CategoryContent() {
 
         const { data: demandData } = await supabase
           .from("demands")
-          .select("id,target_asset,description,budget,category,status,created_at")
+          .select("id,target_asset,description,budget_min,budget,category,status,created_at")
           .eq("category", categoryName)
           .eq("status", "active")
           .order("created_at", { ascending: false });
@@ -317,10 +318,19 @@ function CategoryContent() {
 
                     <div className="mt-4 pt-8 border-t-[3px] border-neutral-200">
                       <p className="text-[11px] font-black uppercase tracking-widest text-neutral-600 mb-2">
-                        Buget Alocat
+                        Buget disponibil
                       </p>
                       <p className="text-4xl font-black italic tracking-tighter text-black mb-8">
-                        €{demand.budget.toLocaleString("ro-RO")}
+                        {(() => {
+                          const maxBudget = readDemandBudgetAmount(demand.budget);
+                          if (maxBudget === null) return "—";
+                          const minBudget = readDemandBudgetAmount(demand.budget_min);
+                          return formatDemandBudgetCompact(
+                            minBudget !== null && minBudget <= maxBudget ? minBudget : null,
+                            maxBudget,
+                            "ro",
+                          );
+                        })()}
                       </p>
 
                       <Link

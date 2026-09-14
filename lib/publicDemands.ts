@@ -1,9 +1,15 @@
 import { supabase } from "@/lib/supabase";
+import {
+  formatDemandBudgetCompact,
+  readDemandBudgetAmount,
+  type DemandBudgetLocale,
+} from "@/lib/demandBudget";
 
 export type PublicDemandRow = {
   id: string;
   target_asset: string;
   category: string | null;
+  budget_min: number | null;
   budget: number;
   description: string | null;
   status: string;
@@ -11,7 +17,7 @@ export type PublicDemandRow = {
 };
 
 const PUBLIC_DEMAND_SELECT =
-  "id,target_asset,category,budget,description,status,created_at" as const;
+  "id,target_asset,category,budget_min,budget,description,status,created_at" as const;
 
 export async function fetchPublicActiveDemands(limit = 100): Promise<PublicDemandRow[]> {
   const { data, error } = await supabase
@@ -31,14 +37,16 @@ export async function fetchPublicActiveDemands(limit = 100): Promise<PublicDeman
       const id = typeof row.id === "string" ? row.id.trim() : "";
       const targetAsset =
         typeof row.target_asset === "string" ? row.target_asset.trim() : "";
-      const budget = Number(row.budget);
-      if (!id || !targetAsset || !Number.isFinite(budget) || budget <= 0) {
+      const budget = readDemandBudgetAmount(row.budget);
+      if (!id || !targetAsset || budget === null) {
         return null;
       }
+      const budgetMin = readDemandBudgetAmount(row.budget_min);
       return {
         id,
         target_asset: targetAsset,
         category: typeof row.category === "string" ? row.category.trim() : null,
+        budget_min: budgetMin !== null && budgetMin <= budget ? budgetMin : null,
         budget,
         description:
           typeof row.description === "string" ? row.description.trim() : null,
@@ -51,10 +59,11 @@ export async function fetchPublicActiveDemands(limit = 100): Promise<PublicDeman
 }
 
 export function formatDemandBudget(
+  budgetMin: number | null,
   budget: number,
-  locale: "ro" | "en",
+  locale: DemandBudgetLocale,
 ): string {
-  return budget.toLocaleString(locale === "en" ? "en-GB" : "ro-RO");
+  return formatDemandBudgetCompact(budgetMin, budget, locale);
 }
 
 export function truncateForSchema(text: string, max = 160): string {

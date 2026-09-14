@@ -674,6 +674,7 @@ export async function POST(req: NextRequest) {
           id: d.id ?? null,
           target_asset: d.target_asset ?? null,
           category: d.category ?? null,
+          budget_min: d.budget_min == null || d.budget_min === "" ? null : toNum(d.budget_min),
           budget: toNum(d.budget),
           status: d.status ?? null,
           created_at: d.created_at ?? null,

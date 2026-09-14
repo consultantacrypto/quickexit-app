@@ -327,9 +327,19 @@
     "declaredBudget": "Declared budget",
     "generalCategory": "General",
     "budgetDisclaimer": "The budget is stated by the buyer and must be verified directly between parties.",
+    "availableBudget": "Available budget",
     "maxBudget": "Maximum budget",
     "sellCta": "Sell them your asset",
     "sellCtaAria": "Sell your asset for the request: {targetAsset}"
+  },
+  "PosteazaCerere": {
+    "budgetMinLabel": "Minimum budget",
+    "budgetMaxLabel": "Maximum budget",
+    "budgetHint": "Range in EUR, whole amounts. Sellers may offer up to the maximum budget.",
+    "budgetRequired": "The target asset, minimum budget and maximum budget are required.",
+    "invalidMin": "Minimum budget must be a whole number between 1 and 100,000,000 EUR.",
+    "invalidMax": "Maximum budget must be a whole number between 1 and 100,000,000 EUR.",
+    "minExceedsMax": "Minimum budget cannot be greater than maximum budget."
   },
   "Consent": {
     "bannerTitle": "Your privacy matters",

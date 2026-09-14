@@ -5,6 +5,14 @@ import { useParams } from "next/navigation";
 import { Link, useRouter } from "@/src/i18n/navigation";
 import { supabase } from "@/lib/supabase";
 import { trackEvent } from "@/lib/analytics";
+import {
+  formatDemandBudgetFull,
+  formatEurMajorUnits,
+  readDemandBudgetAmount,
+} from "@/lib/demandBudget";
+
+const PUBLIC_DEMAND_OFFER_SELECT =
+  "id,target_asset,category,budget_min,budget,description,status,created_at" as const;
 
 export default function PitchOfferPage() {
   const params = useParams();
@@ -34,7 +42,7 @@ export default function PitchOfferPage() {
       try {
         const { data, error } = await supabase
           .from('demands')
-          .select('*')
+          .select(PUBLIC_DEMAND_OFFER_SELECT)
           .eq('id', id)
           .single();
 
@@ -171,6 +179,15 @@ export default function PitchOfferPage() {
     );
   }
 
+  const demandMaxBudget = readDemandBudgetAmount(buyer.budget);
+  const demandMinBudget =
+    demandMaxBudget === null
+      ? null
+      : (() => {
+          const min = readDemandBudgetAmount(buyer.budget_min);
+          return min !== null && min <= demandMaxBudget ? min : null;
+        })();
+
   // UI: Succes
   if (isSuccess) {
     return (
@@ -231,8 +248,11 @@ export default function PitchOfferPage() {
                   <p className="text-sm font-bold text-neutral-800">{buyer.category || "-"}</p>
                 </div>
                 <div>
-                  <p className="text-xs font-black uppercase tracking-widest text-neutral-600 mb-1">Buget maxim</p>
-                  <p className="text-3xl font-black italic tracking-tighter text-black">€{buyer.budget.toLocaleString('ro-RO')}</p>
+                  <p className="text-3xl font-black italic tracking-tighter text-black">
+                    {demandMaxBudget === null
+                      ? "—"
+                      : formatDemandBudgetFull(demandMinBudget, demandMaxBudget, "ro")}
+                  </p>
                 </div>
               </div>
 
@@ -317,7 +337,12 @@ export default function PitchOfferPage() {
                   <div>
                     <label className="text-xs font-black uppercase tracking-widest text-neutral-700 flex justify-between gap-2">
                       <span>Prețul solicitat</span>
-                      <span className="text-red-500">Max €{buyer.budget.toLocaleString('ro-RO')}</span>
+                      <span className="text-red-500">
+                        Max{" "}
+                        {demandMaxBudget === null
+                          ? "—"
+                          : formatEurMajorUnits(demandMaxBudget, "ro")}
+                      </span>
                     </label>
                     <div className="relative mt-2">
                       <span className="absolute left-4 top-1/2 -translate-y-1/2 font-black text-xl">€</span>
@@ -326,11 +351,11 @@ export default function PitchOfferPage() {
                         value={offerPrice}
                         onChange={(e) => setOfferPrice(e.target.value)}
                         placeholder="Ex: 85000" 
-                        max={buyer.budget}
-                        className={`w-full p-4 pl-10 border-[3px] rounded-xl font-black text-lg focus:outline-none focus:border-[#FFD100] focus:ring-2 focus:ring-[#FFD100]/30 ${Number(offerPrice) > buyer.budget ? 'border-red-500 bg-red-50' : 'border-black bg-white'}`} 
+                        max={demandMaxBudget ?? undefined}
+                        className={`w-full p-4 pl-10 border-[3px] rounded-xl font-black text-lg focus:outline-none focus:border-[#FFD100] focus:ring-2 focus:ring-[#FFD100]/30 ${demandMaxBudget !== null && Number(offerPrice) > demandMaxBudget ? "border-red-500 bg-red-50" : "border-black bg-white"}`}
                       />
                     </div>
-                    {Number(offerPrice) > buyer.budget && (
+                    {demandMaxBudget !== null && Number(offerPrice) > demandMaxBudget && (
                       <p className="text-xs font-black uppercase text-red-600 mt-2">Prețul tău depășește bugetul investitorului.</p>
                     )}
                   </div>
@@ -374,7 +399,7 @@ export default function PitchOfferPage() {
                   <button 
                     onClick={() => setStep(2)} 
                     disabled={
-                      Number(offerPrice) > buyer.budget ||
+                      (demandMaxBudget !== null && Number(offerPrice) > demandMaxBudget) ||
                       !offerPrice ||
                       !sellerPhone ||
                       !sessionUser
