@@ -287,6 +287,60 @@ export default async function Home({ params }: HomePageProps) {
         </div>
       </section>
 
+      <section
+        id="active-assets"
+        className="scroll-mt-20 border-t border-gray-100 bg-white pt-16 pb-16 md:scroll-mt-32 md:pt-20 md:pb-24"
+      >
+        <div className="mx-auto max-w-[1440px] px-4 md:px-8">
+          <div className="mb-4 flex flex-col items-start justify-between gap-5 md:flex-row md:items-end">
+            <h2 className="text-3xl font-black uppercase italic tracking-tight text-black md:text-4xl">
+              {listingsTitle.before}
+              <span className="text-[#FFD100]">{listingsTitle.highlight}</span>
+              {listingsTitle.after}
+            </h2>
+            <div className="flex flex-wrap items-center gap-5">
+              <TrackedLink
+                href="/pune-anunt"
+                eventName="click_post_listing"
+                eventParams={{ interaction_source: "home_listings_section" }}
+                className="inline-flex items-center justify-center rounded-2xl border-[3px] border-black bg-[#FDFCF8] px-6 py-3 text-[11px] font-black uppercase tracking-widest text-black shadow-[6px_6px_0_0_rgba(0,0,0,1)] transition hover:-translate-y-0.5 hover:bg-white hover:shadow-[6px_6px_0_0_#FFD100] md:text-xs"
+              >
+                {tHome("listings.postListing")}
+              </TrackedLink>
+              <Link
+                href={listingsIndexPath()}
+                className="border-b-2 border-transparent text-[11px] font-black uppercase tracking-widest text-neutral-600 underline-offset-4 transition hover:border-black hover:text-black md:text-xs"
+              >
+                {tHome("listings.viewAll")}
+              </Link>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-8 md:grid-cols-2 xl:grid-cols-3 lg:gap-10">
+            {standardListings && standardListings.length > 0 ? (
+              standardListings.slice(0, 9).map((item) => (
+                <AdCard
+                  key={item.id}
+                  id={item.id}
+                  title={item.title}
+                  image={
+                    item.images?.[0] ||
+                    "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=800&q=80"
+                  }
+                  {...adCardPricingProps(item, numberLocale)}
+                  type={normalizeSaleType(item.sale_strategy)}
+                  location={listingLocationLabelFromUnknown(item.details)}
+                />
+              ))
+            ) : (
+              <div className="col-span-full rounded-2xl border-[3px] border-dashed border-black bg-[#FDFCF8] py-20 text-center shadow-[6px_6px_0_0_rgba(0,0,0,1)]">
+                <p className="text-sm font-bold text-neutral-600">{tHome("listings.empty")}</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+
       {hasActiveCapital ? (
       <section
         id="active-capital"
@@ -347,60 +401,6 @@ export default async function Home({ params }: HomePageProps) {
         </div>
       </section>
       )}
-
-      <section
-        id="active-assets"
-        className="scroll-mt-20 border-t border-gray-100 bg-white pt-16 pb-16 md:scroll-mt-32 md:pt-20 md:pb-24"
-      >
-        <div className="mx-auto max-w-[1440px] px-4 md:px-8">
-          <div className="mb-4 flex flex-col items-start justify-between gap-5 md:flex-row md:items-end">
-            <h2 className="text-3xl font-black uppercase italic tracking-tight text-black md:text-4xl">
-              {listingsTitle.before}
-              <span className="text-[#FFD100]">{listingsTitle.highlight}</span>
-              {listingsTitle.after}
-            </h2>
-            <div className="flex flex-wrap items-center gap-5">
-              <TrackedLink
-                href="/pune-anunt"
-                eventName="click_post_listing"
-                eventParams={{ interaction_source: "home_listings_section" }}
-                className="inline-flex items-center justify-center rounded-2xl border-[3px] border-black bg-[#FDFCF8] px-6 py-3 text-[11px] font-black uppercase tracking-widest text-black shadow-[6px_6px_0_0_rgba(0,0,0,1)] transition hover:-translate-y-0.5 hover:bg-white hover:shadow-[6px_6px_0_0_#FFD100] md:text-xs"
-              >
-                {tHome("listings.postListing")}
-              </TrackedLink>
-              <Link
-                href={listingsIndexPath()}
-                className="border-b-2 border-transparent text-[11px] font-black uppercase tracking-widest text-neutral-600 underline-offset-4 transition hover:border-black hover:text-black md:text-xs"
-              >
-                {tHome("listings.viewAll")}
-              </Link>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 gap-8 md:grid-cols-2 xl:grid-cols-3 lg:gap-10">
-            {standardListings && standardListings.length > 0 ? (
-              standardListings.slice(0, 9).map((item) => (
-                <AdCard
-                  key={item.id}
-                  id={item.id}
-                  title={item.title}
-                  image={
-                    item.images?.[0] ||
-                    "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=800&q=80"
-                  }
-                  {...adCardPricingProps(item, numberLocale)}
-                  type={normalizeSaleType(item.sale_strategy)}
-                  location={listingLocationLabelFromUnknown(item.details)}
-                />
-              ))
-            ) : (
-              <div className="col-span-full rounded-2xl border-[3px] border-dashed border-black bg-[#FDFCF8] py-20 text-center shadow-[6px_6px_0_0_rgba(0,0,0,1)]">
-                <p className="text-sm font-bold text-neutral-600">{tHome("listings.empty")}</p>
-              </div>
-            )}
-          </div>
-        </div>
-      </section>
 
       <section className="border-t border-gray-100 bg-white px-4 py-16 md:py-24">
         <div className="mx-auto max-w-7xl">

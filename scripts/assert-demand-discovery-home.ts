@@ -95,12 +95,16 @@ assert(
 );
 
 const categoriesAt = home.indexOf('tHome("categoriesTitle")');
+const listingsAt = home.indexOf('id="active-assets"');
 const capitalAt = home.indexOf('id="active-capital"');
 const emptyStripAt = home.indexOf('tHome("capital.emptyStripCta")');
-const listingsAt = home.indexOf('id="active-assets"');
+const auctionsAt = home.indexOf("{auctionsTitle.before}");
 assert(categoriesAt > 0 && listingsAt > categoriesAt, "categories precede listings");
-assert(capitalAt > categoriesAt && capitalAt < listingsAt, "demand cards precede sale listings");
-assert(emptyStripAt > categoriesAt && emptyStripAt < listingsAt, "empty CTA precedes sale listings");
+assert(listingsAt > 0 && capitalAt > listingsAt, "sale listings precede demand cards");
+assert(emptyStripAt > listingsAt, "empty CTA follows sale listings");
+assert(capitalAt > 0 && auctionsAt > capitalAt, "demand cards precede auctions");
+assert(emptyStripAt > 0 && auctionsAt > emptyStripAt, "empty CTA precedes auctions");
+assert(count(home, 'id="active-capital"') === 1, "capital section is not duplicated");
 assert(!home.includes("carousel"), "no carousel on homepage demands");
 
 const introAt = capitalPage.indexOf("<CapitalDisponibilIntro");
