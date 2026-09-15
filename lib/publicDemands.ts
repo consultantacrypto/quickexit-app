@@ -16,15 +16,27 @@ export type PublicDemandRow = {
   created_at: string | null;
 };
 
+/** Explicit public columns only — no private identity fields and no select star. */
 const PUBLIC_DEMAND_SELECT =
   "id,target_asset,category,budget_min,budget,description,status,created_at" as const;
 
+export const HOME_PUBLIC_ACTIVE_DEMANDS_LIMIT = 3;
+
+/**
+ * Shared public fetch for homepage and /capital-disponibil.
+ * Sort is newest-first: created_at DESC, then id DESC (deterministic ties).
+ *
+ * Cache: both pages keep ISR `export const revalidate = 60`. New active demands
+ * become visible after the next regeneration, typically within 60 seconds.
+ * Pages stay statically revalidated — not fully dynamic.
+ */
 export async function fetchPublicActiveDemands(limit = 100): Promise<PublicDemandRow[]> {
   const { data, error } = await supabase
     .from("demands")
     .select(PUBLIC_DEMAND_SELECT)
     .eq("status", "active")
     .order("created_at", { ascending: false })
+    .order("id", { ascending: false })
     .limit(limit);
 
   if (error) {
@@ -32,7 +44,7 @@ export async function fetchPublicActiveDemands(limit = 100): Promise<PublicDeman
     return [];
   }
 
-  return (data ?? [])
+  const rows = (data ?? [])
     .map((row) => {
       const id = typeof row.id === "string" ? row.id.trim() : "";
       const targetAsset =
@@ -56,6 +68,14 @@ export async function fetchPublicActiveDemands(limit = 100): Promise<PublicDeman
       } satisfies PublicDemandRow;
     })
     .filter((row): row is PublicDemandRow => row !== null);
+
+  rows.sort((a, b) => {
+    const createdCmp = (b.created_at ?? "").localeCompare(a.created_at ?? "");
+    if (createdCmp !== 0) return createdCmp;
+    return b.id.localeCompare(a.id);
+  });
+
+  return rows;
 }
 
 export function formatDemandBudget(

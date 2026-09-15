@@ -226,10 +226,10 @@
       "empty": "Momentan nu există anunțuri active."
     },
     "capital": {
-      "title": "Capital disponibil",
-      "titleHighlight": "disponibil",
-      "viewAll": "Vezi toate cererile →",
-      "description": "Cereri publicate de cumpărători cu buget comunicat în anunț — verifică detaliile direct cu fiecare ofertant.",
+      "title": "Capital disponibil acum",
+      "titleHighlight": "acum",
+      "viewAll": "Vezi toate cererile",
+      "description": "Cumpărători activi caută proprietăți, automobile, afaceri și alte active.",
       "empty": "Nicio cerere de capital înregistrată momentan.",
       "viewAllFooter": "Vezi tot capitalul disponibil",
       "addOffer": "Adaugă ofertă de capital",

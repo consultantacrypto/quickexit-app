@@ -32,7 +32,6 @@ export type CapitalDisponibilUiCopy = {
     kyc: { title: string; body: string };
     notQuickExit: { title: string; body: string };
   };
-  compliance: string;
   relatedLinksTitle: string;
   relatedLinks: { href: string; label: string }[];
   categoryOptions: { value: string; label: string }[];
@@ -59,7 +58,7 @@ export function getCapitalDisponibilUiCopy(locale: PageLocale): CapitalDisponibi
       eyebrow: "Available capital",
       h1: "Available Capital — buyers can list what they want to buy",
       intro:
-        "Quick Exit allows buyers with available capital to publish what they are looking for: premium cars, real estate, land, business assets or other high-value assets. Instead of waiting passively, sellers can see real buyer demand and respond to an existing purchase intent.",
+        "Buyers publish the asset they want and a budget range. Sellers see active requests and can send an offer.",
       postDemandCta: "Post a buyer request",
       searchPlaceholder: "SEARCH (E.G. MERCEDES, LAND, ROLEX)...",
       allCategories: "All categories",
@@ -85,7 +84,7 @@ export function getCapitalDisponibilUiCopy(locale: PageLocale): CapitalDisponibi
         },
         forBuyers: {
           title: "How it works for buyers",
-          body: "Buyers describe the asset they want, choose a category, set a minimum and maximum budget and publish a request. After activation, the request appears in this directory so compatible sellers can respond with a concrete asset offer.",
+          body: "Buyers describe the asset they want, choose a category, set a budget range (minimum to maximum) and publish a request. After activation, the request appears in this directory so compatible sellers can respond with a concrete asset offer.",
         },
         forSellers: {
           title: "How it helps sellers",
@@ -104,8 +103,6 @@ export function getCapitalDisponibilUiCopy(locale: PageLocale): CapitalDisponibi
           body: "Quick Exit does not guarantee the sale or purchase of an asset, does not hold funds in escrow, and does not act as a legal, financial or real-estate broker. The platform provides listing infrastructure, visibility, verification tools and contact between parties.",
         },
       },
-      compliance:
-        "Quick Exit does not guarantee the sale or purchase of an asset, does not hold money in escrow and does not act as a legal, financial or real-estate broker. The platform offers listing infrastructure, visibility, verification and contact between parties.",
       relatedLinksTitle: "Related pages",
       relatedLinks,
       categoryOptions: [
@@ -125,7 +122,7 @@ export function getCapitalDisponibilUiCopy(locale: PageLocale): CapitalDisponibi
     eyebrow: "Capital disponibil",
     h1: "Capital Disponibil — cumpărătorii pot lista ce vor să cumpere",
     intro:
-      "Quick Exit permite cumpărătorilor cu buget disponibil să publice ce caută: mașini premium, imobile, terenuri, business-uri sau alte active valoroase. În loc ca vânzătorii să aștepte pasiv, aceștia pot vedea cereri reale de cumpărare și pot răspunde direct unei intenții existente.",
+      "Cumpărătorii publică activul căutat și intervalul de buget. Vânzătorii văd cereri active și pot trimite o ofertă.",
     postDemandCta: "Publică cerere de cumpărare",
     searchPlaceholder: "CAUTĂ (EX: MERCEDES, TEREN, ROLEX)...",
     allCategories: "Toate Categoriile",
@@ -151,7 +148,7 @@ export function getCapitalDisponibilUiCopy(locale: PageLocale): CapitalDisponibi
       },
       forBuyers: {
         title: "Cum funcționează pentru cumpărători?",
-        body: "Cumpărătorii descriu activul dorit, aleg categoria, setează bugetul minim și maxim și publică cererea. După activare, cererea apare în acest director, iar vânzătorii compatibili pot răspunde cu o ofertă concretă de activ.",
+        body: "Cumpărătorii descriu activul dorit, aleg categoria, setează intervalul de buget (minim–maxim) și publică cererea. După activare, cererea apare în acest director, iar vânzătorii compatibili pot răspunde cu o ofertă concretă de activ.",
       },
       forSellers: {
         title: "Cum ajută vânzătorii?",
@@ -170,8 +167,6 @@ export function getCapitalDisponibilUiCopy(locale: PageLocale): CapitalDisponibi
         body: "Quick Exit nu garantează vânzarea sau cumpărarea unui activ, nu ține banii în escrow și nu acționează ca broker legal, financiar sau imobiliar. Platforma oferă infrastructură de listare, vizibilitate, verificare și contact între părți.",
       },
     },
-    compliance:
-      "Quick Exit nu garantează vânzarea sau cumpărarea unui activ, nu ține banii în escrow și nu acționează ca broker legal, financiar sau imobiliar. Platforma oferă infrastructură de listare, vizibilitate, verificare și contact între părți.",
     relatedLinksTitle: "Pagini utile",
     relatedLinks,
     categoryOptions: [

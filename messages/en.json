@@ -226,10 +226,10 @@
       "empty": "No active listings at the moment."
     },
     "capital": {
-      "title": "Available capital",
-      "titleHighlight": "capital",
-      "viewAll": "View all requests →",
-      "description": "Buyer requests with stated budgets — verify details directly with each counterparty.",
+      "title": "Capital available now",
+      "titleHighlight": "now",
+      "viewAll": "View all requests",
+      "description": "Active buyers are looking for property, automobiles, businesses, and other assets.",
       "empty": "No capital requests registered at the moment.",
       "viewAllFooter": "View all available capital",
       "addOffer": "Add capital offer",

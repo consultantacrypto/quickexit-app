@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { setRequestLocale } from "next-intl/server";
 import CapitalDisponibilClient from "./CapitalDisponibilClient";
+import CapitalDisponibilGuide from "./CapitalDisponibilGuide";
 import CapitalDisponibilIntro from "./CapitalDisponibilIntro";
 import {
   buildCapitalFaqJsonLd,
@@ -11,6 +12,7 @@ import { fetchPublicActiveDemands } from "@/lib/publicDemands";
 import { buildPageMetadata, resolvePageLocale } from "@/lib/seo";
 import { getSiteUrl } from "@/lib/siteUrl";
 
+/** ISR: public active demands refresh at most every 60 seconds. */
 export const revalidate = 60;
 
 type PageProps = {
@@ -46,13 +48,11 @@ export default async function CapitalDirectoryPage({ params }: PageProps) {
   return (
     <div className="min-h-screen bg-[#F7F4EC] pt-8 pb-20 font-sans text-black selection:bg-black selection:text-[#FFD100]">
       <script
-        // eslint-disable-next-line react/no-danger
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
         type="application/ld+json"
       />
       {itemListJsonLd && (
         <script
-          // eslint-disable-next-line react/no-danger
           dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListJsonLd) }}
           type="application/ld+json"
         />
@@ -61,6 +61,7 @@ export default async function CapitalDirectoryPage({ params }: PageProps) {
       <div className="max-w-7xl mx-auto px-4 md:px-8">
         <CapitalDisponibilIntro locale={loc} />
         <CapitalDisponibilClient initialDemands={initialDemands} locale={loc} />
+        <CapitalDisponibilGuide locale={loc} />
       </div>
     </div>
   );

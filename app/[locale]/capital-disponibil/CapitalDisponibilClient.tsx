@@ -53,7 +53,7 @@ export default function CapitalDisponibilClient({
           />
         </div>
 
-        <div className="w-full md:w-1/4">
+        <div className="w-full md:w-1/2">
           <select
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
@@ -66,20 +66,16 @@ export default function CapitalDisponibilClient({
             ))}
           </select>
         </div>
-
-        <div className="w-full md:w-1/4 bg-black text-[#FFD100] p-4 rounded-xl border-[3px] border-black flex flex-col justify-center items-center h-full shadow-[4px_4px_0_0_rgba(255,209,0,1)]">
-          <span className="text-[11px] font-black uppercase tracking-widest text-white/80">
-            {copy.filterResults}
-          </span>
-          <span className="text-2xl font-black italic leading-none">
-            {filteredBuyers.length} {copy.filterCountLabel}
-          </span>
-        </div>
       </div>
 
-      <p className="mb-6 max-w-3xl text-xs font-semibold leading-relaxed text-neutral-800 md:text-sm">
-        {copy.safetyNote}
-      </p>
+      <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+        <p className="max-w-3xl text-xs font-semibold leading-relaxed text-neutral-800 md:text-sm">
+          {copy.safetyNote}
+        </p>
+        <p className="shrink-0 text-[11px] font-black uppercase tracking-widest text-black">
+          {filteredBuyers.length} {copy.filterCountLabel}
+        </p>
+      </div>
 
       <section aria-label={copy.eyebrow}>
         {filteredBuyers.length > 0 ? (
