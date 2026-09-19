@@ -85,6 +85,7 @@ export default function AdCard({
           alt={title}
           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
           priority={priority}
+          forceCover
           className="absolute inset-0"
           imgClassName="transition-transform duration-[1200ms] ease-out group-hover:scale-[1.04]"
         />

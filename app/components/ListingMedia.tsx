@@ -18,6 +18,8 @@ type ListingMediaProps = {
   containerAspect?: number;
   className?: string;
   imgClassName?: string;
+  /** When true, always object-cover from first paint; skips contain→cover. */
+  forceCover?: boolean;
   onError?: () => void;
 };
 
@@ -29,6 +31,7 @@ function ListingMediaInner({
   containerAspect,
   className,
   imgClassName,
+  forceCover,
   onError,
 }: {
   canonical: string;
@@ -38,17 +41,19 @@ function ListingMediaInner({
   containerAspect: number;
   className: string;
   imgClassName: string;
+  forceCover: boolean;
   onError?: () => void;
 }) {
-  const [fit, setFit] = useState<"cover" | "contain">("contain");
+  const [fit, setFit] = useState<"cover" | "contain">(forceCover ? "cover" : "contain");
 
   const onLoad = useCallback(
     (event: React.SyntheticEvent<HTMLImageElement>) => {
+      if (forceCover) return;
       const img = event.currentTarget;
       const aspect = listingImageAspectRatio(img.naturalWidth, img.naturalHeight);
       setFit(listingObjectFit(aspect, containerAspect));
     },
-    [containerAspect],
+    [containerAspect, forceCover],
   );
 
   return (
@@ -82,6 +87,7 @@ export default function ListingMedia({
   containerAspect = LISTING_CARD_ASPECT,
   className = "",
   imgClassName = "",
+  forceCover = false,
   onError,
 }: ListingMediaProps) {
   const canonical = canonicalListingImageSrc(src);
@@ -95,6 +101,7 @@ export default function ListingMedia({
       containerAspect={containerAspect}
       className={className}
       imgClassName={imgClassName}
+      forceCover={forceCover}
       onError={onError}
     />
   );
