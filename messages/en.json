@@ -899,10 +899,10 @@
     },
     "cryptoPayment": {
       "badge": "Crypto payment accepted",
-      "full": "The seller states that the full euro price may also be settled in: {assets}.",
-      "partial": "The seller states that part of the price, with no fixed percentage, may be settled in: {assets}.",
-      "negotiable": "The seller states that these coins can be negotiated directly: {assets}.",
-      "disclaimer": "The listing price stays in euro. Any rate and settlement, if the parties agree, happen directly between them. QuickExit does not receive, exchange, custody, or transfer cryptocurrency. For property and businesses, final settlement remains subject to the contract documents and the checks that apply."
+      "full": "The seller accepts full payment in {assets}.",
+      "partial": "The seller accepts partial payment in {assets}.",
+      "negotiable": "The seller is open to negotiating payment in {assets}.",
+      "disclaimer": "The listing price remains denominated in EUR. The exchange rate and settlement terms are agreed directly between the parties. QuickExit does not receive, exchange, hold, or transfer cryptocurrency. For real estate and businesses, the transaction remains subject to the applicable contractual documents and verification requirements."
     },
     "pricing": {
       "potentialProfit": "Potential profit",

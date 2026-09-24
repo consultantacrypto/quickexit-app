@@ -899,10 +899,10 @@
     },
     "cryptoPayment": {
       "badge": "Plată crypto acceptată",
-      "full": "Vânzătorul declară că acceptă integral prețul în euro și în: {assets}.",
-      "partial": "Vânzătorul declară că acceptă o parte din preț, fără un procent fix, în: {assets}.",
-      "negotiable": "Vânzătorul declară că aceste monede pot fi negociate direct: {assets}.",
-      "disclaimer": "Prețul anunțului rămâne în euro. Cursul și decontarea, dacă părțile le agreează, au loc direct între ele. QuickExit nu primește, nu schimbă, nu păstrează și nu transferă criptomonede. Pentru imobile și afaceri, decontarea finală rămâne supusă documentelor contractuale și verificărilor aplicabile."
+      "full": "Vânzătorul acceptă plata integrală în {assets}.",
+      "partial": "Vânzătorul acceptă ca o parte din preț să fie achitată în {assets}.",
+      "negotiable": "Vânzătorul este deschis să negocieze plata în {assets}.",
+      "disclaimer": "Prețul anunțului rămâne exprimat în EUR. Cursul de schimb și condițiile de decontare se stabilesc direct între părți. QuickExit nu primește, nu schimbă, nu păstrează și nu transferă criptomonede. Pentru imobile și afaceri, tranzacția rămâne supusă documentelor contractuale și verificărilor aplicabile."
     },
     "pricing": {
       "potentialProfit": "Profit potențial",

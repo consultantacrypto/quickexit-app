@@ -27,6 +27,27 @@ export function sortCryptoAssets(assets: readonly CryptoAsset[]): CryptoAsset[] 
   return [...assets].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
 }
 
+const CRYPTO_ASSET_RANK = new Map(CRYPTO_ASSET_ALLOWLIST.map((asset, index) => [asset, index]));
+
+/** Public listing copy only. Does not change the lexicographic order stored in the database. */
+export function formatCryptoAssetList(assets: readonly string[], locale: string): string {
+  const labels: string[] = [];
+  const ranked = assets
+    .map((asset) => asset.trim().toLowerCase())
+    .filter((asset): asset is CryptoAsset => CRYPTO_ASSET_RANK.has(asset as CryptoAsset))
+    .sort((a, b) => CRYPTO_ASSET_RANK.get(a)! - CRYPTO_ASSET_RANK.get(b)!);
+  for (const asset of ranked) {
+    const label = asset.toUpperCase();
+    if (!labels.includes(label)) labels.push(label);
+  }
+  if (labels.length <= 1) return labels[0] ?? "";
+  const conjunction = locale.toLowerCase().startsWith("ro") ? "sau" : "or";
+  if (labels.length === 2) return `${labels[0]} ${conjunction} ${labels[1]}`;
+  const head = labels.slice(0, -1).join(", ");
+  const tail = labels[labels.length - 1];
+  return conjunction === "or" ? `${head}, ${conjunction} ${tail}` : `${head} ${conjunction} ${tail}`;
+}
+
 export function parseCryptoPayment(
   mode: unknown,
   assets: unknown,

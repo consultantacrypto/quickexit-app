@@ -10,7 +10,7 @@ import { supabase } from "@/lib/supabase";
 import AuthModal from "@/app/components/AuthModal";
 import AdCard from "@/app/components/AdCard";
 import ListingMedia from "@/app/components/ListingMedia";
-import { listingAcceptsCrypto, readListingCryptoPayment } from "@/lib/cryptoPayment";
+import { formatCryptoAssetList, listingAcceptsCrypto, readListingCryptoPayment } from "@/lib/cryptoPayment";
 import { normalizeSaleType } from "@/utils/normalizeSaleType";
 import { parseListingOfferCount } from "@/utils/auctionListingUi";
 import { buildSocialShareKit } from "@/lib/socialShare";
@@ -971,7 +971,7 @@ export default function AnuntClient({
             </p>
             <p className="mt-2">
               {t(`cryptoPayment.${cryptoNotice.mode}`, {
-                assets: cryptoNotice.assets.map((asset) => asset.toUpperCase()).join(", "),
+                assets: formatCryptoAssetList(cryptoNotice.assets, locale),
               })}
             </p>
             <p className="mt-2 text-xs text-neutral-600">{t("cryptoPayment.disclaimer")}</p>
