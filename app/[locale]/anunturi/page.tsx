@@ -10,7 +10,7 @@ export const revalidate = 60;
 
 type PageProps = {
   params: Promise<{ locale: string }>;
-  searchParams: Promise<{ category?: string }>;
+  searchParams: Promise<{ category?: string; crypto?: string }>;
 };
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
@@ -28,14 +28,14 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function AnunturiPage({ params, searchParams }: PageProps) {
   const { locale } = await params;
-  const { category } = await searchParams;
+  const { category, crypto } = await searchParams;
   setRequestLocale(locale);
   const activeSlug = parseListingsCategoryParam(category ?? null);
 
   const { data, error } = await supabase
     .from("listings")
     .select(
-      "id,title,images,market_price,exit_price,discount,deal_score,sale_strategy,offer_count,highest_offer,expires_at,status,is_seed,category,created_at,details",
+      "id,title,images,market_price,exit_price,discount,deal_score,sale_strategy,offer_count,highest_offer,expires_at,status,is_seed,category,created_at,details,crypto_payment_mode,crypto_assets",
     )
     .eq("status", "active")
     .eq("is_seed", false)
@@ -43,7 +43,7 @@ export default async function AnunturiPage({ params, searchParams }: PageProps) 
 
   if (error) {
     return (
-      <AnunturiClient listings={[]} fetchError activeSlug={activeSlug} />
+      <AnunturiClient listings={[]} fetchError activeSlug={activeSlug} cryptoOnly={crypto === "1"} />
     );
   }
 
@@ -52,6 +52,7 @@ export default async function AnunturiPage({ params, searchParams }: PageProps) 
       listings={data ?? []}
       fetchError={false}
       activeSlug={activeSlug}
+      cryptoOnly={crypto === "1"}
     />
   );
 }

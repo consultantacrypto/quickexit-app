@@ -8,6 +8,12 @@ import { useTranslations, useLocale } from "next-intl";
 import { supabase } from "@/lib/supabase";
 import { Loader2, Search, Star, X } from "lucide-react";
 import CarBrandCombobox from "@/app/components/CarBrandCombobox";
+import CryptoPaymentFields from "@/app/components/CryptoPaymentFields";
+import {
+  parseCryptoPayment,
+  type CryptoAsset,
+  type CryptoPaymentMode,
+} from "@/lib/cryptoPayment";
 import PublishDraftRecoveryDialog from "./PublishDraftRecoveryDialog";
 import { trackEvent } from "@/lib/analytics";
 import { trackFunnelEvent } from "@/lib/funnelAnalytics";
@@ -134,6 +140,8 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
 
   const [exitPrice, setExitPrice] = useState("");
   const [pricingMode, setPricingMode] = useState<PricingMode | null>(null);
+  const [cryptoPaymentMode, setCryptoPaymentMode] = useState<CryptoPaymentMode>("none");
+  const [cryptoAssets, setCryptoAssets] = useState<CryptoAsset[]>([]);
   const [isExitPriceManuallyEdited, setIsExitPriceManuallyEdited] = useState(false);
   const [evaluationPrefillActive, setEvaluationPrefillActive] = useState(false);
   const [evaluationPrefillMessage, setEvaluationPrefillMessage] = useState<string | null>(null);
@@ -220,6 +228,8 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
       evaluationHandoffActive,
       pendingListingId,
       pendingListingCreatedAt,
+      cryptoPaymentMode,
+      cryptoAssets,
     });
 
   const trackDraftEvent = (
@@ -269,6 +279,8 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
     evaluationHandoffRef.current = draft.evaluationHandoffActive;
     setPendingListingId(draft.pendingListingId);
     setPendingListingCreatedAt(draft.pendingListingCreatedAt);
+    setCryptoPaymentMode(draft.cryptoPaymentMode);
+    setCryptoAssets(draft.cryptoAssets);
     setDraftRestored(true);
   };
 
@@ -349,6 +361,8 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
     evaluationHandoffActive,
     pendingListingId,
     pendingListingCreatedAt,
+    cryptoPaymentMode,
+    cryptoAssets,
   ]);
 
   const resetPublishFormToInitial = () => {
@@ -362,6 +376,8 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
     setAnalyzedItems(0);
     setExitPrice("");
     setPricingMode(null);
+    setCryptoPaymentMode("none");
+    setCryptoAssets([]);
     setIsExitPriceManuallyEdited(false);
     setEvaluationPrefillActive(false);
     setEvaluationPrefillMessage(null);
@@ -1034,6 +1050,11 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
       setFlowError(tPost("pricingMode.validation.selectOptionToContinue"));
       return;
     }
+    const cryptoPayment = parseCryptoPayment(cryptoPaymentMode, cryptoAssets);
+    if (!cryptoPayment.ok) {
+      setFlowError(tPost("cryptoPayment.validationAssets"));
+      return;
+    }
     const locationCheck = locationFromFormData(formData);
     if (!locationCheck.ok) {
       setFlowError(locationCheck.error);
@@ -1158,6 +1179,8 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
             .update({
               sale_strategy: saleFields.sale_strategy,
               details: nextDetails,
+              crypto_payment_mode: cryptoPayment.value.mode,
+              crypto_assets: cryptoPayment.value.assets,
             })
             .eq("id", existingListing.id)
             .eq("user_id", user.id)
@@ -1277,6 +1300,8 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
           deal_score: dealScore,
           discount: finalDiscount,
           images: uploadedImageUrls,
+          crypto_payment_mode: cryptoPayment.value.mode,
+          crypto_assets: cryptoPayment.value.assets,
           details: applyListingLocationToDetails(
             {
             ...formData,
@@ -2387,6 +2412,13 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                       </p>
                     ) : null}
                   </div>
+
+                  <CryptoPaymentFields
+                    mode={cryptoPaymentMode}
+                    assets={cryptoAssets}
+                    onModeChange={setCryptoPaymentMode}
+                    onAssetsChange={setCryptoAssets}
+                  />
 
                   {pricingMode === "fixed_price" ? (
                     <div className="rounded-2xl border-[3px] border-black bg-[#F7F4EC]/80 p-6">

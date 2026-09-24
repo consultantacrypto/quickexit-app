@@ -19,6 +19,7 @@ import {
   toEvaluationTrackingEventParams,
 } from "@/lib/evaluationTracking";
 import AdCard from "@/app/components/AdCard";
+import { listingAcceptsCrypto } from "@/lib/cryptoPayment";
 import { normalizeSaleType } from "@/utils/normalizeSaleType";
 import { getNumberLocale } from "@/lib/i18n/format";
 import { adCardPricingProps } from "@/lib/listingPrice";
@@ -1196,6 +1197,7 @@ function DashboardContent() {
 
                   <div className={`transition-all flex-grow ${item.status !== 'active' ? 'opacity-70 grayscale-[0.5]' : ''}`}>
                     <AdCard
+                      cryptoAccepted={listingAcceptsCrypto(item)}
                       id={item.id}
                       title={item.title}
                       image={

@@ -14,6 +14,7 @@ import {
   parsePublicListingSearchParams,
   PUBLIC_SEARCH_MAX_PAGE,
 } from "@/lib/publicListings";
+import { listingAcceptsCrypto } from "@/lib/cryptoPayment";
 import { normalizeSaleType } from "@/utils/normalizeSaleType";
 
 export const revalidate = 60;
@@ -30,6 +31,7 @@ type PageProps = {
     city?: string;
     district?: string;
     page?: string;
+    crypto?: string;
   }>;
 };
 
@@ -57,12 +59,13 @@ export default async function SearchPage({ params, searchParams }: PageProps) {
     city: raw.city,
     district: raw.district,
     page: raw.page,
+    crypto: raw.crypto,
   });
   const t = await getTranslations("ListingSearch");
   const numberLocale = getNumberLocale(locale);
   const { listings, total, page, pageSize } = await fetchPublicSearchListings(supabase, filters);
   const hasFilters = Boolean(
-    filters.q || filters.country || filters.county || filters.city || filters.district || filters.locationInvalid,
+    filters.q || filters.country || filters.county || filters.city || filters.district || filters.crypto || filters.locationInvalid,
   );
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const showPrev = page > 1;
@@ -93,6 +96,17 @@ export default async function SearchPage({ params, searchParams }: PageProps) {
             <p className="text-sm font-bold text-neutral-600">
               {t("resultsCount", { count: total })}
             </p>
+            <div className="flex flex-wrap items-center gap-3">
+              <Link
+                href={buildPublicSearchPath({ ...filters, crypto: !filters.crypto }, 1)}
+                className={`rounded-xl border-2 px-4 py-2 text-[11px] font-black uppercase tracking-widest ${
+                  filters.crypto
+                    ? "border-black bg-black text-[#FFD100]"
+                    : "border-black bg-white text-black"
+                }`}
+              >
+                {filters.crypto ? t("cryptoFilterOn") : t("cryptoFilter")}
+              </Link>
             {hasFilters ? (
               <Link
                 href="/cauta"
@@ -101,6 +115,7 @@ export default async function SearchPage({ params, searchParams }: PageProps) {
                 {t("reset")}
               </Link>
             ) : null}
+            </div>
           </div>
 
           {listings.length > 0 ? (
@@ -109,6 +124,7 @@ export default async function SearchPage({ params, searchParams }: PageProps) {
                 {listings.map((item) => (
                   <AdCard
                     key={item.id}
+                    cryptoAccepted={listingAcceptsCrypto(item)}
                     id={item.id}
                     title={item.title || ""}
                     image={item.images?.[0] || FALLBACK_IMAGE}

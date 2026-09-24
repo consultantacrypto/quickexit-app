@@ -1,5 +1,12 @@
 import { type PricingMode } from "@/lib/pricingMode";
 import {
+  EMPTY_CRYPTO_PAYMENT,
+  parseCryptoPayment,
+  type CryptoAsset,
+  type CryptoPayment,
+  type CryptoPaymentMode,
+} from "@/lib/cryptoPayment";
+import {
   coerceCompatibleSaleIntent,
   parseListingSalePackageId,
   type ListingSalePackageId,
@@ -97,6 +104,8 @@ export type ListingDraftV1 = {
   evaluationConfidenceScore?: number;
   evaluationPrefillActive: boolean;
   evaluationHandoffActive: boolean;
+  cryptoPaymentMode: CryptoPaymentMode;
+  cryptoAssets: CryptoAsset[];
   /** Server-validated pending_payment listing to resume checkout (never trust alone). */
   pendingListingId?: string;
   pendingListingCreatedAt?: number;
@@ -161,6 +170,8 @@ const LISTING_DRAFT_KNOWN_KEYS = new Set([
   "evaluationHandoffActive",
   "pendingListingId",
   "pendingListingCreatedAt",
+  "cryptoPaymentMode",
+  "cryptoAssets",
 ]);
 
 const LISTING_AUTH_HANDOFF_KNOWN_KEYS = new Set([
@@ -422,6 +433,8 @@ export function buildListingDraft(input: {
   evaluationHandoffActive?: boolean;
   pendingListingId?: string;
   pendingListingCreatedAt?: number;
+  cryptoPaymentMode?: CryptoPaymentMode;
+  cryptoAssets?: readonly CryptoAsset[];
   timestamp?: number;
 }): ListingDraftV1 {
   const confidence = input.evaluationConfidenceScore;
@@ -429,6 +442,11 @@ export function buildListingDraft(input: {
   const pendingListingCreatedAt = pendingListingId
     ? sanitizePendingListingCreatedAt(input.pendingListingCreatedAt) ?? Date.now()
     : undefined;
+  const crypto = parseCryptoPayment(
+    input.cryptoPaymentMode ?? "none",
+    input.cryptoAssets ?? [],
+  );
+  const cryptoPayment = crypto.ok ? crypto.value : EMPTY_CRYPTO_PAYMENT;
   const saleIntent = coerceCompatibleSaleIntent({
     saleMethod: input.saleMethod,
     packageId: input.selectedPackage,
@@ -460,6 +478,8 @@ export function buildListingDraft(input: {
         : undefined,
     evaluationPrefillActive: Boolean(input.evaluationPrefillActive),
     evaluationHandoffActive: Boolean(input.evaluationHandoffActive),
+    cryptoPaymentMode: cryptoPayment.mode,
+    cryptoAssets: cryptoPayment.assets,
     ...(pendingListingId
       ? { pendingListingId, pendingListingCreatedAt }
       : {}),
@@ -493,6 +513,19 @@ function hasOnlyKnownKeys(
   allowed: Set<string>,
 ): boolean {
   return Object.keys(value).every((key) => allowed.has(key));
+}
+
+function draftCryptoFromRecord(
+  parsed: Record<string, unknown>,
+): { ok: true; value: CryptoPayment } | { ok: false } {
+  const modeMissing = parsed.cryptoPaymentMode === undefined;
+  const assetsMissing = parsed.cryptoAssets === undefined;
+  if (modeMissing && assetsMissing) return { ok: true, value: EMPTY_CRYPTO_PAYMENT };
+  const parsedCrypto = parseCryptoPayment(
+    modeMissing ? "none" : parsed.cryptoPaymentMode,
+    assetsMissing ? [] : parsed.cryptoAssets,
+  );
+  return parsedCrypto.ok ? { ok: true, value: parsedCrypto.value } : { ok: false };
 }
 
 function parseListingDraftRecord(
@@ -544,6 +577,9 @@ function parseListingDraftRecord(
     return { ok: false, reason: "malformed" };
   }
 
+  const cryptoDraft = draftCryptoFromRecord(parsed);
+  if (!cryptoDraft.ok) return { ok: false, reason: "malformed" };
+
   try {
     return {
       ok: true,
@@ -575,6 +611,8 @@ function parseListingDraftRecord(
           typeof parsed.pendingListingCreatedAt === "number"
             ? parsed.pendingListingCreatedAt
             : undefined,
+        cryptoPaymentMode: cryptoDraft.value.mode,
+        cryptoAssets: cryptoDraft.value.assets,
       }),
     };
   } catch {

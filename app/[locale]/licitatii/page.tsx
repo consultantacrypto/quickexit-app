@@ -8,6 +8,7 @@ import { isPublicAuctionOpen } from "@/lib/auctionOpen";
 import { listingLocationLabelFromUnknown } from "@/lib/listingLocation";
 import { getNumberLocale } from "@/lib/i18n/format";
 import { adCardPricingProps } from "@/lib/listingPrice";
+import { listingAcceptsCrypto } from "@/lib/cryptoPayment";
 
 export const revalidate = 60;
 
@@ -37,7 +38,7 @@ export default async function LicitatiiPage({ params }: PageProps) {
   const { data: listings } = await supabase
     .from("listings")
     .select(
-      "id,title,images,market_price,exit_price,discount,deal_score,sale_strategy,offer_count,highest_offer,expires_at,status,is_seed,created_at,details",
+      "id,title,images,market_price,exit_price,discount,deal_score,sale_strategy,offer_count,highest_offer,expires_at,status,is_seed,created_at,details,crypto_payment_mode,crypto_assets",
     )
     .eq("status", "active")
     .eq("is_seed", false)
@@ -78,6 +79,7 @@ export default async function LicitatiiPage({ params }: PageProps) {
             <div className="mt-8 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3 lg:gap-10 xl:grid-cols-4">
               {auctions.map((item, index) => (
                 <AdCard
+                  cryptoAccepted={listingAcceptsCrypto(item)}
                   key={item.id}
                   id={item.id}
                   title={item.title}

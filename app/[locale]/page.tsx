@@ -6,6 +6,7 @@ import GlobalStats from "@/app/components/GlobalStats";
 import { supabase } from "@/lib/supabase";
 import { buildPageMetadata, resolvePageLocale } from "@/lib/seo";
 import { getSiteUrl } from "@/lib/siteUrl";
+import { listingAcceptsCrypto } from "@/lib/cryptoPayment";
 import { normalizeSaleType } from "@/utils/normalizeSaleType";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/src/i18n/navigation";
@@ -162,7 +163,7 @@ export default async function Home({ params }: HomePageProps) {
   const { data: realListings } = await supabase
     .from("listings")
     .select(
-      "id,title,images,market_price,exit_price,discount,deal_score,sale_strategy,offer_count,highest_offer,expires_at,status,is_seed,created_at,details",
+      "id,title,images,market_price,exit_price,discount,deal_score,sale_strategy,offer_count,highest_offer,expires_at,status,is_seed,created_at,details,crypto_payment_mode,crypto_assets",
     )
     .eq("status", "active")
     .eq("is_seed", false)
@@ -172,7 +173,7 @@ export default async function Home({ params }: HomePageProps) {
   const { data: openAuctionListings } = await supabase
     .from("listings")
     .select(
-      "id,title,images,market_price,exit_price,discount,deal_score,sale_strategy,offer_count,highest_offer,expires_at,status,is_seed,created_at,details",
+      "id,title,images,market_price,exit_price,discount,deal_score,sale_strategy,offer_count,highest_offer,expires_at,status,is_seed,created_at,details,crypto_payment_mode,crypto_assets",
     )
     .eq("status", "active")
     .eq("is_seed", false)
@@ -321,6 +322,7 @@ export default async function Home({ params }: HomePageProps) {
               standardListings.slice(0, 9).map((item) => (
                 <AdCard
                   key={item.id}
+                  cryptoAccepted={listingAcceptsCrypto(item)}
                   id={item.id}
                   title={item.title}
                   image={
@@ -423,6 +425,7 @@ export default async function Home({ params }: HomePageProps) {
               {auctionsHome.map((item) => (
                 <AdCard
                   key={item.id}
+                  cryptoAccepted={listingAcceptsCrypto(item)}
                   id={item.id}
                   title={item.title}
                   image={

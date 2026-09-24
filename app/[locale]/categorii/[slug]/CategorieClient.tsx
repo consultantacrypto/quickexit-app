@@ -5,6 +5,7 @@ import { useParams, useSearchParams } from "next/navigation";
 import { Link, useRouter } from "@/src/i18n/navigation";
 import { supabase } from "@/lib/supabase";
 import AdCard from "@/app/components/AdCard";
+import { listingAcceptsCrypto } from "@/lib/cryptoPayment";
 import { normalizeSaleType } from "@/utils/normalizeSaleType";
 import { useLocale } from "next-intl";
 import { getNumberLocale } from "@/lib/i18n/format";
@@ -58,7 +59,7 @@ function CategoryContent() {
         const { data: listData } = await supabase
           .from("listings")
           .select(
-            "id,title,images,market_price,exit_price,discount,deal_score,sale_strategy,offer_count,highest_offer,expires_at,status,is_seed,category,details,created_at"
+            "id,title,images,market_price,exit_price,discount,deal_score,sale_strategy,offer_count,highest_offer,expires_at,status,is_seed,category,details,created_at,crypto_payment_mode,crypto_assets"
           )
           .eq("category", categoryName)
           .eq("status", "active")
@@ -196,6 +197,7 @@ function CategoryContent() {
                         30 ZILE
                       </div>
                       <AdCard
+                        cryptoAccepted={listingAcceptsCrypto(item)}
                         id={item.id}
                         title={item.title}
                         image={
@@ -240,6 +242,7 @@ function CategoryContent() {
                 .map((item) => (
                   <AdCard
                     key={item.id}
+                    cryptoAccepted={listingAcceptsCrypto(item)}
                     id={item.id}
                     title={item.title}
                     image={

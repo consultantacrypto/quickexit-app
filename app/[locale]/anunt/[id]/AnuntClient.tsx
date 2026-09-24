@@ -10,6 +10,7 @@ import { supabase } from "@/lib/supabase";
 import AuthModal from "@/app/components/AuthModal";
 import AdCard from "@/app/components/AdCard";
 import ListingMedia from "@/app/components/ListingMedia";
+import { listingAcceptsCrypto, readListingCryptoPayment } from "@/lib/cryptoPayment";
 import { normalizeSaleType } from "@/utils/normalizeSaleType";
 import { parseListingOfferCount } from "@/utils/auctionListingUi";
 import { buildSocialShareKit } from "@/lib/socialShare";
@@ -927,6 +928,7 @@ export default function AnuntClient({
     }
   };
 
+  const cryptoNotice = readListingCryptoPayment(adData);
   const renderConversionPanel = () => (
     <div className="rounded-[2rem] border-[3px] border-black bg-white p-5 shadow-[10px_10px_0_0_rgba(0,0,0,0.95)] md:p-6 md:shadow-[12px_12px_0_0_#FFD100]">
       <div className="mb-4 space-y-2.5">
@@ -960,6 +962,19 @@ export default function AnuntClient({
             {t("pricing.discountFromMarket", {
               percent: Math.round(Number(adData.discount)),
             })}
+          </div>
+        ) : null}
+        {cryptoNotice.mode !== "none" ? (
+          <div className="rounded-2xl border-2 border-black bg-[#FFF9E8] px-4 py-3 text-sm font-medium leading-relaxed text-neutral-800">
+            <p className="text-[10px] font-black uppercase tracking-widest text-black">
+              {t("cryptoPayment.badge")}
+            </p>
+            <p className="mt-2">
+              {t(`cryptoPayment.${cryptoNotice.mode}`, {
+                assets: cryptoNotice.assets.map((asset) => asset.toUpperCase()).join(", "),
+              })}
+            </p>
+            <p className="mt-2 text-xs text-neutral-600">{t("cryptoPayment.disclaimer")}</p>
           </div>
         ) : null}
         {isFmOrderLike ? (
@@ -1447,6 +1462,7 @@ export default function AnuntClient({
                   return (
                   <AdCard
                     key={item.id}
+                    cryptoAccepted={listingAcceptsCrypto(item)}
                     id={item.id}
                     title={item.title || ""}
                     image={
@@ -1490,6 +1506,7 @@ export default function AnuntClient({
                 return (
                 <AdCard
                   key={item.id}
+                  cryptoAccepted={listingAcceptsCrypto(item)}
                   id={item.id}
                   title={item.title || ""}
                   image={

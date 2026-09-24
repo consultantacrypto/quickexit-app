@@ -12,6 +12,13 @@ import { LISTING_AUTO_CATEGORY } from "@/lib/listingPremium";
 import ListingPhotoEditor from "@/app/components/ListingPhotoEditor";
 import CarBrandCombobox from "@/app/components/CarBrandCombobox";
 import ListingLocationFields from "@/app/components/ListingLocationFields";
+import CryptoPaymentFields from "@/app/components/CryptoPaymentFields";
+import {
+  parseCryptoPayment,
+  readListingCryptoPayment,
+  type CryptoAsset,
+  type CryptoPaymentMode,
+} from "@/lib/cryptoPayment";
 import { buildListingImagesPatch, sanitizeListingImageUrls } from "@/lib/listingImageUpload";
 import {
   applyListingLocationToDetails,
@@ -41,6 +48,8 @@ function EditAdPage() {
   const [description, setDescription] = useState("");
   const [exitPrice, setExitPrice] = useState("");
   const [pricingMode, setPricingMode] = useState<PricingMode>("evaluated");
+  const [cryptoPaymentMode, setCryptoPaymentMode] = useState<CryptoPaymentMode>("none");
+  const [cryptoAssets, setCryptoAssets] = useState<CryptoAsset[]>([]);
   const [initialPricingMode, setInitialPricingMode] = useState<PricingMode>("evaluated");
   const [formData, setFormData] = useState<Record<string, unknown>>({});
   const [listingImages, setListingImages] = useState<string[]>([]);
@@ -99,6 +108,9 @@ function EditAdPage() {
         data.details && typeof data.details === "object" && !Array.isArray(data.details)
           ? (data.details as Record<string, unknown>)
           : {};
+      const loadedCrypto = readListingCryptoPayment(data);
+      setCryptoPaymentMode(loadedCrypto.mode);
+      setCryptoAssets(loadedCrypto.assets);
       const mode = getPricingMode(details);
       setPricingMode(mode);
       setInitialPricingMode(mode);
@@ -138,6 +150,12 @@ function EditAdPage() {
       setIsSaving(false);
       return;
     }
+    const cryptoPayment = parseCryptoPayment(cryptoPaymentMode, cryptoAssets);
+    if (!cryptoPayment.ok) {
+      setSaveError(tPost("cryptoPayment.validationAssets"));
+      setIsSaving(false);
+      return;
+    }
     const trimmedExit = exitPrice.trim();
     const mergedDetails: Record<string, unknown> = applyListingLocationToDetails(
       { ...formData, pricing_mode: pricingMode },
@@ -164,11 +182,15 @@ function EditAdPage() {
       market_price?: number | null;
       discount?: number | null;
       deal_score?: number | null;
+      crypto_payment_mode: CryptoPaymentMode;
+      crypto_assets: CryptoAsset[];
     } = {
       title: adTitle,
       description: description,
       details: mergedDetails,
       images: imagePatch.images,
+      crypto_payment_mode: cryptoPayment.value.mode,
+      crypto_assets: cryptoPayment.value.assets,
     };
 
     if (pricingMode === "evaluated") {
@@ -482,6 +504,15 @@ function EditAdPage() {
                   {tPost("pricingMode.priceOnRequestNote")}
                 </p>
               )}
+            </div>
+
+            <div className="md:col-span-2">
+              <CryptoPaymentFields
+                mode={cryptoPaymentMode}
+                assets={cryptoAssets}
+                onModeChange={setCryptoPaymentMode}
+                onAssetsChange={setCryptoAssets}
+              />
             </div>
 
             <div className="md:col-span-2">

@@ -6,6 +6,7 @@ import type { PublicListingRow } from "@/lib/listingSeo";
 import { getFutureMobilityDetails } from "@/lib/futureMobility";
 import { formatEurAmount } from "@/lib/i18n/format";
 import { listingLocationLabelFromUnknown } from "@/lib/listingLocation";
+import { listingAcceptsCrypto } from "@/lib/cryptoPayment";
 import { normalizeSaleType } from "@/utils/normalizeSaleType";
 import { useLocale, useTranslations } from "next-intl";
 
@@ -50,6 +51,7 @@ export default function FutureMobilityListingGrid({
             role="presentation"
           >
             <AdCard
+              cryptoAccepted={listingAcceptsCrypto(item)}
               id={item.id}
               title={item.title || ""}
               image={

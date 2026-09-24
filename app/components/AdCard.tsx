@@ -28,6 +28,7 @@ interface AdCardProps {
   expiresAt?: string | null;
   extraBadges?: string[];
   location?: string | null;
+  cryptoAccepted?: boolean;
 }
 
 export default function AdCard({
@@ -44,6 +45,7 @@ export default function AdCard({
   expiresAt,
   extraBadges,
   location,
+  cryptoAccepted = false,
 }: AdCardProps) {
   const t = useTranslations("AdCard");
   const locale = useLocale();
@@ -97,9 +99,14 @@ export default function AdCard({
           </span>
         ) : null}
 
-        {showExtraBadges ? (
+        {showExtraBadges || cryptoAccepted ? (
           <div className="absolute bottom-4 left-4 z-[2] flex max-w-[70%] flex-wrap gap-1.5">
-            {extraBadges.map((badge) => (
+            {cryptoAccepted ? (
+              <span className="rounded-full border border-black/20 bg-[#FFD100]/95 px-2 py-0.5 text-[8px] font-black uppercase tracking-wide text-black">
+                {t("cryptoAccepted")}
+              </span>
+            ) : null}
+            {extraBadges?.map((badge) => (
               <span
                 key={badge}
                 className="rounded-full border border-black/20 bg-[#FFD100]/95 px-2 py-0.5 text-[8px] font-black uppercase tracking-wide text-black"

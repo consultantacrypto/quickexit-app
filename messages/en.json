@@ -101,7 +101,9 @@
     "reset": "Reset filters",
     "prevPage": "Previous page",
     "nextPage": "Next page",
-    "pageStatus": "Page {page} of {totalPages}"
+    "pageStatus": "Page {page} of {totalPages}",
+    "cryptoFilter": "Accepts crypto",
+    "cryptoFilterOn": "Crypto payment listings only"
   },
   "ListingLocation": {
     "helper": "The place where the asset can be viewed or collected. Do not enter a street address.",
@@ -296,6 +298,8 @@
     "loading": "Loading listings…",
     "empty": "No active listings at the moment.",
     "emptyFiltered": "No active listings in this category.",
+    "emptyCrypto": "There are no active listings that accept crypto payment.",
+    "cryptoFilter": "Accepts crypto",
     "error": "We could not load listings. Please try again.",
     "postCta": "Post listing",
     "backHome": "Back home"
@@ -313,6 +317,7 @@
     "highestOffer": "Highest offer",
     "favoriteAdd": "Add \"{title}\" to favorites",
     "favoriteRemove": "Remove \"{title}\" from favorites",
+    "cryptoAccepted": "Crypto payment accepted",
     "auction": {
       "expired": "Expired",
       "closesToday": "Closes today",
@@ -719,6 +724,19 @@
         }
       }
     },
+    "cryptoPayment": {
+      "question": "Do you accept payment in cryptocurrency?",
+      "help": "A preference you declare. QuickExit does not receive, exchange, custody, or transfer cryptocurrency. We do not ask for a wallet address or a network.",
+      "assetsLabel": "Accepted coins",
+      "partialNote": "Partial means part of the price, with no fixed percentage.",
+      "validationAssets": "Choose at least one coin, or set the option to No.",
+      "modes": {
+        "none": "No",
+        "full": "In full",
+        "partial": "Partial",
+        "negotiable": "Negotiable"
+      }
+    },
     "saleMethod": {
       "heading": "Sale method",
       "question": "How should buyers make an offer?",
@@ -878,6 +896,13 @@
     "about": {
       "title": "About this",
       "titleHighlight": "asset"
+    },
+    "cryptoPayment": {
+      "badge": "Crypto payment accepted",
+      "full": "The seller states that the full euro price may also be settled in: {assets}.",
+      "partial": "The seller states that part of the price, with no fixed percentage, may be settled in: {assets}.",
+      "negotiable": "The seller states that these coins can be negotiated directly: {assets}.",
+      "disclaimer": "The listing price stays in euro. Any rate and settlement, if the parties agree, happen directly between them. QuickExit does not receive, exchange, custody, or transfer cryptocurrency. For property and businesses, final settlement remains subject to the contract documents and the checks that apply."
     },
     "pricing": {
       "potentialProfit": "Potential profit",

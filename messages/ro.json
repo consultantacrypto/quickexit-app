@@ -101,7 +101,9 @@
     "reset": "Resetează filtrele",
     "prevPage": "Pagina anterioară",
     "nextPage": "Pagina următoare",
-    "pageStatus": "Pagina {page} din {totalPages}"
+    "pageStatus": "Pagina {page} din {totalPages}",
+    "cryptoFilter": "Acceptă crypto",
+    "cryptoFilterOn": "Doar anunțuri cu plată crypto"
   },
   "ListingLocation": {
     "helper": "Locul unde bunul poate fi văzut sau preluat. Nu introduce adresa stradală.",
@@ -296,6 +298,8 @@
     "loading": "Se încarcă anunțurile…",
     "empty": "Momentan nu există anunțuri active.",
     "emptyFiltered": "Nu există anunțuri active în această categorie.",
+    "emptyCrypto": "Nu există anunțuri active care acceptă plata crypto.",
+    "cryptoFilter": "Acceptă crypto",
     "error": "Nu am putut încărca anunțurile. Reîncearcă.",
     "postCta": "Pune anunț",
     "backHome": "Înapoi acasă"
@@ -313,6 +317,7 @@
     "highestOffer": "Cea mai mare ofertă",
     "favoriteAdd": "Adaugă „{title}” la favorite",
     "favoriteRemove": "Elimină „{title}” din favorite",
+    "cryptoAccepted": "Plată crypto acceptată",
     "auction": {
       "expired": "Expirată",
       "closesToday": "Se închide azi",
@@ -719,6 +724,19 @@
         }
       }
     },
+    "cryptoPayment": {
+      "question": "Accepți plata în criptomonede?",
+      "help": "Preferință declarată de tine. QuickExit nu primește, nu schimbă, nu păstrează și nu transferă criptomonede. Nu cerem adresă de wallet și nu alegem rețeaua.",
+      "assetsLabel": "Monede acceptate",
+      "partialNote": "Parțial înseamnă o parte din preț, fără un procent fix.",
+      "validationAssets": "Alege cel puțin o monedă sau setează opțiunea pe Nu.",
+      "modes": {
+        "none": "Nu",
+        "full": "Integral",
+        "partial": "Parțial",
+        "negotiable": "Negociabil"
+      }
+    },
     "saleMethod": {
       "heading": "Metoda de vânzare",
       "question": "Cum vrei să primești oferte?",
@@ -878,6 +896,13 @@
     "about": {
       "title": "Despre acest",
       "titleHighlight": "activ"
+    },
+    "cryptoPayment": {
+      "badge": "Plată crypto acceptată",
+      "full": "Vânzătorul declară că acceptă integral prețul în euro și în: {assets}.",
+      "partial": "Vânzătorul declară că acceptă o parte din preț, fără un procent fix, în: {assets}.",
+      "negotiable": "Vânzătorul declară că aceste monede pot fi negociate direct: {assets}.",
+      "disclaimer": "Prețul anunțului rămâne în euro. Cursul și decontarea, dacă părțile le agreează, au loc direct între ele. QuickExit nu primește, nu schimbă, nu păstrează și nu transferă criptomonede. Pentru imobile și afaceri, decontarea finală rămâne supusă documentelor contractuale și verificărilor aplicabile."
     },
     "pricing": {
       "potentialProfit": "Profit potențial",

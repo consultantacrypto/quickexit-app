@@ -15,8 +15,10 @@ import {
   uniqueCatalogLocality,
 } from "@/lib/romaniaLocations";
 
+import { CRYPTO_LISTING_COLUMNS, listingAcceptsCrypto } from "@/lib/cryptoPayment";
+
 export const PUBLIC_LISTING_SEARCH_FIELDS =
-  "id,title,images,market_price,exit_price,discount,deal_score,sale_strategy,offer_count,highest_offer,expires_at,status,is_seed,category,description,created_at,details";
+  `id,title,images,market_price,exit_price,discount,deal_score,sale_strategy,offer_count,highest_offer,expires_at,status,is_seed,category,description,created_at,details,${CRYPTO_LISTING_COLUMNS}`;
 
 export const PUBLIC_SEARCH_PAGE_SIZE = 24;
 export const PUBLIC_SEARCH_MAX_PAGE = 20;
@@ -41,6 +43,8 @@ export type PublicSearchListing = {
   description?: string | null;
   created_at?: string | null;
   details?: unknown;
+  crypto_payment_mode?: string | null;
+  crypto_assets?: string[] | null;
 };
 
 export type PublicListingSearchParams = {
@@ -49,6 +53,7 @@ export type PublicListingSearchParams = {
   county?: string | null;
   city?: string | null;
   district?: string | null;
+  crypto?: boolean | string | null;
   page?: number | string | null;
   limit?: number;
 };
@@ -59,6 +64,7 @@ export type ParsedPublicListingSearchParams = {
   county: string;
   city: string;
   district: string;
+  crypto: boolean;
   page: number;
   locationInvalid: boolean;
 };
@@ -184,6 +190,7 @@ export function parsePublicListingSearchParams(
     city: location.city,
     district: location.district,
     page,
+    crypto: get("crypto") === "1",
     locationInvalid: location.invalid,
   };
 }
@@ -273,7 +280,14 @@ export function buildLocationOrFilters(filter: {
 
 export function filterPublicSearchListings(
   rows: unknown,
-  params: { q?: string; country?: string; county?: string; city?: string; district?: string },
+  params: {
+    q?: string;
+    country?: string;
+    county?: string;
+    city?: string;
+    district?: string;
+    crypto?: boolean;
+  },
 ): PublicSearchListing[] {
   if (!Array.isArray(rows)) return [];
   const q = sanitizeSearchQuery(params.q);
@@ -288,6 +302,7 @@ export function filterPublicSearchListings(
     if (!isActivePublicListingRow(row)) return false;
     if (!listingMatchesKeyword(row, q)) return false;
     if (!listingMatchesLocationFilter(row.details, { country, county, city, district })) return false;
+    if (params.crypto && !listingAcceptsCrypto(row)) return false;
     return true;
   });
 }
@@ -299,6 +314,7 @@ export function buildPublicSearchPath(
     county?: string;
     city?: string;
     district?: string;
+    crypto?: boolean;
   },
   page = 1,
 ): string {
@@ -308,6 +324,7 @@ export function buildPublicSearchPath(
   if (filters.county) params.set("county", filters.county);
   if (filters.city) params.set("city", filters.city);
   if (filters.district) params.set("district", filters.district);
+  if (filters.crypto) params.set("crypto", "1");
   if (page > 1) params.set("page", String(page));
   const qs = params.toString();
   return qs ? `/cauta?${qs}` : "/cauta";
@@ -329,6 +346,7 @@ export async function fetchPublicSearchListings(
     county: params.county ?? "",
     city: params.city ?? "",
     district: params.district ?? "",
+    crypto: params.crypto ? "1" : "",
     page: params.page == null ? "1" : String(params.page),
   });
   const locationInvalid = params.locationInvalid ?? parsed.locationInvalid;
@@ -365,6 +383,7 @@ export async function fetchPublicSearchListings(
   for (const locationOr of buildLocationOrFilters(parsed)) {
     query = query.or(locationOr);
   }
+  if (parsed.crypto) query = query.neq("crypto_payment_mode", "none");
 
   const { data, error, count } = await query;
   if (error) {

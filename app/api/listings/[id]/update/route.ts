@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { getSupabaseAnonKey, getSupabaseProjectUrl } from "@/lib/supabase/config";
+import { parseCryptoPayment } from "@/lib/cryptoPayment";
 import {
   applyListingLocationToDetails,
   locationFromFormData,
@@ -109,6 +110,14 @@ export async function POST(
     if ("market_price" in body) updatePayload.market_price = body.market_price;
     if ("discount" in body) updatePayload.discount = body.discount;
     if ("deal_score" in body) updatePayload.deal_score = body.deal_score;
+    if ("crypto_payment_mode" in body || "crypto_assets" in body) {
+      const crypto = parseCryptoPayment(body.crypto_payment_mode, body.crypto_assets);
+      if (!crypto.ok) {
+        return NextResponse.json({ error: "Opțiunea crypto este invalidă." }, { status: 400 });
+      }
+      updatePayload.crypto_payment_mode = crypto.value.mode;
+      updatePayload.crypto_assets = crypto.value.assets;
+    }
 
     const { error: updateError } = await authSupabase
       .from("listings")

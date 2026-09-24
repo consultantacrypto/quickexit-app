@@ -27,6 +27,8 @@ export type PublicListingRow = ListingSeoRow & {
   highest_offer?: number | null;
   expires_at?: string | null;
   details?: Record<string, unknown> | null;
+  crypto_payment_mode?: string | null;
+  crypto_assets?: string[] | null;
   [key: string]: unknown;
 };
 
@@ -65,6 +67,8 @@ const LISTING_CARD_FIELDS = [
   "description",
   "created_at",
   "details",
+  "crypto_payment_mode",
+  "crypto_assets",
 ].join(",");
 
 /** Same public listing columns plus owner id. See PublicListingRow.user_id. */
