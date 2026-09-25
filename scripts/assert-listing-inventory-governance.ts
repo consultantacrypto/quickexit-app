@@ -143,6 +143,7 @@ assert(sql.includes("NEW.listing_kind IS DISTINCT FROM 'specific_asset'"), "dire
 assert(sql.includes("NEW.listing_kind IS DISTINCT FROM OLD.listing_kind"), "direct kind update rejected");
 assert(sql.includes("NEW.availability_status IS DISTINCT FROM OLD.availability_status"), "direct availability update rejected");
 assert(sql.includes("jwt_role NOT IN ('authenticated', 'anon')"), "service role and admin SQL stay allowed");
+assert(!/ADD\s+COLUMN\s+IF\s+NOT\s+EXISTS/i.test(sql), "columns fail if the schema already drifted");
 assert(!/DROP\s+POLICY/i.test(sql), "existing policies are not dropped");
 assert(!/CREATE\s+POLICY/i.test(sql), "existing policies are not rewritten");
 

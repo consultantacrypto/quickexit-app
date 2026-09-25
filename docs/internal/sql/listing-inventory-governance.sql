@@ -22,14 +22,16 @@
 
 BEGIN;
 
+-- Fail-fast: these columns must be absent. IF NOT EXISTS would skip a column
+-- that already exists with another type, default, or nullability.
 ALTER TABLE public.listings
-  ADD COLUMN IF NOT EXISTS listing_kind text DEFAULT 'specific_asset';
+  ADD COLUMN listing_kind text DEFAULT 'specific_asset';
 
 ALTER TABLE public.listings
-  ADD COLUMN IF NOT EXISTS availability_status text DEFAULT 'available';
+  ADD COLUMN availability_status text DEFAULT 'available';
 
 ALTER TABLE public.listings
-  ADD COLUMN IF NOT EXISTS availability_confirmed_at timestamptz;
+  ADD COLUMN availability_confirmed_at timestamptz;
 
 ALTER TABLE public.listings
   ALTER COLUMN listing_kind SET DEFAULT 'specific_asset';
@@ -43,39 +45,14 @@ ALTER TABLE public.listings
 ALTER TABLE public.listings
   ALTER COLUMN availability_status SET NOT NULL;
 
-DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1
-    FROM pg_constraint c
-    JOIN pg_class rel ON rel.oid = c.conrelid
-    JOIN pg_namespace nsp ON nsp.oid = rel.relnamespace
-    WHERE nsp.nspname = 'public'
-      AND rel.relname = 'listings'
-      AND c.conname = 'listings_listing_kind_check'
-  ) THEN
-    ALTER TABLE public.listings
-      ADD CONSTRAINT listings_listing_kind_check
-      CHECK (listing_kind IN ('specific_asset', 'catalog_offer'));
-  END IF;
-END $$;
+-- Fail-fast: a same-named constraint with a different definition must not be skipped.
+ALTER TABLE public.listings
+  ADD CONSTRAINT listings_listing_kind_check
+  CHECK (listing_kind IN ('specific_asset', 'catalog_offer'));
 
-DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1
-    FROM pg_constraint c
-    JOIN pg_class rel ON rel.oid = c.conrelid
-    JOIN pg_namespace nsp ON nsp.oid = rel.relnamespace
-    WHERE nsp.nspname = 'public'
-      AND rel.relname = 'listings'
-      AND c.conname = 'listings_availability_status_check'
-  ) THEN
-    ALTER TABLE public.listings
-      ADD CONSTRAINT listings_availability_status_check
-      CHECK (availability_status IN ('available', 'needs_confirmation', 'sold', 'archived'));
-  END IF;
-END $$;
+ALTER TABLE public.listings
+  ADD CONSTRAINT listings_availability_status_check
+  CHECK (availability_status IN ('available', 'needs_confirmation', 'sold', 'archived'));
 
 -- Replaces listing_inquiries_assign_ownership.
 -- Every previous guard stays: auth, buyer/seller derivation, own-listing block,
@@ -176,7 +153,7 @@ $$;
 -- sessions without an end-user JWT (SQL editor / postgres) may classify.
 -- Owner edits of title, price, status, and other existing columns still pass
 -- when these three columns are unchanged. Existing RLS is not dropped or rewritten.
-CREATE OR REPLACE FUNCTION public.listings_guard_inventory_classification()
+CREATE FUNCTION public.listings_guard_inventory_classification()
 RETURNS trigger
 LANGUAGE plpgsql
 SET search_path = public, pg_temp
@@ -209,7 +186,6 @@ BEGIN
 END;
 $$;
 
-DROP TRIGGER IF EXISTS listings_guard_inventory_classification ON public.listings;
 CREATE TRIGGER listings_guard_inventory_classification
   BEFORE INSERT OR UPDATE ON public.listings
   FOR EACH ROW
