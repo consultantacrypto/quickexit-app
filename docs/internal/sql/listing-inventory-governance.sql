@@ -1,4 +1,10 @@
--- NEEXECUTAT — NU A FOST APLICAT ÎN PRODUCTION
+-- Applied manually to Supabase Production: 2026-09-25 14:39 UTC
+-- Validated by postflight. This file was not re-executed after that apply.
+-- Listings after migration: 55
+-- Safe defaults: 55
+-- Catalog offers after migration: 0
+-- Legacy listings fingerprint: 02f6421f55c704ddcf2a88ce74240a09
+-- Listing inquiries fingerprint: 82f345e686bb11e4e284481fd3775176
 --
 -- Additive inventory kind for public.listings.
 -- Does not UPDATE existing rows, does not backfill catalog_offer,
