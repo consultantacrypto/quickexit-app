@@ -1,6 +1,7 @@
 import { getTranslations } from "next-intl/server";
 import { supabase } from "@/lib/supabase";
 import { formatRoundedEurAmount } from "@/lib/i18n/format";
+import { globalStatsDeclaredValue } from "@/lib/listingInventory";
 
 function countDistinctActiveCategories(
   rows: { category?: string | null }[] | null | undefined,
@@ -14,12 +15,19 @@ function countDistinctActiveCategories(
 }
 
 async function fetchPlatformStats() {
-  const [listingsRes, demandsRes, soldRes, categoriesRes] = await Promise.all([
+  const [listingCountRes, listingValueRes, demandsRes, soldRes, categoriesRes] = await Promise.all([
     supabase
       .from("listings")
-      .select("exit_price, market_price")
+      .select("id", { count: "exact", head: true })
       .eq("status", "active")
       .eq("is_seed", false),
+    supabase
+      .from("listings")
+      .select("status, is_seed, listing_kind, availability_status, exit_price, market_price")
+      .eq("status", "active")
+      .eq("is_seed", false)
+      .eq("listing_kind", "specific_asset")
+      .eq("availability_status", "available"),
     supabase.from("demands").select("budget").eq("status", "active"),
     supabase
       .from("listings")
@@ -32,8 +40,11 @@ async function fetchPlatformStats() {
       .eq("is_seed", false),
   ]);
 
-  if (listingsRes.error) {
-    console.error("[GlobalStats] listings:", listingsRes.error.message);
+  if (listingCountRes.error) {
+    console.error("[GlobalStats] listing count:", listingCountRes.error.message);
+  }
+  if (listingValueRes.error) {
+    console.error("[GlobalStats] listings:", listingValueRes.error.message);
   }
   if (demandsRes.error) {
     console.error("[GlobalStats] demands:", demandsRes.error.message);
@@ -45,22 +56,13 @@ async function fetchPlatformStats() {
     console.error("[GlobalStats] categories:", categoriesRes.error.message);
   }
 
-  const listings = listingsRes.data ?? [];
+  const listingValues = listingValueRes.data ?? [];
   const demands = demandsRes.data ?? [];
 
-  const valoareVanzari = listings.reduce(
-    (acc, row) => acc + (Number(row.exit_price) || Number(row.market_price) || 0),
-    0,
-  );
-  const valoareCumparari = demands.reduce(
-    (acc, row) => acc + (Number(row.budget) || 0),
-    0,
-  );
-
   return {
-    activeListings: listings.length,
+    activeListings: listingCountRes.count ?? 0,
     activeDemands: demands.length,
-    totalValue: valoareVanzari + valoareCumparari,
+    totalValue: globalStatsDeclaredValue(listingValues, demands),
     soldItems: soldRes.count ?? 0,
     activeCategories: countDistinctActiveCategories(categoriesRes.data),
   };

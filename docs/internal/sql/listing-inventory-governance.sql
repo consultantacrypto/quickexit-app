@@ -11,6 +11,8 @@
 --   BEGIN;
 --   -- restore the previous listing_inquiries_assign_ownership body from
 --   -- docs/internal/sql/listing-inquiries.sql before dropping columns.
+--   DROP TRIGGER IF EXISTS listings_guard_inventory_classification ON public.listings;
+--   DROP FUNCTION IF EXISTS public.listings_guard_inventory_classification();
 --   ALTER TABLE public.listings DROP CONSTRAINT IF EXISTS listings_listing_kind_check;
 --   ALTER TABLE public.listings DROP CONSTRAINT IF EXISTS listings_availability_status_check;
 --   ALTER TABLE public.listings DROP COLUMN IF EXISTS availability_confirmed_at;
@@ -167,5 +169,50 @@ BEGIN
   RETURN NEW;
 END;
 $$;
+
+-- Row policies stay as they are. This trigger only guards the new inventory
+-- columns. End-user JWTs (authenticated, anon) may insert only the defaults
+-- and may not change them. service_role (Stripe webhook, server admin) and
+-- sessions without an end-user JWT (SQL editor / postgres) may classify.
+-- Owner edits of title, price, status, and other existing columns still pass
+-- when these three columns are unchanged. Existing RLS is not dropped or rewritten.
+CREATE OR REPLACE FUNCTION public.listings_guard_inventory_classification()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path = public, pg_temp
+AS $$
+DECLARE
+  jwt_role text;
+BEGIN
+  jwt_role := COALESCE(auth.jwt() ->> 'role', '');
+
+  IF jwt_role NOT IN ('authenticated', 'anon') THEN
+    RETURN NEW;
+  END IF;
+
+  IF TG_OP = 'INSERT' THEN
+    IF NEW.listing_kind IS DISTINCT FROM 'specific_asset'
+       OR NEW.availability_status IS DISTINCT FROM 'available'
+       OR NEW.availability_confirmed_at IS NOT NULL THEN
+      RAISE EXCEPTION 'QEX:inventory_forbidden' USING ERRCODE = 'P0001';
+    END IF;
+    RETURN NEW;
+  END IF;
+
+  IF NEW.listing_kind IS DISTINCT FROM OLD.listing_kind
+     OR NEW.availability_status IS DISTINCT FROM OLD.availability_status
+     OR NEW.availability_confirmed_at IS DISTINCT FROM OLD.availability_confirmed_at THEN
+    RAISE EXCEPTION 'QEX:inventory_forbidden' USING ERRCODE = 'P0001';
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS listings_guard_inventory_classification ON public.listings;
+CREATE TRIGGER listings_guard_inventory_classification
+  BEFORE INSERT OR UPDATE ON public.listings
+  FOR EACH ROW
+  EXECUTE FUNCTION public.listings_guard_inventory_classification();
 
 COMMIT;

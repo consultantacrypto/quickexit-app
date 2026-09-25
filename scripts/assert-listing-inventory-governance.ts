@@ -7,6 +7,7 @@ import {
   DEFAULT_LISTING_KIND,
   catalogOfferJsonLdAvailability,
   countsTowardIndividualAssetValue,
+  globalStatsDeclaredValue,
   individualAssetDeclaredValue,
   isCatalogOffer,
   isInventoryInquirable,
@@ -86,6 +87,21 @@ assert(countsTowardIndividualAssetValue(rows[0]), "specific asset counts");
 assert(!countsTowardIndividualAssetValue(rows[1]), "catalog offer excluded");
 assert(!countsTowardIndividualAssetValue(rows[2]), "sold excluded");
 assert(individualAssetDeclaredValue(rows) === 100, "individual value ignores catalog and sold");
+const statsRows = [
+  ...rows,
+  { id: "44444444-4444-4444-8444-444444444444", status: "active", is_seed: false, title: "Confirm", listing_kind: "specific_asset", availability_status: "needs_confirmation", exit_price: 70 },
+  { id: "55555555-5555-4555-8555-555555555555", status: "active", is_seed: false, title: "Archived", listing_kind: "specific_asset", availability_status: "archived", exit_price: 80 },
+  { id: "66666666-6666-4666-8666-666666666666", status: "active", is_seed: true, title: "Seed", listing_kind: "specific_asset", availability_status: "available", exit_price: 60 },
+];
+assert(
+  globalStatsDeclaredValue(statsRows, [{ budget: 40 }, { budget: "nope" }]) === 140,
+  "GlobalStats value keeps demands and drops catalog, confirmation, sold, archived, seed",
+);
+const globalStats = readFileSync("app/components/GlobalStats.tsx", "utf8");
+assert(globalStats.includes("globalStatsDeclaredValue"), "GlobalStats uses the shared value function");
+assert(globalStats.includes('.eq("listing_kind", "specific_asset")'), "GlobalStats query keeps specific assets");
+assert(globalStats.includes('.eq("availability_status", "available")'), "GlobalStats query keeps available rows");
+assert(globalStats.includes('.from("demands").select("budget").eq("status", "active")'), "demand total unchanged");
 
 const parsed = parsePublicListingSearchParams({ catalog: "1", crypto: "1", q: "bmw" });
 assert(parsed.catalog === true && parsed.crypto === true, "catalog filter is optional and combinable");
@@ -121,6 +137,14 @@ for (const guard of [
 }
 assert(sql.includes("catalog_offer"), "catalog inquiry exception");
 assert(sql.includes("'sold', 'archived'") || sql.includes("('sold', 'archived')"), "sold archived rejected in sql");
+assert(sql.includes("listings_guard_inventory_classification"), "inventory guard function");
+assert(sql.includes("QEX:inventory_forbidden"), "direct inventory write rejected");
+assert(sql.includes("NEW.listing_kind IS DISTINCT FROM 'specific_asset'"), "direct catalog insert rejected");
+assert(sql.includes("NEW.listing_kind IS DISTINCT FROM OLD.listing_kind"), "direct kind update rejected");
+assert(sql.includes("NEW.availability_status IS DISTINCT FROM OLD.availability_status"), "direct availability update rejected");
+assert(sql.includes("jwt_role NOT IN ('authenticated', 'anon')"), "service role and admin SQL stay allowed");
+assert(!/DROP\s+POLICY/i.test(sql), "existing policies are not dropped");
+assert(!/CREATE\s+POLICY/i.test(sql), "existing policies are not rewritten");
 
 const publish = readFileSync("app/[locale]/pune-anunt/PuneAnuntClient.tsx", "utf8");
 assert(publish.includes("publicListingKindPayload()"), "publish sets default kind");

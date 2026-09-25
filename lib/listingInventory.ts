@@ -115,16 +115,16 @@ export function countsTowardIndividualAssetValue(row: {
   return parseAvailabilityStatus(row.availability_status) === "available";
 }
 
-export function individualAssetDeclaredValue(
-  rows: Array<{
-    status?: unknown;
-    is_seed?: unknown;
-    listing_kind?: unknown;
-    availability_status?: unknown;
-    exit_price?: unknown;
-    market_price?: unknown;
-  }>,
-): number {
+export type DeclaredValueListing = {
+  status?: unknown;
+  is_seed?: unknown;
+  listing_kind?: unknown;
+  availability_status?: unknown;
+  exit_price?: unknown;
+  market_price?: unknown;
+};
+
+export function individualAssetDeclaredValue(rows: DeclaredValueListing[]): number {
   return rows.reduce((sum, row) => {
     if (!countsTowardIndividualAssetValue(row)) return sum;
     const exitPrice = Number(row.exit_price);
@@ -136,6 +136,22 @@ export function individualAssetDeclaredValue(
         : 0;
     return sum + amount;
   }, 0);
+}
+
+/** Active demand budgets stay in the public total. Invalid budgets contribute 0. */
+export function activeDemandDeclaredValue(rows: Array<{ budget?: unknown }>): number {
+  return rows.reduce((sum, row) => sum + (Number(row.budget) || 0), 0);
+}
+
+/**
+ * Value shown by GlobalStats: individual available assets plus active demand budgets.
+ * catalog_offer, needs_confirmation, sold, and archived listings contribute nothing.
+ */
+export function globalStatsDeclaredValue(
+  listings: DeclaredValueListing[],
+  demands: Array<{ budget?: unknown }>,
+): number {
+  return individualAssetDeclaredValue(listings) + activeDemandDeclaredValue(demands);
 }
 
 export function catalogOfferJsonLdAvailability(): string {
