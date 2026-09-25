@@ -1,4 +1,5 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { isPubliclyAvailableStatus, PUBLIC_AVAILABILITY_OR } from "@/lib/listingInventory";
 
 export type ListingSeoRow = {
   id: string;
@@ -29,6 +30,8 @@ export type PublicListingRow = ListingSeoRow & {
   details?: Record<string, unknown> | null;
   crypto_payment_mode?: string | null;
   crypto_assets?: string[] | null;
+  listing_kind?: string | null;
+  availability_status?: string | null;
   [key: string]: unknown;
 };
 
@@ -69,6 +72,8 @@ const LISTING_CARD_FIELDS = [
   "details",
   "crypto_payment_mode",
   "crypto_assets",
+  "listing_kind",
+  "availability_status",
 ].join(",");
 
 /** Same public listing columns plus owner id. See PublicListingRow.user_id. */
@@ -125,6 +130,7 @@ export async function fetchPublicListingSeoRow(id: string): Promise<ListingSeoRo
     .eq("id", listingId)
     .eq("status", "active")
     .eq("is_seed", false)
+    .or(PUBLIC_AVAILABILITY_OR)
     .maybeSingle();
 
   if (error) {
@@ -152,9 +158,13 @@ export async function fetchPublicListingDetail(id: string): Promise<PublicListin
     .eq("id", listingId)
     .eq("status", "active")
     .eq("is_seed", false)
+    .or(PUBLIC_AVAILABILITY_OR)
     .maybeSingle();
 
   if (error || !data) return null;
+  if (!isPubliclyAvailableStatus((data as { availability_status?: unknown }).availability_status)) {
+    return null;
+  }
   return data as unknown as PublicListingRow;
 }
 
@@ -179,6 +189,7 @@ export async function fetchListingSellerContext(
       .eq("user_id", userId)
       .eq("status", SELLER_PUBLIC_LISTING_STATUS)
       .eq("is_seed", SELLER_PUBLIC_LISTING_IS_SEED)
+      .or(PUBLIC_AVAILABILITY_OR)
       .neq("id", listingId)
       .order("created_at", { ascending: false })
       .limit(3),
@@ -210,6 +221,7 @@ export async function fetchSimilarListings(
     .eq("category", category)
     .eq("status", "active")
     .eq("is_seed", false)
+    .or(PUBLIC_AVAILABILITY_OR)
     .neq("id", listingId)
     .limit(3);
 
@@ -225,6 +237,7 @@ export async function fetchFutureMobilityListings(): Promise<PublicListingRow[]>
     .select(LISTING_CARD_FIELDS)
     .eq("status", "active")
     .eq("is_seed", false)
+    .or(PUBLIC_AVAILABILITY_OR)
     .filter("details->>collection", "eq", "future_mobility")
     .order("created_at", { ascending: false });
 

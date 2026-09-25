@@ -103,7 +103,9 @@
     "nextPage": "Pagina următoare",
     "pageStatus": "Pagina {page} din {totalPages}",
     "cryptoFilter": "Acceptă crypto",
-    "cryptoFilterOn": "Doar anunțuri cu plată crypto"
+    "cryptoFilterOn": "Doar anunțuri cu plată crypto",
+    "catalogFilter": "Disponibil la comandă",
+    "catalogFilterOn": "Doar oferte disponibile la comandă"
   },
   "ListingLocation": {
     "helper": "Locul unde bunul poate fi văzut sau preluat. Nu introduce adresa stradală.",
@@ -300,6 +302,8 @@
     "emptyFiltered": "Nu există anunțuri active în această categorie.",
     "emptyCrypto": "Nu există anunțuri active care acceptă plata crypto.",
     "cryptoFilter": "Acceptă crypto",
+    "catalogFilter": "Disponibil la comandă",
+    "emptyCatalog": "Nu există oferte disponibile la comandă pentru filtrul ales.",
     "error": "Nu am putut încărca anunțurile. Reîncearcă.",
     "postCta": "Pune anunț",
     "backHome": "Înapoi acasă"
@@ -318,6 +322,7 @@
     "favoriteAdd": "Adaugă „{title}” la favorite",
     "favoriteRemove": "Elimină „{title}” din favorite",
     "cryptoAccepted": "Plată crypto acceptată",
+    "catalogOffer": "Disponibil la comandă",
     "auction": {
       "expired": "Expirată",
       "closesToday": "Se închide azi",
@@ -912,6 +917,10 @@
       "requestDetails": "Solicită detalii"
     },
     "detailV2": {
+      "catalogOffer": {
+        "tag": "Disponibil la comandă",
+        "explanation": "Model disponibil prin partener. Configurația, prețul și termenul de livrare se confirmă înaintea comenzii."
+      },
       "keyFacts": {
         "title": "Date cheie",
         "compactSummary": "Pe scurt",
@@ -956,6 +965,7 @@
       },
       "cta": {
         "primaryRequestDetails": "Solicită detalii",
+        "primaryCatalogOffer": "Solicită prețul și disponibilitatea",
         "primaryAuction": "Trimite ofertă",
         "primaryOnOrder": "Solicită ofertă personalizată",
         "secondarySendOffer": "Trimite ofertă",

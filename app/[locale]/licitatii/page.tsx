@@ -9,6 +9,7 @@ import { listingLocationLabelFromUnknown } from "@/lib/listingLocation";
 import { getNumberLocale } from "@/lib/i18n/format";
 import { adCardPricingProps } from "@/lib/listingPrice";
 import { listingAcceptsCrypto } from "@/lib/cryptoPayment";
+import { isCatalogOffer, PUBLIC_AVAILABILITY_OR, PUBLIC_INVENTORY_COLUMNS } from "@/lib/listingInventory";
 
 export const revalidate = 60;
 
@@ -38,10 +39,11 @@ export default async function LicitatiiPage({ params }: PageProps) {
   const { data: listings } = await supabase
     .from("listings")
     .select(
-      "id,title,images,market_price,exit_price,discount,deal_score,sale_strategy,offer_count,highest_offer,expires_at,status,is_seed,created_at,details,crypto_payment_mode,crypto_assets",
+      `id,title,images,market_price,exit_price,discount,deal_score,sale_strategy,offer_count,highest_offer,expires_at,status,is_seed,created_at,details,crypto_payment_mode,crypto_assets,${PUBLIC_INVENTORY_COLUMNS}`,
     )
     .eq("status", "active")
     .eq("is_seed", false)
+    .or(PUBLIC_AVAILABILITY_OR)
     .order("created_at", { ascending: false })
     .limit(100);
 
@@ -80,6 +82,7 @@ export default async function LicitatiiPage({ params }: PageProps) {
               {auctions.map((item, index) => (
                 <AdCard
                   cryptoAccepted={listingAcceptsCrypto(item)}
+                  catalogOffer={isCatalogOffer(item.listing_kind)}
                   key={item.id}
                   id={item.id}
                   title={item.title}

@@ -15,6 +15,7 @@ import {
   PUBLIC_SEARCH_MAX_PAGE,
 } from "@/lib/publicListings";
 import { listingAcceptsCrypto } from "@/lib/cryptoPayment";
+import { isCatalogOffer } from "@/lib/listingInventory";
 import { normalizeSaleType } from "@/utils/normalizeSaleType";
 
 export const revalidate = 60;
@@ -32,6 +33,7 @@ type PageProps = {
     district?: string;
     page?: string;
     crypto?: string;
+    catalog?: string;
   }>;
 };
 
@@ -60,12 +62,13 @@ export default async function SearchPage({ params, searchParams }: PageProps) {
     district: raw.district,
     page: raw.page,
     crypto: raw.crypto,
+    catalog: raw.catalog,
   });
   const t = await getTranslations("ListingSearch");
   const numberLocale = getNumberLocale(locale);
   const { listings, total, page, pageSize } = await fetchPublicSearchListings(supabase, filters);
   const hasFilters = Boolean(
-    filters.q || filters.country || filters.county || filters.city || filters.district || filters.crypto || filters.locationInvalid,
+    filters.q || filters.country || filters.county || filters.city || filters.district || filters.crypto || filters.catalog || filters.locationInvalid,
   );
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const showPrev = page > 1;
@@ -107,6 +110,16 @@ export default async function SearchPage({ params, searchParams }: PageProps) {
               >
                 {filters.crypto ? t("cryptoFilterOn") : t("cryptoFilter")}
               </Link>
+              <Link
+                href={buildPublicSearchPath({ ...filters, catalog: !filters.catalog }, 1)}
+                className={`rounded-xl border-2 px-4 py-2 text-[11px] font-black uppercase tracking-widest ${
+                  filters.catalog
+                    ? "border-black bg-black text-[#FFD100]"
+                    : "border-black bg-white text-black"
+                }`}
+              >
+                {filters.catalog ? t("catalogFilterOn") : t("catalogFilter")}
+              </Link>
             {hasFilters ? (
               <Link
                 href="/cauta"
@@ -125,6 +138,7 @@ export default async function SearchPage({ params, searchParams }: PageProps) {
                   <AdCard
                     key={item.id}
                     cryptoAccepted={listingAcceptsCrypto(item)}
+                    catalogOffer={isCatalogOffer(item.listing_kind)}
                     id={item.id}
                     title={item.title || ""}
                     image={item.images?.[0] || FALLBACK_IMAGE}

@@ -12,6 +12,7 @@ import {
   type ListingSeoRow,
 } from "@/lib/listingSeo";
 import { getFutureMobilityDetails, getJsonLdAvailability } from "@/lib/futureMobility";
+import { catalogOfferJsonLdAvailability, isCatalogOffer } from "@/lib/listingInventory";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 
 export const dynamic = "force-dynamic";
@@ -184,9 +185,11 @@ export default async function ListingPage({ params }: PageProps) {
                   url: canonicalAbs,
                   price: listing.exit_price,
                   priceCurrency: "EUR",
-                  availability: fmForJsonLd
-                    ? getJsonLdAvailability(fmForJsonLd.availability_type)
-                    : "https://schema.org/InStock",
+                  availability: isCatalogOffer(listing.listing_kind)
+                    ? catalogOfferJsonLdAvailability()
+                    : fmForJsonLd
+                      ? getJsonLdAvailability(fmForJsonLd.availability_type)
+                      : "https://schema.org/InStock",
                 },
               }
             : {}),

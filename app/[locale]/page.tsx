@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabase";
 import { buildPageMetadata, resolvePageLocale } from "@/lib/seo";
 import { getSiteUrl } from "@/lib/siteUrl";
 import { listingAcceptsCrypto } from "@/lib/cryptoPayment";
+import { isCatalogOffer, PUBLIC_AVAILABILITY_OR, PUBLIC_INVENTORY_COLUMNS } from "@/lib/listingInventory";
 import { normalizeSaleType } from "@/utils/normalizeSaleType";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/src/i18n/navigation";
@@ -163,20 +164,22 @@ export default async function Home({ params }: HomePageProps) {
   const { data: realListings } = await supabase
     .from("listings")
     .select(
-      "id,title,images,market_price,exit_price,discount,deal_score,sale_strategy,offer_count,highest_offer,expires_at,status,is_seed,created_at,details,crypto_payment_mode,crypto_assets",
+      `id,title,images,market_price,exit_price,discount,deal_score,sale_strategy,offer_count,highest_offer,expires_at,status,is_seed,created_at,details,crypto_payment_mode,crypto_assets,${PUBLIC_INVENTORY_COLUMNS}`,
     )
     .eq("status", "active")
     .eq("is_seed", false)
+    .or(PUBLIC_AVAILABILITY_OR)
     .order("created_at", { ascending: false })
     .limit(48);
 
   const { data: openAuctionListings } = await supabase
     .from("listings")
     .select(
-      "id,title,images,market_price,exit_price,discount,deal_score,sale_strategy,offer_count,highest_offer,expires_at,status,is_seed,created_at,details,crypto_payment_mode,crypto_assets",
+      `id,title,images,market_price,exit_price,discount,deal_score,sale_strategy,offer_count,highest_offer,expires_at,status,is_seed,created_at,details,crypto_payment_mode,crypto_assets,${PUBLIC_INVENTORY_COLUMNS}`,
     )
     .eq("status", "active")
     .eq("is_seed", false)
+    .or(PUBLIC_AVAILABILITY_OR)
     .gt("expires_at", nowIso)
     .in("sale_strategy", ["auction", "licitatie"])
     .order("expires_at", { ascending: true })
@@ -323,6 +326,7 @@ export default async function Home({ params }: HomePageProps) {
                 <AdCard
                   key={item.id}
                   cryptoAccepted={listingAcceptsCrypto(item)}
+                  catalogOffer={isCatalogOffer(item.listing_kind)}
                   id={item.id}
                   title={item.title}
                   image={
@@ -426,6 +430,7 @@ export default async function Home({ params }: HomePageProps) {
                 <AdCard
                   key={item.id}
                   cryptoAccepted={listingAcceptsCrypto(item)}
+                  catalogOffer={isCatalogOffer(item.listing_kind)}
                   id={item.id}
                   title={item.title}
                   image={

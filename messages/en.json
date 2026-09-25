@@ -103,7 +103,9 @@
     "nextPage": "Next page",
     "pageStatus": "Page {page} of {totalPages}",
     "cryptoFilter": "Accepts crypto",
-    "cryptoFilterOn": "Crypto payment listings only"
+    "cryptoFilterOn": "Crypto payment listings only",
+    "catalogFilter": "Available to order",
+    "catalogFilterOn": "Available-to-order offers only"
   },
   "ListingLocation": {
     "helper": "The place where the asset can be viewed or collected. Do not enter a street address.",
@@ -300,6 +302,8 @@
     "emptyFiltered": "No active listings in this category.",
     "emptyCrypto": "There are no active listings that accept crypto payment.",
     "cryptoFilter": "Accepts crypto",
+    "catalogFilter": "Available to order",
+    "emptyCatalog": "No available-to-order offers match this filter.",
     "error": "We could not load listings. Please try again.",
     "postCta": "Post listing",
     "backHome": "Back home"
@@ -318,6 +322,7 @@
     "favoriteAdd": "Add \"{title}\" to favorites",
     "favoriteRemove": "Remove \"{title}\" from favorites",
     "cryptoAccepted": "Crypto payment accepted",
+    "catalogOffer": "Available to order",
     "auction": {
       "expired": "Expired",
       "closesToday": "Closes today",
@@ -912,6 +917,10 @@
       "requestDetails": "Request details"
     },
     "detailV2": {
+      "catalogOffer": {
+        "tag": "Available to order",
+        "explanation": "Available through a partner. Configuration, price, and delivery time are confirmed before ordering."
+      },
       "keyFacts": {
         "title": "Key facts",
         "compactSummary": "At a glance",
@@ -956,6 +965,7 @@
       },
       "cta": {
         "primaryRequestDetails": "Request details",
+        "primaryCatalogOffer": "Request price and availability",
         "primaryAuction": "Send offer",
         "primaryOnOrder": "Request a personalised offer",
         "secondarySendOffer": "Send offer",

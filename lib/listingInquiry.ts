@@ -1,5 +1,6 @@
 import { getClientIp } from "@/lib/evaluateSafety";
 import { normalizePhone } from "@/lib/financingLead";
+import { isInventoryInquirable } from "@/lib/listingInventory";
 
 export const LISTING_INQUIRY_CONSENT_VERSION = "2026-08";
 export const MAX_INQUIRY_MESSAGE_LENGTH = 2_000;
@@ -109,18 +110,13 @@ export function isPublicInquirableListing(
         is_seed?: unknown;
         expires_at?: unknown;
         user_id?: unknown;
+        listing_kind?: unknown;
+        availability_status?: unknown;
       }
     | null
     | undefined,
 ): boolean {
-  if (!listing) return false;
-  if (listing.status !== "active") return false;
-  if (listing.is_seed !== false) return false;
-  if (typeof listing.user_id !== "string" || !listing.user_id.trim()) return false;
-  if (listing.expires_at == null || listing.expires_at === "") return true;
-  const expires = new Date(String(listing.expires_at));
-  if (Number.isNaN(expires.getTime())) return false;
-  return expires.getTime() > Date.now();
+  return isInventoryInquirable(listing);
 }
 
 export function sanitizeInquiryMessage(raw: unknown): string | null {

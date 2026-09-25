@@ -140,7 +140,7 @@ export async function POST(
 
   const { data: listing, error: listingError } = await supabase
     .from("listings")
-    .select("id, user_id, title, status, is_seed, expires_at")
+    .select("id, user_id, title, status, is_seed, expires_at, listing_kind, availability_status")
     .eq("id", validated.data.listingId)
     .maybeSingle();
 

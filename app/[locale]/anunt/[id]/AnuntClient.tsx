@@ -63,6 +63,7 @@ import {
   isFinancingCalculatorEnabled,
 } from "@/lib/listingFinancing";
 import { financingConfig } from "@/lib/financingConfig";
+import { isCatalogOffer } from "@/lib/listingInventory";
 import PremiumSellerCard from "./PremiumSellerCard";
 import StickyContactBar from "./StickyContactBar";
 
@@ -695,11 +696,13 @@ export default function AnuntClient({
   };
   const keyFacts = getListingKeyFacts(adData, locale, keyFactLabels);
   const priceAdvantage = getListingPriceAdvantage(adData);
+  const catalogOffer = isCatalogOffer(adData.listing_kind);
   const ctaMode = getListingCtaMode({
     category: adData.category ?? null,
     details: adData.details,
     sale_strategy: adData.sale_strategy ?? null,
     isFinancingEnabled: showFinancingCalculator,
+    listing_kind: adData.listing_kind,
   });
 
   const renderTitle = (title: string) => {
@@ -977,7 +980,19 @@ export default function AnuntClient({
             <p className="mt-2 text-xs text-neutral-600">{t("cryptoPayment.disclaimer")}</p>
           </div>
         ) : null}
-        {isFmOrderLike ? (
+        {catalogOffer ? (
+          <div className="space-y-2">
+            <p>
+              <span className="inline-block rounded-md border-2 border-black bg-[#FFD100] px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.14em] text-black">
+                {t("detailV2.catalogOffer.tag")}
+              </span>
+            </p>
+            <p className="text-xs font-medium leading-relaxed text-neutral-600">
+              {t("detailV2.catalogOffer.explanation")}
+            </p>
+          </div>
+        ) : null}
+        {isFmOrderLike && !catalogOffer ? (
           <p className="text-xs font-medium leading-relaxed text-neutral-600">
             {t("futureMobility.partnerConfirmNote")}
           </p>
@@ -999,7 +1014,7 @@ export default function AnuntClient({
           type="button"
           onClick={() => {
             trackFunnelEvent("request_details_click", funnelListingParams);
-            if (ctaMode === "on_order") {
+            if (ctaMode === "catalog_offer" || ctaMode === "on_order") {
               trackEvent("click_request_personalized_offer", {
                 listing_id: adData.id,
                 category: adData.category || "unknown",
@@ -1032,7 +1047,9 @@ export default function AnuntClient({
           }}
           className="w-full rounded-2xl border-[3px] border-black bg-black py-3.5 font-black uppercase tracking-wider text-[#FFD100] shadow-[5px_5px_0_0_#000] transition duration-150 hover:brightness-110 motion-reduce:transition-none md:py-4 md:text-sm"
         >
-          {ctaMode === "auction"
+          {ctaMode === "catalog_offer"
+            ? t("detailV2.cta.primaryCatalogOffer")
+            : ctaMode === "auction"
             ? t("detailV2.cta.primaryAuction")
             : ctaMode === "on_order"
               ? t("detailV2.cta.primaryOnOrder")
@@ -1463,6 +1480,7 @@ export default function AnuntClient({
                   <AdCard
                     key={item.id}
                     cryptoAccepted={listingAcceptsCrypto(item)}
+                    catalogOffer={isCatalogOffer(item.listing_kind)}
                     id={item.id}
                     title={item.title || ""}
                     image={
@@ -1507,6 +1525,7 @@ export default function AnuntClient({
                 <AdCard
                   key={item.id}
                   cryptoAccepted={listingAcceptsCrypto(item)}
+                  catalogOffer={isCatalogOffer(item.listing_kind)}
                   id={item.id}
                   title={item.title || ""}
                   image={

@@ -19,6 +19,7 @@ import { trackEvent } from "@/lib/analytics";
 import { trackFunnelEvent } from "@/lib/funnelAnalytics";
 import EvaluateTurnstile, { type EvaluateTurnstileHandle } from "@/components/EvaluateTurnstile";
 import { isEvaluateTurnstileUiEnabled } from "@/lib/turnstilePublic";
+import { publicListingKindPayload } from "@/lib/listingInventory";
 import { getPriceIdForPackageId } from "@/lib/stripePackages";
 import { normalizePhone } from "@/lib/financingLead";
 import { resolveEvaluateCategoryKey } from "@/lib/evaluateSafety";
@@ -1302,6 +1303,7 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
           images: uploadedImageUrls,
           crypto_payment_mode: cryptoPayment.value.mode,
           crypto_assets: cryptoPayment.value.assets,
+          ...publicListingKindPayload(),
           details: applyListingLocationToDetails(
             {
             ...formData,

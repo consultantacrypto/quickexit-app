@@ -6,6 +6,7 @@ import {
   mergeSitemapEntries,
 } from "@/lib/sitemapEntries";
 import { PRODUCTION_SITE_URL } from "@/lib/siteUrl";
+import { PUBLIC_AVAILABILITY_OR } from "@/lib/listingInventory";
 
 export const revalidate = 3600;
 
@@ -45,6 +46,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       .select("id,created_at,status,is_seed")
       .eq("status", "active")
       .eq("is_seed", false)
+      .or(PUBLIC_AVAILABILITY_OR)
       .order("created_at", { ascending: false })
       .limit(500);
 

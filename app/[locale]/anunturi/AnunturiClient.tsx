@@ -12,6 +12,7 @@ import {
 } from "@/lib/listingCategories";
 import { adCardPricingProps } from "@/lib/listingPrice";
 import { listingAcceptsCrypto } from "@/lib/cryptoPayment";
+import { isCatalogOffer } from "@/lib/listingInventory";
 import { normalizeSaleType } from "@/utils/normalizeSaleType";
 
 const FALLBACK_IMAGE =
@@ -35,6 +36,8 @@ export type PublicListingCard = {
   details?: unknown;
   crypto_payment_mode?: string | null;
   crypto_assets?: string[] | null;
+  listing_kind?: string | null;
+  availability_status?: string | null;
 };
 
 type AnunturiClientProps = {
@@ -42,6 +45,7 @@ type AnunturiClientProps = {
   fetchError: boolean;
   activeSlug: ListingCategorySlug | null;
   cryptoOnly: boolean;
+  catalogOnly: boolean;
 };
 
 export default function AnunturiClient({
@@ -49,6 +53,7 @@ export default function AnunturiClient({
   fetchError,
   activeSlug,
   cryptoOnly,
+  catalogOnly,
 }: AnunturiClientProps) {
   const locale = useLocale();
   const numberLocale = getNumberLocale(locale);
@@ -57,15 +62,20 @@ export default function AnunturiClient({
   const visible = useMemo(
     () => {
       const byCategory = filterListingsByCategorySlug(listings, activeSlug);
-      return cryptoOnly ? byCategory.filter((item) => listingAcceptsCrypto(item)) : byCategory;
+      return byCategory.filter((item) => {
+        if (cryptoOnly && !listingAcceptsCrypto(item)) return false;
+        if (catalogOnly && !isCatalogOffer(item.listing_kind)) return false;
+        return true;
+      });
     },
-    [listings, activeSlug, cryptoOnly],
+    [listings, activeSlug, cryptoOnly, catalogOnly],
   );
 
-  const filterHref = (slug: ListingCategorySlug | null, crypto: boolean) => {
+  const filterHref = (slug: ListingCategorySlug | null, crypto: boolean, catalog: boolean) => {
     const params = new URLSearchParams();
     if (slug) params.set("category", slug);
     if (crypto) params.set("crypto", "1");
+    if (catalog) params.set("catalog", "1");
     const qs = params.toString();
     return qs ? `/anunturi?${qs}` : "/anunturi";
   };
@@ -100,7 +110,7 @@ export default function AnunturiClient({
           aria-label={t("filterLabel")}
         >
           <Link
-            href={filterHref(null, cryptoOnly)}
+            href={filterHref(null, cryptoOnly, catalogOnly)}
             className={`rounded-xl border-2 px-4 py-2 text-xs font-black uppercase tracking-widest italic transition ${
               !activeSlug
                 ? "border-black bg-black text-[#FFD100] shadow-[2px_2px_0_0_#FFD100]"
@@ -112,7 +122,7 @@ export default function AnunturiClient({
           {LISTING_CATEGORY_FILTERS.map((category) => (
             <Link
               key={category.slug}
-              href={filterHref(category.slug, cryptoOnly)}
+              href={filterHref(category.slug, cryptoOnly, catalogOnly)}
               className={`rounded-xl border-2 px-4 py-2 text-xs font-black uppercase tracking-widest italic transition ${
                 activeSlug === category.slug
                   ? "border-black bg-black text-[#FFD100] shadow-[2px_2px_0_0_#FFD100]"
@@ -123,7 +133,7 @@ export default function AnunturiClient({
             </Link>
           ))}
           <Link
-            href={filterHref(activeSlug, !cryptoOnly)}
+            href={filterHref(activeSlug, !cryptoOnly, catalogOnly)}
             className={`rounded-xl border-2 px-4 py-2 text-xs font-black uppercase tracking-widest italic transition ${
               cryptoOnly
                 ? "border-black bg-black text-[#FFD100] shadow-[2px_2px_0_0_#FFD100]"
@@ -131,6 +141,16 @@ export default function AnunturiClient({
             }`}
           >
             {t("cryptoFilter")}
+          </Link>
+          <Link
+            href={filterHref(activeSlug, cryptoOnly, !catalogOnly)}
+            className={`rounded-xl border-2 px-4 py-2 text-xs font-black uppercase tracking-widest italic transition ${
+              catalogOnly
+                ? "border-black bg-black text-[#FFD100] shadow-[2px_2px_0_0_#FFD100]"
+                : "border-black bg-white text-black"
+            }`}
+          >
+            {t("catalogFilter")}
           </Link>
         </div>
 
@@ -148,6 +168,7 @@ export default function AnunturiClient({
                 <AdCard
                   key={item.id}
                   cryptoAccepted={listingAcceptsCrypto(item)}
+                  catalogOffer={isCatalogOffer(item.listing_kind)}
                   id={item.id}
                   title={item.title}
                   image={item.images?.[0] || FALLBACK_IMAGE}
@@ -163,7 +184,7 @@ export default function AnunturiClient({
         ) : (
           <div className="mt-12 rounded-2xl border-[3px] border-dashed border-black bg-[#FDFCF8] px-8 py-16 text-center shadow-[6px_6px_0_0_rgba(0,0,0,1)]">
             <p className="text-sm font-bold text-neutral-600">
-              {cryptoOnly ? t("emptyCrypto") : activeSlug ? t("emptyFiltered") : t("empty")}
+              {catalogOnly ? t("emptyCatalog") : cryptoOnly ? t("emptyCrypto") : activeSlug ? t("emptyFiltered") : t("empty")}
             </p>
             <Link
               href="/pune-anunt"

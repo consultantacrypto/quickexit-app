@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { getSupabaseAnonKey, getSupabaseProjectUrl } from "@/lib/supabase/config";
 import { parseCryptoPayment } from "@/lib/cryptoPayment";
+import { payloadAttemptsInventoryReclassification } from "@/lib/listingInventory";
 import {
   applyListingLocationToDetails,
   locationFromFormData,
@@ -54,6 +55,9 @@ export async function POST(
     const body = await req.json().catch(() => null);
     if (!body || typeof body !== "object") {
       return NextResponse.json({ error: "Date invalide." }, { status: 400 });
+    }
+    if (payloadAttemptsInventoryReclassification(body)) {
+      return NextResponse.json({ error: "Tipul de inventar nu poate fi schimbat din editor." }, { status: 400 });
     }
 
     const detailsIn =

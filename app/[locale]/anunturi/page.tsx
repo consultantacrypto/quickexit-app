@@ -4,13 +4,14 @@ import AnunturiClient from "./AnunturiClient";
 import { parseListingsCategoryParam } from "@/lib/listingCategories";
 import { PAGE_METADATA_COPY } from "@/lib/pageMetadataCopy";
 import { buildPageMetadata, resolvePageLocale } from "@/lib/seo";
+import { PUBLIC_AVAILABILITY_OR, PUBLIC_INVENTORY_COLUMNS } from "@/lib/listingInventory";
 import { supabase } from "@/lib/supabase";
 
 export const revalidate = 60;
 
 type PageProps = {
   params: Promise<{ locale: string }>;
-  searchParams: Promise<{ category?: string; crypto?: string }>;
+  searchParams: Promise<{ category?: string; crypto?: string; catalog?: string }>;
 };
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
@@ -28,22 +29,24 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function AnunturiPage({ params, searchParams }: PageProps) {
   const { locale } = await params;
-  const { category, crypto } = await searchParams;
+  const { category, crypto, catalog } = await searchParams;
+  const catalogOnly = catalog === "1";
   setRequestLocale(locale);
   const activeSlug = parseListingsCategoryParam(category ?? null);
 
   const { data, error } = await supabase
     .from("listings")
     .select(
-      "id,title,images,market_price,exit_price,discount,deal_score,sale_strategy,offer_count,highest_offer,expires_at,status,is_seed,category,created_at,details,crypto_payment_mode,crypto_assets",
+      `id,title,images,market_price,exit_price,discount,deal_score,sale_strategy,offer_count,highest_offer,expires_at,status,is_seed,category,created_at,details,crypto_payment_mode,crypto_assets,${PUBLIC_INVENTORY_COLUMNS}`,
     )
     .eq("status", "active")
     .eq("is_seed", false)
+    .or(PUBLIC_AVAILABILITY_OR)
     .order("created_at", { ascending: false });
 
   if (error) {
     return (
-      <AnunturiClient listings={[]} fetchError activeSlug={activeSlug} cryptoOnly={crypto === "1"} />
+      <AnunturiClient listings={[]} fetchError activeSlug={activeSlug} cryptoOnly={crypto === "1"} catalogOnly={catalogOnly} />
     );
   }
 
@@ -53,6 +56,7 @@ export default async function AnunturiPage({ params, searchParams }: PageProps) 
       fetchError={false}
       activeSlug={activeSlug}
       cryptoOnly={crypto === "1"}
+      catalogOnly={catalogOnly}
     />
   );
 }
