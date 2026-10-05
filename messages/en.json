@@ -69,7 +69,8 @@
     },
     "finalizePayment": "Complete payment",
     "finalizePaymentLoading": "Opening checkout…",
-    "finalizePaymentError": "We couldn't create the payment session. Please try again."
+    "finalizePaymentError": "We couldn't create the payment session. Please try again.",
+    "promoteWithMedia": "Promote with QuickExit Media"
   },
   "Hero": {
     "titleLine1": "Sell now.",
@@ -397,6 +398,7 @@
       "title": "Platform",
       "howItWorks": "How It Works",
       "pricing": "Pricing",
+      "media": "QuickExit Media",
       "evaluation": "Valuation",
       "capitalAvailable": "Available Capital",
       "specialOffersCta": "SPECIAL OFFERS & PRICING"
@@ -1266,6 +1268,169 @@
       "importPremium": "Import Premium",
       "evPremium": "EV Premium",
       "configurable": "Configurable"
+    }
+  },
+  "Media": {
+    "hero": {
+      "title": "We don't just promote your listing. We find its story.",
+      "subtitle": "We research your asset, uncover the rare, surprising or little-known details behind it, and turn them into video content for the QuickExit audience.",
+      "ctaHow": "See how it works",
+      "ctaPackages": "Choose a package"
+    },
+    "how": {
+      "title": "How it works",
+      "body": "Editorial research, distinct angles, and short-form Stories — without algorithmic performance promises.",
+      "steps": {
+        "list": "Your asset is listed.",
+        "research": "QuickExit researches it.",
+        "angles": "We identify the most interesting stories and angles.",
+        "produce": "We produce the content.",
+        "distribute": "We distribute it through QuickExit channels."
+      }
+    },
+    "examples": {
+      "title": "See how we turn an asset into a story.",
+      "body": "Choose a category and watch real QuickExit examples.",
+      "playYoutube": "Play Short",
+      "openTiktok": "Open on TikTok",
+      "openYoutube": "Open on YouTube",
+      "consentNeeded": "Marketing consent is required for the YouTube embed. The thumbnail and external link remain available.",
+      "openCookieSettings": "Cookie settings",
+      "closePlayer": "Close",
+      "proofNote": "These examples are editorial proof of work — the kind of content QuickExit can produce around an asset. They are not guaranteed results.",
+      "platformTiktok": "TikTok",
+      "platformYoutube": "YouTube Shorts",
+      "categories": {
+        "real_estate": "Real Estate",
+        "automotive": "Automotive",
+        "watches_luxury": "Watches & Luxury",
+        "businesses": "Businesses"
+      },
+      "titles": {
+        "realEstate": "QuickExit Story — Real Estate",
+        "automotive": "QuickExit Story — Automotive",
+        "watchesLuxury": "QuickExit Story — Watches & Luxury",
+        "businesses": "QuickExit Story — Businesses"
+      }
+    },
+    "packages": {
+      "title": "QuickExit Media packages",
+      "body": "Choose research depth and the number of Stories. Prices below are informational; Media checkout comes in a later phase.",
+      "contextualReady": "For the selected listing, the grid highlights the tier: {tier}.",
+      "contextualFallback": "For this listing, request a Media offer — value cannot be priced automatically (price on request, catalog, seed, or missing valid exit price).",
+      "requestPrice": "Request Media offer",
+      "disclaimer": "QuickExit Media does not guarantee views, leads, or a sale. Featured remains subject to editorial approval and does not mean automatic access to Mihai Daniel's personal channel.",
+      "items": {
+        "stories_4": {
+          "title": "4 Stories",
+          "blurb": "Focused research and four distinct editorial angles.",
+          "fromPrice": "from 199 RON",
+          "features": [
+            "Research",
+            "4 distinct editorial angles",
+            "4 short-form videos",
+            "QuickExit distribution on TikTok + YouTube Shorts"
+          ]
+        },
+        "stories_8": {
+          "title": "8 Stories",
+          "blurb": "Deeper research for a broader narrative.",
+          "fromPrice": "from 349 RON",
+          "features": [
+            "In-depth research",
+            "8 editorial angles",
+            "8 short-form videos",
+            "QuickExit distribution"
+          ]
+        },
+        "featured": {
+          "title": "Featured",
+          "blurb": "Premium package, eligible for editorial selection.",
+          "fromPrice": "from 699 RON",
+          "features": [
+            "Premium package",
+            "QuickExit distribution",
+            "Eligible for Mihai Daniel / QuickExit Weekly editorial exposure",
+            "Subject to editorial approval"
+          ]
+        }
+      }
+    },
+    "pricing": {
+      "title": "Pricing by asset value",
+      "body": "Tiers map to listing exit price (EUR). Phase 1 shows the grid; Media payment is not active yet.",
+      "columns": {
+        "value": "Asset value"
+      },
+      "yourTier": "Your listing tier",
+      "tiers": {
+        "under_50k": {
+          "label": "under €50k"
+        },
+        "50_100k": {
+          "label": "€50k–€100k"
+        },
+        "100_500k": {
+          "label": "€100k–€500k"
+        },
+        "over_500k": {
+          "label": "over €500k"
+        }
+      }
+    },
+    "weekly": {
+      "title": "QuickExit Weekly",
+      "body": "An editorial format on Mihai Daniel's main channel. Periodically it may cover new listings, interesting assets, opportunities, assets that accept crypto, relevant auctions, and Available Capital — when the story deserves it, not as an automatic feed.",
+      "items": {
+        "newListings": "New listings",
+        "interesting": "Interesting assets",
+        "opportunities": "Opportunities",
+        "crypto": "Assets that accept crypto",
+        "auctions": "Relevant auctions",
+        "capital": "Available Capital"
+      },
+      "disclaimer": "Inclusion in QuickExit Weekly is editorial selection. Featured offers eligibility and editorial priority, not an obligation to publish on the personal channel."
+    },
+    "faq": {
+      "title": "FAQ",
+      "items": {
+        "views": {
+          "q": "Do we guarantee a number of views?",
+          "a": "No. QuickExit guarantees delivery of the content included in the package, not the performance of social media algorithms."
+        },
+        "sale": {
+          "q": "Does QuickExit guarantee the sale of the asset?",
+          "a": "No. Media increases exposure and tells the asset's story, but a sale cannot be guaranteed."
+        },
+        "appear": {
+          "q": "Do I need to appear in the clip?",
+          "a": "No. QuickExit can produce content around the asset without the seller appearing on camera."
+        },
+        "featuredWeekly": {
+          "q": "If I buy Featured, do I automatically appear on Mihai Daniel's channel?",
+          "a": "No. Featured offers eligibility and editorial priority, but the final selection remains editorial."
+        },
+        "pricing": {
+          "q": "How is pricing calculated?",
+          "a": "Provisionally from the listing exit price (EUR). Phase 1 shows the grid; Media payment will be separate from the listing publication fee."
+        },
+        "whatIsMedia": {
+          "q": "What is QuickExit Media?",
+          "a": "Editorial video production around your asset: research, distinct angles, and short-form Stories for the QuickExit audience."
+        }
+      }
+    },
+    "cta": {
+      "requestOffer": "Request offer",
+      "requestMediaOffer": "Request Media offer",
+      "wantMedia": "I want QuickExit Media",
+      "choosePackage": "Choose a package",
+      "dashboard": "Open dashboard"
+    },
+    "finalCta": {
+      "title": "Ready for us to find the story?",
+      "body": "Email us for QuickExit Media. Dedicated checkout comes later; until then, interest is registered by email.",
+      "note": "Listing publication fees stay separate. Media does not replace listing."
     }
   }
 }

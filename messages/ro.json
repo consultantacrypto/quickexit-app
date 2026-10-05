@@ -69,7 +69,8 @@
     },
     "finalizePayment": "Finalizează plata",
     "finalizePaymentLoading": "Se deschide plata…",
-    "finalizePaymentError": "Nu am putut crea sesiunea de plată. Te rugăm să încerci din nou."
+    "finalizePaymentError": "Nu am putut crea sesiunea de plată. Te rugăm să încerci din nou.",
+    "promoteWithMedia": "Promovează cu QuickExit Media"
   },
   "Hero": {
     "titleLine1": "Vinde acum.",
@@ -397,6 +398,7 @@
       "title": "Platformă",
       "howItWorks": "Cum funcționează",
       "pricing": "Tarife",
+      "media": "QuickExit Media",
       "evaluation": "Evaluare",
       "capitalAvailable": "Capital disponibil",
       "specialOffersCta": "OFERTE SPECIALE & TARIFE"
@@ -1266,6 +1268,161 @@
       "importPremium": "Import Premium",
       "evPremium": "EV Premium",
       "configurable": "Configurabil"
+    }
+  },
+  "Media": {
+    "hero": {
+      "title": "Nu promovăm doar anunțul. Îi găsim povestea.",
+      "subtitle": "Ne documentăm despre activul tău, găsim lucrurile rare, surprinzătoare sau puțin cunoscute și le transformăm în conținut video pentru audiența QuickExit.",
+      "ctaHow": "Vezi cum funcționează",
+      "ctaPackages": "Alege pachetul"
+    },
+    "how": {
+      "title": "Cum funcționează",
+      "body": "Research editorial, unghiuri distincte și Stories short-form — fără promisiuni de performanță algoritmică.",
+      "steps": {
+        "list": "Ne trimiți/listăm activul.",
+        "research": "QuickExit face research.",
+        "angles": "Identificăm poveștile și unghiurile interesante.",
+        "produce": "Filmăm și producem conținutul.",
+        "distribute": "Publicăm prin canalele QuickExit."
+      }
+    },
+    "examples": {
+      "title": "Vezi cum transformăm un activ într-o poveste.",
+      "body": "Alege categoria și vezi exemple reale publicate de QuickExit.",
+      "playYoutube": "Redă Short",
+      "openTiktok": "Deschide pe TikTok",
+      "openYoutube": "Deschide pe YouTube",
+      "consentNeeded": "Pentru embed YouTube este necesar consimțământul de marketing. Thumbnail-ul și linkul extern rămân disponibile.",
+      "openCookieSettings": "Setări cookies",
+      "closePlayer": "Închide",
+      "proofNote": "Exemplele sunt proof of work editorial — tipul de conținut pe care QuickExit îl poate produce în jurul unui activ. Nu reprezintă rezultate garantate.",
+      "platformTiktok": "TikTok",
+      "platformYoutube": "YouTube Shorts",
+      "categories": {
+        "real_estate": "Imobiliare",
+        "automotive": "Auto",
+        "watches_luxury": "Ceasuri & Luxury",
+        "businesses": "Afaceri"
+      },
+      "titles": {
+        "realEstate": "QuickExit Story — Imobiliare",
+        "automotive": "QuickExit Story — Auto",
+        "watchesLuxury": "QuickExit Story — Ceasuri & Luxury",
+        "businesses": "QuickExit Story — Afaceri"
+      }
+    },
+    "packages": {
+      "title": "Pachete QuickExit Media",
+      "body": "Alege intensitatea research-ului și numărul de Stories. Prețurile de mai jos sunt informative; checkout-ul Media vine într-o etapă ulterioară.",
+      "contextualReady": "Pentru anunțul selectat, grila afișată evidențiază nivelul: {tier}.",
+      "contextualFallback": "Pentru acest anunț, solicită oferta Media — valoarea nu permite un preț calculat automat (price on request, catalog, seed sau fără exit price valid).",
+      "requestPrice": "Solicită oferta Media",
+      "disclaimer": "QuickExit Media nu garantează views, lead-uri sau vânzare. Featured rămâne sub aprobare editorială și nu înseamnă acces automat la canalul personal Mihai Daniel.",
+      "items": {
+        "stories_4": {
+          "title": "4 Stories",
+          "blurb": "Research concentrat și patru unghiuri editoriale distincte.",
+          "fromPrice": "de la 199 RON",
+          "features": [
+            "Research",
+            "4 unghiuri editoriale distincte",
+            "4 short-form videos",
+            "Distribuție QuickExit TikTok + YouTube Shorts"
+          ]
+        },
+        "stories_8": {
+          "title": "8 Stories",
+          "blurb": "Research aprofundat pentru o narațiune mai amplă.",
+          "fromPrice": "de la 349 RON",
+          "features": [
+            "Research aprofundat",
+            "8 unghiuri editoriale",
+            "8 short-form videos",
+            "Distribuție QuickExit"
+          ]
+        },
+        "featured": {
+          "title": "Featured",
+          "blurb": "Pachet superior, eligibil pentru selecție editorială.",
+          "fromPrice": "de la 699 RON",
+          "features": [
+            "Pachet superior",
+            "Distribuție QuickExit",
+            "Eligibil pentru expunere editorială Mihai Daniel / QuickExit Weekly",
+            "Subject to editorial approval"
+          ]
+        }
+      }
+    },
+    "pricing": {
+      "title": "Prețuri în funcție de valoarea activului",
+      "body": "Nivelul se raportează la exit price (EUR). În Phase 1 afișăm grila; plata Media nu este activă încă.",
+      "columns": {
+        "value": "Valoare activ"
+      },
+      "yourTier": "Nivelul anunțului tău",
+      "tiers": {
+        "under_50k": { "label": "sub €50k" },
+        "50_100k": { "label": "€50k–€100k" },
+        "100_500k": { "label": "€100k–€500k" },
+        "over_500k": { "label": "peste €500k" }
+      }
+    },
+    "weekly": {
+      "title": "QuickExit Weekly",
+      "body": "Format editorial pe canalul Mihai Daniel. Periodic pot fi prezentate listinguri noi, active interesante, oportunități, active care acceptă crypto, licitații relevante și eventual Capital Disponibil — când merită povestea, nu ca listă automată.",
+      "items": {
+        "newListings": "Listinguri noi",
+        "interesting": "Active interesante",
+        "opportunities": "Oportunități",
+        "crypto": "Active care acceptă crypto",
+        "auctions": "Licitații relevante",
+        "capital": "Capital Disponibil"
+      },
+      "disclaimer": "Includerea în QuickExit Weekly este selecție editorială. Featured oferă eligibilitate și prioritate editorială, nu obligație de publicare pe canalul personal."
+    },
+    "faq": {
+      "title": "Întrebări frecvente",
+      "items": {
+        "views": {
+          "q": "Garantăm un număr de vizualizări?",
+          "a": "Nu. QuickExit garantează livrarea conținutului inclus în pachet, nu performanța algoritmilor social media."
+        },
+        "sale": {
+          "q": "QuickExit garantează vânzarea activului?",
+          "a": "Nu. Media crește expunerea și spune povestea activului, dar vânzarea nu poate fi garantată."
+        },
+        "appear": {
+          "q": "Trebuie să apar eu în clip?",
+          "a": "Nu. QuickExit poate produce conținutul în jurul activului fără ca sellerul să apară."
+        },
+        "featuredWeekly": {
+          "q": "Pot cumpăra Featured și apărea automat pe canalul Mihai Daniel?",
+          "a": "Nu. Featured oferă eligibilitate și prioritate editorială, dar selecția finală rămâne editorială."
+        },
+        "pricing": {
+          "q": "Cum se calculează prețul?",
+          "a": "Provisional, după exit price (EUR) al listingului. În Phase 1 vezi grila; plata Media urmează separat de taxa de publicare a anunțului."
+        },
+        "whatIsMedia": {
+          "q": "Ce este QuickExit Media?",
+          "a": "Producție editorială video în jurul activului tău: research, unghiuri distincte și Stories short-form pentru audiența QuickExit."
+        }
+      }
+    },
+    "cta": {
+      "requestOffer": "Solicită oferta",
+      "requestMediaOffer": "Solicită oferta Media",
+      "wantMedia": "Vreau QuickExit Media",
+      "choosePackage": "Alege pachetul",
+      "dashboard": "Deschide dashboard"
+    },
+    "finalCta": {
+      "title": "Pregătit să-i găsim povestea?",
+      "body": "Scrie-ne pentru QuickExit Media. Checkout-ul dedicat urmează; până atunci, interesul se înregistrează prin email.",
+      "note": "Taxa de publicare a anunțului rămâne separată. Media nu înlocuiește listarea."
     }
   }
 }

@@ -64,6 +64,7 @@ export function staticAndCategorySitemapPaths(): string[] {
     "/anunturi",
     "/cauta",
     "/tarife",
+    "/media",
     "/cum-functioneaza",
     "/future-mobility",
     "/contact",

@@ -67,6 +67,11 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
+                <Link href="/media" className={footerLink}>
+                  {t("platform.media")}
+                </Link>
+              </li>
+              <li>
                 <Link href="/evaluare" className={footerLink}>
                   {t("platform.evaluation")}
                 </Link>

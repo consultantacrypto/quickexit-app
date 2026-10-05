@@ -1251,6 +1251,17 @@ function DashboardContent() {
                       </button>
                     )}
                   </div>
+                  {item.status === "active" ? (
+                    <div className="mt-3">
+                      <button
+                        type="button"
+                        onClick={() => router.push(`/media?listingId=${item.id}`)}
+                        className="w-full border-2 border-black bg-white py-2.5 rounded-lg text-xs font-black uppercase text-black transition-all shadow-[2px_2px_0_0_rgba(0,0,0,1)] hover:bg-[#FFD100] active:translate-y-px active:shadow-none"
+                      >
+                        {tDash("promoteWithMedia")}
+                      </button>
+                    </div>
+                  ) : null}
                   {item.status !== 'pending_payment' && item.status !== 'sold' && (
                     <div className="mt-3">
                       <button

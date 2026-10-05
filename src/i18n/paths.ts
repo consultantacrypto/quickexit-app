@@ -47,3 +47,12 @@ export function listingsIndexPath(categorySlug?: string | null): string {
   if (!slug) return base;
   return `${base}?category=${encodeURIComponent(slug)}`;
 }
+
+export function mediaPath(listingId?: string | null): string {
+  const base = normalizeAppPath("/media");
+  const id = String(listingId ?? "")
+    .trim()
+    .replace(/^\/+|\/+$/g, "");
+  if (!id) return base;
+  return `${base}?listingId=${encodeURIComponent(id)}`;
+}
