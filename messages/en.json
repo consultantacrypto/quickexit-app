@@ -797,13 +797,14 @@
       "package": "Package",
       "duration": "Duration",
       "amount": "Amount charged",
-      "listingAmount": "Listing package",
+      "listingAmount": "Listing publication",
       "mediaAmount": "QuickExit Media",
-      "total": "Total"
+      "mediaNone": "No Media",
+      "total": "Total to pay"
     },
     "mediaAddon": {
       "title": "Promote your listing with QuickExit Media",
-      "body": "Optional. We turn your asset into short-form editorial content for QuickExit channels.",
+      "body": "Optional. Added on top of the publishing package selected above.",
       "unavailable": "QuickExit Media is available for assets with a defined sale price.",
       "priceUnavailable": "Media pricing is unavailable until the asset value is valid.",
       "featuredDisclaimer": "Featured does not guarantee appearance on the Mihai Daniel channel. Selection remains editorial.",
@@ -812,7 +813,7 @@
       "continueListingOnly": "Continue with listing only",
       "none": {
         "title": "No Media",
-        "blurb": "Publish the listing only, without an editorial package."
+        "blurb": "You only pay for the publishing package selected above."
       },
       "packages": {
         "stories_4": {

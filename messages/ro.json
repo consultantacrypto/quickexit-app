@@ -797,13 +797,14 @@
       "package": "Pachet",
       "duration": "Durată",
       "amount": "Sumă de plată",
-      "listingAmount": "Pachet listare",
+      "listingAmount": "Publicare anunț",
       "mediaAmount": "QuickExit Media",
-      "total": "Total"
+      "mediaNone": "Fără Media",
+      "total": "Total de plată"
     },
     "mediaAddon": {
       "title": "Promovează anunțul cu QuickExit Media",
-      "body": "Opțional. Transformăm activul tău în conținut editorial short-form pentru canalele QuickExit.",
+      "body": "Opțional. Se adaugă peste pachetul de publicare selectat mai sus.",
       "unavailable": "QuickExit Media este disponibil pentru active cu preț de vânzare definit.",
       "priceUnavailable": "Preț Media indisponibil până când valoarea activului este validă.",
       "featuredDisclaimer": "Featured nu garantează apariția pe canalul Mihai Daniel. Selecția rămâne editorială.",
@@ -812,7 +813,7 @@
       "continueListingOnly": "Continuă doar cu listarea",
       "none": {
         "title": "Fără Media",
-        "blurb": "Publică doar anunțul, fără pachet editorial."
+        "blurb": "Plătești doar publicarea selectată mai sus."
       },
       "packages": {
         "stories_4": {

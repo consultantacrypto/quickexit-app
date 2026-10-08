@@ -123,7 +123,30 @@ assert(checkoutRoute.includes("isMediaCheckoutEnabled"), "feature flag gate");
 const ro = JSON.parse(readFileSync(resolve("messages/ro.json"), "utf8"));
 const en = JSON.parse(readFileSync(resolve("messages/en.json"), "utf8"));
 assert(ro.PostListing?.mediaAddon?.title?.includes("QuickExit Media"), "ro media title");
+assert(
+  ro.PostListing?.mediaAddon?.body?.includes("Opțional. Se adaugă peste pachetul"),
+  "ro media optional add-on body",
+);
+assert(
+  en.PostListing?.mediaAddon?.body?.includes("Optional. Added on top of the publishing package"),
+  "en media optional add-on body",
+);
+assert(
+  ro.PostListing?.mediaAddon?.none?.blurb?.includes("Plătești doar publicarea"),
+  "ro none blurb",
+);
+assert(
+  en.PostListing?.mediaAddon?.none?.blurb?.includes("You only pay for the publishing package"),
+  "en none blurb",
+);
 assert(en.PostListing?.mediaAddon?.continueListingOnly?.includes("listing only"), "en continue CTA");
-assert(ro.PostListing?.review?.total === "Total", "ro total label");
+assert(ro.PostListing?.review?.listingAmount === "Publicare anunț", "ro listing amount label");
+assert(en.PostListing?.review?.listingAmount === "Listing publication", "en listing amount label");
+assert(ro.PostListing?.review?.mediaNone === "Fără Media", "ro media none summary");
+assert(en.PostListing?.review?.mediaNone === "No Media", "en media none summary");
+assert(ro.PostListing?.review?.total === "Total de plată", "ro total label");
+assert(en.PostListing?.review?.total === "Total to pay", "en total label");
+assert(client.includes("formatMediaAddonPriceRon"), "addon display uses + prefix helper");
+assert(client.includes("review.mediaNone"), "summary shows No Media when unset");
 
 console.log("OK media-publish-step");

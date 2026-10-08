@@ -60,7 +60,7 @@ import {
   type ListingDraftV1,
 } from "@/lib/listingDraft";
 import {
-  formatMediaPriceRon,
+  formatMediaAddonPriceRon,
   MEDIA_PACKAGE_IDS,
   quoteMediaPackage,
   resolveMediaPublishUiEligibility,
@@ -2835,7 +2835,7 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                       let priceLabel = tPost("mediaAddon.priceUnavailable");
                       try {
                         const q = quoteMediaPackage(exitPrice, pkgId);
-                        priceLabel = formatMediaPriceRon(q.amountRon, locale);
+                        priceLabel = formatMediaAddonPriceRon(q.amountRon, locale);
                       } catch {
                         /* keep unavailable label */
                       }
@@ -2938,17 +2938,17 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                     <dt className="text-neutral-500">{tPost("review.mediaAmount")}</dt>
                     <dd className="text-right font-black tabular-nums">
                       {effectiveMediaPackage === null
-                        ? "—"
+                        ? tPost("review.mediaNone")
                         : mediaFeeRon != null
-                          ? `${mediaFeeRon} RON`
+                          ? formatMediaAddonPriceRon(mediaFeeRon, locale)
                           : tPost("mediaAddon.priceUnavailable")}
                     </dd>
                   </div>
-                  <div className="flex justify-between gap-4 border-t-2 border-black/20 pt-2">
-                    <dt className="font-black uppercase tracking-wide text-black">
+                  <div className="mt-1 flex justify-between gap-4 border-t-[3px] border-black bg-[#FFD100]/35 px-3 py-3">
+                    <dt className="text-sm font-black uppercase tracking-wide text-black md:text-base">
                       {tPost("review.total")}
                     </dt>
-                    <dd className="text-right text-lg font-black tabular-nums text-black">
+                    <dd className="text-right text-xl font-black tabular-nums text-black md:text-2xl">
                       {displayTotalRon} RON
                     </dd>
                   </div>
