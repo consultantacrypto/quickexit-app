@@ -151,7 +151,7 @@ export default async function MediaPage({ params, searchParams }: PageProps) {
 
   const packageCtaHref = mailtoWithListing;
   const packageCtaLabel = displayPricing.eligible
-    ? t("cta.requestOffer")
+    ? t("cta.requestMediaOffer")
     : listingId
       ? t("cta.requestMediaOffer")
       : t("cta.wantMedia");
@@ -362,17 +362,20 @@ export default async function MediaPage({ params, searchParams }: PageProps) {
           >
             {t("pricing.title")}
           </h2>
-          <p className="mt-3 max-w-2xl text-sm font-medium text-neutral-600 md:text-base">
+          <p className="mt-3 max-w-2xl text-sm font-medium leading-relaxed text-neutral-600 md:text-base">
             {t("pricing.body")}
+          </p>
+          <p className="mt-2 max-w-2xl text-xs font-medium text-neutral-500 md:text-sm">
+            {t("pricing.note")}
           </p>
 
           <div className="mt-8 overflow-x-auto rounded-[1.5rem] border-[3px] border-black bg-white shadow-[8px_8px_0_0_rgba(0,0,0,0.06)]">
-            <table className="min-w-full border-collapse text-left text-sm">
+            <table className="min-w-[36rem] w-full border-collapse text-left text-sm md:min-w-full">
               <thead>
                 <tr className="border-b-[3px] border-black bg-black text-white">
                   <th
                     scope="col"
-                    className="px-4 py-4 text-[10px] font-black uppercase tracking-widest md:px-6"
+                    className="px-3 py-3.5 text-[10px] font-black uppercase tracking-widest md:px-6 md:py-4"
                   >
                     {t("pricing.columns.value")}
                   </th>
@@ -380,7 +383,7 @@ export default async function MediaPage({ params, searchParams }: PageProps) {
                     <th
                       key={packageId}
                       scope="col"
-                      className="px-4 py-4 text-[10px] font-black uppercase tracking-widest md:px-6"
+                      className="px-3 py-3.5 text-[10px] font-black uppercase tracking-widest md:px-6 md:py-4"
                     >
                       {t(`packages.items.${packageId}.title`)}
                     </th>
@@ -395,12 +398,12 @@ export default async function MediaPage({ params, searchParams }: PageProps) {
                     <tr
                       key={tier}
                       className={`border-b border-black/10 last:border-b-0 ${
-                        highlighted ? "bg-[#FFD100]/35" : ""
+                        highlighted ? "bg-[#FFD100]/35" : "odd:bg-[#F7F4EC]/50"
                       }`}
                     >
                       <th
                         scope="row"
-                        className="px-4 py-4 text-xs font-black uppercase tracking-wide text-black md:px-6 md:text-sm"
+                        className="px-3 py-3.5 text-xs font-black uppercase tracking-wide text-black md:px-6 md:py-4 md:text-sm"
                       >
                         {t(`pricing.tiers.${tier}.label`)}
                         {highlighted ? (
@@ -412,7 +415,7 @@ export default async function MediaPage({ params, searchParams }: PageProps) {
                       {MEDIA_PACKAGE_IDS.map((packageId) => (
                         <td
                           key={packageId}
-                          className="px-4 py-4 font-black tabular-nums text-black md:px-6"
+                          className="px-3 py-3.5 text-sm font-black tabular-nums text-black md:px-6 md:py-4 md:text-base"
                         >
                           {formatMediaPriceRon(MEDIA_DISPLAY_PRICES_RON[tier][packageId], loc)}
                         </td>
@@ -450,7 +453,6 @@ export default async function MediaPage({ params, searchParams }: PageProps) {
                 "opportunities",
                 "crypto",
                 "auctions",
-                "capital",
               ] as const
             ).map((item) => (
               <li
@@ -505,7 +507,7 @@ export default async function MediaPage({ params, searchParams }: PageProps) {
               href={mailtoWithListing}
               className="inline-flex items-center justify-center rounded-2xl border-[3px] border-black bg-[#FFD100] px-6 py-4 text-xs font-black uppercase tracking-widest text-black shadow-[6px_6px_0_0_#000] transition hover:brightness-105"
             >
-              {t("cta.requestOffer")}
+              {t("cta.requestMediaOffer")}
             </a>
             <Link
               href="/dashboard"

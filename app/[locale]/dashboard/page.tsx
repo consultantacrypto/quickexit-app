@@ -13,6 +13,13 @@ import {
   loadListingDraftFromSession,
   syncPendingListingIdIntoExistingDraft,
 } from "@/lib/listingDraft";
+import MediaPaymentStatusBanner from "@/app/components/MediaPaymentStatusBanner";
+import {
+  indexMediaOrdersByListingId,
+  MEDIA_STATUS_MAX_REFRESHES,
+  MEDIA_STATUS_REFRESH_MS,
+  type MediaOrderStatusView,
+} from "@/lib/mediaStatusDisplay";
 import {
   categoryLabelToTrackingKey,
   parseListingAcquisitionDetails,
@@ -92,6 +99,11 @@ function DashboardContent() {
   const [demandOfferActionMessage, setDemandOfferActionMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [statusActionMessage, setStatusActionMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [paymentCancelListingId, setPaymentCancelListingId] = useState<string | null>(null);
+  const [paymentSuccessListingId, setPaymentSuccessListingId] = useState<string | null>(null);
+  const [mediaOrdersByListingId, setMediaOrdersByListingId] = useState<
+    Record<string, MediaOrderStatusView>
+  >({});
+  const [mediaStatusRefreshCount, setMediaStatusRefreshCount] = useState(0);
   const [checkoutLoadingId, setCheckoutLoadingId] = useState<string | null>(null);
   const [checkoutActionError, setCheckoutActionError] = useState<string | null>(null);
   
@@ -116,16 +128,45 @@ function DashboardContent() {
 
   useEffect(() => {
     fetchDashboardData();
-    
+
     if (paymentStatus === "success" || paymentStatus === "success_demand") {
+      const successListingId = (listingIdParam || listingId || "").trim();
+      if (successListingId && (checkoutTypeParam === "listing" || !checkoutTypeParam)) {
+        setPaymentSuccessListingId(successListingId);
+        setMediaStatusRefreshCount(0);
+      }
       setIsLoading(true);
       const timer = setTimeout(() => {
-        fetchDashboardData();
-        router.replace('/dashboard', { scroll: false });
+        void fetchDashboardData();
+        // Strip query params after first confirmation window; banner state is retained.
+        router.replace("/dashboard", { scroll: false });
       }, 3000);
       return () => clearTimeout(timer);
     }
-  }, [paymentStatus, listingId, demandId, router]);
+  }, [paymentStatus, listingId, demandId, listingIdParam, checkoutTypeParam, router]);
+
+  // Bounded read-only refresh while webhook may still be catching up (no fulfillment here).
+  useEffect(() => {
+    if (!paymentSuccessListingId) return;
+    const listing = myListings.find((item) => item.id === paymentSuccessListingId);
+    const media = mediaOrdersByListingId[paymentSuccessListingId];
+    const listingPending = listing && listing.status !== "active";
+    const mediaPending = media?.payment_status === "pending";
+    const needsRefresh = Boolean(listingPending || mediaPending || (!listing && paymentSuccessListingId));
+    if (!needsRefresh) return;
+    if (mediaStatusRefreshCount >= MEDIA_STATUS_MAX_REFRESHES) return;
+
+    const timer = setTimeout(() => {
+      setMediaStatusRefreshCount((n) => n + 1);
+      void fetchDashboardData();
+    }, MEDIA_STATUS_REFRESH_MS);
+    return () => clearTimeout(timer);
+  }, [
+    paymentSuccessListingId,
+    myListings,
+    mediaOrdersByListingId,
+    mediaStatusRefreshCount,
+  ]);
 
   useEffect(() => {
     if (!paymentStatus) return;
@@ -347,6 +388,14 @@ function DashboardContent() {
 
       // priceId optional — API derives amount/package server-side from the listing.
       const priceId = getPriceIdForPackageId(packageId) ?? undefined;
+      const mediaCheckoutEnabled =
+        process.env.NEXT_PUBLIC_MEDIA_CHECKOUT_ENABLED === "true" ||
+        process.env.NEXT_PUBLIC_MEDIA_CHECKOUT_ENABLED === "1";
+      const draft =
+        loadListingDraftFromSession() ?? loadListingAuthHandoff()?.draft ?? null;
+      const mediaFromDraft =
+        mediaCheckoutEnabled && draft?.mediaPackage ? draft.mediaPackage : null;
+
       const res = await fetch("/api/stripe/checkout", {
         method: "POST",
         headers: {
@@ -356,6 +405,8 @@ function DashboardContent() {
         body: JSON.stringify({
           listingId: targetListingId,
           type: "listing",
+          locale: locale === "en" ? "en" : "ro",
+          mediaPackage: mediaFromDraft,
           ...(priceId ? { priceId } : {}),
         }),
       });
@@ -421,6 +472,21 @@ function DashboardContent() {
 
       if (listings && listings.length > 0) {
         const listingIds = listings.map(l => l.id);
+        const { data: mediaOrders, error: mediaOrdersError } = await supabase
+          .from("media_orders")
+          .select(
+            "id, listing_id, package, payment_status, editorial_status, amount_ron, currency, paid_at, created_at",
+          )
+          .in("listing_id", listingIds)
+          .order("created_at", { ascending: false });
+        if (mediaOrdersError) {
+          // Table may be absent outside local/staging — never write; fail soft for UI.
+          setMediaOrdersByListingId({});
+        } else {
+          setMediaOrdersByListingId(
+            indexMediaOrdersByListingId((mediaOrders || []) as MediaOrderStatusView[]),
+          );
+        }
         const { data: offers } = await supabase
           .from('listing_offers')
           .select('*')
@@ -435,6 +501,7 @@ function DashboardContent() {
           .order("created_at", { ascending: false });
         setMyInquiries(inquiriesError ? [] : inquiries || []);
       } else {
+        setMediaOrdersByListingId({});
         setMyOffers([]);
         setMyInquiries([]);
       }
@@ -1094,6 +1161,18 @@ function DashboardContent() {
         </div>
       ) : null}
 
+      {paymentSuccessListingId ? (
+        <MediaPaymentStatusBanner
+          listingId={paymentSuccessListingId}
+          listingStatus={
+            myListings.find((item) => item.id === paymentSuccessListingId)?.status
+          }
+          mediaOrder={mediaOrdersByListingId[paymentSuccessListingId] ?? null}
+          paymentSuccessContext
+          onDismiss={() => setPaymentSuccessListingId(null)}
+        />
+      ) : null}
+
       {paymentCancelListingId ? (
         <div
           role="status"
@@ -1180,8 +1259,9 @@ function DashboardContent() {
         <div className="animate-in fade-in duration-500">
           {isLoading && paymentStatus ? (
              <div className="bg-[#FFD100] p-4 rounded-xl border-2 border-black mb-8 animate-pulse flex items-center justify-center gap-3">
-               <span className="text-xl">⚡</span>
-               <p className="font-black uppercase italic text-black text-xs">Așteptăm confirmarea plății. Te rugăm să aștepți...</p>
+               <p className="font-black uppercase italic text-black text-xs">
+                 {tDash("mediaPaymentStatus.processing")}
+               </p>
             </div>
           ) : isLoading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -1251,6 +1331,17 @@ function DashboardContent() {
                       </button>
                     )}
                   </div>
+                  {mediaOrdersByListingId[item.id] ? (
+                    <div className="mt-3">
+                      <MediaPaymentStatusBanner
+                        listingId={item.id}
+                        listingStatus={item.status}
+                        mediaOrder={mediaOrdersByListingId[item.id]}
+                        paymentSuccessContext={paymentSuccessListingId === item.id}
+                        compact
+                      />
+                    </div>
+                  ) : null}
                   {item.status === "active" ? (
                     <div className="mt-3">
                       <button
@@ -1301,8 +1392,9 @@ function DashboardContent() {
           )}
           {isLoading && paymentStatus ? (
              <div className="bg-[#FFD100] p-4 rounded-xl border-2 border-black mb-8 animate-pulse flex items-center justify-center gap-3">
-               <span className="text-xl">⚡</span>
-               <p className="font-black uppercase italic text-black text-xs">Așteptăm confirmarea plății. Te rugăm să aștepți...</p>
+               <p className="font-black uppercase italic text-black text-xs">
+                 {tDash("mediaPaymentStatus.processing")}
+               </p>
             </div>
           ) : isLoading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

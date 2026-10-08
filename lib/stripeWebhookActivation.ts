@@ -97,7 +97,8 @@ export function resolveActivationFromMetadata(
 
 export async function resolvePriceIdFromLineItems(
   stripe: Stripe,
-  session: Stripe.Checkout.Session
+  session: Stripe.Checkout.Session,
+  preferredListingPriceId?: string | null,
 ): Promise<string> {
   try {
     const hydrated =
@@ -107,11 +108,30 @@ export async function resolvePriceIdFromLineItems(
             expand: ["line_items.data.price"],
           });
 
-    const firstItem = hydrated.line_items?.data?.[0];
-    const price = firstItem?.price;
-    if (typeof price === "string") return price;
-    if (price && typeof price === "object" && "id" in price) {
-      return String(price.id);
+    const items = hydrated.line_items?.data ?? [];
+    const preferred = String(preferredListingPriceId ?? "").trim();
+
+    // Prefer matching the known listing catalog Price — never assume index 0 is listing.
+    if (preferred) {
+      for (const item of items) {
+        const price = item.price;
+        const id =
+          typeof price === "string"
+            ? price
+            : price && typeof price === "object" && "id" in price
+              ? String(price.id)
+              : "";
+        if (id && id === preferred) return id;
+      }
+    }
+
+    // Fallback: first catalog Price id (listing-only sessions typically have one).
+    for (const item of items) {
+      const price = item.price;
+      if (typeof price === "string" && price) return price;
+      if (price && typeof price === "object" && "id" in price && price.id) {
+        return String(price.id);
+      }
     }
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
@@ -123,15 +143,58 @@ export async function resolvePriceIdFromLineItems(
   return "";
 }
 
+export async function loadNormalizedCheckoutLineItems(
+  stripe: Stripe,
+  session: Stripe.Checkout.Session,
+): Promise<
+  Array<{
+    quantity?: number | null;
+    amount_total?: number | null;
+    price?: string | { id?: string | null; unit_amount?: number | null } | null;
+  }>
+> {
+  try {
+    if (session.line_items?.data?.length) {
+      return session.line_items.data as Array<{
+        quantity?: number | null;
+        amount_total?: number | null;
+        price?: string | { id?: string | null; unit_amount?: number | null } | null;
+      }>;
+    }
+    const hydrated = await stripe.checkout.sessions.retrieve(session.id, {
+      expand: ["line_items.data.price"],
+    });
+    return (hydrated.line_items?.data ?? []) as Array<{
+      quantity?: number | null;
+      amount_total?: number | null;
+      price?: string | { id?: string | null; unit_amount?: number | null } | null;
+    }>;
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error("[stripe/webhook] Nu am putut încărca line_items:", {
+      sessionId: session.id,
+      message,
+    });
+    return [];
+  }
+}
+
 export async function resolveActivationPlan(
   stripe: Stripe,
   session: Stripe.Checkout.Session,
   type: CheckoutObjectType
 ): Promise<ResolvedActivation> {
-  let activation = resolveActivationFromMetadata(session.metadata ?? {}, type);
+  const activation = resolveActivationFromMetadata(session.metadata ?? {}, type);
   if (activation.source !== "none") return activation;
 
-  const lineItemPriceId = await resolvePriceIdFromLineItems(stripe, session);
+  const preferredFromPackage = activation.packageId
+    ? getPriceIdForPackageId(activation.packageId)
+    : null;
+  const lineItemPriceId = await resolvePriceIdFromLineItems(
+    stripe,
+    session,
+    preferredFromPackage,
+  );
   if (!lineItemPriceId) return activation;
 
   const metadataWithPrice: Stripe.Metadata = {

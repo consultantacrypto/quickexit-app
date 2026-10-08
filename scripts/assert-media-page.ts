@@ -33,7 +33,9 @@ function assert(condition: unknown, message: string) {
 }
 
 assert(resolveMediaValueTier(49_999) === "under_50k", "under 50k");
-assert(resolveMediaValueTier(50_000) === "50_100k", "50k boundary");
+assert(resolveMediaValueTier(50_000) === "50k_100k", "50k boundary");
+assert(resolveMediaValueTier(100_000) === "50k_100k", "100k inclusive lower tier");
+assert(resolveMediaValueTier(500_000) === "100k_500k", "500k inclusive upper tier");
 assert(MEDIA_DISPLAY_PRICES_RON.over_500k.featured === 1799, "featured top tier");
 assert(formatMediaPriceRon(1299, "ro").includes("RON"), "ron label");
 
@@ -129,9 +131,21 @@ const ro = JSON.parse(readFileSync(resolve("messages/ro.json"), "utf8"));
 const en = JSON.parse(readFileSync(resolve("messages/en.json"), "utf8"));
 assert(ro.Media?.examples?.categories?.real_estate === "Imobiliare", "ro category");
 assert(en.Media?.examples?.categories?.real_estate === "Real Estate", "en category");
+assert(ro.Media?.examples?.titles?.automotive?.includes("BMW M5 Touring"), "ro auto title");
+assert(en.Media?.examples?.titles?.realEstate?.includes("Peninsula Resort"), "en estate title");
+assert(ro.Media?.packages?.items?.stories_4?.features?.[0] === "Research despre activ", "ro 4 stories feature");
+assert(en.Media?.packages?.items?.featured?.features?.length === 5, "en featured features");
+assert(ro.Media?.weekly?.disclaimer?.includes("nu garantează includerea automată"), "ro weekly disclaimer");
+assert(en.Media?.pricing?.body?.includes("asset value"), "en pricing body");
+assert(!Object.prototype.hasOwnProperty.call(ro.Media?.weekly?.items ?? {}, "capital"), "ro weekly no capital item");
 assert(ro.Media?.faq?.items?.views, "ro views faq");
 assert(en.Media?.faq?.items?.appear, "en appear faq");
 assert(ro.Dashboard?.promoteWithMedia, "ro dashboard cta");
 assert(en.Footer?.platform?.media, "en footer media");
+assert(gallery.includes("showEndFade"), "mobile tab fade");
+assert(gallery.includes("ArrowRight"), "tab keyboard nav");
+assert(gallery.includes('rel="noopener noreferrer"'), "external rel");
+assert(page.includes("pricing.note"), "pricing note");
+assert(page.includes("requestMediaOffer"), "final media offer cta");
 
 console.log("OK media-page");

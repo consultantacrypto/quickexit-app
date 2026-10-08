@@ -13,7 +13,7 @@ import {
   parseCheckoutObjectType,
   storedCheckoutSessionId,
 } from "../lib/stripeListingFulfillment";
-import { getExpiryIsoForPackage, getPackageByPriceId } from "../lib/stripePackages";
+import { getExpiryIsoForPackage, getPackageByPriceId, getPriceIdForPackageId } from "../lib/stripePackages";
 import { validatePersistedSaleIntent } from "../lib/listingSaleStrategy";
 
 function fail(message: string): never {
@@ -25,7 +25,8 @@ function assert(condition: unknown, message: string) {
   if (!condition) fail(message);
 }
 
-const PROVEN_PRICE = "price_1Tcnd15kC4Bm6VY18e9Fa5qd";
+const PROVEN_PRICE =
+  getPriceIdForPackageId("standard") || "price_1Tcnd15kC4Bm6VY18e9Fa5qd";
 const pkg = getPackageByPriceId(PROVEN_PRICE);
 assert(pkg?.packageId === "standard", "proven price maps to standard");
 assert(pkg?.amountRon === 79, "proven price is 79 RON");

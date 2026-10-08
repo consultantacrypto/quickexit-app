@@ -146,6 +146,11 @@ function validCheckoutDraft() {
 }
 
 assert(LISTING_DRAFT_VERSION === 2, "draft schema is v2");
+assert(
+  validStep1Draft({ mediaPackage: "featured" }).mediaPackage === "featured",
+  "draft can store mediaPackage",
+);
+assert(validStep1Draft().mediaPackage === null, "draft default media null");
 assert(LISTING_DRAFT_TTL_HOURS === 24, "draft TTL is 24 hours");
 assert(LISTING_DRAFT_TTL_MS === 24 * 60 * 60 * 1000, "TTL ms matches 24h");
 assert(LISTING_AUTH_HANDOFF_TTL_MS === 45 * 60 * 1000, "auth handoff TTL is 45 minutes");

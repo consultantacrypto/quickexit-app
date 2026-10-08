@@ -39,7 +39,22 @@ export type ListingFulfillmentFailureCode =
   | "not_paid"
   | "invalid_amount"
   | "session_not_complete"
-  | "package_mismatch";
+  | "package_mismatch"
+  | "media_order_missing"
+  | "media_order_listing_mismatch"
+  | "media_order_user_mismatch"
+  | "media_session_mismatch"
+  | "media_order_cancelled"
+  | "media_order_refunded"
+  | "media_order_incompatible_status"
+  | "media_package_mismatch"
+  | "media_currency_mismatch"
+  | "media_amount_invalid"
+  | "ambiguous_listing_line_items"
+  | "missing_listing_line_item"
+  | "unexpected_media_line_items"
+  | "media_fulfillment_failed"
+  | "media_mark_failed_error";
 
 export function listingFulfillmentHttpStatus(code: ListingFulfillmentFailureCode): number {
   switch (code) {
@@ -50,6 +65,18 @@ export function listingFulfillmentHttpStatus(code: ListingFulfillmentFailureCode
     case "invalid_amount":
     case "session_not_complete":
     case "package_mismatch":
+    case "media_order_listing_mismatch":
+    case "media_order_user_mismatch":
+    case "media_session_mismatch":
+    case "media_order_cancelled":
+    case "media_order_refunded":
+    case "media_order_incompatible_status":
+    case "media_package_mismatch":
+    case "media_currency_mismatch":
+    case "media_amount_invalid":
+    case "ambiguous_listing_line_items":
+    case "missing_listing_line_item":
+    case "unexpected_media_line_items":
       return 422;
     case "conflicting_session":
       return 409;
@@ -57,6 +84,10 @@ export function listingFulfillmentHttpStatus(code: ListingFulfillmentFailureCode
       return 400;
     case "not_paid":
       return 200;
+    case "media_order_missing":
+    case "media_fulfillment_failed":
+    case "media_mark_failed_error":
+      return 500;
     default:
       return 500;
   }

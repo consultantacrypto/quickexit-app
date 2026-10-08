@@ -63,14 +63,39 @@
       "updateFailed": "We couldn't update this request. Please try again."
     },
     "paymentCancel": {
-      "message": "Payment was not completed. Your listing is saved and you can continue payment anytime.",
+      "message": "Payment was cancelled. You can change your options and try again.",
       "cta": "Complete payment",
       "error": "We couldn't start checkout. Try again from the listing card."
     },
     "finalizePayment": "Complete payment",
     "finalizePaymentLoading": "Opening checkout…",
     "finalizePaymentError": "We couldn't create the payment session. Please try again.",
-    "promoteWithMedia": "Promote with QuickExit Media"
+    "promoteWithMedia": "Promote with QuickExit Media",
+    "mediaPaymentStatus": {
+      "processing": "Payment was received and is being confirmed.",
+      "listingActiveMediaPaid": "Your listing is active. The QuickExit Media package was confirmed and entered the editorial queue.",
+      "listingActiveMediaPending": "Your listing is active. Media package confirmation is still processing.",
+      "mediaFailed": "Payment for the Media package was not confirmed.",
+      "listingOnlySuccess": "Payment was confirmed. Your listing is activating or is already active.",
+      "refreshing": "Refreshing status…",
+      "dismiss": "Dismiss",
+      "packageLabel": "Package: {package}",
+      "editorialLabel": "Editorial status: {status}",
+      "packages": {
+        "stories_4": "4 Stories",
+        "stories_8": "8 Stories",
+        "featured": "Featured"
+      }
+    },
+    "mediaEditorialStatus": {
+      "queued": "Waiting for processing",
+      "needs_info": "We need additional information",
+      "in_research": "In research",
+      "in_production": "In production",
+      "published": "Published",
+      "rejected": "Needs review",
+      "cancelled": "Cancelled"
+    }
   },
   "Hero": {
     "titleLine1": "Sell now.",
@@ -676,7 +701,10 @@
       "incompatibleSaleIntent": "Sale method and package do not match. Choose the sale method again before paying.",
       "stepsIncomplete": "Complete the previous steps before payment. Checkout cannot start from an incomplete draft.",
       "locationRequired": "Add the county and locality before payment.",
-      "phoneRequired": "Add a private contact phone number. It is not shown on the public listing."
+      "phoneRequired": "Add a private contact phone number. It is not shown on the public listing.",
+      "mediaPriceChanged": "QuickExit Media pricing was updated. Check the order summary total and try checkout again.",
+      "mediaCheckoutDisabled": "QuickExit Media payment is not active right now. Continue with the listing only, or try again later.",
+      "mediaAlreadyPaid": "A paid Media order already exists for this listing."
     },
     "sellerPhone": {
       "label": "Contact phone (private)",
@@ -768,7 +796,57 @@
       "pricePresentation": "Price presentation",
       "package": "Package",
       "duration": "Duration",
-      "amount": "Amount charged"
+      "amount": "Amount charged",
+      "listingAmount": "Listing package",
+      "mediaAmount": "QuickExit Media",
+      "total": "Total"
+    },
+    "mediaAddon": {
+      "title": "Promote your listing with QuickExit Media",
+      "body": "Optional. We turn your asset into short-form editorial content for QuickExit channels.",
+      "unavailable": "QuickExit Media is available for assets with a defined sale price.",
+      "priceUnavailable": "Media pricing is unavailable until the asset value is valid.",
+      "featuredDisclaimer": "Featured does not guarantee appearance on the Mihai Daniel channel. Selection remains editorial.",
+      "displayOnlyNote": "The Media total is display-only. Media payment is not active in this environment.",
+      "phase2dPending": "QuickExit Media payment is not active in this environment. You can continue with the listing only.",
+      "continueListingOnly": "Continue with listing only",
+      "none": {
+        "title": "No Media",
+        "blurb": "Publish the listing only, without an editorial package."
+      },
+      "packages": {
+        "stories_4": {
+          "title": "4 Stories",
+          "blurb": "Focused research and four editorial angles.",
+          "features": {
+            "f1": "Asset research",
+            "f2": "4 editorial angles",
+            "f3": "4 short-form clips",
+            "f4": "Distribution on eligible QuickExit channels"
+          }
+        },
+        "stories_8": {
+          "title": "8 Stories",
+          "blurb": "Deeper research and eight editorial angles.",
+          "features": {
+            "f1": "In-depth research",
+            "f2": "8 editorial angles",
+            "f3": "8 short-form clips",
+            "f4": "Extended QuickExit distribution"
+          }
+        },
+        "featured": {
+          "title": "Featured",
+          "blurb": "Extended package, eligible for editorial selection.",
+          "features": {
+            "f1": "In-depth research",
+            "f2": "Extended content package",
+            "f3": "QuickExit distribution",
+            "f4": "Eligibility for QuickExit Weekly / Mihai Daniel",
+            "f5": "Mandatory editorial selection"
+          }
+        }
+      }
     },
     "step4": {
       "titleDirect": "Choose listing duration",
@@ -1307,10 +1385,10 @@
         "businesses": "Businesses"
       },
       "titles": {
-        "realEstate": "QuickExit Story — Real Estate",
-        "automotive": "QuickExit Story — Automotive",
-        "watchesLuxury": "QuickExit Story — Watches & Luxury",
-        "businesses": "QuickExit Story — Businesses"
+        "realEstate": "Peninsula Resort — QuickExit Story",
+        "automotive": "BMW M5 Touring — QuickExit Story",
+        "watchesLuxury": "Rolex GMT-Master II Sprite — QuickExit Story",
+        "businesses": "Business for sale — QuickExit Story"
       }
     },
     "packages": {
@@ -1326,10 +1404,10 @@
           "blurb": "Focused research and four distinct editorial angles.",
           "fromPrice": "from 199 RON",
           "features": [
-            "Research",
+            "Research on the asset",
             "4 distinct editorial angles",
-            "4 short-form videos",
-            "QuickExit distribution on TikTok + YouTube Shorts"
+            "4 short-form clips",
+            "Publishing on eligible QuickExit channels"
           ]
         },
         "stories_8": {
@@ -1338,27 +1416,29 @@
           "fromPrice": "from 349 RON",
           "features": [
             "In-depth research",
-            "8 editorial angles",
-            "8 short-form videos",
-            "QuickExit distribution"
+            "8 distinct editorial angles",
+            "8 short-form clips",
+            "Extended QuickExit distribution"
           ]
         },
         "featured": {
           "title": "Featured",
-          "blurb": "Premium package, eligible for editorial selection.",
+          "blurb": "Extended package, eligible for editorial selection.",
           "fromPrice": "from 699 RON",
           "features": [
-            "Premium package",
+            "In-depth research",
+            "Extended content package",
             "QuickExit distribution",
-            "Eligible for Mihai Daniel / QuickExit Weekly editorial exposure",
-            "Subject to editorial approval"
+            "Eligibility for QuickExit Weekly / Mihai Daniel",
+            "Editorial selection required"
           ]
         }
       }
     },
     "pricing": {
       "title": "Pricing by asset value",
-      "body": "Tiers map to listing exit price (EUR). Phase 1 shows the grid; Media payment is not active yet.",
+      "body": "Media package pricing is based on the listed asset value. Tiers map to listing exit price (EUR). Phase 1 shows the grid; Media payment is not active yet.",
+      "note": "Media is an editorial service separate from the listing publication fee.",
       "columns": {
         "value": "Asset value"
       },
@@ -1367,10 +1447,10 @@
         "under_50k": {
           "label": "under €50k"
         },
-        "50_100k": {
+        "50k_100k": {
           "label": "€50k–€100k"
         },
-        "100_500k": {
+        "100k_500k": {
           "label": "€100k–€500k"
         },
         "over_500k": {
@@ -1380,16 +1460,15 @@
     },
     "weekly": {
       "title": "QuickExit Weekly",
-      "body": "An editorial format on Mihai Daniel's main channel. Periodically it may cover new listings, interesting assets, opportunities, assets that accept crypto, relevant auctions, and Available Capital — when the story deserves it, not as an automatic feed.",
+      "body": "Each week, editorial selection may include new listings, interesting assets, opportunities, assets that accept crypto, and relevant auctions — on Mihai Daniel's channel.",
       "items": {
         "newListings": "New listings",
         "interesting": "Interesting assets",
         "opportunities": "Opportunities",
         "crypto": "Assets that accept crypto",
-        "auctions": "Relevant auctions",
-        "capital": "Available Capital"
+        "auctions": "Relevant auctions"
       },
-      "disclaimer": "Inclusion in QuickExit Weekly is editorial selection. Featured offers eligibility and editorial priority, not an obligation to publish on the personal channel."
+      "disclaimer": "Selection is editorial. Buying a Featured package does not guarantee automatic inclusion."
     },
     "faq": {
       "title": "FAQ",

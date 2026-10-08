@@ -8,8 +8,8 @@ export const MEDIA_PACKAGE_ORDER: readonly MediaPackageId[] = [
 
 export const MEDIA_TIER_ORDER: readonly MediaValueTier[] = [
   "under_50k",
-  "50_100k",
-  "100_500k",
+  "50k_100k",
+  "100k_500k",
   "over_500k",
 ] as const;
 

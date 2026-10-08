@@ -63,14 +63,39 @@
       "updateFailed": "Nu am putut actualiza solicitarea. Încearcă din nou."
     },
     "paymentCancel": {
-      "message": "Plata nu a fost finalizată. Anunțul tău este salvat și poți continua plata oricând.",
+      "message": "Plata a fost anulată. Poți modifica opțiunile și încerca din nou.",
       "cta": "Finalizează plata",
       "error": "Nu am putut porni plata. Încearcă din nou din cardul anunțului."
     },
     "finalizePayment": "Finalizează plata",
     "finalizePaymentLoading": "Se deschide plata…",
     "finalizePaymentError": "Nu am putut crea sesiunea de plată. Te rugăm să încerci din nou.",
-    "promoteWithMedia": "Promovează cu QuickExit Media"
+    "promoteWithMedia": "Promovează cu QuickExit Media",
+    "mediaPaymentStatus": {
+      "processing": "Plata a fost primită și este în curs de confirmare.",
+      "listingActiveMediaPaid": "Anunțul este activ. Pachetul QuickExit Media a fost confirmat și a intrat în fluxul editorial.",
+      "listingActiveMediaPending": "Anunțul este activ. Confirmarea pachetului Media este încă în procesare.",
+      "mediaFailed": "Plata pentru pachetul Media nu a fost confirmată.",
+      "listingOnlySuccess": "Plata a fost confirmată. Anunțul tău este în curs de activare sau este deja activ.",
+      "refreshing": "Actualizăm statusul…",
+      "dismiss": "Închide",
+      "packageLabel": "Pachet: {package}",
+      "editorialLabel": "Status editorial: {status}",
+      "packages": {
+        "stories_4": "4 Stories",
+        "stories_8": "8 Stories",
+        "featured": "Featured"
+      }
+    },
+    "mediaEditorialStatus": {
+      "queued": "În așteptare pentru procesare",
+      "needs_info": "Avem nevoie de informații suplimentare",
+      "in_research": "În research",
+      "in_production": "În producție",
+      "published": "Publicat",
+      "rejected": "Necesită verificare",
+      "cancelled": "Anulat"
+    }
   },
   "Hero": {
     "titleLine1": "Vinde acum.",
@@ -676,7 +701,10 @@
       "incompatibleSaleIntent": "Metoda de vânzare și pachetul nu coincid. Alege din nou metoda de vânzare înainte de plată.",
       "stepsIncomplete": "Completează pașii anteriori înainte de plată. Nu putem porni checkout-ul dintr-o ciornă incompletă.",
       "locationRequired": "Completează județul și localitatea înainte de plată.",
-      "phoneRequired": "Adaugă un telefon de contact privat. Nu este public pe anunț."
+      "phoneRequired": "Adaugă un telefon de contact privat. Nu este public pe anunț.",
+      "mediaPriceChanged": "Prețul QuickExit Media s-a actualizat. Verifică totalul din sumar și reîncearcă plata.",
+      "mediaCheckoutDisabled": "Plata QuickExit Media nu este activă momentan. Continuă doar cu listarea sau încearcă mai târziu.",
+      "mediaAlreadyPaid": "Există deja o comandă Media plătită pentru acest anunț."
     },
     "sellerPhone": {
       "label": "Telefon de contact (privat)",
@@ -768,7 +796,57 @@
       "pricePresentation": "Prezentarea prețului",
       "package": "Pachet",
       "duration": "Durată",
-      "amount": "Sumă de plată"
+      "amount": "Sumă de plată",
+      "listingAmount": "Pachet listare",
+      "mediaAmount": "QuickExit Media",
+      "total": "Total"
+    },
+    "mediaAddon": {
+      "title": "Promovează anunțul cu QuickExit Media",
+      "body": "Opțional. Transformăm activul tău în conținut editorial short-form pentru canalele QuickExit.",
+      "unavailable": "QuickExit Media este disponibil pentru active cu preț de vânzare definit.",
+      "priceUnavailable": "Preț Media indisponibil până când valoarea activului este validă.",
+      "featuredDisclaimer": "Featured nu garantează apariția pe canalul Mihai Daniel. Selecția rămâne editorială.",
+      "displayOnlyNote": "Totalul Media este afișat informativ. Plata Media nu este activă pe acest mediu.",
+      "phase2dPending": "Plata pentru QuickExit Media nu este activă pe acest mediu. Poți continua doar cu listarea.",
+      "continueListingOnly": "Continuă doar cu listarea",
+      "none": {
+        "title": "Fără Media",
+        "blurb": "Publică doar anunțul, fără pachet editorial."
+      },
+      "packages": {
+        "stories_4": {
+          "title": "4 Stories",
+          "blurb": "Research concentrat și patru unghiuri editoriale.",
+          "features": {
+            "f1": "Research despre activ",
+            "f2": "4 unghiuri editoriale",
+            "f3": "4 clipuri short-form",
+            "f4": "Distribuție pe canalele QuickExit eligibile"
+          }
+        },
+        "stories_8": {
+          "title": "8 Stories",
+          "blurb": "Research aprofundat și opt unghiuri editoriale.",
+          "features": {
+            "f1": "Research aprofundat",
+            "f2": "8 unghiuri editoriale",
+            "f3": "8 clipuri short-form",
+            "f4": "Distribuție QuickExit extinsă"
+          }
+        },
+        "featured": {
+          "title": "Featured",
+          "blurb": "Pachet extins, eligibil pentru selecție editorială.",
+          "features": {
+            "f1": "Research aprofundat",
+            "f2": "Pachet extins de conținut",
+            "f3": "Distribuție QuickExit",
+            "f4": "Eligibilitate QuickExit Weekly / Mihai Daniel",
+            "f5": "Selecție editorială obligatorie"
+          }
+        }
+      }
     },
     "step4": {
       "titleDirect": "Alege durata anunțului",
@@ -1307,10 +1385,10 @@
         "businesses": "Afaceri"
       },
       "titles": {
-        "realEstate": "QuickExit Story — Imobiliare",
-        "automotive": "QuickExit Story — Auto",
-        "watchesLuxury": "QuickExit Story — Ceasuri & Luxury",
-        "businesses": "QuickExit Story — Afaceri"
+        "realEstate": "Peninsula Resort — QuickExit Story",
+        "automotive": "BMW M5 Touring — QuickExit Story",
+        "watchesLuxury": "Rolex GMT-Master II Sprite — QuickExit Story",
+        "businesses": "Afacere de vânzare — QuickExit Story"
       }
     },
     "packages": {
@@ -1326,10 +1404,10 @@
           "blurb": "Research concentrat și patru unghiuri editoriale distincte.",
           "fromPrice": "de la 199 RON",
           "features": [
-            "Research",
+            "Research despre activ",
             "4 unghiuri editoriale distincte",
-            "4 short-form videos",
-            "Distribuție QuickExit TikTok + YouTube Shorts"
+            "4 clipuri short-form",
+            "Publicare pe canalele QuickExit eligibile"
           ]
         },
         "stories_8": {
@@ -1338,50 +1416,51 @@
           "fromPrice": "de la 349 RON",
           "features": [
             "Research aprofundat",
-            "8 unghiuri editoriale",
-            "8 short-form videos",
-            "Distribuție QuickExit"
+            "8 unghiuri editoriale distincte",
+            "8 clipuri short-form",
+            "Distribuție QuickExit extinsă"
           ]
         },
         "featured": {
           "title": "Featured",
-          "blurb": "Pachet superior, eligibil pentru selecție editorială.",
+          "blurb": "Pachet extins, eligibil pentru selecție editorială.",
           "fromPrice": "de la 699 RON",
           "features": [
-            "Pachet superior",
+            "Research aprofundat",
+            "Pachet extins de conținut",
             "Distribuție QuickExit",
-            "Eligibil pentru expunere editorială Mihai Daniel / QuickExit Weekly",
-            "Subject to editorial approval"
+            "Eligibilitate pentru QuickExit Weekly / Mihai Daniel",
+            "Selecție editorială obligatorie"
           ]
         }
       }
     },
     "pricing": {
       "title": "Prețuri în funcție de valoarea activului",
-      "body": "Nivelul se raportează la exit price (EUR). În Phase 1 afișăm grila; plata Media nu este activă încă.",
+      "body": "Prețul pachetului Media este calculat în funcție de valoarea activului listat. Nivelul se raportează la exit price (EUR). În Phase 1 afișăm grila; plata Media nu este activă încă.",
+      "note": "Media este un serviciu editorial separat de taxa de publicare a anunțului.",
       "columns": {
         "value": "Valoare activ"
       },
       "yourTier": "Nivelul anunțului tău",
       "tiers": {
         "under_50k": { "label": "sub €50k" },
-        "50_100k": { "label": "€50k–€100k" },
-        "100_500k": { "label": "€100k–€500k" },
+        "50k_100k": { "label": "€50k–€100k" },
+        "100k_500k": { "label": "€100k–€500k" },
         "over_500k": { "label": "peste €500k" }
       }
     },
     "weekly": {
       "title": "QuickExit Weekly",
-      "body": "Format editorial pe canalul Mihai Daniel. Periodic pot fi prezentate listinguri noi, active interesante, oportunități, active care acceptă crypto, licitații relevante și eventual Capital Disponibil — când merită povestea, nu ca listă automată.",
+      "body": "Săptămânal pot fi selectate editorial listinguri noi, active interesante, oportunități, active care acceptă crypto și licitații relevante — pe canalul Mihai Daniel.",
       "items": {
         "newListings": "Listinguri noi",
         "interesting": "Active interesante",
         "opportunities": "Oportunități",
         "crypto": "Active care acceptă crypto",
-        "auctions": "Licitații relevante",
-        "capital": "Capital Disponibil"
+        "auctions": "Licitații relevante"
       },
-      "disclaimer": "Includerea în QuickExit Weekly este selecție editorială. Featured oferă eligibilitate și prioritate editorială, nu obligație de publicare pe canalul personal."
+      "disclaimer": "Selecția este editorială. Achiziția unui pachet Featured nu garantează includerea automată."
     },
     "faq": {
       "title": "Întrebări frecvente",
