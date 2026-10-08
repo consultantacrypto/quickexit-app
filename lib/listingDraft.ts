@@ -7,11 +7,18 @@ import {
   type CryptoPaymentMode,
 } from "@/lib/cryptoPayment";
 import {
+  isMediaPackageId,
+  type MediaPackageId,
+} from "@/lib/mediaPricing";
+import {
   coerceCompatibleSaleIntent,
   parseListingSalePackageId,
   type ListingSalePackageId,
   type SaleMethod,
 } from "@/lib/listingSaleStrategy";
+
+/** Optional QuickExit Media add-on on the publish draft. null = listing only. */
+export type ListingDraftMediaPackage = MediaPackageId | null;
 
 export const LISTING_DRAFT_STORAGE_KEY = "quickExitListingDraft";
 export const LISTING_AUTH_HANDOFF_STORAGE_KEY = "quickExitListingDraftAuthHandoff";
@@ -106,6 +113,8 @@ export type ListingDraftV1 = {
   evaluationHandoffActive: boolean;
   cryptoPaymentMode: CryptoPaymentMode;
   cryptoAssets: CryptoAsset[];
+  /** Optional Media add-on. null = listing only. Never written to media_orders in Phase 2C. */
+  mediaPackage: ListingDraftMediaPackage;
   /** Server-validated pending_payment listing to resume checkout (never trust alone). */
   pendingListingId?: string;
   pendingListingCreatedAt?: number;
@@ -172,6 +181,7 @@ const LISTING_DRAFT_KNOWN_KEYS = new Set([
   "pendingListingCreatedAt",
   "cryptoPaymentMode",
   "cryptoAssets",
+  "mediaPackage",
 ]);
 
 const LISTING_AUTH_HANDOFF_KNOWN_KEYS = new Set([
@@ -392,6 +402,11 @@ function sanitizePackage(value: unknown): ListingDraftPackageId {
   return parseListingSalePackageId(value) ?? "standard";
 }
 
+function sanitizeMediaPackage(value: unknown): ListingDraftMediaPackage {
+  if (value == null || value === "" || value === "none") return null;
+  return isMediaPackageId(value) ? value : null;
+}
+
 function sanitizePricingMode(value: unknown): PricingMode | null {
   if (value === null || value === undefined || value === "") return null;
   return VALID_PRICING_MODES.has(value as PricingMode) ? (value as PricingMode) : null;
@@ -435,6 +450,7 @@ export function buildListingDraft(input: {
   pendingListingCreatedAt?: number;
   cryptoPaymentMode?: CryptoPaymentMode;
   cryptoAssets?: readonly CryptoAsset[];
+  mediaPackage?: ListingDraftMediaPackage;
   timestamp?: number;
 }): ListingDraftV1 {
   const confidence = input.evaluationConfidenceScore;
@@ -480,6 +496,7 @@ export function buildListingDraft(input: {
     evaluationHandoffActive: Boolean(input.evaluationHandoffActive),
     cryptoPaymentMode: cryptoPayment.mode,
     cryptoAssets: cryptoPayment.assets,
+    mediaPackage: sanitizeMediaPackage(input.mediaPackage),
     ...(pendingListingId
       ? { pendingListingId, pendingListingCreatedAt }
       : {}),
@@ -613,6 +630,7 @@ function parseListingDraftRecord(
             : undefined,
         cryptoPaymentMode: cryptoDraft.value.mode,
         cryptoAssets: cryptoDraft.value.assets,
+        mediaPackage: sanitizeMediaPackage(parsed.mediaPackage),
       }),
     };
   } catch {

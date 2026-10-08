@@ -54,10 +54,17 @@ import {
   saveListingAuthHandoff,
   saveListingDraftDebounced,
   type ListingDraftFormData,
+  type ListingDraftMediaPackage,
   type ListingDraftPackageId,
   type ListingDraftRestoreSource,
   type ListingDraftV1,
 } from "@/lib/listingDraft";
+import {
+  formatMediaPriceRon,
+  MEDIA_PACKAGE_IDS,
+  quoteMediaPackage,
+  resolveMediaPublishUiEligibility,
+} from "@/lib/mediaPricing";
 import {
   assertPublishCheckoutReady,
   guardedPublishStep,
@@ -152,6 +159,7 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
   const [saleStrategy, setSaleStrategy] = useState<string>(initialIntent.detailsStrategy);
   const [selectedPackage, setSelectedPackage] = useState<PackageIdParam>(initialIntent.packageId);
   const [saleMethod, setSaleMethod] = useState<SaleMethod>(initialIntent.saleMethod);
+  const [mediaPackage, setMediaPackage] = useState<ListingDraftMediaPackage>(null);
 
   const [isSaving, setIsSaving] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -231,6 +239,12 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
       pendingListingCreatedAt,
       cryptoPaymentMode,
       cryptoAssets,
+      mediaPackage: resolveMediaPublishUiEligibility({
+        pricingMode,
+        exitPrice,
+      }).eligible
+        ? mediaPackage
+        : null,
     });
 
   const trackDraftEvent = (
@@ -282,6 +296,7 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
     setPendingListingCreatedAt(draft.pendingListingCreatedAt);
     setCryptoPaymentMode(draft.cryptoPaymentMode);
     setCryptoAssets(draft.cryptoAssets);
+    setMediaPackage(draft.mediaPackage ?? null);
     setDraftRestored(true);
   };
 
@@ -364,6 +379,7 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
     pendingListingCreatedAt,
     cryptoPaymentMode,
     cryptoAssets,
+    mediaPackage,
   ]);
 
   const resetPublishFormToInitial = () => {
@@ -379,6 +395,7 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
     setPricingMode(null);
     setCryptoPaymentMode("none");
     setCryptoAssets([]);
+    setMediaPackage(null);
     setIsExitPriceManuallyEdited(false);
     setEvaluationPrefillActive(false);
     setEvaluationPrefillMessage(null);
@@ -702,6 +719,7 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
     if (nextMode === "price_on_request") {
       setExitPrice("");
       setIsExitPriceManuallyEdited(false);
+      setMediaPackage(null);
     }
     if (nextMode === "fixed_price") {
       // Păstrăm exit_price doar dacă a fost introdus explicit de utilizator.
@@ -726,6 +744,31 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
   }
 
   const selectedPackageMeta = PACKAGE_DEFS.find((p) => p.id === selectedPackage)!;
+
+  const mediaUiEligibility = resolveMediaPublishUiEligibility({
+    pricingMode,
+    exitPrice,
+  });
+  const effectiveMediaPackage = mediaUiEligibility.eligible ? mediaPackage : null;
+  const mediaQuote =
+    effectiveMediaPackage
+      ? (() => {
+          try {
+            return quoteMediaPackage(exitPrice, effectiveMediaPackage);
+          } catch {
+            return null;
+          }
+        })()
+      : null;
+  const listingFeeRon = packagePrices[selectedPackage];
+  const mediaFeeRon = mediaQuote?.amountRon ?? null;
+  const displayTotalRon = listingFeeRon + (mediaFeeRon ?? 0);
+  /** Preview/Production: Media combined checkout only when public flag is on (mirrors server MEDIA_CHECKOUT_ENABLED). */
+  const mediaCheckoutEnabled =
+    process.env.NEXT_PUBLIC_MEDIA_CHECKOUT_ENABLED === "true" ||
+    process.env.NEXT_PUBLIC_MEDIA_CHECKOUT_ENABLED === "1";
+  /** When flag is off, keep fail-closed UX so users cannot pay thinking Media is included. */
+  const mediaBlocksCheckout = !mediaCheckoutEnabled && effectiveMediaPackage !== null;
 
   const StepPill = ({ index, title }: { index: number; title: string }) => (
     <div
@@ -1000,21 +1043,40 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
 
     trackFunnelEvent("begin_checkout", funnelParams(), { skipOnce: true });
 
+    const mediaForCheckout =
+      mediaCheckoutEnabled && effectiveMediaPackage !== null ? effectiveMediaPackage : null;
+    const checkoutBody: Record<string, unknown> = {
+      priceId,
+      listingId,
+      type: "listing",
+      locale,
+      mediaPackage: mediaForCheckout,
+    };
+    if (mediaForCheckout !== null && mediaQuote?.amountRon != null) {
+      // Non-authoritative fingerprint only — server quote remains source of truth.
+      checkoutBody.expectedMediaAmountRon = mediaQuote.amountRon;
+    }
+
     const res = await fetch("/api/stripe/checkout", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${session.access_token}`,
       },
-      body: JSON.stringify({
-        priceId,
-        listingId,
-        type: "listing",
-      }),
+      body: JSON.stringify(checkoutBody),
     });
 
     const data = await res.json().catch(() => null);
     if (!res.ok || !data?.url) {
+      if (data?.code === "MEDIA_PRICE_CHANGED" && data?.quote?.amountRon != null) {
+        throw new Error(tPost("checkoutErrors.mediaPriceChanged"));
+      }
+      if (data?.code === "MEDIA_CHECKOUT_DISABLED") {
+        throw new Error(tPost("checkoutErrors.mediaCheckoutDisabled"));
+      }
+      if (data?.code === "media_already_paid") {
+        throw new Error(tPost("checkoutErrors.mediaAlreadyPaid"));
+      }
       throw new Error(data?.error || tPost("checkoutErrors.paymentFailed"));
     }
 
@@ -1028,6 +1090,9 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
         amount: packagePrices[selectedPackage],
         status: "created",
         category: categoryLabelToTrackingKey(category),
+        ...(mediaForCheckout
+          ? { media_checkout_attached: true, media_package: mediaForCheckout }
+          : {}),
       }),
     );
 
@@ -2722,6 +2787,108 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                 })}
               </div>
 
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-xl font-black uppercase italic tracking-tight text-black md:text-2xl">
+                    {tPost("mediaAddon.title")}
+                  </h3>
+                  <p className="mt-2 max-w-2xl text-sm font-semibold leading-relaxed text-neutral-600">
+                    {tPost("mediaAddon.body")}
+                  </p>
+                </div>
+
+                {!mediaUiEligibility.eligible ? (
+                  <p
+                    role="status"
+                    className="rounded-2xl border-2 border-neutral-300 bg-white px-4 py-3 text-sm font-semibold text-neutral-700"
+                  >
+                    {tPost("mediaAddon.unavailable")}
+                  </p>
+                ) : (
+                  <div
+                    role="radiogroup"
+                    aria-label={tPost("mediaAddon.title")}
+                    className="grid grid-cols-1 gap-3 sm:grid-cols-2"
+                  >
+                    <button
+                      type="button"
+                      role="radio"
+                      aria-checked={effectiveMediaPackage === null}
+                      onClick={() => setMediaPackage(null)}
+                      className={`rounded-2xl border-[3px] p-4 text-left transition-all focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[#FFD100] ${
+                        effectiveMediaPackage === null
+                          ? "border-black bg-[#FFD100] shadow-[6px_6px_0_0_rgba(0,0,0,1)]"
+                          : "border-neutral-200 bg-white hover:border-black"
+                      }`}
+                    >
+                      <p className="text-sm font-black uppercase italic text-black">
+                        {tPost("mediaAddon.none.title")}
+                      </p>
+                      <p className="mt-1 text-[11px] font-semibold text-neutral-700">
+                        {tPost("mediaAddon.none.blurb")}
+                      </p>
+                      <p className="mt-3 text-lg font-black tabular-nums text-black">—</p>
+                    </button>
+
+                    {MEDIA_PACKAGE_IDS.map((pkgId) => {
+                      const isSelected = effectiveMediaPackage === pkgId;
+                      let priceLabel = tPost("mediaAddon.priceUnavailable");
+                      try {
+                        const q = quoteMediaPackage(exitPrice, pkgId);
+                        priceLabel = formatMediaPriceRon(q.amountRon, locale);
+                      } catch {
+                        /* keep unavailable label */
+                      }
+                      const featureKeys =
+                        pkgId === "stories_4"
+                          ? (["f1", "f2", "f3", "f4"] as const)
+                          : pkgId === "stories_8"
+                            ? (["f1", "f2", "f3", "f4"] as const)
+                            : (["f1", "f2", "f3", "f4", "f5"] as const);
+                      return (
+                        <button
+                          key={pkgId}
+                          type="button"
+                          role="radio"
+                          aria-checked={isSelected}
+                          onClick={() => setMediaPackage(pkgId)}
+                          className={`rounded-2xl border-[3px] p-4 text-left transition-all focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[#FFD100] ${
+                            isSelected
+                              ? "border-black bg-[#FFD100] shadow-[6px_6px_0_0_rgba(0,0,0,1)]"
+                              : "border-neutral-200 bg-white hover:border-black"
+                          }`}
+                        >
+                          <p className="text-sm font-black uppercase italic text-black">
+                            {tPost(`mediaAddon.packages.${pkgId}.title`)}
+                          </p>
+                          <p className="mt-1 text-[11px] font-semibold leading-snug text-neutral-700">
+                            {tPost(`mediaAddon.packages.${pkgId}.blurb`)}
+                          </p>
+                          <ul className="mt-2 space-y-1 border-l-2 border-black/20 pl-2">
+                            {featureKeys.map((fk) => (
+                              <li
+                                key={fk}
+                                className="text-[10px] font-semibold leading-snug text-neutral-700"
+                              >
+                                {tPost(`mediaAddon.packages.${pkgId}.features.${fk}`)}
+                              </li>
+                            ))}
+                          </ul>
+                          <p className="mt-3 text-lg font-black tabular-nums text-black">
+                            {priceLabel}
+                          </p>
+                          {pkgId === "featured" ? (
+                            <p className="mt-2 text-[10px] font-semibold leading-snug text-neutral-600">
+                              {tPost("mediaAddon.featuredDisclaimer")}
+                            </p>
+                          ) : null}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
               <div className="rounded-2xl border-[3px] border-black bg-[#FDFCF8] px-5 py-5">
                 <p className="text-[10px] font-black uppercase tracking-widest text-neutral-500">
                   {tPost("review.heading")}
@@ -2761,16 +2928,39 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                       {tPost(`packages.${selectedPackageMeta.id}.duration`)}
                     </dd>
                   </div>
-                  <div className="flex justify-between gap-4">
-                    <dt className="text-neutral-500">{tPost("review.amount")}</dt>
+                  <div className="flex justify-between gap-4 border-t-2 border-black/10 pt-2">
+                    <dt className="text-neutral-500">{tPost("review.listingAmount")}</dt>
                     <dd className="text-right font-black tabular-nums">
-                      {packagePrices[selectedPackage]} RON
+                      {listingFeeRon} RON
+                    </dd>
+                  </div>
+                  <div className="flex justify-between gap-4">
+                    <dt className="text-neutral-500">{tPost("review.mediaAmount")}</dt>
+                    <dd className="text-right font-black tabular-nums">
+                      {effectiveMediaPackage === null
+                        ? "—"
+                        : mediaFeeRon != null
+                          ? `${mediaFeeRon} RON`
+                          : tPost("mediaAddon.priceUnavailable")}
+                    </dd>
+                  </div>
+                  <div className="flex justify-between gap-4 border-t-2 border-black/20 pt-2">
+                    <dt className="font-black uppercase tracking-wide text-black">
+                      {tPost("review.total")}
+                    </dt>
+                    <dd className="text-right text-lg font-black tabular-nums text-black">
+                      {displayTotalRon} RON
                     </dd>
                   </div>
                 </dl>
                 {saleMethod === "auction" ? (
                   <p className="mt-4 text-xs font-black uppercase tracking-wide text-black">
                     {tPost("saleMethod.auction.confirmation")}
+                  </p>
+                ) : null}
+                {effectiveMediaPackage !== null && !mediaCheckoutEnabled ? (
+                  <p className="mt-3 text-[11px] font-semibold leading-relaxed text-neutral-600">
+                    {tPost("mediaAddon.displayOnlyNote")}
                   </p>
                 ) : null}
               </div>
@@ -2794,14 +2984,44 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                 />
               </div>
 
+              {mediaBlocksCheckout ? (
+                <div
+                  role="status"
+                  className="rounded-2xl border-[3px] border-black bg-[#FFF8D6] px-5 py-4 text-sm font-semibold leading-relaxed text-neutral-900"
+                >
+                  {tPost("mediaAddon.phase2dPending")}
+                </div>
+              ) : null}
+
               <button
                 type="button"
                 onClick={handleFinalSubmit}
-                disabled={isSaving}
-                className="w-full bg-black py-5 text-[#FFD100] border-[3px] border-black rounded-2xl font-black uppercase tracking-widest text-sm italic transition-transform hover:scale-[1.01] shadow-[8px_8px_0_0_rgba(0,0,0,1)] active:translate-y-0.5 active:shadow-none disabled:opacity-50"
+                disabled={isSaving || mediaBlocksCheckout}
+                className="w-full bg-black py-5 text-[#FFD100] border-[3px] border-black rounded-2xl font-black uppercase tracking-widest text-sm italic transition-transform hover:scale-[1.01] shadow-[8px_8px_0_0_rgba(0,0,0,1)] active:translate-y-0.5 active:shadow-none disabled:opacity-50 disabled:hover:scale-100"
               >
                 {isSaving ? tPost("actions.preparingPayment") : tPost("actions.payAndPublish")}
               </button>
+
+              {mediaBlocksCheckout ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMediaPackage(null);
+                    setFlowError(null);
+                    flushListingDraftSave(
+                      buildListingDraft({
+                        ...snapshotListingDraft(),
+                        mediaPackage: null,
+                      }),
+                    );
+                    void handleFinalSubmit();
+                  }}
+                  disabled={isSaving}
+                  className="w-full rounded-2xl border-[3px] border-black bg-white py-4 text-sm font-black uppercase italic tracking-widest text-black shadow-[6px_6px_0_0_rgba(0,0,0,0.12)] transition hover:bg-[#FFD100] disabled:opacity-50"
+                >
+                  {tPost("mediaAddon.continueListingOnly")}
+                </button>
+              ) : null}
 
               <button
                 type="button"

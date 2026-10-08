@@ -63,6 +63,18 @@ export const PAGE_METADATA_COPY = {
         "Choose the right package to publish and promote your asset on Quick Exit.",
     },
   },
+  media: {
+    ro: {
+      title: "QuickExit Media | Stories editoriale pentru activul tău",
+      description:
+        "Research editorial și Stories short-form despre activul tău — nu campanii clasice. Pachete 4 Stories, 8 Stories și Featured, cu selecție editorială.",
+    },
+    en: {
+      title: "QuickExit Media | Editorial Stories for your asset",
+      description:
+        "Editorial research and short-form Stories about your asset — not classic ads. Packages for 4 Stories, 8 Stories and Featured, with editorial selection.",
+    },
+  },
   cumFunctioneaza: {
     ro: {
       title: "Cum funcționează | Quick Exit",

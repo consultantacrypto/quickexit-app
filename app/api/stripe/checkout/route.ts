@@ -10,6 +10,23 @@ import {
   getPriceIdForPackageId,
   type ListingPackageId,
 } from "@/lib/stripePackages";
+import {
+  resolveMediaCheckoutEligibility,
+  type MediaPackageId,
+  type MediaValueTier,
+} from "@/lib/mediaPricing";
+import {
+  assertListingAndMediaCurrencyCompatible,
+  buildCombinedListingMediaLineItems,
+  buildCombinedMediaCheckoutMetadata,
+  buildListingOnlyLineItems,
+  buildMediaCheckoutIdempotencyKey,
+  cancelMediaOrderAfterFailure,
+  isMediaCheckoutEnabled,
+  parseCheckoutMediaPackage,
+  persistMediaCheckoutSessionId,
+  preparePendingMediaOrder,
+} from "@/lib/mediaCheckout";
 
 function extractBearerToken(req: Request): string | null {
   const header = req.headers.get("authorization") || req.headers.get("Authorization");
@@ -23,6 +40,10 @@ function resolveListingPackageId(listing: {
   details?: unknown;
 }): ListingPackageId | null {
   return resolveListingPackageIdFromRow(listing);
+}
+
+function parseCheckoutLocale(value: unknown): "ro" | "en" {
+  return value === "en" ? "en" : "ro";
 }
 
 export async function POST(req: Request) {
@@ -84,6 +105,8 @@ export async function POST(req: Request) {
 
     const baseUrl = getSiteUrl();
     const stripe = new Stripe(stripeApiKey, {
+      // Keep existing Production API version pin (do not upgrade solely for Phase 2D).
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- pinned legacy Stripe API version
       apiVersion: "2023-10-16" as any,
     });
 
@@ -92,6 +115,12 @@ export async function POST(req: Request) {
     const listingId = String(body?.listingId ?? "").trim();
     const demandId = String(body?.demandId ?? "").trim();
     const clientPriceId = String(body?.priceId ?? "").trim();
+    const checkoutLocale = parseCheckoutLocale(body?.locale);
+    const mediaPackageParsed = parseCheckoutMediaPackage(body?.mediaPackage);
+    const clientExpectedMediaAmount =
+      body?.expectedMediaAmountRon === undefined || body?.expectedMediaAmountRon === null
+        ? null
+        : Number(body.expectedMediaAmountRon);
 
     let priceId = "";
     let objectId = "";
@@ -103,6 +132,16 @@ export async function POST(req: Request) {
       priceId: "",
     };
 
+    // Combined Media only applies to listing checkout.
+    let mediaAttach: {
+      mediaOrderId: string;
+      mediaPackage: MediaPackageId;
+      quoteAmountRon: number;
+      mediaTier: MediaValueTier;
+      lineItems: Stripe.Checkout.SessionCreateParams.LineItem[];
+      idempotencyKey: string;
+    } | null = null;
+
     if (type === "listing") {
       if (!listingId) {
         return NextResponse.json(
@@ -111,9 +150,28 @@ export async function POST(req: Request) {
         );
       }
 
+      if (mediaPackageParsed === "invalid") {
+        return NextResponse.json(
+          { error: "Pachet Media invalid.", code: "invalid_media_package" },
+          { status: 400 },
+        );
+      }
+
+      const wantsMedia = mediaPackageParsed !== null;
+
+      if (wantsMedia && !isMediaCheckoutEnabled()) {
+        return NextResponse.json(
+          {
+            error: "Checkout-ul Media nu este activ momentan.",
+            code: "MEDIA_CHECKOUT_DISABLED",
+          },
+          { status: 503 },
+        );
+      }
+
       const { data: listingRow, error: listingError } = await adminSupabase
         .from("listings")
-        .select("id, user_id, status, is_seed, sale_strategy, details")
+        .select("id, user_id, status, is_seed, sale_strategy, details, exit_price, listing_kind")
         .eq("id", listingId)
         .maybeSingle();
 
@@ -199,6 +257,84 @@ export async function POST(req: Request) {
         const prefillLevel = String(details.prefill_level ?? "").trim().slice(0, 40);
         if (prefillLevel) checkoutMetadata.prefill_level = prefillLevel;
       }
+
+      if (wantsMedia) {
+        const currencyCheck = assertListingAndMediaCurrencyCompatible();
+        if (!currencyCheck.ok) {
+          return NextResponse.json(
+            { error: currencyCheck.reason, code: "MEDIA_CURRENCY_MISMATCH" },
+            { status: 500 },
+          );
+        }
+
+        const eligibility = resolveMediaCheckoutEligibility({
+          userId: user.id,
+          mediaPackage: mediaPackageParsed,
+          listing: listingRow,
+        });
+
+        if (!eligibility.eligible || !eligibility.quote) {
+          return NextResponse.json(
+            {
+              error: "Anunțul nu este eligibil pentru QuickExit Media.",
+              code: eligibility.reason ?? "media_ineligible",
+            },
+            { status: 400 },
+          );
+        }
+
+        const quote = eligibility.quote;
+
+        if (
+          clientExpectedMediaAmount !== null &&
+          Number.isFinite(clientExpectedMediaAmount) &&
+          clientExpectedMediaAmount !== quote.amountRon
+        ) {
+          return NextResponse.json(
+            {
+              error: "Prețul Media s-a actualizat. Verifică totalul și încearcă din nou.",
+              code: "MEDIA_PRICE_CHANGED",
+              quote: {
+                package: quote.package,
+                tier: quote.tier,
+                amountRon: quote.amountRon,
+                currency: quote.currency,
+                listingValueEur: quote.listingValueEur,
+              },
+            },
+            { status: 409 },
+          );
+        }
+
+        const prepared = await preparePendingMediaOrder({
+          admin: adminSupabase,
+          listingId,
+          userId: user.id,
+          quote,
+          locale: checkoutLocale,
+        });
+
+        if (!prepared.ok) {
+          const status = prepared.code === "media_already_paid" ? 409 : 500;
+          return NextResponse.json(
+            { error: prepared.message, code: prepared.code },
+            { status },
+          );
+        }
+
+        mediaAttach = {
+          mediaOrderId: prepared.order.id,
+          mediaPackage: quote.package,
+          quoteAmountRon: quote.amountRon,
+          mediaTier: quote.tier,
+          lineItems: buildCombinedListingMediaLineItems(priceId, quote, checkoutLocale),
+          idempotencyKey: buildMediaCheckoutIdempotencyKey({
+            listingId,
+            listingPackageId: saleIntent.state.packageId,
+            mediaOrderId: prepared.order.id,
+          }),
+        };
+      }
     } else {
       if (!demandId) {
         return NextResponse.json(
@@ -207,6 +343,7 @@ export async function POST(req: Request) {
         );
       }
 
+      // Demand path: ignore any mediaPackage; never attach Media.
       const { data: demandRow, error: demandError } = await adminSupabase
         .from("demands")
         .select("id, buyer_id, status")
@@ -280,25 +417,105 @@ export async function POST(req: Request) {
         ? `payment=cancel&type=demand&demandId=${demandId}`
         : `payment=cancel&type=listing&listingId=${listingId}`;
 
-    const session = await stripe.checkout.sessions.create({
+    const lineItems = mediaAttach
+      ? mediaAttach.lineItems
+      : buildListingOnlyLineItems(pkg.priceId);
+
+    const sessionMetadata = mediaAttach
+      ? buildCombinedMediaCheckoutMetadata(checkoutMetadata, {
+          mediaOrderId: mediaAttach.mediaOrderId,
+          mediaPackage: mediaAttach.mediaPackage,
+          mediaTier: mediaAttach.mediaTier,
+        })
+      : checkoutMetadata;
+
+    // Listing-only / demand: preserve card-only (current Production behavior).
+    // Combined Media: omit payment_method_types → Stripe dynamic payment methods.
+    const sessionParams: Stripe.Checkout.SessionCreateParams = {
       mode: "payment",
-      payment_method_types: ["card"],
-      line_items: [
-        {
-          price: pkg.priceId,
-          quantity: 1,
-        },
-      ],
+      line_items: lineItems,
       success_url: `${baseUrl}/dashboard?${successQuery}&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${baseUrl}/dashboard?${cancelQuery}`,
-      metadata: checkoutMetadata,
-    });
+      metadata: sessionMetadata,
+    };
+    if (!mediaAttach) {
+      sessionParams.payment_method_types = ["card"];
+    }
+
+    let session: Stripe.Checkout.Session;
+    try {
+      session = mediaAttach
+        ? await stripe.checkout.sessions.create(sessionParams, {
+            idempotencyKey: mediaAttach.idempotencyKey,
+          })
+        : await stripe.checkout.sessions.create(sessionParams);
+    } catch (stripeError: unknown) {
+      if (mediaAttach) {
+        await cancelMediaOrderAfterFailure({
+          admin: adminSupabase,
+          mediaOrderId: mediaAttach.mediaOrderId,
+        });
+      }
+      const message =
+        stripeError instanceof Error ? stripeError.message : "Eroare Stripe la sesiune.";
+      console.error("[stripe/checkout] Stripe session create failed", {
+        message,
+        mediaOrderId: mediaAttach?.mediaOrderId ?? null,
+        listingId: listingId || null,
+      });
+      return NextResponse.json(
+        { error: "Nu am putut inițializa plata. Te rugăm să încerci din nou.", code: "stripe_session_failed" },
+        { status: 500 },
+      );
+    }
+
+    if (mediaAttach) {
+      const persisted = await persistMediaCheckoutSessionId({
+        admin: adminSupabase,
+        mediaOrderId: mediaAttach.mediaOrderId,
+        sessionId: session.id,
+      });
+
+      if (!persisted.ok) {
+        console.error("[stripe/checkout] orphan Stripe session — media_orders session id persist failed", {
+          sessionId: session.id,
+          mediaOrderId: mediaAttach.mediaOrderId,
+          listingId,
+          message: persisted.message,
+        });
+
+        try {
+          await stripe.checkout.sessions.expire(session.id);
+        } catch (expireError: unknown) {
+          const expireMessage =
+            expireError instanceof Error ? expireError.message : String(expireError);
+          console.error("[stripe/checkout] failed to expire orphan session", {
+            sessionId: session.id,
+            message: expireMessage,
+          });
+        }
+
+        await cancelMediaOrderAfterFailure({
+          admin: adminSupabase,
+          mediaOrderId: mediaAttach.mediaOrderId,
+        });
+
+        return NextResponse.json(
+          {
+            error: "Nu am putut finaliza inițializarea plății Media. Te rugăm să încerci din nou.",
+            code: "media_session_persist_failed",
+          },
+          { status: 500 },
+        );
+      }
+    }
 
     return NextResponse.json({ url: session.url, sessionId: session.id });
-  } catch (error: any) {
-    console.error("[stripe/checkout] Eroare la generarea sesiunii:", error?.message ?? error);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Eroare internă la inițializarea plății.";
+    console.error("[stripe/checkout] Eroare la generarea sesiunii:", message);
     return NextResponse.json(
-      { error: error?.message ?? "Eroare internă la inițializarea plății." },
+      { error: message },
       { status: 500 },
     );
   }
