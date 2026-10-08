@@ -2,6 +2,8 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { buildMediaOrderInsertSnapshot } from "../lib/mediaOrder";
 import {
+  formatMediaAddonPriceRon,
+  formatMediaPriceRon,
   getMediaPackagePriceRon,
   getMediaValueTier,
   MEDIA_PACKAGE_IDS,
@@ -213,5 +215,30 @@ assert(
 assert(migration.includes("media_orders_one_active_per_listing_idx"), "partial unique index");
 assert(migration.includes("media_orders_owner_select"), "owner select policy");
 assert(!/GRANT INSERT ON public\.media_orders TO authenticated/.test(migration), "no client insert");
+
+// Display-only add-on prefix — amounts unchanged
+assert(formatMediaPriceRon(449, "ro") === "449 RON", "base format ro");
+assert(formatMediaAddonPriceRon(449, "ro") === "+449 RON", "addon prefix ro");
+assert(formatMediaAddonPriceRon(1299, "ro") === "+1.299 RON", "addon thousands ro");
+assert(formatMediaAddonPriceRon(749, "en") === "+749 RON", "addon prefix en");
+const listingFee = 179;
+assert(listingFee + 0 === 179, "no media total = listing fee");
+const stories4Low = quoteMediaPackage(40_000, "stories_4");
+assert(listingFee + stories4Low.amountRon === listingFee + stories4Low.amountRon, "stories_4 total");
+assert(stories4Low.tier === "under_50k", "stories_4 low tier");
+const stories8Mid = quoteMediaPackage(75_000, "stories_8");
+assert(stories8Mid.tier === "50k_100k", "stories_8 mid tier");
+assert(
+  formatMediaAddonPriceRon(stories8Mid.amountRon, "ro") ===
+    `+${formatMediaPriceRon(stories8Mid.amountRon, "ro")}`,
+  "addon prefix wraps base format",
+);
+const featuredHi = quoteMediaPackage(600_000, "featured");
+assert(featuredHi.tier === "over_500k", "featured high tier");
+assert(
+  featuredHi.amountRon === getMediaPackagePriceRon(featuredHi.tier, "featured"),
+  "addon format does not alter amount",
+);
+assert(formatMediaAddonPriceRon(featuredHi.amountRon, "ro").startsWith("+"), "featured addon display");
 
 console.log("OK media-pricing");

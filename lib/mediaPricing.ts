@@ -271,6 +271,11 @@ export function formatMediaPriceRon(amount: number, locale: string): string {
   return `${formatted} RON`;
 }
 
+/** Display-only add-on prefix for publish Step 4. Does not change checkout amounts. */
+export function formatMediaAddonPriceRon(amount: number, locale: string): string {
+  return `+${formatMediaPriceRon(amount, locale)}`;
+}
+
 /**
  * Publish Step 4 UI eligibility (draft, before listing row exists).
  * Assumes seller-created specific_asset / non-seed — same as live publish insert.
