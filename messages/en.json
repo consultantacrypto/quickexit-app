@@ -88,12 +88,12 @@
       }
     },
     "mediaEditorialStatus": {
-      "queued": "Waiting for processing",
-      "needs_info": "We need additional information",
-      "in_research": "In research",
-      "in_production": "In production",
-      "published": "Published",
-      "rejected": "Needs review",
+      "queued": "Your Media payment is confirmed. Your order is in the editorial queue.",
+      "needs_info": "We need additional information to continue.",
+      "in_research": "The QuickExit team is researching the asset and preparing editorial angles.",
+      "in_production": "Your content is in production.",
+      "published": "Your Media package has been published.",
+      "rejected": "Your order requires editorial review. The QuickExit team will contact you.",
       "cancelled": "Cancelled"
     }
   },

@@ -1141,6 +1141,15 @@ export default function AdminHQ() {
               Priorități, riscuri și taskuri propuse. Read-only.
             </span>
           </Link>
+          <Link
+            href="/hq-admin/media"
+            className="rounded-full border-2 border-black/20 bg-[#FFD100]/70 px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-black transition-colors hover:border-black hover:bg-[#FFD100]"
+          >
+            Media Orders
+            <span className="ml-2 text-[9px] font-semibold normal-case tracking-normal text-neutral-700">
+              Coadă editorială QuickExit Media.
+            </span>
+          </Link>
         </div>
 
         <div className="rounded-[2rem] border-[3px] border-black bg-white p-6 shadow-[12px_12px_0_0_rgba(0,0,0,0.08)] md:p-10 md:shadow-[14px_14px_0_0_#FFD100]">
