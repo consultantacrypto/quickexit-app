@@ -165,11 +165,11 @@ assert(
   "ro paid media copy",
 );
 assert(
-  en.Dashboard?.mediaEditorialStatus?.queued?.toLowerCase().includes("waiting"),
+  en.Dashboard?.mediaEditorialStatus?.queued?.toLowerCase().includes("editorial queue"),
   "en editorial queued",
 );
 assert(
-  ro.Dashboard?.mediaEditorialStatus?.published === "Publicat",
+  ro.Dashboard?.mediaEditorialStatus?.published?.includes("publicat"),
   "ro published label",
 );
 

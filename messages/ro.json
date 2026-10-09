@@ -88,12 +88,12 @@
       }
     },
     "mediaEditorialStatus": {
-      "queued": "În așteptare pentru procesare",
-      "needs_info": "Avem nevoie de informații suplimentare",
-      "in_research": "În research",
-      "in_production": "În producție",
-      "published": "Publicat",
-      "rejected": "Necesită verificare",
+      "queued": "Plata Media a fost confirmată. Comanda a intrat în coada editorială.",
+      "needs_info": "Avem nevoie de informații suplimentare pentru a continua.",
+      "in_research": "Echipa QuickExit documentează activul și pregătește unghiurile editoriale.",
+      "in_production": "Conținutul este în producție.",
+      "published": "Pachetul Media a fost publicat.",
+      "rejected": "Comanda necesită revizuire editorială. Echipa QuickExit te va contacta.",
       "cancelled": "Anulat"
     }
   },
