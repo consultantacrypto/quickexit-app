@@ -311,6 +311,8 @@ const route = readFileSync(resolve("app/api/stripe/webhook/route.ts"), "utf8");
 assert(route.includes("isCombinedCheckoutFulfillmentEvent"), "fulfillment event helper");
 assert(route.includes("isAsyncPaymentFailedEvent"), "async failed helper");
 assert(route.includes("markMediaOrderPaid"), "media paid helper");
+assert(route.includes("notifyMediaHqPaidQueued"), "3B HQ notify after paid");
+assert(route.includes('paid.outcome === "updated"'), "notify only on newly paid");
 assert(route.includes("classifyCombinedPaidSessionAmount"), "combined amount");
 assert(route.includes("shouldRejectTestModeEvent"), "safe test gate");
 assert(!route.includes("isMediaCheckoutEnabled"), "fulfillment not gated on UI flag");

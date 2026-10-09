@@ -16,6 +16,11 @@ export type MediaOrderFulfillmentRow = {
   stripe_checkout_session_id: string | null;
   stripe_payment_intent_id: string | null;
   paid_at: string | null;
+  /** Present for HQ notify payload; optional for older call sites. */
+  listing_value_eur_snapshot?: number | null;
+  value_tier?: string | null;
+  locale?: string | null;
+  source?: string | null;
 };
 
 export type MediaWebhookFailureCode =
@@ -239,7 +244,7 @@ export async function loadMediaOrderForFulfillment(
   const { data, error } = await admin
     .from("media_orders")
     .select(
-      "id, listing_id, user_id, package, amount_ron, currency, payment_status, editorial_status, stripe_checkout_session_id, stripe_payment_intent_id, paid_at",
+      "id, listing_id, user_id, package, amount_ron, currency, payment_status, editorial_status, stripe_checkout_session_id, stripe_payment_intent_id, paid_at, listing_value_eur_snapshot, value_tier, locale, source",
     )
     .eq("id", mediaOrderId)
     .maybeSingle();

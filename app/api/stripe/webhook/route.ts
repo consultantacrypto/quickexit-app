@@ -41,6 +41,7 @@ import {
   normalizeStripeLineItems,
   shouldRejectTestModeEvent,
 } from "@/lib/mediaWebhookFulfillment";
+import { notifyMediaHqPaidQueued } from "@/lib/notifyMediaHq";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -591,8 +592,8 @@ export async function POST(req: Request) {
             eventId: event.id,
             sessionId: session.id,
             listingId: objectId,
-            mediaOrderId,
             listingActivated: true,
+            mediaOrderId,
             message: paid.message,
           });
         }
@@ -603,6 +604,57 @@ export async function POST(req: Request) {
           mediaOrderId,
           outcome: paid.outcome,
         });
+
+        // Best-effort HQ email — only on proven pending→paid. Never fails the webhook.
+        if (paid.outcome === "updated") {
+          try {
+            const orderSnap = mediaOrder;
+            let listingTitle = "Anunț QuickExit";
+            const { data: listingRow } = await supabase
+              .from("listings")
+              .select("title")
+              .eq("id", objectId)
+              .maybeSingle();
+            if (listingRow?.title) {
+              listingTitle = String(listingRow.title);
+            }
+
+            const notify = await notifyMediaHqPaidQueued({
+              newlyPaid: true,
+              editorialStatus: "queued",
+              payload: {
+                mediaOrderId,
+                listingId: objectId,
+                listingTitle,
+                package: String(orderSnap?.package ?? metadataMediaPackage ?? ""),
+                amountRon: Number(orderSnap?.amount_ron ?? 0),
+                listingValueEur: Number(orderSnap?.listing_value_eur_snapshot ?? 0),
+                valueTier: String(orderSnap?.value_tier ?? ""),
+                paidAt: new Date().toISOString(),
+                locale:
+                  orderSnap?.locale ??
+                  (typeof metadata?.locale === "string" ? metadata.locale : null),
+                source: orderSnap?.source ?? "publish_checkout",
+                editorialStatus: "queued",
+              },
+            });
+            console.log("[stripe/webhook] Media HQ notify", {
+              eventId: event.id,
+              mediaOrderId,
+              listingId: objectId,
+              attempted: notify.attempted,
+              sent: notify.sent,
+              skipped: notify.skipped,
+              reason: notify.reason,
+            });
+          } catch {
+            console.warn("[stripe/webhook] Media HQ notify threw (ignored)", {
+              eventId: event.id,
+              mediaOrderId,
+              listingId: objectId,
+            });
+          }
+        }
       } else {
         console.log("[stripe/webhook] Media order already paid (idempotent)", {
           eventId: event.id,
