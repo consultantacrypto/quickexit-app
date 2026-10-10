@@ -250,7 +250,8 @@ function generateOperationalRisks(
         severity: "low",
         title: "Raport de evaluare cu încredere scăzută",
         description: `Raport evaluare scor încredere ${c}% (sub prag 50%).`,
-        detected_at: r.created_at ?? null,
+        // Production column is generated_at (created_at does not exist).
+        detected_at: r.generated_at ?? null,
         href: null,
       });
     }

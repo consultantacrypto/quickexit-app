@@ -5,6 +5,7 @@ import {
   HQ_LISTING_COLUMNS,
   HQ_OVERVIEW_LIMITS,
   HQ_PROFILE_COLUMNS,
+  HQ_VALUATION_COLUMNS,
   parseHqRiskResolutionBody,
   isHqUuid,
 } from "../lib/hqOverview";
@@ -59,6 +60,32 @@ assert(
 assert(HQ_LISTING_COLUMNS.includes("title") && !HQ_LISTING_COLUMNS.includes("*"), "columns explicit");
 assert(HQ_DEMAND_COLUMNS.includes("buyer_id"), "demands include buyer_id for orphan risk");
 assert(HQ_PROFILE_COLUMNS.includes("kyc_status") && !HQ_PROFILE_COLUMNS.includes("email"), "profiles no email");
+
+// Production schema contract (H4A.1) — must not reintroduce invalid columns.
+assert(
+  !/(^|,\s*)location(,|$)/.test(HQ_LISTING_COLUMNS),
+  "listings must NOT select location (column absent in Production)"
+);
+assert(
+  !HQ_LISTING_COLUMNS.includes("discount_percentage"),
+  "listings must NOT select discount_percentage (absent in Production)"
+);
+assert(
+  HQ_LISTING_COLUMNS.includes("details") && HQ_LISTING_COLUMNS.includes("discount"),
+  "listings must select details + discount"
+);
+assert(
+  !/(^|,\s*)created_at(,|$)/.test(HQ_VALUATION_COLUMNS),
+  "valuation_reports must NOT select created_at (absent in Production)"
+);
+assert(
+  HQ_VALUATION_COLUMNS.includes("generated_at"),
+  "valuation_reports must select generated_at"
+);
+assert(
+  hqPage.includes("generated_at") && !/valuationReports\.forEach[\s\S]*?detected_at:\s*r\.created_at/.test(hqPage),
+  "HQ risk UI uses valuation generated_at"
+);
 
 // --- B. Risk resolutions ---
 

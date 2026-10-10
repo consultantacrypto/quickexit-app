@@ -13,6 +13,7 @@ export const HQ_OVERVIEW_LIMITS = {
   riskResolutions: 50,
 } as const;
 
+/** Production-aligned listing columns (no location / discount_percentage — not in schema). */
 export const HQ_LISTING_COLUMNS = [
   "id",
   "title",
@@ -26,9 +27,7 @@ export const HQ_LISTING_COLUMNS = [
   "details",
   "images",
   "sale_strategy",
-  "location",
   "discount",
-  "discount_percentage",
   "deal_score",
 ].join(", ");
 
@@ -70,10 +69,11 @@ export const HQ_PROFILE_COLUMNS = [
   "created_at",
 ].join(", ");
 
+/** Production valuation timestamp column is generated_at (not created_at). */
 export const HQ_VALUATION_COLUMNS = [
   "id",
   "confidence_score",
-  "created_at",
+  "generated_at",
 ].join(", ");
 
 export const HQ_RISK_RESOLUTION_COLUMNS = [
