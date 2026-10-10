@@ -18,8 +18,6 @@ import {
 import ListingLocationFields from "@/app/components/ListingLocationFields";
 import { normalizeSaleType } from "@/utils/normalizeSaleType";
 
-const ADMIN_EMAILS = ["consultantacrypto.ro@gmail.com"];
-
 type TabId = "overview" | "copilot" | "listings" | "demands" | "offers" | "inquiries" | "profiles" | "risks";
 
 type OperationalRiskSeverity = "critical" | "high" | "medium" | "low";
@@ -81,11 +79,6 @@ type CopilotStructuredResult = {
   rawText?: string;
   parseWarning?: boolean;
 };
-
-function isAdminEmail(email: string | undefined | null): boolean {
-  if (!email) return false;
-  return ADMIN_EMAILS.includes(email.trim().toLowerCase());
-}
 
 function listingStatusLabel(status: string | undefined): string {
   const s = (status || "").toLowerCase();
@@ -416,11 +409,8 @@ export default function AdminHQ() {
       if (cancelled) return;
 
       if (!user) {
+        // Server layout already gates HQ; this covers expired client session.
         setGate("anon");
-        return;
-      }
-      if (!isAdminEmail(user.email)) {
-        setGate("forbidden");
         return;
       }
 

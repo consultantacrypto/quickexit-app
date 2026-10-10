@@ -124,22 +124,25 @@ const mediaPage = readFileSync(
   resolve("app/[locale]/hq-admin/media/page.tsx"),
   "utf8",
 );
-assert(mediaPage.includes("resolveMediaHqPageAuth"), "server page gate");
-assert(mediaPage.includes("MediaOpsClient"), "renders client only after gate");
-assert(mediaPage.includes('status === "anon"'), "anon blocked server-side");
-assert(mediaPage.includes('status === "forbidden"'), "forbidden blocked server-side");
+const hqLayout = readFileSync(resolve("app/[locale]/hq-admin/layout.tsx"), "utf8");
+assert(hqLayout.includes("resolveHqAdminPageAuth"), "shared hq-admin layout server gate");
+assert(mediaPage.includes("MediaOpsClient"), "renders client after shared layout gate");
 assert(
-  mediaPage.indexOf("resolveMediaHqPageAuth") < mediaPage.indexOf("MediaOpsClient"),
-  "gate before client render",
+  !mediaPage.includes("resolveMediaHqPageAuth"),
+  "media page uses shared layout instead of local gate",
 );
 
 const serverAuth = readFileSync(resolve("lib/mediaHqServerAuth.ts"), "utf8");
-assert(serverAuth.includes("getHqAdminEmails"), "uses HQ_ADMIN_EMAILS helper");
-assert(serverAuth.includes("createServerSupabaseClient"), "cookie session");
-assert(serverAuth.includes("getUser"), "validates user server-side");
-assert(serverAuth.includes('status: "authorized"'), "authorized status");
+assert(serverAuth.includes("resolveHqAdminPageAuth"), "Media auth delegates to canonical HQ auth");
 assert(!serverAuth.includes("NEXT_PUBLIC"), "allowlist stays server-only");
 assert(!serverAuth.includes("consultantacrypto"), "no hardcoded email in server auth");
+
+const pageAuth = readFileSync(resolve("lib/hqAdminPageAuth.ts"), "utf8");
+const allowlist = readFileSync(resolve("lib/hqAdminAllowlist.ts"), "utf8");
+assert(pageAuth.includes("createServerSupabaseClient"), "canonical cookie session");
+assert(pageAuth.includes("getUser"), "validates user server-side");
+assert(pageAuth.includes('status: "authorized"'), "authorized status");
+assert(allowlist.includes("getHqAdminEmails"), "uses HQ_ADMIN_EMAILS helper");
 
 const hqPage = readFileSync(resolve("app/[locale]/hq-admin/page.tsx"), "utf8");
 assert(hqPage.includes("/hq-admin/media"), "HQ nav link to media");

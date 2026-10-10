@@ -1,7 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { assertHqAdminFromAccessToken } from "@/lib/hqAdminAuth";
 import { normalizeSaleType } from "@/utils/normalizeSaleType";
 import {
   applyListingLocationToDetails,
@@ -30,65 +31,25 @@ function revalidateAuctionListingPages(listingId: string): void {
   }
 }
 
-// Allowlist de admini — aliniat cu restul aplicației (HQ Copilot / hq-admin).
-// Suprascriere prin env: HQ_ADMIN_EMAILS="a@x.com,b@y.com".
-function getAdminEmails(): string[] {
-  return (process.env.HQ_ADMIN_EMAILS || "consultantacrypto.ro@gmail.com")
-    .split(",")
-    .map((e) => e.trim().toLowerCase())
-    .filter(Boolean);
-}
-
 function isValidTable(table: string): table is AdminTable {
   return table === "listings" || table === "demands";
 }
 
 /**
- * FILTRU DE SECURITATE STRICT.
- * 1. Validează identitatea utilizatorului cu cheia ANON + access token-ul lui
- *    (NU folosim service role pentru verificare — ar sări peste autentificare).
- * 2. Verifică dacă emailul este în allowlist-ul de admin.
- * 3. Doar dacă ambele trec, returnează un client cu SERVICE_ROLE (bypass RLS).
- * Aruncă o eroare dacă oricare pas eșuează — nimic nu se execută cu service role
- * fără o identitate de admin confirmată.
+ * FILTRU DE SECURITATE STRICT — canonical HQ allowlist (fail-closed).
+ * Service-role client is returned only after authenticated admin membership.
  */
 async function assertAdminAndGetServiceClient(
   accessToken: string
 ): Promise<SupabaseClient> {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  if (!supabaseUrl || !anonKey || !serviceRoleKey) {
-    throw new Error("Config server incompletă pentru acțiuni admin.");
+  const auth = await assertHqAdminFromAccessToken(accessToken);
+  if (!auth.ok) {
+    if (auth.status === 401) {
+      throw new Error("Sesiune invalidă sau expirată.");
+    }
+    throw new Error("Acces refuzat.");
   }
-  if (!accessToken || typeof accessToken !== "string") {
-    throw new Error("Lipsește tokenul de sesiune.");
-  }
-
-  // Pasul 1: identitate verificată cu cheia ANON (nu service role).
-  const authClient = createClient(supabaseUrl, anonKey, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
-  const {
-    data: { user },
-    error: authError,
-  } = await authClient.auth.getUser(accessToken);
-
-  if (authError || !user) {
-    throw new Error("Sesiune invalidă sau expirată.");
-  }
-
-  // Pasul 2: gate de admin pe email.
-  const email = (user.email || "").trim().toLowerCase();
-  if (!getAdminEmails().includes(email)) {
-    throw new Error("Acces refuzat: utilizatorul nu este administrator.");
-  }
-
-  // Pasul 3: abia acum primim puteri de service role (bypass RLS).
-  return createClient(supabaseUrl, serviceRoleKey, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
+  return auth.supabase;
 }
 
 // Update cu degradare a coloanelor opționale (paid / expires_at) dacă lipsesc

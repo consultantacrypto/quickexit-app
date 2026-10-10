@@ -2,7 +2,7 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { getClientIp } from "@/lib/evaluateSafety";
 import { calculateFinancing, type FinancingCalculationResult } from "@/lib/financingCalculator";
 import { financingConfig } from "@/lib/financingConfig";
-import { getHqAdminEmails } from "@/lib/hqAdminAuth";
+import { getHqAdminEmails } from "@/lib/hqAdminAllowlist";
 import { isFinancingCalculatorEnabled } from "@/lib/listingFinancing";
 import { getSiteUrl } from "@/lib/siteUrl";
 
@@ -96,7 +96,8 @@ export function getFinancingLeadOwnerEmail(): string {
   if (fromEnv) {
     return fromEnv;
   }
-  return getHqAdminEmails()[0] ?? "consultantacrypto.ro@gmail.com";
+  // Prefer first configured HQ admin; never fall back to a hardcoded identity.
+  return getHqAdminEmails()[0] ?? "";
 }
 
 export function checkFinancingRateLimit(ip: string): { allowed: true } | { allowed: false } {

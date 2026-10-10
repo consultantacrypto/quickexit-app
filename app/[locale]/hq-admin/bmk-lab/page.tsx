@@ -4,8 +4,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { createPublicClient, formatUnits, http } from "viem";
 
-const ADMIN_EMAILS = ["consultantacrypto.ro@gmail.com"];
-
 const BMK_ADDRESS = "0xc7e9d03b6f13d7215c2e2b1854a2b0bdbebe6fb9" as const;
 const BSC_CHAIN_ID_HEX = "0x38";
 const BSC_CHAIN_ID_DECIMAL = 56;
@@ -56,11 +54,6 @@ declare global {
   }
 }
 
-function isAdminEmail(email: string | undefined | null): boolean {
-  if (!email) return false;
-  return ADMIN_EMAILS.includes(email.trim().toLowerCase());
-}
-
 function shortAddress(address: string): string {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }
@@ -105,11 +98,8 @@ export default function BMKLabPage() {
 
       if (cancelled) return;
       if (!user) {
+        // Server layout already gates HQ; this covers expired client session.
         setGate("anon");
-        return;
-      }
-      if (!isAdminEmail(user.email)) {
-        setGate("forbidden");
         return;
       }
       setGate("ready");

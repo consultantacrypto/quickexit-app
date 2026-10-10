@@ -22,8 +22,6 @@ import {
 type AiChannel = "whatsapp" | "linkedin" | "email" | "phone";
 type AiTone = "natural" | "premium" | "direct";
 
-const ADMIN_EMAILS = ["consultantacrypto.ro@gmail.com"];
-
 type GateState = "loading" | "anon" | "forbidden" | "ready";
 
 type FilterState = {
@@ -135,11 +133,6 @@ function ChipSelector({
       </div>
     </div>
   );
-}
-
-function isAdminEmail(email: string | undefined | null): boolean {
-  if (!email) return false;
-  return ADMIN_EMAILS.includes(email.trim().toLowerCase());
 }
 
 async function getAccessToken(): Promise<string | null> {
@@ -350,11 +343,8 @@ export default function LeadAgentClient() {
       } = await supabase.auth.getUser();
       if (cancelled) return;
       if (!user) {
+        // Server layout already gates HQ; this covers expired client session.
         setGate("anon");
-        return;
-      }
-      if (!isAdminEmail(user.email)) {
-        setGate("forbidden");
         return;
       }
       setOperatorEmail(user.email ?? "");

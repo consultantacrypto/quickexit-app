@@ -7,7 +7,7 @@ import {
   HQ_INQUIRY_STATUSES,
   HQ_INQUIRY_DEFAULT_VIEW,
 } from "../lib/listingInquiry";
-import { getHqAdminEmails, extractBearerToken } from "../lib/hqAdminAuth";
+import { parseHqAdminEmails, extractBearerToken } from "../lib/hqAdminAuth";
 
 function fail(message: string): never {
   console.error(`FAIL ${message}`);
@@ -60,9 +60,8 @@ assert(!missingId.ok, "missing id rejected");
 const unauth = extractBearerToken(new Request("http://localhost/api/hq/inquiries"));
 assert(unauth === "", "missing Authorization is empty bearer");
 
-const emails = getHqAdminEmails();
-assert(emails.length > 0, "HQ allowlist is non-empty");
-assert(emails.every((email) => email.includes("@")), "HQ allowlist is emails");
+assert(parseHqAdminEmails("a@x.com, b@y.com").length === 2, "HQ allowlist parser accepts emails");
+assert(parseHqAdminEmails("").length === 0, "HQ allowlist fail-closed when empty");
 
 const route = readFileSync(resolve("app/api/hq/inquiries/route.ts"), "utf8");
 const getFn = route.indexOf("export async function GET");
@@ -88,7 +87,9 @@ assert(route.includes("NO_STORE_HEADERS"), "HQ responses are private/no-store");
 assert(!route.includes("isAdminEmail("), "API does not use UI email gate");
 
 const hqUi = readFileSync(resolve("app/[locale]/hq-admin/page.tsx"), "utf8");
-assert(hqUi.includes("isAdminEmail"), "HQ UI visibility is a client gate only");
+const hqLayout = readFileSync(resolve("app/[locale]/hq-admin/layout.tsx"), "utf8");
+assert(hqLayout.includes("resolveHqAdminPageAuth"), "HQ UI is server-gated via layout");
+assert(!hqUi.includes("isAdminEmail"), "HQ UI no longer uses client email authority");
 assert(hqUi.includes("/api/hq/inquiries?"), "HQ UI calls server inquiries API with query");
 assert(hqUi.includes('view=fallback') || hqUi.includes('fetchHqInquiries("fallback"'), "initial HQ view is fallback");
 assert(hqUi.includes("Toate solicitările"), "all inquiries is an explicit action");

@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import {
+  assertHqAdminFromBearer,
+  extractBearerToken,
+} from "@/lib/hqAdminAuth";
 import {
   getGaAuthMode,
   getAnalyticsSnapshot,
@@ -349,8 +352,6 @@ function modeSpecificInstruction(mode: CopilotMode): string {
 
 export async function POST(req: NextRequest) {
   try {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
     const geminiApiKey = process.env.GEMINI_API_KEY;
     const configuredModel = process.env.GEMINI_MODEL || "gemini-2.5-flash";
@@ -362,14 +363,11 @@ export async function POST(req: NextRequest) {
       )
     );
 
-    if (!supabaseUrl || !anonKey) {
-      return NextResponse.json({ success: false, error: "Config Supabase incompleta: lipsesc URL sau anon key." }, { status: 500 });
-    }
-
-    if (!serviceRoleKey) {
+    const auth = await assertHqAdminFromBearer(extractBearerToken(req));
+    if (!auth.ok) {
       return NextResponse.json(
-        { success: false, error: "Config server incompleta: SUPABASE_SERVICE_ROLE_KEY lipseste." },
-        { status: 500 }
+        { success: false, error: "Access denied." },
+        { status: auth.status }
       );
     }
 
@@ -378,34 +376,6 @@ export async function POST(req: NextRequest) {
         { success: false, error: "Config server incompleta: GEMINI_API_KEY lipseste." },
         { status: 500 }
       );
-    }
-
-    const authHeader = req.headers.get("authorization") || req.headers.get("Authorization");
-    const bearer = authHeader?.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
-    if (!bearer) {
-      return NextResponse.json({ success: false, error: "Token lipsa. Trimite Authorization Bearer." }, { status: 401 });
-    }
-
-    const authSupabase = createClient(supabaseUrl, anonKey, {
-      global: { headers: { Authorization: `Bearer ${bearer}` } },
-    });
-    const {
-      data: { user },
-      error: authError,
-    } = await authSupabase.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json({ success: false, error: "Autentificare invalida sau expirata." }, { status: 401 });
-    }
-
-    const ADMIN_EMAILS = (process.env.HQ_ADMIN_EMAILS || "consultantacrypto.ro@gmail.com")
-      .split(",")
-      .map((e) => e.trim().toLowerCase())
-      .filter(Boolean);
-
-    const userEmail = String(user.email || "").trim().toLowerCase();
-    if (!ADMIN_EMAILS.includes(userEmail)) {
-      return NextResponse.json({ success: false, error: "Acces interzis. Doar adminii pot folosi HQ Copilot." }, { status: 403 });
     }
 
     const body = (await req.json().catch(() => ({}))) as { mode?: unknown };
@@ -550,7 +520,7 @@ export async function POST(req: NextRequest) {
     }
 
     const warnings: string[] = [];
-    const adminSupabase = createClient(supabaseUrl, serviceRoleKey);
+    const adminSupabase = auth.supabase;
 
     const [listingsRes, demandsRes, listingOffersRes, demandOffersRes, profilesRes] =
       await Promise.all([

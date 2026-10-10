@@ -1,92 +1,16 @@
-"use client";
-
-import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { supabase } from "@/lib/supabase";
 import { renderOperatorBriefMarkdown } from "@/lib/operatorBriefMarkdown";
-
-const ADMIN_EMAILS = ["consultantacrypto.ro@gmail.com"];
-
-type GateState = "loading" | "anon" | "forbidden" | "ready";
-
-function isAdminEmail(email: string | undefined | null): boolean {
-  if (!email) return false;
-  return ADMIN_EMAILS.includes(email.trim().toLowerCase());
-}
 
 type Props = {
   initialContent: string;
   readError: string | null;
 };
 
+/**
+ * Presentational only. Authority is enforced by hq-admin layout + page
+ * (canonical HQ_ADMIN_EMAILS, fail-closed) before this renders.
+ */
 export default function OperatorBriefClient({ initialContent, readError }: Props) {
-  const [gate, setGate] = useState<GateState>("loading");
-
-  const init = useCallback(async () => {
-    setGate("loading");
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
-      setGate("anon");
-      return;
-    }
-    if (!isAdminEmail(user.email)) {
-      setGate("forbidden");
-      return;
-    }
-    setGate("ready");
-  }, []);
-
-  useEffect(() => {
-    void init();
-  }, [init]);
-
-  if (gate === "loading") {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-[#F7F4EC] px-6 font-sans antialiased">
-        <div className="w-full max-w-md rounded-[2rem] border-[3px] border-black bg-white p-10 text-center shadow-[12px_12px_0_0_#FFD100]">
-          <div className="mx-auto mb-6 h-12 w-12 animate-spin rounded-full border-[3px] border-neutral-200 border-t-black" />
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-600">Se verifică accesul…</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (gate === "anon") {
-    return (
-      <div className="min-h-screen bg-[#F7F4EC] px-4 py-20 font-sans antialiased md:px-8">
-        <div className="mx-auto max-w-lg rounded-[2rem] border-[3px] border-black bg-white p-10 text-center shadow-[12px_12px_0_0_#FFD100]">
-          <h1 className="text-xl font-black uppercase italic text-black">Acces restricționat</h1>
-          <p className="mt-4 text-sm font-medium text-neutral-600">Autentifică-te pentru a continua.</p>
-          <Link
-            href="/"
-            className="mt-8 inline-block w-full rounded-2xl border-[3px] border-black bg-black py-4 text-xs font-black uppercase tracking-widest text-[#FFD100] transition hover:brightness-110"
-          >
-            Înapoi la pagina principală
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
-  if (gate === "forbidden") {
-    return (
-      <div className="min-h-screen bg-[#F7F4EC] px-4 py-20 font-sans antialiased md:px-8">
-        <div className="mx-auto max-w-lg rounded-[2rem] border-[3px] border-black bg-white p-10 text-center shadow-[12px_12px_0_0_#FFD100]">
-          <h1 className="text-xl font-black uppercase italic text-black">Acces refuzat</h1>
-          <p className="mt-4 text-sm font-medium text-neutral-600">Nu ai acces la această zonă.</p>
-          <Link
-            href="/"
-            className="mt-8 inline-block w-full rounded-2xl border-[3px] border-black bg-white py-4 text-xs font-black uppercase tracking-widest text-black shadow-[4px_4px_0_0_#000] transition hover:bg-neutral-50"
-          >
-            Înapoi la pagina principală
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-[#F7F4EC] px-4 pb-28 pt-20 font-sans text-neutral-900 antialiased selection:bg-[#FFD100]/40 md:px-8">
       <div className="mx-auto max-w-4xl space-y-8">
