@@ -7,6 +7,7 @@ type Props = {
 
 /**
  * Safe HQ gate UI — no allowlist contents, no near-match hints.
+ * Anon and forbidden are distinct; never show both states at once.
  */
 export default function HqAdminUnauthorized({ locale, variant }: Props) {
   const lang = locale === "en" ? "en" : "ro";
@@ -19,7 +20,9 @@ export default function HqAdminUnauthorized({ locale, variant }: Props) {
           {lang === "en" ? "Sign in required" : "Autentificare necesară"}
         </p>
         <p className="mt-3 text-sm font-medium text-neutral-600">
-          {lang === "en" ? "Access denied." : "Acces refuzat."}
+          {lang === "en"
+            ? "Please sign in to continue."
+            : "Conectează-te pentru a continua."}
         </p>
         <Link
           href={dashboardHref}

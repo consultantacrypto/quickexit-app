@@ -19,7 +19,7 @@ export async function createServerSupabaseClient() {
             cookieStore.set(name, value, options);
           });
         } catch {
-          // Setarea cookie-urilor poate eșua în unele Server Components; route handlers OK.
+          // Setarea cookie-urilor poate eșua în unele Server Components; middleware / route handlers OK.
         }
       },
     },

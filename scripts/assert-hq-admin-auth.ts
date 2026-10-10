@@ -115,6 +115,24 @@ assert(layout.includes("from \"@/lib/hqAdminPageAuth\""), "layout imports server
 assert(layout.includes("HqAdminUnauthorized"), "unauthorized UI for denied users");
 assert(!layout.includes("consultantacrypto.ro@gmail.com"), "layout no hardcoded email");
 
+const unauthorized = readFileSync(
+  resolve("app/components/HqAdminUnauthorized.tsx"),
+  "utf8"
+);
+assert(
+  unauthorized.includes("Please sign in to continue.") &&
+    unauthorized.includes("Conectează-te pentru a continua."),
+  "anon HQ copy is sign-in required"
+);
+const anonSlice = unauthorized.slice(
+  unauthorized.indexOf('variant === "anon"'),
+  unauthorized.indexOf('variant === "error"')
+);
+assert(
+  !anonSlice.includes("Access denied.") && !anonSlice.includes("Acces refuzat."),
+  "anon HQ must not also say access denied"
+);
+
 assert(
   adminActions.includes("assertHqAdminFromAccessToken"),
   "server actions use canonical access-token auth"

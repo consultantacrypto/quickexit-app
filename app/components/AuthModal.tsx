@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { supabase } from "@/lib/supabase";
+import { safeInternalPath } from "@/lib/authRedirect";
 import { getAuthCallbackUrl } from "@/lib/siteUrl";
 
 interface AuthModalProps {
@@ -18,7 +19,7 @@ export default function AuthModal({ isOpen, onClose, nextPath = "/dashboard" }: 
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState<{ text: string; type: "error" | "success" | "" }>({ text: "", type: "" });
-  const safeNextPath = nextPath.startsWith("/") ? nextPath : "/dashboard";
+  const safeNextPath = safeInternalPath(nextPath, "/dashboard");
 
   // Reținem emailul ca să nu mai fie nevoie de reintroducere (Anti-Amnezie)
   useEffect(() => {

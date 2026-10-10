@@ -1,3 +1,5 @@
+import { safeInternalPath } from "@/lib/authRedirect";
+
 /** Domeniu producție — singura origine pentru SEO/metadate în afara localhost. */
 export const PRODUCTION_SITE_URL = "https://www.quickexit.ro";
 
@@ -84,7 +86,8 @@ export function resolveAuthLocale(locale?: string): "ro" | "en" {
  */
 export function getAuthCallbackUrl(next = "/dashboard", locale?: string): string {
   const resolvedLocale = resolveAuthLocale(locale);
-  const safeNext = next.startsWith("/") ? next : "/dashboard";
+  // safeInternalPath — startsWith("/") alone allows //host open redirects.
+  const safeNext = safeInternalPath(next, "/dashboard");
   const qs = `next=${encodeURIComponent(safeNext)}`;
   const callbackPath = `/${resolvedLocale}/auth/callback?${qs}`;
 
