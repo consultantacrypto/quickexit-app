@@ -7,7 +7,8 @@ export const dynamic = "force-dynamic";
 
 // Endpoint generic de inițiere KYC — decuplează UI-ul de providerul concret.
 // KYC_PROVIDER: "didit" | "stripe" (implicit: "stripe" dacă lipsește sau e invalid).
-// IMPORTANT: /api/create-verification-session rămâne intact (rollback Stripe direct).
+// Identity: authenticated cookie and/or Bearer only — never body.userId as authority.
+// Legacy /api/create-verification-session is retired (410 Gone).
 
 type KycProvider = "stripe" | "didit";
 
@@ -50,6 +51,21 @@ function parseDiditResponseBody(rawText: string): unknown {
   }
 }
 
+/** Non-sensitive session id for server logs only — never return upstream bodies to clients. */
+function extractDiditSessionId(parsed: unknown): string | null {
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return null;
+  const record = parsed as Record<string, unknown>;
+  const id = record.session_id ?? record.id;
+  return typeof id === "string" && id.trim() ? id.trim() : null;
+}
+
+function diditProviderErrorResponse(status: number) {
+  return NextResponse.json(
+    { error: "kyc_provider_error", provider: "didit" },
+    { status }
+  );
+}
+
 async function startDiditKyc(userId: string) {
   const apiKey = process.env.DIDIT_API_KEY?.trim();
   const workflowId = process.env.DIDIT_WORKFLOW_ID?.trim();
@@ -57,14 +73,13 @@ async function startDiditKyc(userId: string) {
   const organizationId = resolveDiditOrganizationId();
 
   if (!apiKey || !workflowId) {
-    return NextResponse.json(
-      {
-        error:
-          "Config server incompletă: DIDIT_API_KEY sau DIDIT_WORKFLOW_ID lipsește.",
-        provider: "didit",
-      },
-      { status: 500 }
-    );
+    console.error("[kyc/start] Didit misconfigured:", {
+      provider: "didit",
+      failureClass: "missing_credentials",
+      workflowIdPresent: Boolean(workflowId),
+      apiKeyPresent: Boolean(apiKey),
+    });
+    return diditProviderErrorResponse(500);
   }
 
   const baseUrl = getSiteUrl();
@@ -95,43 +110,38 @@ async function startDiditKyc(userId: string) {
     });
   } catch (fetchError: unknown) {
     const message =
-      fetchError instanceof Error ? fetchError.message : "Eroare rețea la apelul Didit.";
-    console.error("[kyc/start] Didit fetch failed:", fetchError);
-    return NextResponse.json(
-      {
-        error: "Didit Upstream Error",
-        diditStatus: 0,
-        diditRawResponse: { message, type: "network_error" },
-        provider: "didit",
-      },
-      { status: 502 }
-    );
+      fetchError instanceof Error ? fetchError.message : "network_error";
+    console.error("[kyc/start] Didit fetch failed:", {
+      provider: "didit",
+      failureClass: "network_error",
+      message,
+      userId,
+    });
+    return diditProviderErrorResponse(502);
   }
 
   const rawText = await sessionRes.text();
   const parsedBody = parseDiditResponseBody(rawText);
+  const providerSessionId = extractDiditSessionId(parsedBody);
 
   if (!sessionRes.ok) {
     console.error("[kyc/start] Didit API error:", {
+      provider: "didit",
+      failureClass: "upstream_http_error",
       diditStatus: sessionRes.status,
-      diditRawResponse: parsedBody,
+      providerSessionId,
       rawTextLength: rawText.length,
       userId,
       workflowIdPresent: Boolean(workflowId),
       apiKeyPresent: Boolean(apiKey),
       applicationId,
       organizationId,
-      callback,
+      callbackPresent: Boolean(callback),
     });
-
-    return NextResponse.json(
-      {
-        error: "Didit Upstream Error",
-        diditStatus: sessionRes.status,
-        diditRawResponse: parsedBody ?? rawText ?? null,
-        provider: "didit",
-      },
-      { status: sessionRes.status }
+    return diditProviderErrorResponse(
+      sessionRes.status >= 400 && sessionRes.status < 600
+        ? sessionRes.status
+        : 502
     );
   }
 
@@ -148,17 +158,15 @@ async function startDiditKyc(userId: string) {
       : null;
 
   if (!verificationUrl) {
-    console.error("[kyc/start] Didit răspuns fără verification_url:", parsedBody);
-    return NextResponse.json(
-      {
-        error: "Didit Upstream Error",
-        diditStatus: sessionRes.status,
-        diditRawResponse: parsedBody ?? rawText ?? null,
-        provider: "didit",
-        detail: "Răspuns Didit OK dar lipsește verification_url / url.",
-      },
-      { status: 502 }
-    );
+    console.error("[kyc/start] Didit response missing verification_url:", {
+      provider: "didit",
+      failureClass: "missing_verification_url",
+      diditStatus: sessionRes.status,
+      providerSessionId,
+      rawTextLength: rawText.length,
+      userId,
+    });
+    return diditProviderErrorResponse(502);
   }
 
   return NextResponse.json({ url: verificationUrl, provider: "didit" });
@@ -213,6 +221,8 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json().catch(() => null);
+    // Compatibility only: if a client still sends userId, it must match the
+    // authenticated session. It is never authoritative and never a fallback.
     const bodyUserId =
       body && typeof body.userId === "string" ? body.userId.trim() : "";
 
@@ -220,22 +230,30 @@ export async function POST(request: Request) {
 
     if (!authResult.ok) {
       console.error("[kyc/start] Auth refuzată:", {
+        route: "/api/kyc/start",
+        provider,
         status: authResult.status,
         error: authResult.error,
-        debug: authResult.debug,
-        provider,
+        reason: authResult.debug.reason ?? null,
+        authSourceHints: {
+          cookieUserIdPresent: authResult.debug.cookieUserIdPresent,
+          bearerUserIdPresent: authResult.debug.bearerUserIdPresent,
+          bodyUserIdPresent: authResult.debug.bodyUserIdPresent,
+        },
       });
       return NextResponse.json(
-        {
-          error: authResult.error,
-          provider,
-          auth: authResult.debug,
-        },
+        { error: authResult.error },
         { status: authResult.status }
       );
     }
 
     const userId = authResult.userId;
+    console.log("[kyc/start] Auth OK:", {
+      route: "/api/kyc/start",
+      provider,
+      userId,
+      source: authResult.source,
+    });
 
     switch (provider) {
       case "didit":
@@ -263,7 +281,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json(
       {
-        error: message,
+        error: "kyc_start_failed",
         provider,
       },
       { status: 500 }

@@ -2,34 +2,23 @@
 
 import { useState } from "react";
 import { Shield, Loader2, ArrowRight } from "lucide-react";
-import { buildKycStartRequestInit } from "@/lib/kycClient";
+import { startKycVerification } from "@/lib/kycClient";
 
 interface KycBannerProps {
-  userId: string;
-  /** Status din profiles (Stripe Identity webhook); ascundem banner-ul doar la verified */
+  /** Status din profiles (Stripe Identity / Didit webhook); ascundem banner-ul doar la verified */
   kycStatus: string;
 }
 
-export default function KycBanner({ userId, kycStatus }: KycBannerProps) {
+export default function KycBanner({ kycStatus }: KycBannerProps) {
   const [isLoading, setIsLoading] = useState(false);
 
   if (kycStatus === "verified") return null;
 
   const handleStartKyc = async () => {
     setIsLoading(true);
-    try {
-      const res = await fetch("/api/kyc/start", await buildKycStartRequestInit(userId));
-
-      const data = await res.json();
-
-      if (data.url) {
-        window.location.href = data.url;
-      } else {
-        console.error("Eroare la generarea sesiunii KYC:", data.error);
-        setIsLoading(false);
-      }
-    } catch (err) {
-      console.error("Eroare request KYC:", err);
+    const result = await startKycVerification();
+    if (!result.ok) {
+      console.error("Eroare la generarea sesiunii KYC:", result.error);
       setIsLoading(false);
     }
   };

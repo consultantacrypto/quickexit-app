@@ -9,16 +9,87 @@ export function isValidUserUuid(value: string): boolean {
   return UUID_RE.test(value.trim());
 }
 
-export type KycAuthSource = "session_cookie" | "session_bearer" | "body_fallback";
+export type KycAuthSource = "session_cookie" | "session_bearer";
+
+export type KycAuthErrorCode =
+  | "authentication_required"
+  | "identity_mismatch";
 
 export type KycAuthResult =
   | { ok: true; userId: string; source: KycAuthSource }
   | {
       ok: false;
-      status: number;
-      error: string;
+      status: 401 | 403;
+      error: KycAuthErrorCode;
       debug: Record<string, unknown>;
     };
+
+export type KycAuthInputs = {
+  cookieUserId: string | null;
+  bearerUserId: string | null;
+  /** Optional compatibility field — never authoritative. */
+  bodyUserId: string;
+};
+
+/**
+ * Pure identity decision for KYC start.
+ * Authority: authenticated cookie and/or Bearer only.
+ * body.userId is never a fallback; if present it must match the authenticated user.
+ */
+export function decideKycStartAuth(input: KycAuthInputs): KycAuthResult {
+  const trimmedBodyId = input.bodyUserId.trim();
+  const cookieUserId = input.cookieUserId?.trim() || null;
+  const bearerUserId = input.bearerUserId?.trim() || null;
+
+  const debug: Record<string, unknown> = {
+    bodyUserIdPresent: Boolean(trimmedBodyId),
+    bodyUserIdValidUuid: trimmedBodyId ? isValidUserUuid(trimmedBodyId) : false,
+    cookieUserIdPresent: Boolean(cookieUserId),
+    bearerUserIdPresent: Boolean(bearerUserId),
+  };
+
+  if (cookieUserId && bearerUserId && cookieUserId !== bearerUserId) {
+    return {
+      ok: false,
+      status: 403,
+      error: "identity_mismatch",
+      debug: {
+        ...debug,
+        reason: "cookie_bearer_mismatch",
+      },
+    };
+  }
+
+  const sessionUserId = cookieUserId || bearerUserId;
+  const sessionSource: KycAuthSource | null = cookieUserId
+    ? "session_cookie"
+    : bearerUserId
+      ? "session_bearer"
+      : null;
+
+  if (!sessionUserId || !sessionSource) {
+    return {
+      ok: false,
+      status: 401,
+      error: "authentication_required",
+      debug: { ...debug, reason: "no_authenticated_session" },
+    };
+  }
+
+  if (trimmedBodyId && trimmedBodyId !== sessionUserId) {
+    return {
+      ok: false,
+      status: 403,
+      error: "identity_mismatch",
+      debug: {
+        ...debug,
+        reason: "body_user_id_mismatch",
+      },
+    };
+  }
+
+  return { ok: true, userId: sessionUserId, source: sessionSource };
+}
 
 function extractBearerToken(request: Request): string | null {
   const authHeader =
@@ -66,13 +137,6 @@ export async function resolveKycStartUserId(
   request: Request,
   bodyUserId: string
 ): Promise<KycAuthResult> {
-  const trimmedBodyId = bodyUserId.trim();
-  const debug: Record<string, unknown> = {
-    bodyUserIdPresent: Boolean(trimmedBodyId),
-    bodyUserIdValidUuid: trimmedBodyId ? isValidUserUuid(trimmedBodyId) : false,
-    hasBearer: Boolean(extractBearerToken(request)),
-  };
-
   let cookieUserId: string | null = null;
   let cookieAuthError: string | null = null;
 
@@ -95,9 +159,6 @@ export async function resolveKycStartUserId(
       err instanceof Error ? err.message : "Eroare la createServerSupabaseClient.";
   }
 
-  debug.cookieAuthError = cookieAuthError;
-  debug.cookieUserIdPresent = Boolean(cookieUserId);
-
   let bearerUserId: string | null = null;
   let bearerAuthError: string | null = null;
   const bearer = extractBearerToken(request);
@@ -107,50 +168,23 @@ export async function resolveKycStartUserId(
     bearerAuthError = bearerResult.error;
   }
 
-  debug.bearerAuthError = bearerAuthError;
-  debug.bearerUserIdPresent = Boolean(bearerUserId);
+  const result = decideKycStartAuth({
+    cookieUserId,
+    bearerUserId,
+    bodyUserId,
+  });
 
-  const sessionUserId = cookieUserId || bearerUserId;
-  const sessionSource: KycAuthSource | null = cookieUserId
-    ? "session_cookie"
-    : bearerUserId
-      ? "session_bearer"
-      : null;
-
-  if (sessionUserId) {
-    if (trimmedBodyId && trimmedBodyId !== sessionUserId) {
-      return {
-        ok: false,
-        status: 403,
-        error: "userId din request nu corespunde sesiunii autentificate.",
-        debug: { ...debug, reason: "user_id_mismatch", sessionUserId, trimmedBodyId },
-      };
-    }
-    return { ok: true, userId: sessionUserId, source: sessionSource! };
-  }
-
-  if (trimmedBodyId && isValidUserUuid(trimmedBodyId)) {
-    console.warn(
-      "[kyc/start] Fallback auth: folosim userId din body (fără sesiune server validă).",
-      debug
-    );
-    return { ok: true, userId: trimmedBodyId, source: "body_fallback" };
-  }
-
-  if (trimmedBodyId && !isValidUserUuid(trimmedBodyId)) {
+  if (!result.ok) {
     return {
-      ok: false,
-      status: 400,
-      error: "userId invalid — trebuie să fie un UUID valid.",
-      debug: { ...debug, reason: "invalid_uuid" },
+      ...result,
+      debug: {
+        ...result.debug,
+        cookieAuthError,
+        bearerAuthError,
+        hasBearer: Boolean(bearer),
+      },
     };
   }
 
-  return {
-    ok: false,
-    status: 401,
-    error:
-      "Autentificare necesară. Reîncarcă pagina sau reconectează-te, apoi încearcă din nou.",
-    debug: { ...debug, reason: "no_session_and_no_valid_body_user_id" },
-  };
+  return result;
 }

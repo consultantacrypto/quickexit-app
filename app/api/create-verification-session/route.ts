@@ -1,52 +1,23 @@
-import { NextResponse } from 'next/server';
-import Stripe from 'stripe';
-import { getSiteUrl } from '@/lib/siteUrl';
+import { NextResponse } from "next/server";
 
-// Inițializăm Stripe cu versiunea corectă cerută de TypeScript
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2023-10-16' as any,
-});
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
-export async function POST(request: Request) {
-  try {
-    const body = await request.json();
-    const { userId } = body; // ID-ul utilizatorului preluat din Supabase
-
-    if (!userId) {
-      return NextResponse.json(
-        { error: 'ID-ul utilizatorului este obligatoriu' }, 
-        { status: 400 }
-      );
-    }
-
-    const baseUrl = getSiteUrl();
-    if (!baseUrl) {
-      return NextResponse.json(
-        { error: 'Config server incompletă: NEXT_PUBLIC_BASE_URL lipsește.' },
-        { status: 500 },
-      );
-    }
-
-    // Creăm sesiunea de verificare a identității
-    const verificationSession = await stripe.identity.verificationSessions.create({
-      type: 'document',
-      metadata: {
-        userId: userId, // Foarte important: așa facem legătura cu Supabase mai târziu în Webhook
-      },
-      options: {
-        document: {
-          require_matching_selfie: true, // Extra securitate pentru un marketplace de active premium
-        },
-      },
-      // Unde se întoarce utilizatorul după ce termină procesul (chiar dacă încă se procesează în background)
-      return_url: `${baseUrl}/dashboard?kyc_process=started`,
-    });
-
-    // Trimitem URL-ul către interfață pentru a face redirect
-    return NextResponse.json({ url: verificationSession.url });
-    
-  } catch (error: any) {
-    console.error('Eroare Stripe Identity:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
+/**
+ * Legacy Stripe Identity initiation route.
+ *
+ * Previously trusted client-supplied `userId` with no authentication and created
+ * a Stripe Identity verification session. That path is disabled.
+ *
+ * Active KYC initiation: POST /api/kyc/start (authenticated session only).
+ */
+export async function POST() {
+  return NextResponse.json(
+    {
+      error: "gone",
+      message:
+        "This endpoint is retired. Use authenticated POST /api/kyc/start.",
+    },
+    { status: 410 }
+  );
 }

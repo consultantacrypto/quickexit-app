@@ -35,16 +35,12 @@ import { listingLocationLabelFromUnknown } from "@/lib/listingLocation";
 import { formatDemandBudgetCompact, readDemandBudgetAmount } from "@/lib/demandBudget";
 import { Wallet, Inbox, PlusCircle, Search, Settings, Power, Play, PiggyBank, ClipboardList } from "lucide-react";
 import KycBanner from "@/app/components/KycBanner";
+import { startKycVerification } from "@/lib/kycClient";
 import { getPriceIdForPackageId } from "@/lib/stripePackages";
 import { normalizePhone } from "@/lib/financingLead";
 
 type DashboardTab = "portofoliu" | "cumparari" | "oferte";
 const OWNER_USER_ID = "83da9725-68f3-4ded-9605-714b9094bf0e";
-
-/** Didit Hosted Reusable Flow — redirect direct (fără API backend). */
-const DIDIT_HOSTED_VERIFICATION_URL =
-  process.env.NEXT_PUBLIC_DIDIT_VERIFICATION_URL?.trim() ||
-  "https://verify.didit.me/u/muFAuyvBTnO2lEhEuo56YQ";
 
 function DashboardContent() {
   const searchParams = useSearchParams();
@@ -98,6 +94,7 @@ function DashboardContent() {
   const [soldActionMessage, setSoldActionMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [demandOfferActionMessage, setDemandOfferActionMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [statusActionMessage, setStatusActionMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [kycStarting, setKycStarting] = useState(false);
   const [paymentCancelListingId, setPaymentCancelListingId] = useState<string | null>(null);
   const [paymentSuccessListingId, setPaymentSuccessListingId] = useState<string | null>(null);
   const [mediaOrdersByListingId, setMediaOrdersByListingId] = useState<
@@ -1005,15 +1002,27 @@ function DashboardContent() {
     hasItemsInPortfolio &&
     !hasPaidActivity;
 
-  const resolveKycUserId = () =>
-    (currentUserId || userProfile?.id || "").trim();
+  const handleStartKyc = async () => {
+    if (kycStarting) return;
+    setKycStarting(true);
+    setStatusActionMessage(null);
 
-  const handleStartKyc = () => {
-    window.location.href = DIDIT_HOSTED_VERIFICATION_URL;
+    const result = await startKycVerification();
+    if (result.ok) return;
+
+    const text =
+      result.error === "authentication_required"
+        ? "Autentificare necesară. Reîncarcă pagina sau reconectează-te, apoi încearcă din nou."
+        : result.error === "identity_mismatch"
+          ? "Sesiunea nu corespunde contului. Reîncarcă pagina și încearcă din nou."
+          : "Nu am putut porni verificarea. Încearcă din nou în câteva momente.";
+
+    setStatusActionMessage({ type: "error", text });
+    setKycStarting(false);
   };
 
   const kycStartButtonClass =
-    "inline-flex shrink-0 items-center justify-center gap-2 rounded-xl border-[3px] border-black bg-[#FFD100] px-5 py-3 text-xs font-black uppercase tracking-widest text-black shadow-[4px_4px_0_0_rgba(0,0,0,1)] transition hover:-translate-y-0.5 hover:shadow-[2px_2px_0_0_rgba(0,0,0,1)]";
+    "inline-flex shrink-0 items-center justify-center gap-2 rounded-xl border-[3px] border-black bg-[#FFD100] px-5 py-3 text-xs font-black uppercase tracking-widest text-black shadow-[4px_4px_0_0_rgba(0,0,0,1)] transition hover:-translate-y-0.5 hover:shadow-[2px_2px_0_0_rgba(0,0,0,1)] disabled:opacity-50";
 
   const renderKycStartButton = (extraClass = "") => {
     if (isKycVerified(kycStatusValue)) return null;
@@ -1021,9 +1030,10 @@ function DashboardContent() {
       <button
         type="button"
         onClick={handleStartKyc}
+        disabled={kycStarting}
         className={`${kycStartButtonClass} ${extraClass}`.trim()}
       >
-        Inițiază Verificarea
+        {kycStarting ? "Se pregătește..." : "Inițiază Verificarea"}
       </button>
     );
   };
@@ -1107,11 +1117,8 @@ function DashboardContent() {
       </div>
 
       {/* Banner KYC: după plată reușită (listing/cerere activă), mesaj aliniat cu politica reală — fără blocare */}
-      {!isLoading && showKycRecommendationBanner && resolveKycUserId() && (
-        <KycBanner
-          userId={resolveKycUserId()}
-          kycStatus={kycStatusValue || "unverified"}
-        />
+      {!isLoading && showKycRecommendationBanner && (
+        <KycBanner kycStatus={kycStatusValue || "unverified"} />
       )}
 
       {!isLoading && myListings.length > 0 && !sellerHasPrivatePhone ? (
