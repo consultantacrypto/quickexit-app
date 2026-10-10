@@ -2,7 +2,7 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { isHqAdminEmail } from "@/lib/hqAdminAllowlist";
 
 export type HqAdminAuthResult =
-  | { ok: true; supabase: SupabaseClient; userEmail: string }
+  | { ok: true; supabase: SupabaseClient; userEmail: string; userId: string }
   | { ok: false; status: number; error: string };
 
 export {
@@ -64,6 +64,7 @@ export async function assertHqAdminFromAccessToken(
     ok: true,
     supabase: createServiceRoleClient(supabaseUrl, serviceRoleKey),
     userEmail,
+    userId: user.id,
   };
 }
 

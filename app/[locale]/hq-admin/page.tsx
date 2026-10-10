@@ -6,7 +6,16 @@ import { supabase } from "@/lib/supabase";
 import { companyInfo } from "@/lib/company";
 import { buildSocialShareKit } from "@/lib/socialShare";
 import { trackEvent } from "@/lib/analytics";
-import { adminDeleteListing, adminForcePublish, adminPatchListingLocation, adminPatchListingsLocation, adminRenewAuctionExpiry, type AdminTable } from "@/app/actions/adminActions";
+import {
+  adminDeleteListing,
+  adminForcePublish,
+  adminPatchListingLocation,
+  adminPatchListingsLocation,
+  adminRenewAuctionExpiry,
+  adminSoftHideDemand,
+  adminSoftHideListing,
+  type AdminTable,
+} from "@/app/actions/adminActions";
 import { formatAdminPriceCell } from "@/lib/listingPrice";
 import { formatDemandBudgetCompact, readDemandBudgetAmount } from "@/lib/demandBudget";
 import {
@@ -358,40 +367,64 @@ export default function AdminHQ() {
     setLoadNote(null);
     setActionError(null);
 
-    const results = await Promise.all([
-      supabase.from("listings").select("*").order("created_at", { ascending: false }).limit(200),
-      supabase.from("demands").select("*").order("created_at", { ascending: false }).limit(200),
-      supabase.from("listing_offers").select("*").order("created_at", { ascending: false }).limit(200),
-      supabase.from("demand_offers").select("*").order("created_at", { ascending: false }).limit(200),
-      supabase.from("profiles").select("id, full_name, kyc_status, user_type, created_at").order("created_at", { ascending: false }).limit(300),
-      supabase.from("valuation_reports").select("id, confidence_score, created_at").order("created_at", { ascending: false }).limit(300),
-    ]);
-
-    const resRisks = await supabase
-      .from("admin_risk_resolutions")
-      .select("*")
-      .order("resolved_at", { ascending: false })
-      .limit(50);
-
-    if (resRisks.error) {
-      setRiskTableAvailable(false);
-      setRiskResolutionHistory([]);
-    } else {
-      setRiskTableAvailable(true);
-      setRiskResolutionHistory((resRisks.data ?? []) as RiskResolutionRow[]);
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    const accessToken = session?.access_token;
+    if (!accessToken) {
+      setGate("anon");
+      setLoadNote("Sesiune expirată. Reautentifică-te.");
+      return;
     }
 
-    const anyError = results.some((r) => r.error);
-    if (anyError) {
-      setLoadNote("Date indisponibile prin politicile curente.");
-    }
+    try {
+      const res = await fetch("/api/hq/overview", {
+        headers: { Authorization: `Bearer ${accessToken}` },
+        cache: "no-store",
+      });
+      const payload = (await res.json().catch(() => null)) as {
+        success?: boolean;
+        error?: string;
+        listings?: unknown[];
+        demands?: unknown[];
+        listingOffers?: unknown[];
+        demandOffers?: unknown[];
+        profiles?: unknown[];
+        valuationReports?: unknown[];
+        riskResolutions?: RiskResolutionRow[];
+        riskTableAvailable?: boolean;
+      } | null;
 
-    setAllListings(results[0].data ?? []);
-    setAllDemands(results[1].data ?? []);
-    setListingOffers(results[2].data ?? []);
-    setDemandOffers(results[3].data ?? []);
-    setProfiles(results[4].data ?? []);
-    setValuationReports(results[5].data ?? []);
+      if (res.status === 401) {
+        setGate("anon");
+        setLoadNote("Sesiune invalidă. Reautentifică-te.");
+        return;
+      }
+      if (res.status === 403) {
+        setGate("forbidden");
+        setLoadNote("Acces refuzat.");
+        return;
+      }
+      if (!res.ok || !payload?.success) {
+        setLoadNote("Date HQ indisponibile. Reîncearcă.");
+        setActionError(
+          typeof payload?.error === "string" ? payload.error : "Nu am putut încărca overview-ul HQ.",
+        );
+        return;
+      }
+
+      setAllListings(payload.listings ?? []);
+      setAllDemands(payload.demands ?? []);
+      setListingOffers(payload.listingOffers ?? []);
+      setDemandOffers(payload.demandOffers ?? []);
+      setProfiles(payload.profiles ?? []);
+      setValuationReports(payload.valuationReports ?? []);
+      setRiskTableAvailable(payload.riskTableAvailable !== false);
+      setRiskResolutionHistory(payload.riskResolutions ?? []);
+    } catch {
+      setLoadNote("Date HQ indisponibile. Reîncearcă.");
+      setActionError("Nu am putut încărca overview-ul HQ.");
+    }
 
     await fetchHqInquiries("fallback", false);
   }, [fetchHqInquiries]);
@@ -512,30 +545,43 @@ export default function AdminHQ() {
     setResolvingRiskKey(risk.risk_key);
     setActionError(null);
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
+    const token = await getAccessToken();
+    if (!token) {
       setResolvingRiskKey(null);
       setActionError("Nu ești autentificat; nu poți marca rezolvări.");
       return;
     }
 
-    const { error } = await supabase.from("admin_risk_resolutions").insert({
-      risk_key: risk.risk_key,
-      risk_type: risk.risk_type,
-      entity_table: risk.entity_table,
-      entity_id: risk.entity_id,
-      severity: risk.severity,
-      title: risk.title,
-      note: noteInput.trim() || null,
-      resolved_by: user.id,
-    });
-
-    setResolvingRiskKey(null);
-
-    if (error) {
-      setActionError(`Nu am putut înregistra rezolvarea: ${error.message}`);
+    try {
+      const res = await fetch("/api/hq/risk-resolutions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          risk_key: risk.risk_key,
+          risk_type: risk.risk_type,
+          entity_table: risk.entity_table,
+          entity_id: risk.entity_id,
+          severity: risk.severity,
+          title: risk.title,
+          note: noteInput.trim() || null,
+        }),
+      });
+      const payload = await res.json().catch(() => null);
+      setResolvingRiskKey(null);
+      if (!res.ok || !payload?.success) {
+        setActionError(
+          typeof payload?.error === "string"
+            ? `Nu am putut înregistra rezolvarea: ${payload.error}`
+            : "Nu am putut înregistra rezolvarea.",
+        );
+        return;
+      }
+    } catch {
+      setResolvingRiskKey(null);
+      setActionError("Nu am putut înregistra rezolvarea.");
       return;
     }
 
@@ -796,9 +842,14 @@ export default function AdminHQ() {
     const ok = window.confirm("Ascunzi acest anunț din zona publică?");
     if (!ok) return;
     setActionError(null);
-    const { error } = await supabase.from("listings").update({ status: "admin_removed" }).eq("id", id);
-    if (error) {
-      setActionError(`Nu am putut ascunde anunțul: ${error.message}`);
+    const token = await getAccessToken();
+    if (!token) {
+      setActionError("Sesiunea a expirat. Reautentifică-te și încearcă din nou.");
+      return;
+    }
+    const res = await adminSoftHideListing(id, token);
+    if (!res.ok) {
+      setActionError(`Nu am putut ascunde anunțul: ${res.error}`);
       return;
     }
     setAllListings((prev) => prev.map((l) => (l.id === id ? { ...l, status: "admin_removed" } : l)));
@@ -836,9 +887,14 @@ export default function AdminHQ() {
     const ok = window.confirm("Ascunzi această cerere din zona publică?");
     if (!ok) return;
     setActionError(null);
-    const { error } = await supabase.from("demands").update({ status: "suspended" }).eq("id", id);
-    if (error) {
-      setActionError(`Nu am putut ascunde cererea: ${error.message}`);
+    const token = await getAccessToken();
+    if (!token) {
+      setActionError("Sesiunea a expirat. Reautentifică-te și încearcă din nou.");
+      return;
+    }
+    const res = await adminSoftHideDemand(id, token);
+    if (!res.ok) {
+      setActionError(`Nu am putut ascunde cererea: ${res.error}`);
       return;
     }
     setAllDemands((prev) => prev.map((d) => (d.id === id ? { ...d, status: "suspended" } : d)));

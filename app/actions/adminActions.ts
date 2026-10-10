@@ -9,6 +9,7 @@ import {
   locationFromFormData,
   publicationLocationFromDetails,
 } from "@/lib/listingLocation";
+import { isHqUuid } from "@/lib/hqOverview";
 
 // Tabelele pe care le poate administra adminul prin aceste acțiuni.
 export type AdminTable = "listings" | "demands";
@@ -346,6 +347,90 @@ export async function adminPatchListingsLocation(
     return { ok: true };
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : "Eroare necunoscută.";
+    return { ok: false, error: msg };
+  }
+}
+
+/**
+ * Soft-hide listing from public surface: status = admin_removed only.
+ * Explicit allowed transition — no arbitrary client patch.
+ */
+export async function adminSoftHideListing(
+  id: string,
+  accessToken: string,
+): Promise<AdminActionResult> {
+  try {
+    if (!isHqUuid(id)) {
+      return { ok: false, error: "ID listing invalid." };
+    }
+    const supabase = await assertAdminAndGetServiceClient(accessToken);
+    const { data: row, error: fetchError } = await supabase
+      .from("listings")
+      .select("id")
+      .eq("id", id)
+      .maybeSingle();
+    if (fetchError) {
+      console.error("[adminSoftHideListing] fetch:", { id, error: fetchError.message });
+      return { ok: false, error: "Nu am putut verifica anunțul." };
+    }
+    if (!row) {
+      return { ok: false, error: "Anunțul nu există." };
+    }
+    const { error } = await supabase
+      .from("listings")
+      .update({ status: "admin_removed" })
+      .eq("id", id);
+    if (error) {
+      console.error("[adminSoftHideListing] update:", { id, error: error.message });
+      return { ok: false, error: "Nu am putut ascunde anunțul." };
+    }
+    console.log("[adminSoftHideListing] ok", { id });
+    return { ok: true };
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : "Eroare necunoscută.";
+    console.error("[adminSoftHideListing] excepție:", msg);
+    return { ok: false, error: msg };
+  }
+}
+
+/**
+ * Soft-hide demand from public surface: status = suspended only.
+ * Explicit allowed transition — no arbitrary client patch.
+ */
+export async function adminSoftHideDemand(
+  id: string,
+  accessToken: string,
+): Promise<AdminActionResult> {
+  try {
+    if (!isHqUuid(id)) {
+      return { ok: false, error: "ID cerere invalid." };
+    }
+    const supabase = await assertAdminAndGetServiceClient(accessToken);
+    const { data: row, error: fetchError } = await supabase
+      .from("demands")
+      .select("id")
+      .eq("id", id)
+      .maybeSingle();
+    if (fetchError) {
+      console.error("[adminSoftHideDemand] fetch:", { id, error: fetchError.message });
+      return { ok: false, error: "Nu am putut verifica cererea." };
+    }
+    if (!row) {
+      return { ok: false, error: "Cererea nu există." };
+    }
+    const { error } = await supabase
+      .from("demands")
+      .update({ status: "suspended" })
+      .eq("id", id);
+    if (error) {
+      console.error("[adminSoftHideDemand] update:", { id, error: error.message });
+      return { ok: false, error: "Nu am putut ascunde cererea." };
+    }
+    console.log("[adminSoftHideDemand] ok", { id });
+    return { ok: true };
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : "Eroare necunoscută.";
+    console.error("[adminSoftHideDemand] excepție:", msg);
     return { ok: false, error: msg };
   }
 }

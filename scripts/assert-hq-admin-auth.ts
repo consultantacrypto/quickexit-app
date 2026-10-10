@@ -180,10 +180,23 @@ const hqRoutes = [
   "app/api/hq/leads/ai/route.ts",
   "app/api/hq/leads/messages/route.ts",
   "app/api/hq/media-orders/route.ts",
+  "app/api/hq/overview/route.ts",
+  "app/api/hq/risk-resolutions/route.ts",
 ];
 for (const path of hqRoutes) {
   const src = readFileSync(resolve(path), "utf8");
   assert(src.includes("assertHqAdminFromBearer"), `${path} uses bearer HQ auth`);
 }
+
+assert(
+  adminActions.includes("adminSoftHideListing") &&
+    adminActions.includes("adminSoftHideDemand"),
+  "soft-hide moderation uses server actions"
+);
+assert(
+  !hqPage.includes('.from("listings")') &&
+    !hqPage.includes('.from("admin_risk_resolutions")'),
+  "main HQ no longer browser-selects HQ operational tables"
+);
 
 console.log("OK hq-admin-auth");
