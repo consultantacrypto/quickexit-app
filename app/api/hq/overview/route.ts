@@ -77,7 +77,7 @@ export async function GET(req: NextRequest) {
     sb
       .from("valuation_reports")
       .select(HQ_VALUATION_COLUMNS)
-      .order("created_at", { ascending: false })
+      .order("generated_at", { ascending: false })
       .limit(HQ_OVERVIEW_LIMITS.valuationReports),
     sb
       .from("admin_risk_resolutions")

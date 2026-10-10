@@ -83,6 +83,15 @@ assert(
   "valuation_reports must select generated_at"
 );
 assert(
+  overview.includes('.order("generated_at"') &&
+    /valuation_reports[\s\S]{0,200}\.order\("generated_at"/.test(overview),
+  "valuation_reports must order by generated_at"
+);
+assert(
+  !/valuation_reports[\s\S]{0,200}\.order\("created_at"/.test(overview),
+  "valuation_reports must NOT order by created_at"
+);
+assert(
   hqPage.includes("generated_at") && !/valuationReports\.forEach[\s\S]*?detected_at:\s*r\.created_at/.test(hqPage),
   "HQ risk UI uses valuation generated_at"
 );
