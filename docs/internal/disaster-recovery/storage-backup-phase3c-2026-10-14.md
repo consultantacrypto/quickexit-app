@@ -1,10 +1,10 @@
 # QuickExit Storage DR — Phase 3C (2026-10-14)
 
-**Mode:** Storage DR hardening / execution  
-**Status:** **CLOSED_WITH_ONE_OPERATOR_ACTION** (GitHub Actions secrets)  
+**Mode:** Storage DR hardening / execution / automation  
+**Status:** **FULLY CLOSED**  
 **Off-site recovery:** **PROVEN**  
-**Production Storage mutations:** none (READ ONLY)  
-**DB / Auth / Stripe / Vercel Production:** untouched
+**Daily automation:** **ACTIVE** (`storage-backup-daily` @ 07:30 UTC)  
+**Production Storage mutations:** none (READ ONLY)
 
 Artifacts: `docs/internal/disaster-recovery/storage-backup/`
 
@@ -14,7 +14,7 @@ Artifacts: `docs/internal/disaster-recovery/storage-backup/`
 
 | Action | Result |
 |---|---|
-| Production list/download | READ ONLY used |
+| Production list/download | READ ONLY |
 | Production delete/overwrite | **NONE** |
 | Production bucket/settings | **UNCHANGED** (public=true, 513 objects) |
 | R2 destination | `quickexit-storage-backup` only |
@@ -22,119 +22,128 @@ Artifacts: `docs/internal/disaster-recovery/storage-backup/`
 
 ---
 
-## Cloudflare R2 destination
+## Cloudflare R2
 
 | Field | Value |
 |---|---|
 | Bucket | `quickexit-storage-backup` |
-| Location | Eastern Europe (operator) |
-| Class | Standard |
-| Public | **PRIVATE** (`PRIVATE_BUCKET_PASS`) |
+| Public | **PRIVATE** |
 | Public Development URL | DISABLED |
 | Custom Domain | NONE |
-| Bucket Lock | 30 days whole-bucket (`MANUAL_OPERATOR_CONFIRMED`) |
+| Bucket Lock | **30 days** whole-bucket (`MANUAL_OPERATOR_CONFIRMED`) |
 | Prefix | `listings/<original-path>` |
-| Manifests | `manifests/manifest-full-*.json` |
-
-Note: synthetic-drill delete of temporary R2 keys **succeeded** in this run (cleanup completed). Operator Bucket Lock remains as configured for retention intent; do not remove it.
+| Manifests | `manifests/manifest-full-*.json` (history retained; 2+ present) |
 
 ---
 
-## Execution results (2026-10-14)
+## Local proof (earlier same day)
 
 | Step | Result |
 |---|---|
-| wire-env | R2 ready (secrets not printed) |
-| r2-check | **R2_DESTINATION_PASS** |
-| dry-run | **DRY_RUN_PASS** — 513 objects, 0 inaccessible |
-| backup | **PASS** — uploaded **513**, failed **0**, bytes **541,909,963**, duration **~700s** |
-| parity | **PARITY_PASS** — 513/513 objects, 541909963/541909963 bytes |
-| verify | **BYTE_INTEGRITY_PASS** — **12/12** (jpg/jpeg/avif/png/webp, small+large) |
-| restore-sample | **RESTORE_SAMPLE_PASS** — **12/12** local `.tmp` only |
-| synthetic-drill | **SYNTHETIC_RECOVERY_PASS** — Production deletes **0** |
-| private-proof | **PRIVATE_BUCKET_PASS** |
-
-### Manifest
-
-- Local: `storage-backup/manifest-full-2026-10-14T14-38-41-171Z.json`  
-- R2: `manifests/manifest-full-2026-10-14T14-38-41-171Z.json`  
-- Pointer: `storage-backup/last-successful-backup.json`  
-- Includes path identifiers, sizes, sha256, content types, success, tool commit
-
-### Production non-impact
-
-- Object count after drills: **513**  
-- Sample byte reads: OK  
-- Bucket public flag: still **true** (not modified)  
-- **PRODUCTION_NON_IMPACT_PASS**
+| Full backup | **513/513**, **541,909,963** bytes, failed **0** |
+| Parity | PASS |
+| Integrity | **12/12** PASS |
+| Restore sample | **12/12** PASS |
+| Synthetic recovery | PASS |
+| Private proof | PASS |
 
 ---
 
-## Architecture
+## GitHub Actions automation
 
-```
-Production Supabase Storage (listings)  [READ ONLY]
-        │  copy-only daily job
-        ▼
-Cloudflare R2  quickexit-storage-backup
-  listings/...
-  manifests/...
-```
-
-Retention: Bucket Lock 30d + copy-only (no delete-mirror). Accidental Production deletion does not purge R2 history under lock/retention policy.
-
----
-
-## Schedule & alerting
-
-| Item | Status |
+| Item | Value |
 |---|---|
 | Workflow | `.github/workflows/storage-backup-daily.yml` |
-| Cron | **07:30 UTC** (`30 7 * * *`) |
-| Semantics | dry-run → backup (copy-only), non-zero on failure |
-| last-successful-backup | written on success |
-| Stale >48h | HIGH severity (operator/Actions notification) |
+| Workflow ID | `384474258` |
+| Schedule | **`30 7 * * *` (07:30 UTC daily)** |
+| Triggers | `schedule` + `workflow_dispatch` |
+| Semantics | dry-run → backup (**copy-only**) |
+| Failure | non-zero exit; failed run visible; stale >48h note on failure |
+| PC dependence | **NONE** (GitHub-hosted runner) |
 
-### GitHub Actions secret names (values not in repo)
+### Required secret names (present; values never printed)
 
-1. `QE_STORAGE_SOURCE_SERVICE_ROLE_KEY`  
-2. `QE_STORAGE_BACKUP_ENDPOINT`  
-3. `QE_STORAGE_BACKUP_ACCESS_KEY_ID`  
-4. `QE_STORAGE_BACKUP_SECRET_ACCESS_KEY`  
-5. `QE_STORAGE_BACKUP_BUCKET`  
-6. `QE_STORAGE_BACKUP_REGION` (optional → `auto`)  
-7. `QE_STORAGE_BACKUP_PREFIX` (optional → `listings`)  
+| Secret | Present |
+|---|---|
+| `QE_STORAGE_SOURCE_SERVICE_ROLE_KEY` | YES |
+| `QE_STORAGE_BACKUP_ENDPOINT` | YES |
+| `QE_STORAGE_BACKUP_ACCESS_KEY_ID` | YES |
+| `QE_STORAGE_BACKUP_SECRET_ACCESS_KEY` | YES |
+| `QE_STORAGE_BACKUP_BUCKET` | YES |
+| `QE_STORAGE_BACKUP_REGION` | optional (absent OK → `auto`) |
+| `QE_STORAGE_BACKUP_PREFIX` | optional (absent OK → `listings`) |
 
-**MANUAL_GITHUB_SECRET_SETUP_REQUIRED** for unattended daily runs.
+### Manual workflow_dispatch proof
+
+| Field | Value |
+|---|---|
+| Run ID | **38588567872** |
+| Event | `workflow_dispatch` |
+| Started | 2026-10-14T15:21:18Z |
+| Completed | 2026-10-14T15:33:13Z |
+| Duration | **~11m50s** |
+| Conclusion | **success** |
+| URL | https://github.com/consultantacrypto/quickexit-app/actions/runs/38588567872 |
+
+Prior failed run **38587835473** (`npm ci` lock sync) demonstrates **failure visibility**; fixed by lockfile commit; no Production impact.
+
+### Actions backup result
+
+| Metric | Value |
+|---|---|
+| Source objects | **513** |
+| Uploaded this run | **0** (already present) |
+| Skipped unchanged | **513** |
+| Failed | **0** |
+| Source bytes | **541,909,963** |
+| Manifest | `manifests/manifest-full-2026-10-14T15-22-22-370Z.json` |
+| last-successful-backup | **updated** @ 2026-10-14T15:33:05.595Z |
+| Artifact | `storage-backup-manifests` |
+
+### Post-Actions verification
+
+| Check | Result |
+|---|---|
+| R2 parity | **513/513** objects, **541909963/541909963** bytes |
+| Production count | **513** unchanged |
+| Production public flag | still **true** |
+| R2 manifests retained | prior local + new Actions (2) |
+| Destination delete used | **NO** |
+
+---
+
+## Failure alerting readiness
+
+| Mechanism | Status |
+|---|---|
+| Failed Actions run visible | **YES** (run 38587835473) |
+| GitHub notification | available via repo watch / Actions email settings |
+| Stale >48h guidance | in workflow failure step + runbook |
+| Success paging | **none** |
 
 ---
 
 ## Cost
 
-~0.51 GiB on R2 free tier (10 GB storage / 1M Class A / 10M Class B, egress $0) → **likely $0/month** at current scale.
-
----
-
-## Security
-
-| Control | Result |
-|---|---|
-| Private bucket / anon blocked | **PASS** |
-| No public URL | **PASS** |
-| Secrets in gitignored local env only | **PASS** |
-| Not committed | **PASS** |
-| Destination ≠ Supabase | **PASS** |
+~0.51 GiB on R2 free tier → **likely $0/month**.
 
 ---
 
 ## Closure
 
-Off-site Storage recovery is **proven** (full backup + parity + integrity + restore + synthetic + private).
+Phase 3C criteria all met:
 
-**Phase 3C:** **CLOSED_WITH_ONE_OPERATOR_ACTION** — add GitHub Actions secrets to enable scheduled daily backup without a laptop.
+- required GitHub secrets present  
+- workflow YAML PASS  
+- manual `workflow_dispatch` PASS  
+- manifest PASS  
+- last-successful-backup PASS  
+- Production non-impact PASS  
+- schedule active  
+- failure visibility confirmed  
 
-**DR rating:** **GREEN** for Storage byte recovery path (with scheduled automation pending Secrets). Overall platform DR remains **GREEN_WITH_CONDITIONS** only if PITR remains intentionally off for DB RPO ~24h (separate from Storage).
+**Phase 3C: FULLY CLOSED**
 
 ---
 
-**QUICKEXIT STORAGE DR PHASE 3C VERIFIED — OFF-SITE RECOVERY PROVEN**
+**QUICKEXIT STORAGE DR PHASE 3C FULLY AUTOMATED — DAILY OFF-SITE RECOVERY ACTIVE**

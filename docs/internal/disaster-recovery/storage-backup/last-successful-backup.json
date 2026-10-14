@@ -1,0 +1,9 @@
+{
+  "at": "2026-10-14T15:33:05.595Z",
+  "object_count_source": 513,
+  "uploaded": 0,
+  "skipped_unchanged": 513,
+  "total_bytes_source": 541909963,
+  "manifest_path": "/home/runner/work/quickexit-app/quickexit-app/docs/internal/disaster-recovery/storage-backup/manifest-full-2026-10-14T15-22-22-370Z.json",
+  "manifest_r2_key": "manifests/manifest-full-2026-10-14T15-22-22-370Z.json"
+}

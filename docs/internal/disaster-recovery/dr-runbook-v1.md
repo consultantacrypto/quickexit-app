@@ -150,9 +150,10 @@ G. Write incident note (no secrets / no unnecessary paths).
 - Docs: `storage-backup-phase3c-2026-10-14.md`  
 - R2 bucket: `quickexit-storage-backup` · private · Public URL disabled · Bucket Lock **30 days**  
 - Local env: `.env.storage-backup.local` (gitignored); `npm run storage:wire-env`  
-- **Phase 3C VERIFIED (2026-10-14):** full backup **513/513** objects, **541,909,963** bytes → R2; parity PASS; integrity **12/12**; restore-sample PASS; synthetic recovery PASS; private-proof PASS; Production non-impact PASS  
-- Manifest: `storage-backup/manifest-full-2026-10-14T14-38-41-171Z.json` (+ R2 `manifests/`)  
-- Remaining for unattended daily runs: add GitHub Actions secrets (see Phase 3C doc) — **CLOSED_WITH_ONE_OPERATOR_ACTION**
+- **Phase 3C FULLY CLOSED (2026-10-14):** local proof **513/513** + GitHub Actions automation active  
+- Workflow: `storage-backup-daily` · cron **07:30 UTC** · copy-only · secrets present (names only in docs)  
+- Manual dispatch proof: run **38588567872** success; `last-successful-backup` updated; prior manifests retained on R2  
+- Failure visibility proven via failed run **38587835473** (npm ci lock sync; fixed; no Production impact)
 
 ---
 
