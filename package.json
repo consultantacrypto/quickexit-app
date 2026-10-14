@@ -26,6 +26,7 @@
     "@stripe/stripe-js": "^9.7.0",
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.104.0",
+    "@swc/helpers": "^0.5.23",
     "@vercel/analytics": "^2.0.1",
     "csv-parse": "^6.2.1",
     "dotenv": "^17.4.2",
