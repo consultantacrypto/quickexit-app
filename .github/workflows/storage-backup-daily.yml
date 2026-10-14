@@ -1,0 +1,89 @@
+# Daily off-site Storage backup (Phase 3C).
+# Does NOT mutate Production Storage (read/download only).
+# Requires GitHub Actions secrets — workflow fails closed if missing.
+name: storage-backup-daily
+
+on:
+  schedule:
+    # After typical Supabase daily backup window (~05:00–06:00 UTC)
+    - cron: "30 7 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: storage-backup-daily
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Require backup destination secrets
+        env:
+          QE_STORAGE_BACKUP_ENDPOINT: ${{ secrets.QE_STORAGE_BACKUP_ENDPOINT }}
+          QE_STORAGE_BACKUP_ACCESS_KEY_ID: ${{ secrets.QE_STORAGE_BACKUP_ACCESS_KEY_ID }}
+          QE_STORAGE_BACKUP_SECRET_ACCESS_KEY: ${{ secrets.QE_STORAGE_BACKUP_SECRET_ACCESS_KEY }}
+          QE_STORAGE_BACKUP_BUCKET: ${{ secrets.QE_STORAGE_BACKUP_BUCKET }}
+          QE_STORAGE_SOURCE_SERVICE_ROLE_KEY: ${{ secrets.QE_STORAGE_SOURCE_SERVICE_ROLE_KEY }}
+        run: |
+          missing=0
+          for v in QE_STORAGE_BACKUP_ENDPOINT QE_STORAGE_BACKUP_ACCESS_KEY_ID QE_STORAGE_BACKUP_SECRET_ACCESS_KEY QE_STORAGE_BACKUP_BUCKET QE_STORAGE_SOURCE_SERVICE_ROLE_KEY; do
+            if [ -z "${!v}" ]; then
+              echo "MISSING secret: $v"
+              missing=1
+            fi
+          done
+          if [ "$missing" -ne 0 ]; then
+            echo "MANUAL_OPERATOR_ACTION_REQUIRED — configure GitHub Actions secrets"
+            exit 1
+          fi
+
+      - name: Dry-run
+        env:
+          QE_STORAGE_SOURCE_URL: https://geywuzwbzecknokvnins.supabase.co
+          QE_STORAGE_SOURCE_SERVICE_ROLE_KEY: ${{ secrets.QE_STORAGE_SOURCE_SERVICE_ROLE_KEY }}
+          QE_STORAGE_BACKUP_ENDPOINT: ${{ secrets.QE_STORAGE_BACKUP_ENDPOINT }}
+          QE_STORAGE_BACKUP_ACCESS_KEY_ID: ${{ secrets.QE_STORAGE_BACKUP_ACCESS_KEY_ID }}
+          QE_STORAGE_BACKUP_SECRET_ACCESS_KEY: ${{ secrets.QE_STORAGE_BACKUP_SECRET_ACCESS_KEY }}
+          QE_STORAGE_BACKUP_BUCKET: ${{ secrets.QE_STORAGE_BACKUP_BUCKET }}
+          QE_STORAGE_BACKUP_REGION: ${{ secrets.QE_STORAGE_BACKUP_REGION }}
+          QE_STORAGE_BACKUP_PREFIX: ${{ secrets.QE_STORAGE_BACKUP_PREFIX }}
+          QE_STORAGE_BACKUP_PROVIDER: cloudflare-r2
+        run: npx tsx scripts/storage-backup/backup.ts dry-run
+
+      - name: Full backup (copy only — no destination deletes)
+        env:
+          QE_STORAGE_SOURCE_URL: https://geywuzwbzecknokvnins.supabase.co
+          QE_STORAGE_SOURCE_SERVICE_ROLE_KEY: ${{ secrets.QE_STORAGE_SOURCE_SERVICE_ROLE_KEY }}
+          QE_STORAGE_BACKUP_ENDPOINT: ${{ secrets.QE_STORAGE_BACKUP_ENDPOINT }}
+          QE_STORAGE_BACKUP_ACCESS_KEY_ID: ${{ secrets.QE_STORAGE_BACKUP_ACCESS_KEY_ID }}
+          QE_STORAGE_BACKUP_SECRET_ACCESS_KEY: ${{ secrets.QE_STORAGE_BACKUP_SECRET_ACCESS_KEY }}
+          QE_STORAGE_BACKUP_BUCKET: ${{ secrets.QE_STORAGE_BACKUP_BUCKET }}
+          QE_STORAGE_BACKUP_REGION: ${{ secrets.QE_STORAGE_BACKUP_REGION }}
+          QE_STORAGE_BACKUP_PREFIX: ${{ secrets.QE_STORAGE_BACKUP_PREFIX }}
+          QE_STORAGE_BACKUP_PROVIDER: cloudflare-r2
+        run: npx tsx scripts/storage-backup/backup.ts backup
+
+      - name: Upload manifests (no object bytes)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: storage-backup-manifests
+          path: docs/internal/disaster-recovery/storage-backup/
+          if-no-files-found: warn
+
+      - name: Stale backup guard note
+        if: failure()
+        run: |
+          echo "Backup job failed — treat as HIGH if last_successful_backup > 48h stale."
+          echo "Configure repo notification (email) on workflow failure."
