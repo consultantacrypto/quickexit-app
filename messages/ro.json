@@ -19,7 +19,7 @@
     "welcomeLead": "Bine ai",
     "welcomeHighlight": "venit",
     "welcomeTitle": "Bine ai venit",
-    "welcomeSubtitle": "Continuă cu Google sau folosește e-mailul pentru un link de acces. Același cont îl folosești pentru anunțuri, oferte și Camera de negociere.",
+    "welcomeSubtitle": "Continuă cu Google, Apple sau folosește e-mailul pentru un link de acces. Același cont îl folosești pentru anunțuri, oferte și Camera de negociere.",
     "emailLabel": "Creează cont sau loghează-te cu mail",
     "emailPlaceholder": "adresa.ta@email.com",
     "submitLoading": "Se procesează...",
@@ -27,13 +27,15 @@
     "autoAccountHint": "Dacă nu ai cont, se va crea automat după ce apeși pe link-ul din mail.",
     "orEmail": "Sau e-mail",
     "continueWithGoogle": "Continuă cu Google",
+    "continueWithApple": "Continuă cu Apple",
     "google": "Google",
+    "apple": "Apple",
     "errorPrefix": "Eroare: ",
     "magicLinkSent": "✓ Verifică-ți mail-ul! Ți-am trimis link-ul de intrare.",
     "identityConflictTitle": "Identitate deja conectată",
-    "identityConflictBody": "Această metodă de autentificare este deja legată de un alt cont QuickExit. Intră cu Google sau e-mailul existent. Nu unificăm conturile doar pe baza adresei de e-mail.",
+    "identityConflictBody": "Această metodă de autentificare este deja legată de un alt cont QuickExit. Intră cu Google, Apple sau e-mailul existent. Nu unificăm conturile doar pe baza adresei de e-mail.",
     "authErrorTitle": "Autentificare întreruptă",
-    "authErrorBody": "Nu am putut finaliza autentificarea. Încearcă din nou cu Google sau e-mail."
+    "authErrorBody": "Nu am putut finaliza autentificarea. Încearcă din nou cu Google, Apple sau e-mail."
   },
   "Dashboard": {
     "connectedIdentities": {
@@ -41,10 +43,11 @@
       "subtitle": "Metodele de autentificare legate de acest cont QuickExit. Proprietatea și KYC rămân pe acest cont.",
       "email": "E-mail",
       "google": "Google",
+      "apple": "Apple",
       "statusConnected": "Conectat",
       "statusPrimaryRecovery": "Recuperare principală",
       "statusNotConnected": "Neconectat",
-      "linkHint": "Pentru a conecta o altă metodă mai târziu, autentifică-te mai întâi — nu unificăm conturile doar pe baza e-mailului."
+      "linkHint": "Pentru a conecta o altă metodă mai târziu, autentifică-te mai întâi — nu unificăm conturile doar pe baza e-mailului. Adresele Apple private relay nu sunt tratate ca aceeași identitate."
     },
     "phonePrompt": {
       "title": "Completează telefonul de contact",
@@ -275,16 +278,16 @@
       "description": "Cumpărători activi caută proprietăți, automobile, afaceri și alte active.",
       "empty": "Nicio cerere de cumpărare activă momentan.",
       "viewAllFooter": "Vezi tot capitalul disponibil",
-      "addOffer": "Publică ce vrei să cumperi — 49 RON",
+      "addOffer": "Publică ce vrei să cumperi",
       "fallbackTitle": "Capital disponibil",
       "fallbackText": "Publică ce vrei să cumperi sau descoperă cererile active ale cumpărătorilor.",
-      "fallbackPrimaryCta": "Publică ce vrei să cumperi — 49 RON",
+      "fallbackPrimaryCta": "Publică ce vrei să cumperi",
       "fallbackSecondaryCta": "Vezi cererile",
       "emptyStripTitle": "Ai capital disponibil? Spune ce cauți.",
-      "emptyStripCta": "Publică ce vrei să cumperi — 49 RON",
+      "emptyStripCta": "Publică ce vrei să cumperi",
       "totalCapitalLabel": "caută active",
       "activeBuyersLabel": "cumpărători activi",
-      "publishCta": "Publică ce vrei să cumperi — 49 RON"
+      "publishCta": "Publică ce vrei să cumperi"
     },
     "auctions": {
       "title": "Licitații deschise",
@@ -397,7 +400,11 @@
     "budgetRequired": "Activul căutat, bugetul minim și bugetul maxim sunt obligatorii.",
     "invalidMin": "Bugetul minim trebuie să fie un număr întreg între 1 și 100.000.000 EUR.",
     "invalidMax": "Bugetul maxim trebuie să fie un număr întreg între 1 și 100.000.000 EUR.",
-    "minExceedsMax": "Bugetul minim nu poate fi mai mare decât bugetul maxim."
+    "minExceedsMax": "Bugetul minim nu poate fi mai mare decât bugetul maxim.",
+    "finalPublishTitle": "Publică cererea — 49 RON / 30 zile",
+    "finalPublishSupport": "Anunțul tău de cumpărare va fi publicat timp de 30 de zile.",
+    "finalPayCta": "Publică cererea — 49 RON / 30 zile",
+    "preparingPayment": "Se pregătește plata..."
   },
   "Consent": {
     "bannerTitle": "Confidențialitatea ta contează",

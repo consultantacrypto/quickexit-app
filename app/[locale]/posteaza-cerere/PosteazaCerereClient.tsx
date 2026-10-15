@@ -155,6 +155,11 @@ export default function PosteazaCerereClient() {
         price: DEMAND_STANDARD_PRICE_RON,
         package: "demand_standard_30d",
       });
+      trackEvent("demand_checkout_started", {
+        category,
+        price: DEMAND_STANDARD_PRICE_RON,
+        package: "demand_standard_30d",
+      });
 
       // Ruta generică /api/stripe/checkout; type: "demand" îi spune webhook-ului ce să activeze.
       const {
@@ -532,6 +537,7 @@ export default function PosteazaCerereClient() {
                     if (!hasTrackedStart) {
                       trackEvent("buyer_request_started", { category });
                       trackEvent("start_post_demand", { category });
+                      trackEvent("demand_start", { category });
                       setHasTrackedStart(true);
                     }
                     setStep(2);
@@ -640,6 +646,10 @@ export default function PosteazaCerereClient() {
                     }
                     setErrorMsg("");
                     trackEvent("buyer_request_reviewed", { category });
+                    trackEvent("demand_form_progress", {
+                      category,
+                      step: 2,
+                    });
                     setStep(3);
                   }}
                   disabled={!budgetMin || !budget}
@@ -690,10 +700,16 @@ export default function PosteazaCerereClient() {
                   QuickExit — Capital Disponibil
                 </p>
                 <h3 className="mt-4 text-lg font-black uppercase italic md:text-xl">
-                  {DEMAND_STANDARD_DURATION_DAYS} zile de deal flow
+                  {tBudget("finalPublishTitle")}
                 </h3>
+                <p className="mt-4 text-sm font-medium leading-relaxed text-neutral-200 md:text-base">
+                  {tBudget("finalPublishSupport")}
+                </p>
                 <p className="mt-4 font-black tabular-nums text-4xl text-[#FFD100]">
                   {DEMAND_STANDARD_PRICE_RON} RON
+                </p>
+                <p className="mt-2 text-xs font-bold uppercase tracking-widest text-neutral-400">
+                  {DEMAND_STANDARD_DURATION_DAYS} zile
                 </p>
                 <ul className="mt-6 space-y-2 text-sm font-medium leading-relaxed text-neutral-200">
                   <li>Cerere de cumpărare publică cu buget vizibil</li>
@@ -732,8 +748,8 @@ export default function PosteazaCerereClient() {
                   className="w-full flex-1 rounded-2xl border-[3px] border-black bg-[#FFD100] py-4 text-xs font-black uppercase tracking-widest text-black shadow-[6px_6px_0_0_#000] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   {isSubmitting
-                    ? "Se pregătește plata..."
-                    : `Plătește ${DEMAND_STANDARD_PRICE_RON} RON și publică`}
+                    ? tBudget("preparingPayment")
+                    : tBudget("finalPayCta")}
                 </button>
               </div>
             </div>

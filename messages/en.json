@@ -19,7 +19,7 @@
     "welcomeLead": "",
     "welcomeHighlight": "Welcome",
     "welcomeTitle": "Welcome",
-    "welcomeSubtitle": "Continue with Google or use your email for a magic link. One account covers listings, offers, and the Negotiation Room.",
+    "welcomeSubtitle": "Continue with Google, Apple, or use your email for a magic link. One account covers listings, offers, and the Negotiation Room.",
     "emailLabel": "Create an account or sign in with email",
     "emailPlaceholder": "you@email.com",
     "submitLoading": "Processing...",
@@ -27,13 +27,15 @@
     "autoAccountHint": "If you don't have an account yet, one will be created automatically when you click the link in your email.",
     "orEmail": "Or email",
     "continueWithGoogle": "Continue with Google",
+    "continueWithApple": "Continue with Apple",
     "google": "Google",
+    "apple": "Apple",
     "errorPrefix": "Error: ",
     "magicLinkSent": "✓ Check your inbox! We've sent you a sign-in link.",
     "identityConflictTitle": "Identity already connected",
-    "identityConflictBody": "This sign-in method is already connected to another QuickExit account. Sign in with your existing Google or email method. We never merge accounts by email alone.",
+    "identityConflictBody": "This sign-in method is already connected to another QuickExit account. Sign in with your existing Google, Apple, or email method. We never merge accounts by email alone.",
     "authErrorTitle": "Sign-in interrupted",
-    "authErrorBody": "We could not complete sign-in. Please try again with Google or email."
+    "authErrorBody": "We could not complete sign-in. Please try again with Google, Apple, or email."
   },
   "Dashboard": {
     "connectedIdentities": {
@@ -41,10 +43,11 @@
       "subtitle": "Sign-in methods linked to this QuickExit account. Ownership and KYC stay on this account.",
       "email": "Email",
       "google": "Google",
+      "apple": "Apple",
       "statusConnected": "Connected",
       "statusPrimaryRecovery": "Primary recovery",
       "statusNotConnected": "Not connected",
-      "linkHint": "To connect another method later, sign in first — we never merge accounts by matching email alone."
+      "linkHint": "To connect another method later, sign in first — we never merge accounts by matching email alone. Apple private relay addresses are not treated as the same identity."
     },
     "phonePrompt": {
       "title": "Add a contact phone number",
@@ -275,16 +278,16 @@
       "description": "Active buyers are looking for property, automobiles, businesses, and other assets.",
       "empty": "No active buying requests at the moment.",
       "viewAllFooter": "View all buyer capital",
-      "addOffer": "Post what you want to buy — 49 RON",
+      "addOffer": "Post what you want to buy",
       "fallbackTitle": "Buyer Capital",
       "fallbackText": "Post what you want to buy or explore active buying requests.",
-      "fallbackPrimaryCta": "Post what you want to buy — 49 RON",
+      "fallbackPrimaryCta": "Post what you want to buy",
       "fallbackSecondaryCta": "View requests",
       "emptyStripTitle": "Have capital ready? Tell us what you want to buy.",
-      "emptyStripCta": "Post what you want to buy — 49 RON",
+      "emptyStripCta": "Post what you want to buy",
       "totalCapitalLabel": "looking for assets",
       "activeBuyersLabel": "active buyers",
-      "publishCta": "Post what you want to buy — 49 RON"
+      "publishCta": "Post what you want to buy"
     },
     "auctions": {
       "title": "Open auctions",
@@ -397,7 +400,11 @@
     "budgetRequired": "The target asset, minimum budget and maximum budget are required.",
     "invalidMin": "Minimum budget must be a whole number between 1 and 100,000,000 EUR.",
     "invalidMax": "Maximum budget must be a whole number between 1 and 100,000,000 EUR.",
-    "minExceedsMax": "Minimum budget cannot be greater than maximum budget."
+    "minExceedsMax": "Minimum budget cannot be greater than maximum budget.",
+    "finalPublishTitle": "Publish request — 49 RON / 30 days",
+    "finalPublishSupport": "Your buying request will be published for 30 days.",
+    "finalPayCta": "Publish request — 49 RON / 30 days",
+    "preparingPayment": "Preparing payment..."
   },
   "Consent": {
     "bannerTitle": "Your privacy matters",

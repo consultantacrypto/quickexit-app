@@ -108,7 +108,37 @@ assert(posteaza.includes("DEMAND_STANDARD_PRICE_RON"), "UI uses 49 constant");
 assert(!posteaza.includes("99 RON"), "no hardcoded 99 in create flow");
 
 const navRo = readFileSync(resolve("messages/ro.json"), "utf8");
+const navEn = readFileSync(resolve("messages/en.json"), "utf8");
 assert(navRo.includes('"buyerOffers": "Capital Disponibil"'), "nav terminology RO");
 assert(navRo.includes("Publică ce vrei să cumperi"), "primary CTA RO");
+assert(navEn.includes("Post what you want to buy"), "primary CTA EN");
+assert(
+  !navRo.includes("Publică ce vrei să cumperi — 49 RON"),
+  "homepage/discovery CTAs must not show early 49 RON (RO)",
+);
+assert(
+  !navEn.includes("Post what you want to buy — 49 RON"),
+  "homepage/discovery CTAs must not show early 49 RON (EN)",
+);
+assert(navRo.includes("Publică cererea — 49 RON / 30 zile"), "final-step price RO");
+assert(navEn.includes("Publish request — 49 RON / 30 days"), "final-step price EN");
+assert(
+  navRo.includes('"price": "49 RON"') && navRo.includes('"capitalRequest"'),
+  "tarife capitalRequest price kept",
+);
+
+const capitalCopy = readFileSync(resolve("lib/capitalDisponibilContent.ts"), "utf8");
+assert(
+  !capitalCopy.includes("Post what you want to buy — 49 RON"),
+  "directory CTA must not show early 49 RON (EN)",
+);
+assert(
+  !capitalCopy.includes("Publică ce vrei să cumperi — 49 RON"),
+  "directory CTA must not show early 49 RON (RO)",
+);
+assert(posteaza.includes("finalPublishTitle"), "final step uses i18n publish title");
+assert(posteaza.includes("demand_checkout_started"), "checkout funnel event");
+assert(posteaza.includes("demand_start"), "start funnel event");
+assert(posteaza.includes("demand_form_progress"), "form progress funnel event");
 
 console.log("OK assert-capital-disponibil-v2");

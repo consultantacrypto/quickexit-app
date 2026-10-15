@@ -64,7 +64,7 @@ export function getCapitalDisponibilUiCopy(locale: PageLocale): CapitalDisponibi
       h1: "Buyer capital for real assets",
       intro:
         "See what buyers want and which budgets are available. Sellers with matching assets can respond directly.",
-      postDemandCta: "Post what you want to buy — 49 RON",
+      postDemandCta: "Post what you want to buy",
       searchPlaceholder: "SEARCH (E.G. MERCEDES, LAND, ROLEX)...",
       allCategories: "All categories",
       filterResults: "Filter results",
@@ -81,7 +81,7 @@ export function getCapitalDisponibilUiCopy(locale: PageLocale): CapitalDisponibi
       loading: "Loading requests…",
       emptyTitle: "No active buying requests at the moment.",
       emptyBody: "Check back soon or publish the first buying request.",
-      emptyCta: "Post what you want to buy — 49 RON",
+      emptyCta: "Post what you want to buy",
       totalCapitalLabel: "looking for assets",
       activeBuyersLabel: "active buyers",
       buyingLabel: "Buying",
@@ -94,7 +94,7 @@ export function getCapitalDisponibilUiCopy(locale: PageLocale): CapitalDisponibi
         },
         forBuyers: {
           title: "How it works for buyers",
-          body: "Buyers describe the asset they want, choose a category, set a budget range and publish a 30-day buying request for 49 RON. After payment, the request appears here so compatible sellers can respond.",
+          body: "Buyers describe the asset they want, choose a category, set a budget range and publish a buying request. After payment, the request appears here so compatible sellers can respond.",
         },
         forSellers: {
           title: "How it helps sellers",
@@ -133,7 +133,7 @@ export function getCapitalDisponibilUiCopy(locale: PageLocale): CapitalDisponibi
     h1: "Capital disponibil pentru active reale",
     intro:
       "Vezi ce caută cumpărătorii și ce bugete au disponibile. Vânzătorii cu active potrivite pot răspunde direct.",
-    postDemandCta: "Publică ce vrei să cumperi — 49 RON",
+    postDemandCta: "Publică ce vrei să cumperi",
     searchPlaceholder: "CAUTĂ (EX: MERCEDES, TEREN, ROLEX)...",
     allCategories: "Toate Categoriile",
     filterResults: "Rezultate Filtrare",
@@ -150,7 +150,7 @@ export function getCapitalDisponibilUiCopy(locale: PageLocale): CapitalDisponibi
     loading: "Se încarcă cererile…",
     emptyTitle: "Nu există cereri active momentan.",
     emptyBody: "Revino în curând sau publică prima cerere de cumpărare.",
-    emptyCta: "Publică ce vrei să cumperi — 49 RON",
+    emptyCta: "Publică ce vrei să cumperi",
     totalCapitalLabel: "caută active",
     activeBuyersLabel: "cumpărători activi",
     buyingLabel: "Cumpăr",
@@ -163,7 +163,7 @@ export function getCapitalDisponibilUiCopy(locale: PageLocale): CapitalDisponibi
       },
       forBuyers: {
         title: "Cum funcționează pentru cumpărători?",
-        body: "Descrie activul dorit, setează bugetul și publică o cerere de cumpărare pe 30 de zile pentru 49 RON. După plată, cererea apare aici iar vânzătorii pot răspunde.",
+        body: "Descrie activul dorit, setează bugetul și publică o cerere de cumpărare. După plată, cererea apare aici iar vânzătorii pot răspunde.",
       },
       forSellers: {
         title: "Cum ajută vânzătorii?",
