@@ -49,7 +49,8 @@ const CANONICAL_PERSISTED_RO_VALUES = [
   "Ceas + Cutie",
 ] as const;
 
-const AUTH_KEYS_USED = [
+/** Keys rendered by AuthModal via t("…"). */
+const AUTH_MODAL_KEYS_USED = [
   "closeModal",
   "welcomeLead",
   "welcomeHighlight",
@@ -59,12 +60,19 @@ const AUTH_KEYS_USED = [
   "submitLoading",
   "submitButton",
   "autoAccountHint",
-  "advancedOptions",
-  "google",
-  "web3Wallet",
+  "orEmail",
+  "continueWithGoogle",
   "errorPrefix",
   "magicLinkSent",
-  "web3Maintenance",
+] as const;
+
+/** Auth copy used outside AuthModal (banner / shared). */
+const AUTH_SHARED_KEYS = [
+  "identityConflictTitle",
+  "identityConflictBody",
+  "authErrorTitle",
+  "authErrorBody",
+  "google",
 ] as const;
 
 const VISIBLE_RO_MUST_NOT_APPEAR_IN_EN_COPY = [
@@ -126,7 +134,7 @@ assert(
   `PostListing key parity failed. RO-only=${roKeys.filter((k) => !enKeys.includes(k)).join(",")} EN-only=${enKeys.filter((k) => !roKeys.includes(k)).join(",")}`,
 );
 
-for (const key of AUTH_KEYS_USED) {
+for (const key of [...AUTH_MODAL_KEYS_USED, ...AUTH_SHARED_KEYS]) {
   assert(typeof ro.Auth[key] === "string", `RO Auth.${key} missing`);
   assert(typeof en.Auth[key] === "string", `EN Auth.${key} missing`);
   if (key !== "welcomeLead") {
@@ -135,8 +143,18 @@ for (const key of AUTH_KEYS_USED) {
   } else {
     assert(String(ro.Auth[key]).length > 0, "RO Auth.welcomeLead empty");
   }
+}
+for (const key of AUTH_MODAL_KEYS_USED) {
   assert(auth.includes(`t("${key}")`), `AuthModal does not use Auth.${key}`);
 }
+const authBanner = readFileSync(
+  join(root, "app/components/AuthStatusBanner.tsx"),
+  "utf8",
+);
+assert(
+  authBanner.includes("identityConflictTitle") && authBanner.includes("authErrorBody"),
+  "AuthStatusBanner uses collision/error copy",
+);
 
 for (const key of enKeys) {
   const value = readPath(en.PostListing, key);

@@ -114,6 +114,18 @@ assert(
     authModal.includes("safeInternalPath"),
   "H. callback URL builders use safeInternalPath"
 );
+assert(
+  authModal.includes('provider: "google"') && authModal.includes("signInWithOtp"),
+  "AuthModal retains Google OAuth + email OTP"
+);
+assert(
+  !authModal.includes("handleWeb3Login") && !authModal.includes("web3Maintenance"),
+  "Phase 1A: dead wallet CTA removed from AuthModal"
+);
+assert(
+  authModal.includes("ensureProfileRow") === false,
+  "profile ensure stays server-side (callback), not AuthModal"
+);
 
 // --- G/H. HQ unauthorized copy ---
 

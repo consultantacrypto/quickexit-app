@@ -1,0 +1,49 @@
+{
+  "at": "2026-10-15T15:12:36.916Z",
+  "staging_ref": "nlnzlswjjplofpkhoxtr",
+  "site": "https://quickexit-staging.vercel.app",
+  "ux": {
+    "home_status": 200,
+    "google_copy_in_ssr": true,
+    "dead_wallet_cta_in_ssr": false,
+    "note": "AuthModal is client-rendered; SSR may not include button copy — browser smoke confirms UI",
+    "identity_conflict_route_status": 200,
+    "identity_conflict_route_ok": true
+  },
+  "email_smoke": {
+    "profile_count": 1,
+    "kyc_status": "unverified",
+    "generate_link_ok": true,
+    "magic_link_redirect_has_callback_or_code": true,
+    "magic_link_http_status": 303,
+    "otp_request_error": "For security purposes, you can only request this after 59 seconds.",
+    "otp_request_ok": false,
+    "duplicate_auth_users_for_email": 1
+  },
+  "ownership": {
+    "before": {
+      "listing_owner_ids": 2,
+      "demand_buyer_ids": 8,
+      "media_owner_ids": 1,
+      "listings": 9,
+      "demands": 10,
+      "media_orders": 1,
+      "profiles": 12,
+      "kyc_verified": 4
+    },
+    "after": {
+      "listing_owner_ids": 2,
+      "demand_buyer_ids": 8,
+      "media_owner_ids": 1,
+      "listings": 9,
+      "demands": 10,
+      "media_orders": 1,
+      "profiles": 12,
+      "kyc_verified": 4
+    }
+  },
+  "hq": {
+    "note": "HQ_ADMIN_EMAILS staging override only on deploy env; allowlist code unchanged",
+    "code_untouched": true
+  }
+}

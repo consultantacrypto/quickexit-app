@@ -19,20 +19,33 @@
     "welcomeLead": "",
     "welcomeHighlight": "Welcome",
     "welcomeTitle": "Welcome",
-    "welcomeSubtitle": "Use your email below (you'll receive a magic link) or sign in with Google. One account covers listings, offers, and the Negotiation Room.",
+    "welcomeSubtitle": "Continue with Google or use your email for a magic link. One account covers listings, offers, and the Negotiation Room.",
     "emailLabel": "Create an account or sign in with email",
     "emailPlaceholder": "you@email.com",
     "submitLoading": "Processing...",
     "submitButton": "Send Access Link →",
     "autoAccountHint": "If you don't have an account yet, one will be created automatically when you click the link in your email.",
-    "advancedOptions": "Advanced Options",
+    "orEmail": "Or email",
+    "continueWithGoogle": "Continue with Google",
     "google": "Google",
-    "web3Wallet": "Web3 Wallet",
     "errorPrefix": "Error: ",
     "magicLinkSent": "✓ Check your inbox! We've sent you a sign-in link.",
-    "web3Maintenance": "⚠ WalletConnect is under maintenance for Phase 2."
+    "identityConflictTitle": "Identity already connected",
+    "identityConflictBody": "This sign-in method is already connected to another QuickExit account. Sign in with your existing Google or email method. We never merge accounts by email alone.",
+    "authErrorTitle": "Sign-in interrupted",
+    "authErrorBody": "We could not complete sign-in. Please try again with Google or email."
   },
   "Dashboard": {
+    "connectedIdentities": {
+      "title": "Connected identities",
+      "subtitle": "Sign-in methods linked to this QuickExit account. Ownership and KYC stay on this account.",
+      "email": "Email",
+      "google": "Google",
+      "statusConnected": "Connected",
+      "statusPrimaryRecovery": "Primary recovery",
+      "statusNotConnected": "Not connected",
+      "linkHint": "To connect another method later, sign in first — we never merge accounts by matching email alone."
+    },
     "phonePrompt": {
       "title": "Add a contact phone number",
       "body": "Your listings stay active. Add a private phone so QuickExit can connect buyers and sellers.",

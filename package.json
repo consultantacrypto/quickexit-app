@@ -14,6 +14,8 @@
     "assert:redaction": "tsx scripts/observability-redaction-smoke.ts",
     "assert:h4b3b": "tsx scripts/assert-h4b3b-demand-offer-media-matrix.ts",
     "assert:health-route": "tsx scripts/assert-health-route.ts",
+    "assert:auth-identity": "tsx scripts/assert-auth-identity-foundation.ts",
+    "audit:auth-profiles": "tsx scripts/audit-auth-profiles.ts",
     "storage:wire-env": "tsx scripts/storage-backup/wire-env.ts",
     "storage:inventory": "tsx scripts/storage-backup/inventory.ts",
     "storage:dry-run": "tsx scripts/storage-backup/backup.ts dry-run",

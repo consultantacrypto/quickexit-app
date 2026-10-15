@@ -10,6 +10,7 @@ export type LogResult =
   | "info"
   | "blocked_zero_images"
   | "denied"
+  | "conflict"
   | "not_found"
   | "validation_failed";
 

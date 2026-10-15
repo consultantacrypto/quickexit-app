@@ -1,0 +1,19 @@
+{
+  "at": "2026-10-15T15:14:24.912Z",
+  "staging_ref": "nlnzlswjjplofpkhoxtr",
+  "email_session": {
+    "session_established": true,
+    "user_id_suffix": "faf0c752",
+    "profile_exists": true,
+    "kyc_status": "unverified",
+    "kyc_unchanged_after_session": true,
+    "duplicate_users": 1,
+    "listings_owned": 0,
+    "listings_after": 0
+  },
+  "callback_probe": {
+    "status": 307,
+    "location": "https://quickexit-staging.vercel.app/ro?auth=error"
+  },
+  "dashboard_http": 200
+}

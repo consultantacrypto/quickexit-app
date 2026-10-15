@@ -6,6 +6,7 @@ import Header from "../components/Header";
 import Footer from "../components/Footer";
 import StructuredData from "../components/StructuredData";
 import AuthHashCleaner from "../components/AuthHashCleaner";
+import AuthStatusBanner from "../components/AuthStatusBanner";
 import { ConsentProvider } from "../components/ConsentProvider";
 import ConsentedPageViewTracker from "../components/ConsentedPageViewTracker";
 import ConsentBanner from "../components/ConsentBanner";
@@ -98,7 +99,12 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
             <StructuredData siteUrl={siteUrl} />
             <Header />
 
-            <main className="flex-grow pt-16 md:pt-32">{children}</main>
+            <main className="flex-grow pt-16 md:pt-32">
+              <div className="px-4 pt-4">
+                <AuthStatusBanner />
+              </div>
+              {children}
+            </main>
 
             <Footer />
             <ConsentBanner />

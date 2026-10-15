@@ -1,0 +1,19 @@
+{
+  "at": "2026-10-15T15:18:14.282Z",
+  "staging_ref": "nlnzlswjjplofpkhoxtr",
+  "user_id_suffix": "ff358ff4",
+  "profile_count": 1,
+  "kyc_status": "unverified",
+  "callback_ok": true,
+  "hops": [
+    {
+      "status": 303,
+      "loc": "https://quickexit-staging.vercel.app/ro/auth/callback?next=/ro/dashboard#access_token=REDACTED&expires_at=1792081093&expires_in=3600&refresh_token=REDACTED&sb=&token_type=bearer&type=magiclink"
+    },
+    {
+      "status": 200,
+      "loc": null,
+      "note": "staging_callback_hash_bounce"
+    }
+  ]
+}

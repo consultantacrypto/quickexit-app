@@ -35,6 +35,7 @@ import { listingLocationLabelFromUnknown } from "@/lib/listingLocation";
 import { formatDemandBudgetCompact, readDemandBudgetAmount } from "@/lib/demandBudget";
 import { Wallet, Inbox, PlusCircle, Search, Settings, Power, Play, PiggyBank, ClipboardList } from "lucide-react";
 import KycBanner from "@/app/components/KycBanner";
+import ConnectedIdentities from "@/app/components/ConnectedIdentities";
 import { startKycVerification } from "@/lib/kycClient";
 import { getPriceIdForPackageId } from "@/lib/stripePackages";
 import { normalizePhone } from "@/lib/financingLead";
@@ -1171,6 +1172,8 @@ function DashboardContent() {
           </div>
         </div>
       </section>
+
+      <ConnectedIdentities />
 
       {/* source: app/dashboard/page.tsx — secțiune Status cont / KYC */}
       <div className="bg-[#FDFCF8] border-[3px] border-black rounded-2xl p-4 md:p-5 shadow-[5px_5px_0_0_rgba(255,209,0,0.75)] mb-6">

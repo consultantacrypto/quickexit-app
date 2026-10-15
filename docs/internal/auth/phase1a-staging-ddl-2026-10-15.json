@@ -1,0 +1,12 @@
+{
+  "at": "2026-10-15T15:09:44.341Z",
+  "staging_ref": "nlnzlswjjplofpkhoxtr",
+  "production_ref": "geywuzwbzecknokvnins",
+  "production": "untouched",
+  "migration": "20261015180000_auth_profile_auto_provision.sql",
+  "version": "20261015180000",
+  "apply": "ok",
+  "function": "handle_new_user_profile",
+  "trigger": "on_auth_user_created_profile",
+  "history": "recorded"
+}

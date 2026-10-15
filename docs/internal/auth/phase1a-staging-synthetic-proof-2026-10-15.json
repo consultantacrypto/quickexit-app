@@ -1,0 +1,17 @@
+{
+  "at": "2026-10-15T15:10:11.142Z",
+  "staging_ref": "nlnzlswjjplofpkhoxtr",
+  "synthetic_user_id_suffix": "37653112",
+  "profile_count_after_create": 1,
+  "profile_count_after_retry": 1,
+  "kyc_status": "unverified",
+  "kyc_escalated": false,
+  "retry_insert_error_code": "23505",
+  "ownership_rows": {
+    "listings": 0,
+    "demands": 0,
+    "media_orders": 0
+  },
+  "hq_effect": "none",
+  "cleaned_up": true
+}

@@ -19,20 +19,33 @@
     "welcomeLead": "Bine ai",
     "welcomeHighlight": "venit",
     "welcomeTitle": "Bine ai venit",
-    "welcomeSubtitle": "Folosește mai jos adresa de e-mail (primești un link de acces) sau butonul Google. Același cont îl folosești pentru anunțuri, oferte și Camera de negociere.",
+    "welcomeSubtitle": "Continuă cu Google sau folosește e-mailul pentru un link de acces. Același cont îl folosești pentru anunțuri, oferte și Camera de negociere.",
     "emailLabel": "Creează cont sau loghează-te cu mail",
     "emailPlaceholder": "adresa.ta@email.com",
     "submitLoading": "Se procesează...",
     "submitButton": "Primește link-ul de acces →",
     "autoAccountHint": "Dacă nu ai cont, se va crea automat după ce apeși pe link-ul din mail.",
-    "advancedOptions": "Opțiuni Avansate",
+    "orEmail": "Sau e-mail",
+    "continueWithGoogle": "Continuă cu Google",
     "google": "Google",
-    "web3Wallet": "Web3 Wallet",
     "errorPrefix": "Eroare: ",
     "magicLinkSent": "✓ Verifică-ți mail-ul! Ți-am trimis link-ul de intrare.",
-    "web3Maintenance": "⚠ Sistemul WalletConnect este în mentenanță pentru Faza 2."
+    "identityConflictTitle": "Identitate deja conectată",
+    "identityConflictBody": "Această metodă de autentificare este deja legată de un alt cont QuickExit. Intră cu Google sau e-mailul existent. Nu unificăm conturile doar pe baza adresei de e-mail.",
+    "authErrorTitle": "Autentificare întreruptă",
+    "authErrorBody": "Nu am putut finaliza autentificarea. Încearcă din nou cu Google sau e-mail."
   },
   "Dashboard": {
+    "connectedIdentities": {
+      "title": "Identități conectate",
+      "subtitle": "Metodele de autentificare legate de acest cont QuickExit. Proprietatea și KYC rămân pe acest cont.",
+      "email": "E-mail",
+      "google": "Google",
+      "statusConnected": "Conectat",
+      "statusPrimaryRecovery": "Recuperare principală",
+      "statusNotConnected": "Neconectat",
+      "linkHint": "Pentru a conecta o altă metodă mai târziu, autentifică-te mai întâi — nu unificăm conturile doar pe baza e-mailului."
+    },
     "phonePrompt": {
       "title": "Completează telefonul de contact",
       "body": "Anunțurile tale rămân active. Adaugă un telefon privat ca vânzătorii și cumpărătorii să poată fi puși în legătură.",

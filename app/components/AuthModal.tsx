@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { supabase } from "@/lib/supabase";
 import { safeInternalPath } from "@/lib/authRedirect";
+import { trackAuthIdentityEvent } from "@/lib/authIdentity/analytics";
 import { getAuthCallbackUrl } from "@/lib/siteUrl";
 
 interface AuthModalProps {
@@ -21,14 +22,14 @@ export default function AuthModal({ isOpen, onClose, nextPath = "/dashboard" }: 
   const [message, setMessage] = useState<{ text: string; type: "error" | "success" | "" }>({ text: "", type: "" });
   const safeNextPath = safeInternalPath(nextPath, "/dashboard");
 
-  // Reținem emailul ca să nu mai fie nevoie de reintroducere (Anti-Amnezie)
   useEffect(() => {
     if (isOpen) {
       const savedEmail = localStorage.getItem("quickexit_email");
       if (savedEmail) {
         setEmail(savedEmail);
       }
-      setMessage({ text: "", type: "" }); 
+      setMessage({ text: "", type: "" });
+      trackAuthIdentityEvent("auth_started", { surface: "auth_modal" });
     }
   }, [isOpen]);
 
@@ -49,6 +50,10 @@ export default function AuthModal({ isOpen, onClose, nextPath = "/dashboard" }: 
     setMessage({ text: "", type: "" });
 
     localStorage.setItem("quickexit_email", email);
+    trackAuthIdentityEvent("auth_provider_selected", {
+      provider_category: "email",
+      surface: "auth_modal",
+    });
 
     const emailRedirectTo = getAuthCallbackUrl(safeNextPath, locale);
 
@@ -60,46 +65,59 @@ export default function AuthModal({ isOpen, onClose, nextPath = "/dashboard" }: 
     });
 
     if (error) {
+      trackAuthIdentityEvent("auth_failed", {
+        provider_category: "email",
+        reason: "otp_send_failed",
+        surface: "auth_modal",
+      });
       setMessage({ text: t("errorPrefix") + error.message, type: "error" });
     } else {
+      trackAuthIdentityEvent("auth_success", {
+        provider_category: "email",
+        reason: "magic_link_sent",
+        surface: "auth_modal",
+      });
       setMessage({ text: t("magicLinkSent"), type: "success" });
     }
     setIsLoading(false);
   };
 
   const handleGoogleLogin = async () => {
+    trackAuthIdentityEvent("auth_provider_selected", {
+      provider_category: "google",
+      surface: "auth_modal",
+    });
     const redirectTo = getAuthCallbackUrl(safeNextPath, locale);
 
-    await supabase.auth.signInWithOAuth({
+    const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
         redirectTo,
       },
     });
-  };
-
-  const handleWeb3Login = () => {
-    setMessage({ text: t("web3Maintenance"), type: "error" });
+    if (error) {
+      trackAuthIdentityEvent("auth_failed", {
+        provider_category: "google",
+        reason: "oauth_start_failed",
+        surface: "auth_modal",
+      });
+      setMessage({ text: t("errorPrefix") + error.message, type: "error" });
+    }
   };
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 font-sans antialiased">
-      {/* Background Blur Premium */}
-      <div 
-        className="absolute inset-0 bg-black/70 backdrop-blur-xl transition-opacity duration-500" 
+      <div
+        className="absolute inset-0 bg-black/70 backdrop-blur-xl transition-opacity duration-500"
         onClick={onClose}
       ></div>
 
-      {/* Modal - Design Neo-Brutalism 2026 */}
       <div className="relative bg-white w-full max-w-md border-[4px] border-black rounded-[2.5rem] shadow-[20px_20px_0_0_rgba(0,0,0,1)] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-300">
-        
-        {/* Accent Bar - Black & Gold */}
         <div className="h-4 w-full bg-black flex">
-            <div className="h-full w-1/3 bg-[#FFD100]"></div>
-            <div className="h-full w-2/3 bg-black"></div>
+          <div className="h-full w-1/3 bg-[#FFD100]"></div>
+          <div className="h-full w-2/3 bg-black"></div>
         </div>
 
-        {/* Buton Închidere */}
         <button
           type="button"
           onClick={onClose}
@@ -121,16 +139,34 @@ export default function AuthModal({ isOpen, onClose, nextPath = "/dashboard" }: 
           </p>
         </div>
 
-        <div className="px-10 pb-12 space-y-8">
-          
-          {/* Căsuța de Email Albă - Luxury Styling */}
+        <div className="px-10 pb-12 space-y-6">
+          <button
+            type="button"
+            onClick={() => void handleGoogleLogin()}
+            className="w-full bg-white border-[3px] border-black text-black py-4 rounded-xl font-black uppercase tracking-widest text-[10px] italic flex items-center justify-center gap-3 hover:bg-gray-50 transition-all shadow-[4px_4px_0_0_rgba(0,0,0,1)] active:shadow-none"
+          >
+            <svg className="w-5 h-5" viewBox="0 0 24 24" aria-hidden>
+              <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+            </svg>
+            {t("continueWithGoogle")}
+          </button>
+
+          <div className="flex items-center gap-6">
+            <div className="h-[2px] bg-gray-100 flex-1"></div>
+            <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest">{t("orEmail")}</span>
+            <div className="h-[2px] bg-gray-100 flex-1"></div>
+          </div>
+
           <form onSubmit={handleEmailLogin} className="space-y-4">
             <div className="relative group">
               <label className="text-[10px] font-black uppercase tracking-[0.2em] text-black mb-3 block ml-1 italic">
                 {t("emailLabel")}
               </label>
-              <input 
-                type="email" 
+              <input
+                type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -138,61 +174,25 @@ export default function AuthModal({ isOpen, onClose, nextPath = "/dashboard" }: 
                 className="w-full p-5 bg-white border-[3px] border-black text-black rounded-2xl font-black text-lg text-center focus:outline-none focus:bg-gray-50 shadow-[6px_6px_0_0_rgba(0,0,0,0.05)] transition-all placeholder:text-gray-200"
               />
             </div>
-            
-            <button 
+
+            <button
               type="submit"
               disabled={isLoading}
               className="w-full bg-black text-[#FFD100] border-[3px] border-black py-5 rounded-2xl font-black uppercase tracking-widest text-sm italic transition-all hover:bg-gray-900 shadow-[8px_8px_0_0_rgba(255,209,0,1)] active:translate-y-1 active:shadow-none disabled:opacity-50"
             >
               {isLoading ? t("submitLoading") : t("submitButton")}
             </button>
-            
+
             <p className="text-[9px] font-bold text-gray-400 text-center uppercase tracking-[0.1em] italic">
               {t("autoAccountHint")}
             </p>
           </form>
 
-          <div className="flex items-center gap-6">
-            <div className="h-[2px] bg-gray-100 flex-1"></div>
-            <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest">{t("advancedOptions")}</span>
-            <div className="h-[2px] bg-gray-100 flex-1"></div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Google Login */}
-            <button 
-              onClick={handleGoogleLogin}
-              className="w-full bg-white border-[3px] border-black text-black py-4 rounded-xl font-black uppercase tracking-widest text-[10px] italic flex items-center justify-center gap-3 hover:bg-gray-50 transition-all shadow-[4px_4px_0_0_rgba(0,0,0,1)] active:shadow-none"
-            >
-              <svg className="w-5 h-5" viewBox="0 0 24 24">
-                <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
-                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
-              </svg>
-              {t("google")}
-            </button>
-
-            {/* Web3 Wallet */}
-            <button 
-              onClick={handleWeb3Login}
-              className="relative w-full bg-[#111] text-[#FFD100] border-[3px] border-black py-4 rounded-xl font-black uppercase tracking-widest text-[10px] italic transition-all hover:shadow-[0_0_20px_rgba(255,209,0,0.3)] active:scale-95 flex items-center justify-center gap-2 group overflow-hidden"
-            >
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M11.944 17.97L4.58 13.62 11.943 24l7.37-10.38-7.372 4.35h.003zM12.056 0L4.69 12.22l7.365 4.339 7.365-4.34L12.056 0z"/>
-              </svg>
-              {t("web3Wallet")}
-            </button>
-          </div>
-
-          {/* Mesaje status */}
           {message.text && (
             <div className={`p-4 rounded-2xl border-[3px] text-[10px] font-black uppercase text-center animate-in slide-in-from-top-4 ${message.type === 'error' ? 'bg-black border-red-500 text-red-500' : 'bg-black border-[#FFD100] text-[#FFD100]'}`}>
               {message.text}
             </div>
           )}
-
         </div>
       </div>
     </div>
