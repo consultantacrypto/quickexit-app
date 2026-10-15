@@ -1,6 +1,6 @@
 # QuickExit Auth Recovery Policy
 
-**Status:** Binding (Phase 1A)  
+**Status:** Binding (Phase 1C)  
 **Effective:** 2026-10-15
 
 ---
@@ -15,7 +15,9 @@ Users must not lock themselves out of a QuickExit account that holds listings, d
 
 1. **Email magic link / OTP** — primary recovery for most users  
 2. **Google OAuth** — primary or secondary recovery  
-3. **Apple Sign-In** — future Phase 1B; treated as recovery once enabled  
+3. **Apple Sign-In** — retained in recovery policy, but **user-facing Apple CTAs/rows are gated OFF** until configured (`APPLE_IDENTITY_UI_ENABLED = false`). No dead Apple buttons in AuthModal / ConnectedIdentities.
+
+**Apple private relay:** if Apple is later enabled, relay addresses must not be used to merge with another QuickExit UUID.
 
 **Never sole recovery (current roadmap):**
 
@@ -44,9 +46,9 @@ Fall back to another recovery method in the hierarchy. Do not invent ownership r
 
 User retries sign-in. No partial privileged session. Collision → clear message, no merge.
 
-## Lost wallet (future)
+## Lost / disconnected wallet (Phase 1C)
 
-Unlink wallet after proving a remaining recovery method; account UUID unchanged.
+Wallet is **not** a recovery method. Users may unlink a connected wallet while signed in with email/Google/Apple without account lockout. Unlink removes `wallet_addresses` binding only; UUID, KYC, and ownership rows are unchanged.
 
 ---
 
@@ -54,4 +56,6 @@ Unlink wallet after proving a remaining recovery method; account UUID unchanged.
 
 - `lib/authIdentity/recovery.ts`  
 - `lib/authIdentity/policy.ts` (`decideUnlink`, `NON_SOLE_RECOVERY_CATEGORIES`)  
-- `scripts/assert-auth-identity-foundation.ts` (last-recovery DENY)
+- `lib/walletIdentity/policy.ts` (`decideWalletUnlink`)  
+- `scripts/assert-auth-identity-foundation.ts` (last-recovery DENY)  
+- `scripts/assert-wallet-identity.ts`

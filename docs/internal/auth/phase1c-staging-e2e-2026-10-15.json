@@ -1,0 +1,88 @@
+{
+  "at": "2026-10-15T17:08:47.462Z",
+  "staging_ref": "nlnzlswjjplofpkhoxtr",
+  "site": "https://quickexit-staging.vercel.app",
+  "production": "untouched",
+  "nonce_sample_present_in_artifact": false,
+  "cells": [
+    {
+      "id": "B_unauth_nonce",
+      "result": "DENY",
+      "detail": "status=401"
+    },
+    {
+      "id": "A_auth_nonce",
+      "result": "PASS",
+      "detail": "status=200"
+    },
+    {
+      "id": "C_valid_bind",
+      "result": "PASS",
+      "detail": "status=200 code="
+    },
+    {
+      "id": "D_idempotent_rebind",
+      "result": "PASS",
+      "detail": "status=200"
+    },
+    {
+      "id": "E_duplicate_elsewhere",
+      "result": "DENY",
+      "detail": "status=409"
+    },
+    {
+      "id": "F_invalid_signature",
+      "result": "DENY",
+      "detail": "status=400"
+    },
+    {
+      "id": "H_reused_nonce",
+      "result": "DENY",
+      "detail": "status=400 code=nonce_reused"
+    },
+    {
+      "id": "I_wrong_origin",
+      "result": "DENY",
+      "detail": "status=403"
+    },
+    {
+      "id": "G_expired_nonce",
+      "result": "DENY",
+      "detail": "status=400 code=nonce_expired"
+    },
+    {
+      "id": "K_unlink_other",
+      "result": "DENY",
+      "detail": "status=403"
+    },
+    {
+      "id": "J_unlink_own",
+      "result": "PASS",
+      "detail": "status=200"
+    },
+    {
+      "id": "L_kyc_unchanged",
+      "result": "PASS"
+    },
+    {
+      "id": "M_hq_unchanged",
+      "result": "PASS",
+      "detail": "HQ allowlist env-only; routes never touch HQ"
+    },
+    {
+      "id": "N_ownership_unchanged",
+      "result": "PASS"
+    },
+    {
+      "id": "O_no_blockchain_tx",
+      "result": "PASS",
+      "detail": "personal_sign only"
+    },
+    {
+      "id": "P_no_secret_logs",
+      "result": "PASS",
+      "detail": "assert-wallet-identity + redaction"
+    }
+  ],
+  "result": "PASS"
+}

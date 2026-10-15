@@ -1,8 +1,8 @@
 # QuickExit Identity Linking Policy
 
-**Status:** Binding (Phase 1A)  
+**Status:** Binding (Phase 1C)  
 **Effective:** 2026-10-15  
-**Policy version:** `phase1a-2026-10-15`
+**Policy version:** `phase1c-2026-10-15`
 
 ---
 
@@ -25,8 +25,12 @@
    HQ = `HQ_ADMIN_EMAILS` + authenticated session + server gate. Link/unlink must not grant or revoke HQ.
 
 7. **At least one recoverable auth method must remain.**  
-   Recovery hierarchy: email magic link → Google → (future) Apple.  
+   Recovery hierarchy: email magic link → Google → Apple (policy-ready).  
+   **Apple user-facing UI is gated OFF** until configured (`APPLE_IDENTITY_UI_ENABLED = false`).  
    Wallet / exchange must never be sole recovery.
+
+8. **Apple private relay is not a merge key.**  
+   `@privaterelay.appleid.com` addresses must not be treated as equivalent to an existing Google/email identity. No silent ownership remap.
 
 ---
 
@@ -36,7 +40,7 @@
 |------|------|--------|
 | Supabase auto-link same verified email | Cold OAuth with matching verified email | Platform behavior; do not reimplement in app tables |
 | Explicit `linkIdentity` (future Staging) | User already signed in | Requires manual linking enabled; same-session only |
-| Wallet bind-after-auth (future) | User already signed in | Custom table; not `auth.users` orphan login |
+| Wallet bind-after-auth (Phase 1C Staging) | User already signed in | `wallet_addresses` via SIWE; not `auth.users` orphan login; not recovery |
 
 ## Forbidden
 
@@ -57,9 +61,20 @@ No destructive merge UI in Phase 1A.
 
 ---
 
+## Wallet conflict UX
+
+If an EVM address already belongs to another QuickExit UUID:
+
+> “This wallet is already connected to another QuickExit account.”
+
+No merge. No ownership remap. See `wallet-identity-semantics.md`.
+
 ## Code anchors
 
 - `lib/authIdentity/policy.ts`  
 - `lib/authIdentity/recovery.ts`  
+- `lib/walletIdentity/*`  
+- `app/api/wallet/{nonce,verify,unlink}/route.ts`  
 - `app/[locale]/auth/callback/route.ts`  
-- `scripts/assert-auth-identity-foundation.ts`
+- `scripts/assert-auth-identity-foundation.ts`  
+- `scripts/assert-wallet-identity.ts`

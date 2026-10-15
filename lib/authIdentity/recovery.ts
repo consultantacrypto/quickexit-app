@@ -45,10 +45,10 @@ export function canUnlinkIdentity(
 }
 
 /**
- * Recovery hierarchy (Phase 1A):
+ * Recovery hierarchy (Phase 1B):
  * 1. Email magic link / OTP
  * 2. Google
- * 3. Future Apple
+ * 3. Apple Sign-In (Staging)
  * Wallet / exchange must never be sole recovery.
  */
 export const RECOVERY_HIERARCHY = [

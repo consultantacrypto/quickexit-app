@@ -17,6 +17,7 @@ import {
   countRecoveryIdentities,
 } from "../lib/authIdentity/recovery";
 import {
+  APPLE_IDENTITY_UI_ENABLED,
   buildConnectedIdentityRows,
   classifyAuthCollision,
 } from "../lib/authIdentity/providers";
@@ -50,7 +51,13 @@ assert(
 );
 
 // --- B. Policy invariants ---
-assert(AUTH_IDENTITY_POLICY_VERSION.includes("phase1a"), "policy version");
+assert(
+  AUTH_IDENTITY_POLICY_VERSION.includes("phase1c") ||
+    AUTH_IDENTITY_POLICY_VERSION.includes("phase1b") ||
+    AUTH_IDENTITY_POLICY_VERSION.includes("phase1a"),
+  "policy version",
+);
+assert(decideColdProviderLogin("apple").ok === true, "apple cold login ok");
 assert(IDENTITY_INVARIANTS.noOwnershipRemapByEmail, "no email ownership remap");
 assert(IDENTITY_INVARIANTS.kycIndependentOfProviderLink, "KYC independent");
 assert(IDENTITY_INVARIANTS.hqIndependentOfProviderLink, "HQ independent");
@@ -125,15 +132,24 @@ assert(
 );
 assert(classifyAuthCollision("network timeout") === "generic", "collision generic");
 
-// --- D. Connected identities Phase 1A surface ---
+// --- D. Connected identities surface (Apple UI gated) ---
+assert(APPLE_IDENTITY_UI_ENABLED === false, "Apple identity UI gated off");
 const rows = buildConnectedIdentityRows(
   [{ provider: "google" }],
   true,
 );
-assert(rows.length === 2, "only email+google rows");
+assert(rows.length === 2, "email+google rows only while Apple gated");
 assert(
   rows.every((r) => r.labelKey === "email" || r.labelKey === "google"),
-  "no apple/wallet rows in Phase 1A UI",
+  "only email/google rows",
+);
+assert(
+  !rows.some((r) => r.labelKey === "apple"),
+  "apple row hidden while gated",
+);
+assert(
+  canUnlinkIdentity([{ provider: "apple" }], "apple").allowed === false,
+  "H. apple-only last recovery DENY unlink",
 );
 
 // --- E. KYC / HQ invariants in source ---
@@ -156,11 +172,19 @@ assert(
 const authModal = readFileSync(resolve("app/components/AuthModal.tsx"), "utf8");
 assert(!authModal.includes("handleWeb3Login"), "P. no Web3 handler");
 assert(!authModal.includes("web3Maintenance"), "P. no wallet maintenance CTA");
-assert(authModal.includes('provider: "google"'), "Google OAuth remains");
+assert(
+  authModal.includes('provider: "google"') || authModal.includes("continueWithGoogle"),
+  "Google OAuth remains",
+);
 assert(authModal.includes("signInWithOtp"), "email OTP remains");
 assert(authModal.includes("trackAuthIdentityEvent"), "analytics wired");
-assert(!authModal.toLowerCase().includes("apple"), "no Apple yet");
+assert(!authModal.includes("handleAppleLogin"), "Apple CTA handler absent");
+assert(!authModal.includes("continueWithApple"), "Apple CTA not wired in AuthModal");
+assert(!/provider:\s*"apple"/.test(authModal), "Apple OAuth provider not started");
 assert(!authModal.toLowerCase().includes("bybit"), "no Bybit");
+assert(!authModal.toLowerCase().includes("okx"), "no OKX");
+assert(!authModal.toLowerCase().includes("binance"), "no Binance");
+assert(!authModal.includes("handleWeb3"), "no wallet handler");
 
 // --- G. Callback ---
 const callback = readFileSync(resolve("app/[locale]/auth/callback/route.ts"), "utf8");

@@ -1,0 +1,67 @@
+# QuickExit PR / main gates (Phase 4B.1)
+# No Production/Staging secrets required.
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  static:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Production build (stub env)
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJleGFtcGxlIn0.stubble
+          NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: pk_test_ci_stub
+        run: npm run build
+
+      - name: Preview boundary assert
+        run: npm run assert:boundary
+
+      - name: Zero-image guard
+        run: npm run assert:zero-image
+
+      - name: Redaction smoke
+        run: npm run assert:redaction
+
+      - name: Migration discipline
+        run: npm run assert:migration-discipline
+
+      - name: Secret / forbidden-file guard
+        run: npm run assert:no-secrets
+
+      - name: Auth identity foundation
+        run: npm run assert:auth-identity
+
+      - name: Wallet identity (Phase 1C)
+        run: npm run assert:wallet-identity
+
+      - name: Health route assert
+        run: npm run assert:health-route
+
+      - name: Publish EN i18n
+        run: npx tsx scripts/assert-publish-en-i18n.ts

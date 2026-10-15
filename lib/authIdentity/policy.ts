@@ -3,7 +3,7 @@
  * Ownership and KYC never migrate by email string match.
  */
 
-export const AUTH_IDENTITY_POLICY_VERSION = "phase1a-2026-10-15";
+export const AUTH_IDENTITY_POLICY_VERSION = "phase1c-2026-10-15";
 
 /** Canonical QuickExit account identity. */
 export type QuickExitAccountId = string; // auth.users.id UUID

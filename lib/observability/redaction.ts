@@ -4,10 +4,10 @@
  */
 
 const SENSITIVE_KEY_RE =
-  /^(authorization|cookie|set-cookie|x-api-key|x-supabase-.*|stripe-signature|password|passwd|secret|token|access_token|refresh_token|service_role|service-role|apikey|api_key|phone|address|full_address|ssn|card|cvc|cvv|iban|kyc|vendor_data|didit|bearer)$/i;
+  /^(authorization|cookie|set-cookie|x-api-key|x-supabase-.*|stripe-signature|password|passwd|secret|token|access_token|refresh_token|service_role|service-role|apikey|api_key|phone|address|full_address|ssn|card|cvc|cvv|iban|kyc|vendor_data|didit|bearer|nonce|signature|siwe_message|wallet_address)$/i;
 
 const SENSITIVE_SUBSTRING_RE =
-  /(authorization|cookie|password|secret|token|service[_-]?role|stripe[_-]?signature|refresh[_-]?token|access[_-]?token|api[_-]?key|bearer\s|sk_live|sk_test|whsec_|eyJ[A-Za-z0-9_-]{10,})/i;
+  /(authorization|cookie|password|secret|token|service[_-]?role|stripe[_-]?signature|refresh[_-]?token|access[_-]?token|api[_-]?key|bearer\s|sk_live|sk_test|whsec_|eyJ[A-Za-z0-9_-]{10,}|0x[a-fA-F0-9]{64,})/i;
 
 const REDACTED = "[Redacted]";
 

@@ -27,6 +27,7 @@ export {
 export { logAuthIdentity } from "@/lib/authIdentity/log";
 export { ensureProfileRow } from "@/lib/authIdentity/ensureProfile";
 export {
+  APPLE_IDENTITY_UI_ENABLED,
   buildConnectedIdentityRows,
   classifyAuthCollision,
   type ConnectedIdentityRow,

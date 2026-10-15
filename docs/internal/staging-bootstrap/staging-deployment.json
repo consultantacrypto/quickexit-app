@@ -1,0 +1,12 @@
+{
+  "deployment_id": "dpl_D3JRzwK4THRVSgE4FSsDsajcgkSH",
+  "deployment_url": "https://quickexit-akyxv3aof-daniel-mihais-projects-31598ec8.vercel.app",
+  "stable_alias": "https://quickexit-staging.vercel.app",
+  "preferred_future_dns": "https://staging.quickexit.ro",
+  "commit_sha": "3346940",
+  "env_class": "staging-overrides-via-deploy-flags",
+  "protection": "alias-protection-override",
+  "production_alias_changed": false,
+  "stripe_webhook_secret_set": true,
+  "at": "2026-10-15T17:23:26.200Z"
+}

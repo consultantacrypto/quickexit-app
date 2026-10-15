@@ -13,14 +13,21 @@ export type ConnectedIdentityStatus =
 
 export type ConnectedIdentityRow = {
   category: AuthProviderCategory;
-  labelKey: "email" | "google";
+  labelKey: "email" | "google" | "apple";
   status: ConnectedIdentityStatus;
   provider: string;
 };
 
 /**
- * Phase 1A UI surface: Email + Google only.
- * Apple/wallet intentionally omitted (no dead buttons).
+ * Apple Sign-In UI remains gated until Apple Developer + Staging provider
+ * secrets are configured. Keep classifier/recovery abstractions; no dead CTAs.
+ */
+export const APPLE_IDENTITY_UI_ENABLED = false;
+
+/**
+ * Visible ConnectedIdentities rows: Email + Google.
+ * Wallet is rendered separately (Phase 1C bind-after-auth).
+ * Apple omitted while APPLE_IDENTITY_UI_ENABLED is false.
  */
 export function buildConnectedIdentityRows(
   identities: LinkedIdentityView[],
@@ -32,6 +39,7 @@ export function buildConnectedIdentityRows(
   const hasEmailIdentity =
     sessionHasEmail || providers.has("email") || identities.some((i) => i.email);
   const hasGoogle = providers.has("google");
+  const hasApple = providers.has("apple");
 
   const recoveryCats = identities
     .map((i) => classifyProvider(i.provider))
@@ -41,9 +49,11 @@ export function buildConnectedIdentityRows(
       ? "email"
       : recoveryCats.includes("google")
         ? "google"
-        : "email";
+        : APPLE_IDENTITY_UI_ENABLED && recoveryCats.includes("apple")
+          ? "apple"
+          : "email";
 
-  return [
+  const rows: ConnectedIdentityRow[] = [
     {
       category: "email",
       labelKey: "email",
@@ -65,6 +75,21 @@ export function buildConnectedIdentityRows(
         : "not_connected",
     },
   ];
+
+  if (APPLE_IDENTITY_UI_ENABLED) {
+    rows.push({
+      category: "apple",
+      labelKey: "apple",
+      provider: "apple",
+      status: hasApple
+        ? primary === "apple"
+          ? "primary_recovery"
+          : "connected"
+        : "not_connected",
+    });
+  }
+
+  return rows;
 }
 
 /** Map Supabase auth error messages to collision UX codes (no PII). */

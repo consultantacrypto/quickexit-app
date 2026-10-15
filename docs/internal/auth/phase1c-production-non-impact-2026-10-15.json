@@ -1,0 +1,21 @@
+{
+  "at": "2026-10-15T17:09:30.000Z",
+  "phase": "auth-phase1c-wallet-bind",
+  "staging_ref": "nlnzlswjjplofpkhoxtr",
+  "production_ref": "geywuzwbzecknokvnins",
+  "production_db_changed": false,
+  "production_env_changed": false,
+  "production_deploy": false,
+  "www_health": 200,
+  "staging_health": 200,
+  "staging_health_environment": "staging",
+  "staging_deployment_id": "dpl_EBBvPBAZaRrLFym6QRNBKbHSjkPs",
+  "staging_alias": "https://quickexit-staging.vercel.app",
+  "production_alias_changed": false,
+  "notes": [
+    "DDL applied only via temp supabase link to nlnzlswjjplofpkhoxtr",
+    "Vercel deploy target=preview + alias quickexit-staging.vercel.app only",
+    "No Production wallet enable"
+  ],
+  "result": "PASS"
+}

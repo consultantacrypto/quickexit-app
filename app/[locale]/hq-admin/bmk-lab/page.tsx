@@ -42,16 +42,16 @@ const bmkAbi = [
 
 type GateState = "loading" | "anon" | "forbidden" | "ready";
 
+/** Local provider shape — do not augment Window (conflicts with viem EIP1193Provider). */
 type EthereumProvider = {
   request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
   on?: (event: string, listener: (...args: unknown[]) => void) => void;
   removeListener?: (event: string, listener: (...args: unknown[]) => void) => void;
 };
 
-declare global {
-  interface Window {
-    ethereum?: EthereumProvider;
-  }
+function getEthereum(): EthereumProvider | undefined {
+  if (typeof window === "undefined") return undefined;
+  return (window as Window & { ethereum?: EthereumProvider }).ethereum;
 }
 
 function shortAddress(address: string): string {
@@ -112,9 +112,9 @@ export default function BMKLabPage() {
   }, []);
 
   const refreshWalletState = useCallback(async () => {
-    if (typeof window === "undefined" || !window.ethereum) return;
+    const provider = getEthereum();
+    if (!provider) return;
     try {
-      const provider = window.ethereum;
       const accounts = (await provider.request({
         method: "eth_accounts",
       })) as string[];
@@ -128,7 +128,7 @@ export default function BMKLabPage() {
 
   useEffect(() => {
     if (gate !== "ready") return;
-    const provider = typeof window !== "undefined" ? window.ethereum : undefined;
+    const provider = getEthereum();
     if (!provider) {
       setHasWallet(false);
       return;
@@ -157,17 +157,18 @@ export default function BMKLabPage() {
   }, [gate, refreshWalletState]);
 
   const connectWallet = useCallback(async () => {
-    if (!window.ethereum) {
+    const provider = getEthereum();
+    if (!provider) {
       setUiError("Nu am detectat niciun wallet în browser.");
       return;
     }
     setIsConnecting(true);
     setUiError("");
     try {
-      const accounts = (await window.ethereum.request({
+      const accounts = (await provider.request({
         method: "eth_requestAccounts",
       })) as string[];
-      const chainId = (await window.ethereum.request({
+      const chainId = (await provider.request({
         method: "eth_chainId",
       })) as string;
 
@@ -182,7 +183,8 @@ export default function BMKLabPage() {
   }, []);
 
   const switchToBsc = useCallback(async () => {
-    if (!window.ethereum) {
+    const provider = getEthereum();
+    if (!provider) {
       setUiError("Nu am detectat niciun wallet în browser.");
       return;
     }
@@ -191,7 +193,7 @@ export default function BMKLabPage() {
     setUiError("");
 
     try {
-      await window.ethereum.request({
+      await provider.request({
         method: "wallet_switchEthereumChain",
         params: [{ chainId: BSC_CHAIN_ID_HEX }],
       });
@@ -200,7 +202,7 @@ export default function BMKLabPage() {
       const code = Number(switchError?.code);
       if (code === 4902) {
         try {
-          await window.ethereum.request({
+          await provider.request({
             method: "wallet_addEthereumChain",
             params: [
               {
