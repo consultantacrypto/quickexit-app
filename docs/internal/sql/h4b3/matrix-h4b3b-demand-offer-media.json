@@ -1,0 +1,145 @@
+{
+  "suite": "h4b3b",
+  "apiUrl": "https://nlnzlswjjplofpkhoxtr.supabase.co",
+  "demandId": "2d01c55c-e40e-487b-8677-fc6e17a3c73a",
+  "offerId": "bbc60010-30d0-487e-9169-6a83b6951927",
+  "results": [
+    {
+      "id": "bucket.exists_private",
+      "ok": true,
+      "detail": "demand-offers present"
+    },
+    {
+      "id": "bucket.public_false",
+      "ok": true,
+      "detail": "public=false"
+    },
+    {
+      "id": "insert.B_own_prefix",
+      "ok": true,
+      "detail": "ok"
+    },
+    {
+      "id": "insert.C_cross_prefix_denied",
+      "ok": true,
+      "detail": "new row violates row-level security policy"
+    },
+    {
+      "id": "insert.anon_denied",
+      "ok": true,
+      "detail": "new row violates row-level security policy"
+    },
+    {
+      "id": "direct_select.A_denied",
+      "ok": true,
+      "detail": "Object not found"
+    },
+    {
+      "id": "direct_select.B_denied",
+      "ok": true,
+      "detail": "Object not found"
+    },
+    {
+      "id": "direct_select.C_denied",
+      "ok": true,
+      "detail": "Object not found"
+    },
+    {
+      "id": "direct_select.anon_denied",
+      "ok": true,
+      "detail": "Object not found"
+    },
+    {
+      "id": "public_url.anonymous_denied",
+      "ok": true,
+      "detail": "status=400"
+    },
+    {
+      "id": "fixture.offer_attached",
+      "ok": true,
+      "detail": "bbc60010-30d0-487e-9169-6a83b6951927"
+    },
+    {
+      "id": "signed.A_owner_allow",
+      "ok": true,
+      "detail": "signed_http=200"
+    },
+    {
+      "id": "signed.B_sender_allow",
+      "ok": true,
+      "detail": "signed_http=200"
+    },
+    {
+      "id": "signed.C_unrelated_deny",
+      "ok": true,
+      "detail": "denied:not_participant"
+    },
+    {
+      "id": "signed.anon_deny",
+      "ok": true,
+      "detail": "anonymous"
+    },
+    {
+      "id": "signed.HQ_service_allow",
+      "ok": true,
+      "detail": "ok"
+    },
+    {
+      "id": "signed.path_tamper_deny",
+      "ok": true,
+      "detail": "denied:path_mismatch"
+    },
+    {
+      "id": "signed.ttl_fresh_ok",
+      "ok": true,
+      "detail": "status=200"
+    },
+    {
+      "id": "signed.ttl_expired_unusable",
+      "ok": true,
+      "detail": "status=400 (soft if CDN caches)"
+    },
+    {
+      "id": "migrate.legacy_seed",
+      "ok": true,
+      "detail": "ok"
+    },
+    {
+      "id": "migrate.path_map",
+      "ok": true,
+      "detail": "c41554c6-dda7-4a14-99df-8b9abce52c85/2d01c55c-e40e-487b-8677-fc6e17a3c73a/h4b3b-legacy-1792051329200.jpg"
+    },
+    {
+      "id": "migrate.copy",
+      "ok": true,
+      "detail": "ok"
+    },
+    {
+      "id": "migrate.hash_match",
+      "ok": true,
+      "detail": "src=32461d5bd177 dst=32461d5bd177"
+    },
+    {
+      "id": "migrate.signed_after_patch",
+      "ok": true,
+      "detail": "signed_http=200"
+    },
+    {
+      "id": "migrate.legacy_delete_optional",
+      "ok": true,
+      "detail": "ok"
+    },
+    {
+      "id": "migrate.still_works_after_legacy_delete",
+      "ok": true,
+      "detail": "signed_http=200"
+    },
+    {
+      "id": "listings.public_unaffected",
+      "ok": true,
+      "detail": "status=200"
+    }
+  ],
+  "failed": 0,
+  "at": "2026-10-15T08:02:18.954Z"
+}

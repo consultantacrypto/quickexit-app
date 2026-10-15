@@ -37,6 +37,10 @@ yarn-error.log*
 # local storage backup restore bytes (Phase 3C)
 .tmp/
 
+# supabase CLI local/temp link state (may contain secrets)
+supabase/.temp/
+supabase/.branches/
+
 # vercel
 .vercel
 

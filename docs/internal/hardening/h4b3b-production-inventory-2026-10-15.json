@@ -1,0 +1,22 @@
+{
+  "at": "2026-10-15T07:30:00.000Z",
+  "mode": "read_only",
+  "production_ref": "geywuzwbzecknokvnins",
+  "demand_offers_total": 0,
+  "demand_offers_with_images": 0,
+  "db_image_refs_total": 0,
+  "listings_objects_with_demand_offers_segment": 6,
+  "demand_offers_bucket_present": false,
+  "listings_bucket_public": true,
+  "orphan_object_summary": [
+    { "path_shape": "user_id/demand-offers/demand_id/file", "mime": "image/png", "size_bytes": 542991, "count_same_size": 2 },
+    { "path_shape": "user_id/demand-offers/demand_id/file", "mime": "image/jpeg", "size_bytes": 261453, "count_same_size": 2 },
+    { "path_shape": "user_id/demand-offers/demand_id/file", "mime": "image/png", "size_bytes": 249584, "count_same_size": 2 }
+  ],
+  "approx_total_orphan_bytes": 2108056,
+  "records_to_migrate": 0,
+  "expected_db_patches": 0,
+  "objects_to_copy_when_approved": 6,
+  "pii_exported": false,
+  "mutations_executed": false
+}

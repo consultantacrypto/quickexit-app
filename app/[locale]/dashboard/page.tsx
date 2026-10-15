@@ -38,6 +38,11 @@ import KycBanner from "@/app/components/KycBanner";
 import { startKycVerification } from "@/lib/kycClient";
 import { getPriceIdForPackageId } from "@/lib/stripePackages";
 import { normalizePhone } from "@/lib/financingLead";
+import { DemandOfferMediaImage } from "@/components/DemandOfferMediaImage";
+import {
+  isLegacyPublicDemandOfferMediaUrl,
+  isPrivateDemandOfferMediaRef,
+} from "@/lib/demandOfferMedia";
 
 type DashboardTab = "portofoliu" | "cumparari" | "oferte";
 const OWNER_USER_ID = "83da9725-68f3-4ded-9605-714b9094bf0e";
@@ -1291,7 +1296,7 @@ function DashboardContent() {
                       title={item.title}
                       image={
                         item.images?.[0] ||
-                        "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=800&q=80"
+                        ""
                       }
                       {...adCardPricingProps(item, numberLocale)}
                       type={normalizeSaleType(item.sale_strategy)}
@@ -1875,21 +1880,40 @@ function DashboardContent() {
                                 <div className="mb-4">
                                   <p className="text-xs font-black uppercase text-neutral-600 mb-2">Poze atașate</p>
                                   <div className="grid grid-cols-3 gap-2">
-                                    {offer.images.map((imageUrl: string, idx: number) => (
-                                      <a
-                                        key={`${offer.id}-img-${idx}`}
-                                        href={imageUrl}
-                                        target="_blank"
-                                        rel="noreferrer"
-                                        className="block overflow-hidden rounded-lg border-2 border-black bg-white"
-                                      >
-                                        <img
-                                          src={imageUrl}
+                                    {offer.images.map((imageUrl: string, idx: number) => {
+                                      const legacy = isLegacyPublicDemandOfferMediaUrl(imageUrl);
+                                      const privateRef = isPrivateDemandOfferMediaRef(imageUrl);
+                                      const thumb = (
+                                        <DemandOfferMediaImage
+                                          mediaRef={imageUrl}
+                                          offerId={offer.id}
                                           alt={`Poză ofertă ${idx + 1}`}
                                           className="h-20 w-full object-cover"
                                         />
-                                      </a>
-                                    ))}
+                                      );
+                                      if (legacy) {
+                                        return (
+                                          <a
+                                            key={`${offer.id}-img-${idx}`}
+                                            href={imageUrl}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="block overflow-hidden rounded-lg border-2 border-black bg-white"
+                                          >
+                                            {thumb}
+                                          </a>
+                                        );
+                                      }
+                                      return (
+                                        <div
+                                          key={`${offer.id}-img-${idx}`}
+                                          className="block overflow-hidden rounded-lg border-2 border-black bg-white"
+                                          title={privateRef ? undefined : "Imagine indisponibilă"}
+                                        >
+                                          {thumb}
+                                        </div>
+                                      );
+                                    })}
                                   </div>
                                 </div>
                               )}

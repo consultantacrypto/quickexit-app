@@ -85,32 +85,44 @@ export default function PitchOfferPage() {
         );
         return;
       }
-      const uploadedImageUrls: string[] = [];
+      const uploadedMediaRefs: string[] = [];
 
       if (offerImages.length > 0) {
         setIsUploadingImages(true);
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        const accessToken = session?.access_token;
+        if (!accessToken) {
+          throw new Error(
+            "Pentru a trimite o ofertă și a-i urmări statusul, trebuie să fii autentificat.",
+          );
+        }
+
         for (const file of offerImages) {
-          const fileExt = file.name.split(".").pop() || "jpg";
-          const safeName = `${Math.random().toString(36).slice(2)}.${fileExt}`;
-          const filePath = `${user.id}/demand-offers/${id}/${safeName}`;
+          const form = new FormData();
+          form.set("demand_id", id);
+          form.set("file", file);
 
-          const { error: uploadError } = await supabase.storage
-            .from("listings")
-            .upload(filePath, file);
+          const uploadRes = await fetch("/api/demand-offers/media/upload", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${accessToken}` },
+            body: form,
+          });
 
-          if (uploadError) {
+          if (!uploadRes.ok) {
             throw new Error("Nu am putut încărca imaginile. Te rugăm să reîncerci.");
           }
 
-          const { data: publicUrlData } = supabase.storage
-            .from("listings")
-            .getPublicUrl(filePath);
-
-          if (!publicUrlData?.publicUrl) {
+          const uploadJson = (await uploadRes.json()) as {
+            success?: boolean;
+            media_ref?: string;
+          };
+          if (!uploadJson.success || !uploadJson.media_ref) {
             throw new Error("Nu am putut încărca imaginile. Te rugăm să reîncerci.");
           }
 
-          uploadedImageUrls.push(publicUrlData.publicUrl);
+          uploadedMediaRefs.push(uploadJson.media_ref);
         }
       }
 
@@ -123,7 +135,7 @@ export default function PitchOfferPage() {
           asset_description: assetDescription,
           seller_phone: sellerPhone,
           seller_email: sellerEmail,
-          images: uploadedImageUrls,
+          images: uploadedMediaRefs,
           status: 'new'
         });
 
@@ -305,7 +317,7 @@ export default function PitchOfferPage() {
                       <input
                         type="file"
                         multiple
-                        accept="image/*"
+                        accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
                         onChange={handleOfferImagesUpload}
                         className="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0"
                       />

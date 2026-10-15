@@ -1,0 +1,171 @@
+{
+  "at": "2026-10-15T08:01:23.132Z",
+  "ns": "h4b3b-phase1-1792051267934",
+  "app": "https://www.quickexit.ro",
+  "production_ref": "geywuzwbzecknokvnins",
+  "results": [
+    {
+      "id": "baseline.storage_reachable",
+      "ok": true,
+      "detail": "ok"
+    },
+    {
+      "id": "baseline.orphans_deferred_cleanup",
+      "ok": true,
+      "detail": "SQL-verified separately; never deleted"
+    },
+    {
+      "id": "bucket.exists",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "id": "bucket.public_false",
+      "ok": true,
+      "detail": "public=false"
+    },
+    {
+      "id": "fixture.users",
+      "ok": true,
+      "detail": "A/B/C + profiles created"
+    },
+    {
+      "id": "fixture.demand",
+      "ok": true,
+      "detail": "created"
+    },
+    {
+      "id": "upload.B_own_prefix",
+      "ok": true,
+      "detail": "ok"
+    },
+    {
+      "id": "upload.C_cross_prefix_denied",
+      "ok": true,
+      "detail": "denied"
+    },
+    {
+      "id": "upload.anon_denied",
+      "ok": true,
+      "detail": "new row violates row-level security policy"
+    },
+    {
+      "id": "direct_select.A_denied",
+      "ok": true,
+      "detail": "Object not found"
+    },
+    {
+      "id": "direct_select.B_denied",
+      "ok": true,
+      "detail": "Object not found"
+    },
+    {
+      "id": "direct_select.C_denied",
+      "ok": true,
+      "detail": "Object not found"
+    },
+    {
+      "id": "direct_select.anon_denied",
+      "ok": true,
+      "detail": "Object not found"
+    },
+    {
+      "id": "public_url.anon_denied",
+      "ok": true,
+      "detail": "status=400"
+    },
+    {
+      "id": "new_write.private_path",
+      "ok": true,
+      "detail": "private_ref"
+    },
+    {
+      "id": "authz.A",
+      "ok": true,
+      "detail": "allow:demand_owner"
+    },
+    {
+      "id": "signed_api.A_allow",
+      "ok": true,
+      "detail": "status=200 http=true"
+    },
+    {
+      "id": "authz.B",
+      "ok": true,
+      "detail": "allow:offer_sender"
+    },
+    {
+      "id": "signed_api.B_allow",
+      "ok": true,
+      "detail": "status=200 http=true"
+    },
+    {
+      "id": "authz.C",
+      "ok": true,
+      "detail": "deny:not_participant"
+    },
+    {
+      "id": "signed_api.C_deny",
+      "ok": true,
+      "detail": "status=403 code=access_denied"
+    },
+    {
+      "id": "signed_api.anon_deny",
+      "ok": true,
+      "detail": "status=401"
+    },
+    {
+      "id": "signed.HQ_service_allow",
+      "ok": true,
+      "detail": "ok"
+    },
+    {
+      "id": "signed.path_tamper_deny",
+      "ok": true,
+      "detail": "status=404"
+    },
+    {
+      "id": "signed.ttl_fresh",
+      "ok": true,
+      "detail": "status=200"
+    },
+    {
+      "id": "signed.ttl_expired",
+      "ok": true,
+      "detail": "status=400"
+    },
+    {
+      "id": "dual_read.legacy_seed",
+      "ok": true,
+      "detail": "ok"
+    },
+    {
+      "id": "dual_read.legacy_public_ok",
+      "ok": true,
+      "detail": "status=200"
+    },
+    {
+      "id": "listings.public_image_ok",
+      "ok": true,
+      "detail": "status=200 synthetic"
+    },
+    {
+      "id": "app_upload.private_ref",
+      "ok": true,
+      "detail": "status=200"
+    },
+    {
+      "id": "cleanup.synthetic_done",
+      "ok": true,
+      "detail": "users=3 offers=1 private=2"
+    },
+    {
+      "id": "orphans.never_targeted",
+      "ok": true,
+      "detail": "cleanup paths are NS-prefixed synthetic only"
+    }
+  ],
+  "failed": 0,
+  "orphans_deferred": 6,
+  "synthetic_cleanup": true
+}

@@ -1,0 +1,29 @@
+{
+  "at": "2026-10-15T07:50:00.000Z",
+  "mode": "pre_rollout_snapshot",
+  "production_ref": "geywuzwbzecknokvnins",
+  "health": {
+    "url": "https://www.quickexit.ro/api/health",
+    "status": 200,
+    "environment": "production"
+  },
+  "code_candidate_verified": {
+    "dual_read": true,
+    "private_upload_api": true,
+    "signed_url_api": true,
+    "hq_signed_url_api": true,
+    "observability_component": "demand_offer_media",
+    "canonical_migration": "20261015120000_h4b3b_private_demand_offer_media.sql",
+    "prod_apis_before_deploy": {
+      "signed_url": 404,
+      "upload": 404,
+      "hq_signed_url": 404
+    }
+  },
+  "safety": {
+    "orphan_deletes": false,
+    "listings_private_flip": false,
+    "stripe_changes": false,
+    "auth_changes": false
+  }
+}

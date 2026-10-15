@@ -1,0 +1,14 @@
+{
+  "at": "2026-10-15T07:55:00.000Z",
+  "deployment_id": "dpl_3L6e3P17NYv7o6ewSFUEWwWj3WZS",
+  "ready_state": "READY",
+  "target": "production",
+  "alias": "https://www.quickexit.ro",
+  "deployment_url": "https://quickexit-o6geeml9c-daniel-mihais-projects-31598ec8.vercel.app",
+  "inspector_url": "https://vercel.com/daniel-mihais-projects-31598ec8/quickexit-app/3L6e3P17NYv7o6ewSFUEWwWj3WZS",
+  "workspace_head_pre_deploy": "ca34ca9d366aba74906621786249d3136085768c",
+  "included_uncommitted_h4b3b_app_code": true,
+  "migration_applied": "20261015120000_h4b3b_private_demand_offer_media.sql",
+  "orphans_deleted": false,
+  "listings_made_private": false
+}

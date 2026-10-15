@@ -1,0 +1,42 @@
+[
+  {
+    "kind": "policy",
+    "name": "demand_offers_insert_authenticated_self"
+  },
+  {
+    "kind": "policy",
+    "name": "listing_offers_insert_anon_guest_null"
+  },
+  {
+    "kind": "policy",
+    "name": "listing_offers_insert_authenticated_self"
+  },
+  {
+    "kind": "policy",
+    "name": "negotiation_messages_insert_authenticated_participant"
+  },
+  {
+    "kind": "policy",
+    "name": "negotiation_rooms_insert_authenticated_buyer_listing_owner"
+  },
+  {
+    "kind": "storage_policy",
+    "name": "Public Read Listings"
+  },
+  {
+    "kind": "storage_policy",
+    "name": "listings_storage_insert_owner_prefix"
+  },
+  {
+    "kind": "storage_policy",
+    "name": "listings_storage_update_owner_prefix"
+  },
+  {
+    "kind": "trigger",
+    "name": "listings_protect_moderation_status"
+  },
+  {
+    "kind": "trigger",
+    "name": "profiles_protect_kyc_status"
+  }
+]

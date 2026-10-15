@@ -1,0 +1,2 @@
+-- H4B.0: fixtures are loaded via scripts/h4b0-bootstrap-local-fixtures.ts (Auth Admin API).
+-- Keep empty so `supabase db reset` does not invent Production data.
