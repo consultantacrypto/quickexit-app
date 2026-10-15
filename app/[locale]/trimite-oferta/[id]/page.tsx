@@ -10,9 +10,14 @@ import {
   formatEurMajorUnits,
   readDemandBudgetAmount,
 } from "@/lib/demandBudget";
+import {
+  extractDemandLocation,
+  formatDemandRequirementChips,
+} from "@/lib/demandRequirements";
+import { isDemandEffectivelyActive } from "@/lib/demandLifecycle";
 
 const PUBLIC_DEMAND_OFFER_SELECT =
-  "id,target_asset,category,budget_min,budget,description,status,created_at" as const;
+  "id,target_asset,category,budget_min,budget,description,requirements,status,created_at,expires_at,buyer_verified" as const;
 
 export default function PitchOfferPage() {
   const params = useParams();
@@ -47,7 +52,19 @@ export default function PitchOfferPage() {
           .single();
 
         if (error) throw error;
-        setBuyer(data);
+        if (data && !isDemandEffectivelyActive(data)) {
+          setBuyer(null);
+        } else {
+          setBuyer(data);
+          trackEvent("seller_response_started", {
+            demand_id: id,
+            category: data?.category || "unknown",
+          });
+          trackEvent("click_send_demand_offer", {
+            demand_id: id,
+            category: data?.category || "unknown",
+          });
+        }
       } catch (error) {
         console.error("Eroare fetching demand:", error);
       } finally {
@@ -144,6 +161,10 @@ export default function PitchOfferPage() {
         demand_id: id,
         category: buyer?.category || "unknown",
       });
+      trackEvent("seller_response_sent", {
+        demand_id: id,
+        category: buyer?.category || "unknown",
+      });
       setIsSuccess(true);
       setTimeout(() => {
         router.push("/dashboard?tab=oferte");
@@ -227,10 +248,14 @@ export default function PitchOfferPage() {
           <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
             <div className="max-w-3xl">
               <h1 className="text-3xl md:text-5xl font-black uppercase italic tracking-tight leading-tight">
-                Trimite oferta <span className="inline-block bg-[#FFD100] text-black px-2 py-1 rounded-md">potrivită</span>
+                Am un activ{" "}
+                <span className="inline-block bg-[#FFD100] text-black px-2 py-1 rounded-md">
+                  potrivit
+                </span>
               </h1>
               <p className="mt-4 text-sm md:text-base text-neutral-200 leading-relaxed">
-                Răspunde unei cereri active și propune activul tău către un cumpărător pregătit.
+                Răspunde unei cereri de cumpărare active și propune activul tău către un cumpărător
+                cu capital disponibil.
               </p>
             </div>
             <Link href="/capital-disponibil" className="inline-flex items-center justify-center bg-transparent border-[3px] border-white text-white px-5 py-3 rounded-xl text-xs font-black uppercase tracking-wider hover:bg-white hover:text-black transition-colors">
@@ -246,8 +271,15 @@ export default function PitchOfferPage() {
             <div className="bg-white p-6 rounded-[2rem] border-[3px] border-black shadow-[6px_6px_0_0_rgba(255,209,0,0.85)] sticky top-24">
               <p className="text-xs font-black uppercase tracking-widest text-neutral-700 mb-4">Sumar cerere activă</p>
               <h3 className="text-2xl font-black italic leading-tight mb-4">{buyer.target_asset}</h3>
-              <div className="inline-flex items-center px-3 py-1 rounded-full border-2 border-black bg-[#FFD100] text-black text-xs font-black uppercase tracking-widest mb-6">
-                Status activ
+              <div className="mb-6 flex flex-wrap gap-2">
+                <span className="inline-flex items-center px-3 py-1 rounded-lg border-2 border-black bg-[#FFD100] text-black text-xs font-black uppercase tracking-widest">
+                  Status activ
+                </span>
+                {buyer.buyer_verified === true ? (
+                  <span className="inline-flex items-center px-3 py-1 rounded-lg border-2 border-black bg-black text-[#FFD100] text-xs font-black uppercase tracking-widest">
+                    Cumpărător verificat
+                  </span>
+                ) : null}
               </div>
               
               <div className="space-y-4">
@@ -259,13 +291,40 @@ export default function PitchOfferPage() {
                   <p className="text-xs font-black uppercase tracking-widest text-neutral-600 mb-1">Categorie</p>
                   <p className="text-sm font-bold text-neutral-800">{buyer.category || "-"}</p>
                 </div>
+                {extractDemandLocation(buyer.requirements) ? (
+                  <div>
+                    <p className="text-xs font-black uppercase tracking-widest text-neutral-600 mb-1">Locație</p>
+                    <p className="text-sm font-bold text-neutral-800">
+                      {extractDemandLocation(buyer.requirements)}
+                    </p>
+                  </div>
+                ) : null}
                 <div>
+                  <p className="text-xs font-black uppercase tracking-widest text-neutral-600 mb-1">Buget disponibil</p>
                   <p className="text-3xl font-black italic tracking-tighter text-black">
                     {demandMaxBudget === null
                       ? "—"
                       : formatDemandBudgetFull(demandMinBudget, demandMaxBudget, "ro")}
                   </p>
                 </div>
+                <p className="text-xs font-semibold text-neutral-600">
+                  Cumpăr în următoarele 30 zile
+                  {buyer.expires_at
+                    ? ` · activ până la ${new Date(buyer.expires_at).toLocaleDateString("ro-RO")}`
+                    : ""}
+                </p>
+                {formatDemandRequirementChips(buyer.requirements, "ro", 8).length > 0 ? (
+                  <ul className="flex flex-wrap gap-2">
+                    {formatDemandRequirementChips(buyer.requirements, "ro", 8).map((chip) => (
+                      <li
+                        key={`${chip.key}-${chip.value}`}
+                        className="rounded-full border border-black/15 bg-[#FDFCF8] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-neutral-800"
+                      >
+                        {chip.label}: {chip.value}
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
               </div>
 
               {buyer.description && (
@@ -448,7 +507,11 @@ export default function PitchOfferPage() {
                         }}
                         className="mt-4 w-full border-[3px] border-black bg-[#FFD100] text-black py-3 rounded-xl font-black uppercase text-xs tracking-widest hover:bg-black hover:text-[#FFD100] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                       >
-                        {isUploadingImages ? "Se încarcă imaginile..." : isSubmitting ? "Se trimite oferta..." : "Trimite oferta"}
+                        {isUploadingImages
+                          ? "Se încarcă imaginile..."
+                          : isSubmitting
+                            ? "Se trimite oferta..."
+                            : "Am un activ potrivit — trimite"}
                       </button>
                     </div>
                   </div>

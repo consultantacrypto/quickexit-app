@@ -257,19 +257,19 @@ export default function TarifeClient() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
           <div className="bg-white border-[3px] border-black p-6 rounded-[1.5rem] shadow-[6px_6px_0_0_rgba(0,0,0,1)]">
             <h3 className="text-2xl font-black uppercase italic tracking-tight mb-2">
-              Cerere Capital
+              Capital Disponibil
             </h3>
             <p className="text-xs font-bold text-neutral-700 uppercase tracking-widest mb-6 italic">
-              Anunță capital disponibil pentru achiziții urgente sub preț.
+              Publică o cerere de cumpărare cu buget vizibil și primește oferte.
             </p>
             <p className="text-3xl font-black italic tracking-tighter mb-6">
-              99 RON
+              49 RON
             </p>
             <Link
               href="/posteaza-cerere"
               className="block w-full border-[3px] border-black py-3 rounded-lg font-black uppercase tracking-widest text-xs italic text-center hover:bg-black hover:text-[#FFD100] transition-all"
             >
-              Postează bugetul
+              Publică ce vrei să cumperi
             </Link>
           </div>
 

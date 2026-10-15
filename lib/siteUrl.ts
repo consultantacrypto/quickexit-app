@@ -1,15 +1,23 @@
 import { safeInternalPath } from "@/lib/authRedirect";
 
-/** Domeniu producție — singura origine pentru SEO/metadate în afara localhost. */
+/** Domeniu producție — SEO/metadate + Stripe success pe Production. */
 export const PRODUCTION_SITE_URL = "https://www.quickexit.ro";
 
-function isLocalDevelopment(): boolean {
-  if (process.env.NODE_ENV === "development") return true;
-  const base = (
+function normalizeOrigin(raw: string): string {
+  return raw.replace(/\/+$/, "");
+}
+
+function configuredSiteUrl(): string {
+  return (
     process.env.NEXT_PUBLIC_BASE_URL?.trim() ||
     process.env.NEXT_PUBLIC_SITE_URL?.trim() ||
     ""
-  ).toLowerCase();
+  );
+}
+
+function isLocalDevelopment(): boolean {
+  if (process.env.NODE_ENV === "development") return true;
+  const base = configuredSiteUrl().toLowerCase();
   return (
     base.includes("localhost") ||
     base.includes("127.0.0.1") ||
@@ -17,20 +25,35 @@ function isLocalDevelopment(): boolean {
   );
 }
 
+/** Staging / Preview host — never Production www/apex. */
+function isStagingConfiguredOrigin(raw: string): boolean {
+  const v = raw.toLowerCase();
+  if (!v) return false;
+  if (v.includes("www.quickexit.ro")) return false;
+  if (v === "https://quickexit.ro" || v === "http://quickexit.ro") return false;
+  return (
+    v.includes("quickexit-staging.vercel.app") ||
+    v.includes("staging.quickexit.ro") ||
+    process.env.VERCEL_ENV === "preview" ||
+    process.env.QE_STAGING_SITE === "1"
+  );
+}
+
 /**
  * URL absolut pentru SEO, JSON-LD, Stripe (server).
- * Producție: întotdeauna www.quickexit.ro — fără env (evită cache Vercel la build).
+ * Production: always www.quickexit.ro.
+ * Staging/Preview: honor NEXT_PUBLIC_SITE_URL / BASE_URL when non-Production.
  * Localhost: NEXT_PUBLIC_BASE_URL / NEXT_PUBLIC_SITE_URL.
  */
 export function getSiteUrl(): string {
-  if (!isLocalDevelopment()) {
-    return PRODUCTION_SITE_URL;
+  if (isLocalDevelopment()) {
+    return normalizeOrigin(configuredSiteUrl() || "http://localhost:3000");
   }
-  const raw =
-    process.env.NEXT_PUBLIC_BASE_URL?.trim() ||
-    process.env.NEXT_PUBLIC_SITE_URL?.trim() ||
-    "http://localhost:3000";
-  return raw.replace(/\/+$/, "");
+  const configured = configuredSiteUrl();
+  if (configured && isStagingConfiguredOrigin(configured)) {
+    return normalizeOrigin(configured);
+  }
+  return PRODUCTION_SITE_URL;
 }
 
 /** @deprecated Folosește PRODUCTION_SITE_URL */
@@ -59,13 +82,17 @@ function getLocalDevOrigin(): string {
   return raw.replace(/\/+$/, "");
 }
 
-/** Originea pentru redirect-uri auth: în browser = domeniul curent; pe server = dev env sau producție. */
+/** Originea pentru redirect-uri auth: în browser = domeniul curent; pe server = dev/staging/prod. */
 export function getAuthOrigin(): string {
   if (typeof window !== "undefined") {
     return window.location.origin.replace(/\/+$/, "");
   }
   if (process.env.NODE_ENV === "development") {
     return getLocalDevOrigin();
+  }
+  const configured = configuredSiteUrl();
+  if (configured && isStagingConfiguredOrigin(configured)) {
+    return normalizeOrigin(configured);
   }
   return PRODUCTION_SITE_URL;
 }

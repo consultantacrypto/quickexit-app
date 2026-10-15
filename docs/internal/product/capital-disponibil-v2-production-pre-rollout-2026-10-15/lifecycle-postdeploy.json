@@ -1,0 +1,19 @@
+{
+  "at": "2026-10-15T14:15:21.647Z",
+  "production_ref": "geywuzwbzecknokvnins",
+  "live_payment": "SKIPPED_STAGING_WEBHOOK_PROVEN",
+  "results": {
+    "resume_checkout": "PASS",
+    "resume_amount_4900": "PASS",
+    "resume_demand_ref": "5c2ab428…b530",
+    "requirements_chips": "PASS",
+    "metrics_effective_count": "0",
+    "metrics_pending_excluded": "PASS",
+    "expired_offer_deny": "PASS",
+    "kyc_verified_field": "PASS",
+    "seller_offer_active": "PASS",
+    "idempotency_guard": "PASS",
+    "cleanup": "deleted_demands=5",
+    "cleanup_users": "4"
+  }
+}

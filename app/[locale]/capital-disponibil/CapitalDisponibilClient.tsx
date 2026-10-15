@@ -2,8 +2,13 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "@/src/i18n/navigation";
+import DemandCard from "@/app/components/DemandCard";
 import { getCapitalDisponibilUiCopy } from "@/lib/capitalDisponibilContent";
-import { formatDemandBudget, type PublicDemandRow } from "@/lib/publicDemands";
+import {
+  formatDemandBudget,
+  summarizePublicDemandCapital,
+  type PublicDemandRow,
+} from "@/lib/publicDemands";
 import type { PageLocale } from "@/lib/seo";
 import { trackEvent } from "@/lib/analytics";
 
@@ -11,6 +16,14 @@ type CapitalDisponibilClientProps = {
   initialDemands: PublicDemandRow[];
   locale: PageLocale;
 };
+
+function formatEurTotal(amount: number, locale: PageLocale): string {
+  return new Intl.NumberFormat(locale === "en" ? "en-GB" : "ro-RO", {
+    style: "currency",
+    currency: "EUR",
+    maximumFractionDigits: 0,
+  }).format(amount);
+}
 
 export default function CapitalDisponibilClient({
   initialDemands,
@@ -20,6 +33,7 @@ export default function CapitalDisponibilClient({
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("Toate");
   const [demands] = useState<PublicDemandRow[]>(initialDemands);
+  const summary = useMemo(() => summarizePublicDemandCapital(demands), [demands]);
 
   useEffect(() => {
     trackEvent("view_capital_disponibil", { page_path: `/${locale}/capital-disponibil` });
@@ -39,22 +53,46 @@ export default function CapitalDisponibilClient({
 
   return (
     <>
-      <div className="bg-[#FFFCF4] p-6 md:p-7 rounded-[2rem] border-[3px] border-black shadow-[7px_7px_0_0_rgba(255,209,0,1)] mb-8 flex flex-col md:flex-row gap-4 items-center z-20 relative">
+      <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="rounded-[1.5rem] border-[3px] border-black bg-white p-5 shadow-[5px_5px_0_0_#FFD100]">
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-600">
+            {copy.totalCapitalLabel}
+          </p>
+          <p className="mt-2 break-words text-3xl font-black tracking-tight text-black md:text-4xl">
+            {formatEurTotal(summary.totalBudgetEur, locale)}
+          </p>
+        </div>
+        <div className="rounded-[1.5rem] border-[3px] border-black bg-black p-5 text-white shadow-[5px_5px_0_0_#FFD100]">
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#FFD100]/90">
+            {copy.activeBuyersLabel}
+          </p>
+          <p className="mt-2 text-3xl font-black tracking-tight md:text-4xl">
+            {summary.activeCount}
+          </p>
+        </div>
+      </div>
+
+      <div className="bg-[#FFFCF4] p-6 md:p-7 rounded-[2rem] border-[3px] border-black shadow-[7px_7px_0_0_rgba(0,0,0,0.12)] mb-8 flex flex-col md:flex-row gap-4 items-center z-20 relative">
         <div className="w-full md:w-1/2 relative">
-          <span className="absolute left-5 top-1/2 -translate-y-1/2 text-xl" aria-hidden>
-            🔍
-          </span>
+          <label className="sr-only" htmlFor="capital-search">
+            {copy.searchPlaceholder}
+          </label>
           <input
+            id="capital-search"
             type="text"
             placeholder={copy.searchPlaceholder}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-white border-[3px] border-black p-4 pl-14 rounded-xl font-black text-sm italic uppercase focus:outline-none focus:bg-[#FFFCF4] focus:border-[#FFD100] transition-colors"
+            className="w-full bg-white border-[3px] border-black p-4 rounded-xl font-black text-sm italic uppercase focus:outline-none focus:border-[#FFD100] transition-colors"
           />
         </div>
 
         <div className="w-full md:w-1/2">
+          <label className="sr-only" htmlFor="capital-category">
+            {copy.allCategories}
+          </label>
           <select
+            id="capital-category"
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
             className="w-full bg-white border-[3px] border-black p-4 rounded-xl font-black text-sm italic uppercase focus:outline-none focus:bg-[#FFFCF4] appearance-none cursor-pointer"
@@ -81,85 +119,30 @@ export default function CapitalDisponibilClient({
         {filteredBuyers.length > 0 ? (
           <ul className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 list-none p-0 m-0">
             {filteredBuyers.map((buyer) => (
-              <li
-                key={buyer.id}
-                className="bg-white border-[3px] border-black rounded-[2rem] p-6 md:p-7 shadow-[6px_6px_0_0_rgba(255,209,0,1)] hover:-translate-y-1 transition-all flex flex-col justify-between group"
-              >
-                <div>
-                  <div className="mb-6">
-                    <div className="flex justify-between items-start">
-                      <span className="bg-[#FFD100] text-black px-3 py-2 rounded-lg text-[11px] font-black uppercase tracking-widest italic border-2 border-black">
-                        {buyer.budget >= 100000
-                          ? copy.budgetCommunicated
-                          : copy.budgetDeclared}
-                      </span>
-                      <span className="text-2xl opacity-70 group-hover:opacity-100 transition-all" aria-hidden>
-                        💰
-                      </span>
-                    </div>
-                    <p className="mt-2 text-[10px] font-semibold leading-snug text-neutral-600">
-                      {copy.budgetDisclaimer}
-                    </p>
-                  </div>
-
-                  <h3 className="text-2xl md:text-3xl font-black uppercase italic tracking-tight leading-none mb-3 text-black">
-                    {buyer.target_asset}
-                  </h3>
-
-                  <div className="flex items-center gap-2 mb-6 flex-wrap">
-                    <span className="text-[11px] font-black uppercase tracking-widest bg-[#F7F4EC] px-2 py-1 rounded border border-black/20">
-                      {buyer.category || (locale === "en" ? "General" : "General")}
-                    </span>
-                    <span className="text-[11px] font-bold text-neutral-700 uppercase tracking-widest">
-                      {locale === "en" ? "Status:" : "Status:"}{" "}
-                      <span className="text-black">{copy.statusActive}</span>
-                    </span>
-                  </div>
-
-                  {buyer.description ? (
-                    <p className="text-sm font-bold text-neutral-700 italic line-clamp-3 leading-relaxed">
-                      &quot;{buyer.description}&quot;
-                    </p>
-                  ) : null}
-                </div>
-
-                <div className="mt-8 pt-6 border-t-[3px] border-black/10">
-                  <p className="text-[11px] font-black uppercase tracking-widest text-neutral-600 mb-1">
-                    {copy.availableBudgetLabel}
-                  </p>
-                  <p className="text-4xl md:text-5xl font-black italic tracking-tighter text-black mb-8 break-words">
-                    {formatDemandBudget(buyer.budget_min, buyer.budget, locale)}
-                  </p>
-
-                  <Link
-                    href={`/trimite-oferta/${buyer.id}`}
-                    onClick={() =>
-                      trackEvent("click_send_demand_offer", {
-                        demand_id: buyer.id,
-                        category: buyer.category || "unknown",
-                      })
-                    }
-                    aria-label={`${copy.sendOfferCta}: ${buyer.target_asset}`}
-                    className="w-full bg-[#FFD100] border-[3px] border-black text-black py-4 rounded-2xl font-black uppercase tracking-widest text-xs italic hover:bg-black hover:text-[#FFD100] transition-colors shadow-[4px_4px_0_0_rgba(0,0,0,1)] active:shadow-none active:translate-y-1 block text-center"
-                  >
-                    {copy.sendOfferCta}
-                  </Link>
-                </div>
+              <li key={buyer.id}>
+                <DemandCard
+                  id={buyer.id}
+                  targetAsset={buyer.target_asset}
+                  category={buyer.category || ""}
+                  budget={formatDemandBudget(buyer.budget_min, buyer.budget, locale)}
+                  description={buyer.description ?? ""}
+                  requirements={buyer.requirements}
+                  buyerVerified={buyer.buyer_verified}
+                  expiresAt={buyer.expires_at}
+                  locale={locale}
+                />
               </li>
             ))}
           </ul>
         ) : (
-          <div className="text-center py-20 bg-white border-[3px] border-black rounded-[2rem] shadow-[7px_7px_0_0_rgba(255,209,0,1)]">
-            <span className="text-5xl mb-5 block" aria-hidden>
-              🧭
-            </span>
+          <div className="text-center py-20 bg-white border-[3px] border-black rounded-[2rem] shadow-[7px_7px_0_0_rgba(0,0,0,0.12)]">
             <h2 className="text-2xl md:text-3xl font-black uppercase italic mb-3">
               {copy.emptyTitle}
             </h2>
             <p className="text-neutral-700 font-bold mb-8">{copy.emptyBody}</p>
             <Link
               href="/posteaza-cerere"
-              className="inline-block w-full sm:w-auto bg-black text-[#FFD100] px-8 py-4 rounded-xl border-[3px] border-black font-black uppercase text-xs italic shadow-[4px_4px_0_0_rgba(255,209,0,1)]"
+              className="inline-block w-full sm:w-auto bg-black text-[#FFD100] px-8 py-4 rounded-xl border-[3px] border-black font-black uppercase text-xs italic shadow-[4px_4px_0_0_#FFD100]"
             >
               {copy.emptyCta}
             </Link>

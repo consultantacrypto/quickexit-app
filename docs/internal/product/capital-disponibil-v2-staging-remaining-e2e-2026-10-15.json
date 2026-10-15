@@ -1,0 +1,21 @@
+{
+  "at": "2026-10-15T12:18:01.042Z",
+  "staging_ref": "nlnzlswjjplofpkhoxtr",
+  "staging_url": "https://quickexit-staging.vercel.app",
+  "production_touched": false,
+  "results": {
+    "expire_deny": "PASS",
+    "expire_allow": "PASS",
+    "expire_lifecycle": "PASS",
+    "expire_not_public": "PASS",
+    "expire_offer_deny": "PASS",
+    "resume_same_demand": "PASS",
+    "requirements_chips": "PASS",
+    "metrics_effective_count": "2",
+    "metrics_pending_excluded": "PASS",
+    "metrics_expired_excluded": "PASS",
+    "metrics_filter": "PASS",
+    "seller_offer": "PASS",
+    "idempotency_hard": "PASS"
+  }
+}

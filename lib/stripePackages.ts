@@ -11,6 +11,7 @@ export type ListingPackageId =
   | "urgent"
   | "auction"
   | "demand"
+  | "demand_standard_30d"
   | "offer";
 
 // `none` = plată punctuală (one-time), fără dată de expirare.
@@ -58,12 +59,22 @@ const PRICE_111_RON = resolvePriceId(
   "PRICE_111_RON"
 );
 
-// Pachete dedicate cumpărătorilor / ofertanților.
+// Legacy Capital Disponibil 99 RON — kept for historical webhook / audit compatibility.
 const PRICE_CERERE_99_RON = resolvePriceId(
   process.env.NEXT_PUBLIC_STRIPE_PRICE_CERERE_99_RON,
   process.env.STRIPE_PRICE_CERERE_99_RON,
   "PRICE_CERERE_99_RON"
 );
+
+// Capital Disponibil v2 — dedicated 49 RON / 30d (must NOT reuse Guest Offer price).
+// Server-only env: do not expose via NEXT_PUBLIC (checkout derives price server-side).
+const PRICE_DEMAND_STANDARD_49_RON = resolvePriceId(
+  process.env.STRIPE_PRICE_DEMAND_STANDARD_49_RON,
+  undefined,
+  "PRICE_DEMAND_STANDARD_49_RON"
+);
+
+// Guest Offer — unused by Capital Disponibil v2 checkout.
 const PRICE_OFERTA_49_RON = resolvePriceId(
   process.env.NEXT_PUBLIC_STRIPE_PRICE_OFERTA_49_RON,
   process.env.STRIPE_PRICE_OFERTA_49_RON,
@@ -103,7 +114,14 @@ const PACKAGES: readonly StripeListingPackage[] = [
     packageId: "demand",
     priceId: PRICE_CERERE_99_RON,
     amountRon: 99,
-    label: "Cerere Capital (30 zile)",
+    label: "Cerere Capital legacy (30 zile)",
+    duration: { kind: "days", value: 30 },
+  },
+  {
+    packageId: "demand_standard_30d",
+    priceId: PRICE_DEMAND_STANDARD_49_RON,
+    amountRon: 49,
+    label: "Capital Disponibil (30 zile)",
     duration: { kind: "days", value: 30 },
   },
   {
@@ -133,6 +151,20 @@ export function getPackageByPriceId(priceId: string): StripeListingPackage | nul
 
 export function getPriceIdForPackageId(packageId: string): string | null {
   return PACKAGE_BY_PACKAGE_ID.get(packageId as ListingPackageId)?.priceId ?? null;
+}
+
+export function getPackageByPackageId(packageId: string): StripeListingPackage | null {
+  return PACKAGE_BY_PACKAGE_ID.get(packageId as ListingPackageId) ?? null;
+}
+
+/** Canonical package for new Capital Disponibil checkouts (v2). */
+export function getDemandCheckoutPackageId(): ListingPackageId {
+  return "demand_standard_30d";
+}
+
+export function isDemandPackageId(packageId: string | null | undefined): boolean {
+  const id = String(packageId ?? "").trim();
+  return id === "demand_standard_30d" || id === "demand";
 }
 
 export function getExpiryIsoForPackage(

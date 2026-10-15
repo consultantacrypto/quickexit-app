@@ -83,7 +83,7 @@ type DemandRow = {
   created_at: string | null;
 };
 
-const DEMAND_PACKAGE_ID: ListingPackageId = "demand";
+const DEMAND_PACKAGE_ID: ListingPackageId = "demand_standard_30d";
 const LOG_PREFIX = "[force-activate]";
 
 export function resolveForceActivateTarget(input: ForceActivateInput): {
@@ -123,7 +123,8 @@ export function resolveExpiryForPackageId(packageId: string): string | null {
 
 function validateManualPackageId(entityType: ForceActivateEntityType, packageId: string): boolean {
   if (entityType === "demand") {
-    return packageId === DEMAND_PACKAGE_ID && Boolean(getPackageByPriceId(getPriceIdForPackageId(DEMAND_PACKAGE_ID) ?? ""));
+    const allowed = packageId === DEMAND_PACKAGE_ID || packageId === "demand";
+    return allowed && Boolean(getPackageByPriceId(getPriceIdForPackageId(packageId as ListingPackageId) ?? ""));
   }
   return validateListingPackage(packageId);
 }

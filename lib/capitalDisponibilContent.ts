@@ -24,6 +24,11 @@ export type CapitalDisponibilUiCopy = {
   emptyTitle: string;
   emptyBody: string;
   emptyCta: string;
+  totalCapitalLabel: string;
+  activeBuyersLabel: string;
+  buyingLabel: string;
+  verifiedBuyer: string;
+  timeHorizonValue: string;
   sections: {
     whatIs: { title: string; body: string };
     forBuyers: { title: string; body: string };
@@ -38,7 +43,7 @@ export type CapitalDisponibilUiCopy = {
 };
 
 const RELATED_PATHS = [
-  { href: "/posteaza-cerere", ro: "Publică cerere de cumpărare", en: "Post a buyer request" },
+  { href: "/posteaza-cerere", ro: "Publică ce vrei să cumperi", en: "Post what you want to buy" },
   { href: "/pune-anunt", ro: "Publică anunț de vânzare", en: "Post a sale listing" },
   { href: "/cum-functioneaza", ro: "Cum funcționează", en: "How it works" },
   { href: "/tarife", ro: "Tarife", en: "Pricing" },
@@ -55,15 +60,15 @@ export function getCapitalDisponibilUiCopy(locale: PageLocale): CapitalDisponibi
   if (locale === "en") {
     return {
       backHome: "← Back home",
-      eyebrow: "Available capital",
-      h1: "Available Capital — buyers can list what they want to buy",
+      eyebrow: "Buyer Capital",
+      h1: "Buyer capital for real assets",
       intro:
-        "Buyers publish the asset they want and a budget range. Sellers see active requests and can send an offer.",
-      postDemandCta: "Post a buyer request",
+        "See what buyers want and which budgets are available. Sellers with matching assets can respond directly.",
+      postDemandCta: "Post what you want to buy — 49 RON",
       searchPlaceholder: "SEARCH (E.G. MERCEDES, LAND, ROLEX)...",
       allCategories: "All categories",
       filterResults: "Filter results",
-      filterCountLabel: "Requests",
+      filterCountLabel: "Buying requests",
       safetyNote:
         "Published requests indicate buying interest. Verify details directly with the other party and do not follow payment links received outside the platform.",
       budgetDeclared: "Declared budget",
@@ -72,35 +77,40 @@ export function getCapitalDisponibilUiCopy(locale: PageLocale): CapitalDisponibi
         "The budget is declared by the buyer and must be verified directly between parties.",
       statusActive: "Active request",
       availableBudgetLabel: "Available budget",
-      sendOfferCta: "Send offer",
+      sendOfferCta: "I have a matching asset",
       loading: "Loading requests…",
-      emptyTitle: "No active requests at the moment.",
-      emptyBody: "Check back soon or publish the first buyer request.",
-      emptyCta: "Post the first buyer request",
+      emptyTitle: "No active buying requests at the moment.",
+      emptyBody: "Check back soon or publish the first buying request.",
+      emptyCta: "Post what you want to buy — 49 RON",
+      totalCapitalLabel: "looking for assets",
+      activeBuyersLabel: "active buyers",
+      buyingLabel: "Buying",
+      verifiedBuyer: "Verified buyer",
+      timeHorizonValue: "Buying within the next 30 days",
       sections: {
         whatIs: {
-          title: "What is Available Capital?",
-          body: "Available Capital is the buyer-side directory on Quick Exit where people with budget publish what they want to acquire — asset type, category, conditions and a declared budget range. It makes purchase intent visible to sellers before a listing exists.",
+          title: "What is Buyer Capital?",
+          body: "Buyer Capital is the buyer-side directory on Quick Exit where people with budget publish what they want to acquire — asset type, category, conditions and a declared budget range. It makes purchase intent visible to sellers before a listing exists.",
         },
         forBuyers: {
           title: "How it works for buyers",
-          body: "Buyers describe the asset they want, choose a category, set a budget range (minimum to maximum) and publish a request. After activation, the request appears in this directory so compatible sellers can respond with a concrete asset offer.",
+          body: "Buyers describe the asset they want, choose a category, set a budget range and publish a 30-day buying request for 49 RON. After payment, the request appears here so compatible sellers can respond.",
         },
         forSellers: {
           title: "How it helps sellers",
-          body: "Sellers no longer rely only on passive listing views. They can browse real buyer requests, compare budgets and categories, and pitch a matching asset when demand already exists — reducing time-to-contact for high-value exits.",
+          body: "Sellers can browse real buying requests, compare budgets and criteria, and pitch a matching asset when demand already exists — reducing time-to-contact for high-value exits.",
         },
         different: {
           title: "Why it is different from OLX, Autovit or Imobiliare",
-          body: "Classic classified platforms focus on seller listings. Quick Exit adds visible buyer-side demand: capital on the table, purchase criteria and exit-oriented workflows (valuation, exit price, auctions). It is built for liquidity and speed, not only for posting ads.",
+          body: "Classic classified platforms focus on seller listings. Quick Exit adds visible buyer-side demand: capital on the table, purchase criteria and exit-oriented workflows.",
         },
         kyc: {
           title: "What role does KYC play?",
-          body: "KYC (Know Your Customer) identity verification helps build trust between parties on high-value transactions. Quick Exit may display verification status where available; it does not replace your own due diligence on the asset, documents and counterparty.",
+          body: "Verified buyers earn a public “Verified buyer” badge when identity verification is complete. KYC does not replace your own due diligence on the asset and counterparty.",
         },
         notQuickExit: {
           title: "What Quick Exit does not do",
-          body: "Quick Exit does not guarantee the sale or purchase of an asset, does not hold funds in escrow, and does not act as a legal, financial or real-estate broker. The platform provides listing infrastructure, visibility, verification tools and contact between parties.",
+          body: "Quick Exit does not guarantee the sale or purchase of an asset, does not hold funds in escrow, and does not act as a legal, financial or real-estate broker.",
         },
       },
       relatedLinksTitle: "Related pages",
@@ -120,14 +130,14 @@ export function getCapitalDisponibilUiCopy(locale: PageLocale): CapitalDisponibi
   return {
     backHome: "← Înapoi Acasă",
     eyebrow: "Capital disponibil",
-    h1: "Capital Disponibil — cumpărătorii pot lista ce vor să cumpere",
+    h1: "Capital disponibil pentru active reale",
     intro:
-      "Cumpărătorii publică activul căutat și intervalul de buget. Vânzătorii văd cereri active și pot trimite o ofertă.",
-    postDemandCta: "Publică cerere de cumpărare",
+      "Vezi ce caută cumpărătorii și ce bugete au disponibile. Vânzătorii cu active potrivite pot răspunde direct.",
+    postDemandCta: "Publică ce vrei să cumperi — 49 RON",
     searchPlaceholder: "CAUTĂ (EX: MERCEDES, TEREN, ROLEX)...",
     allCategories: "Toate Categoriile",
     filterResults: "Rezultate Filtrare",
-    filterCountLabel: "Cereri",
+    filterCountLabel: "Cereri de cumpărare",
     safetyNote:
       "Cererile publicate indică interes de cumpărare. Verifică detaliile direct cu cealaltă parte și nu accesa linkuri de plată primite în afara platformei.",
     budgetDeclared: "Buget declarat",
@@ -136,35 +146,40 @@ export function getCapitalDisponibilUiCopy(locale: PageLocale): CapitalDisponibi
       "Bugetul este declarat de cumpărător și trebuie verificat direct între părți.",
     statusActive: "Cerere activă",
     availableBudgetLabel: "Buget disponibil",
-    sendOfferCta: "Trimite ofertă",
-    loading: "Scuturăm baza de date...",
+    sendOfferCta: "Am un activ potrivit",
+    loading: "Se încarcă cererile…",
     emptyTitle: "Nu există cereri active momentan.",
-    emptyBody: "Revino în curând sau publică prima ta cerere de cumpărare.",
-    emptyCta: "Publică prima cerere de cumpărare",
+    emptyBody: "Revino în curând sau publică prima cerere de cumpărare.",
+    emptyCta: "Publică ce vrei să cumperi — 49 RON",
+    totalCapitalLabel: "caută active",
+    activeBuyersLabel: "cumpărători activi",
+    buyingLabel: "Cumpăr",
+    verifiedBuyer: "Cumpărător verificat",
+    timeHorizonValue: "Cumpăr în următoarele 30 zile",
     sections: {
       whatIs: {
         title: "Ce este Capital Disponibil?",
-        body: "Capital Disponibil este directorul de cereri de cumpărare de pe Quick Exit: cumpărătorii cu buget publică ce vor să achiziționeze — tip activ, categorie, condiții și un interval de buget. Intenția de cumpărare devine vizibilă pentru vânzători înainte ca un anunț să existe.",
+        body: "Capital Disponibil este directorul de cereri de cumpărare de pe Quick Exit: cumpărătorii cu buget publică ce vor să achiziționeze — tip activ, categorie, condiții și un interval de buget.",
       },
       forBuyers: {
         title: "Cum funcționează pentru cumpărători?",
-        body: "Cumpărătorii descriu activul dorit, aleg categoria, setează intervalul de buget (minim–maxim) și publică cererea. După activare, cererea apare în acest director, iar vânzătorii compatibili pot răspunde cu o ofertă concretă de activ.",
+        body: "Descrie activul dorit, setează bugetul și publică o cerere de cumpărare pe 30 de zile pentru 49 RON. După plată, cererea apare aici iar vânzătorii pot răspunde.",
       },
       forSellers: {
         title: "Cum ajută vânzătorii?",
-        body: "Vânzătorii nu depind doar de vizualizări pasive ale anunțului. Pot explora cereri reale de cumpărare, compara bugete și categorii și pot propune un activ potrivit când cererea există deja — reducând timpul până la contact pentru exit-uri de valoare.",
+        body: "Poți explora cereri reale, compara bugete și criterii și propune un activ potrivit când cererea există deja.",
       },
       different: {
         title: "De ce este diferit față de OLX, Autovit sau Imobiliare?",
-        body: "Platformele clasificate se concentrează pe anunțurile vânzătorilor. Quick Exit adaugă cerere vizibilă din partea cumpărătorilor: capital disponibil, criterii de achiziție și fluxuri orientate spre lichiditate (evaluare, preț de exit, licitații). Este construit pentru viteză și exit, nu doar pentru postarea de anunțuri.",
+        body: "Platformele clasificate se concentrează pe anunțurile vânzătorilor. Quick Exit adaugă cerere vizibilă din partea cumpărătorilor: capital disponibil, criterii și fluxuri orientate spre lichiditate.",
       },
       kyc: {
         title: "Ce rol are KYC?",
-        body: "KYC (Know Your Customer) — verificarea identității — sprijină încrederea între părți la tranzacții de valoare. Quick Exit poate afișa status de verificare acolo unde este disponibil; nu înlocuiește due diligence-ul tău asupra activului, documentelor și contrapartidei.",
+        body: "Cumpărătorii verificați primesc badge-ul public „Cumpărător verificat”. KYC nu înlocuiește due diligence-ul asupra activului și contrapartidei.",
       },
       notQuickExit: {
         title: "Ce nu face Quick Exit?",
-        body: "Quick Exit nu garantează vânzarea sau cumpărarea unui activ, nu ține banii în escrow și nu acționează ca broker legal, financiar sau imobiliar. Platforma oferă infrastructură de listare, vizibilitate, verificare și contact între părți.",
+        body: "Quick Exit nu garantează vânzarea sau cumpărarea, nu ține banii în escrow și nu acționează ca broker.",
       },
     },
     relatedLinksTitle: "Pagini utile",
@@ -187,78 +202,37 @@ function getCapitalFaqEntries(locale: PageLocale): FaqEntry[] {
   if (locale === "en") {
     return [
       {
-        question: "What is Available Capital on Quick Exit?",
+        question: "What is Buyer Capital on Quick Exit?",
         answer:
-          "Available Capital is the public directory where buyers with budget publish what they want to buy — asset type, category, conditions and a declared budget range — so sellers can see real purchase intent.",
+          "Buyer Capital is the public directory where buyers with budget publish what they want to buy — asset type, category, conditions and a declared budget range — so sellers can see real purchase intent.",
       },
       {
-        question: "Can buyers list what they want to buy?",
+        question: "How much does it cost to publish a buying request?",
         answer:
-          "Yes. Buyers can publish a purchase request with target asset, category and a minimum-to-maximum budget through the post buyer request flow.",
+          "Publishing a buying request costs 49 RON for 30 days of visibility and the ability to receive seller offers.",
       },
       {
-        question: "Can sellers respond to buyer requests?",
+        question: "Can sellers respond to buying requests?",
         answer:
-          "Yes. Sellers can browse active requests and pitch a compatible asset when the buyer's criteria match their offering.",
-      },
-      {
-        question: "Are users verified?",
-        answer:
-          "Quick Exit supports identity verification (KYC) via authorized third-party providers where available. Verification status may be shown in context; parties should still perform their own checks.",
-      },
-      {
-        question: "Does Quick Exit verify funds?",
-        answer:
-          "No. Budgets are declared by buyers and are not verified or held by Quick Exit. Parties must confirm funds and terms directly.",
-      },
-      {
-        question: "Does Quick Exit hold money or act as escrow?",
-        answer:
-          "No. Quick Exit does not hold funds in escrow or intermediate payments between buyers and sellers.",
-      },
-      {
-        question: "How is Quick Exit different from OLX, Autovit or Imobiliare?",
-        answer:
-          "Unlike classic classified sites focused on seller ads, Quick Exit exposes buyer-side demand with stated budgets and adds liquidity-oriented tools such as exit pricing, valuations and auctions.",
+          "Yes. Sellers can open a request and submit an offer with price, description, contact details and optional private images.",
       },
     ];
   }
-
   return [
     {
       question: "Ce este Capital Disponibil pe Quick Exit?",
       answer:
-        "Capital Disponibil este directorul public unde cumpărătorii cu buget publică ce vor să cumpere — tip activ, categorie, condiții și un interval de buget — astfel încât vânzătorii să vadă intenție reală de achiziție.",
+        "Capital Disponibil este directorul public unde cumpărătorii cu buget publică ce vor să cumpere — tip activ, categorie, condiții și interval de buget — ca vânzătorii să vadă intenția reală de achiziție.",
     },
     {
-      question: "Pot cumpărătorii lista ce vor să cumpere?",
+      question: "Cât costă publicarea unei cereri de cumpărare?",
       answer:
-        "Da. Cumpărătorii pot publica o cerere de cumpărare cu activul țintă, categoria și un buget minim–maxim prin fluxul de publicare cerere.",
+        "Publicarea unei cereri de cumpărare costă 49 RON pentru 30 de zile de vizibilitate și posibilitatea de a primi oferte de la vânzători.",
     },
     {
-      question: "Pot vânzătorii răspunde la cererile cumpărătorilor?",
+      question: "Pot vânzătorii răspunde la cereri?",
       answer:
-        "Da. Vânzătorii pot explora cererile active și pot propune un activ compatibil când criteriile cumpărătorului se potrivesc.",
-    },
-    {
-      question: "Sunt utilizatorii verificați?",
-      answer:
-        "Quick Exit suportă verificarea identității (KYC) prin furnizori terți autorizați, acolo unde este disponibil. Statusul poate fi afișat în context; părțile trebuie să își facă propriile verificări.",
-    },
-    {
-      question: "Quick Exit verifică fondurile?",
-      answer:
-        "Nu. Bugetele sunt declarate de cumpărători și nu sunt verificate sau reținute de Quick Exit. Părțile confirmă fondurile și termenii direct.",
-    },
-    {
-      question: "Quick Exit ține bani sau acționează ca escrow?",
-      answer:
-        "Nu. Quick Exit nu deține fonduri în escrow și nu intermediază plăți între cumpărători și vânzători.",
-    },
-    {
-      question: "Cu ce se deosebește Quick Exit de OLX, Autovit sau Imobiliare?",
-      answer:
-        "Spre deosebire de site-urile clasificate centrate pe anunțurile vânzătorilor, Quick Exit expune cerere din partea cumpărătorilor cu buget declarat și adaugă instrumente orientate spre lichiditate: preț de exit, evaluări și licitații.",
+        "Da. Vânzătorii pot deschide o cerere și trimite o ofertă cu preț, descriere, date de contact și imagini private opționale.",
     },
   ];
 }
@@ -311,7 +285,7 @@ export function buildCapitalItemListJsonLd(
     "@type": "ItemList",
     name:
       locale === "en"
-        ? "Active buyer requests on Quick Exit"
+        ? "Active buying requests on Quick Exit"
         : "Cereri active de cumpărare pe Quick Exit",
     url: pageUrl,
     numberOfItems: itemListElement.length,

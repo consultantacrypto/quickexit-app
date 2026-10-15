@@ -6,7 +6,10 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { trackEvent } from "@/lib/analytics";
 import { parseDemandBudgetRange, type DemandBudgetRangeErrorCode } from "@/lib/demandBudget";
-import { getPriceIdForPackageId } from "@/lib/stripePackages";
+import {
+  DEMAND_STANDARD_DURATION_DAYS,
+  DEMAND_STANDARD_PRICE_RON,
+} from "@/lib/demandLifecycle";
 
 const labelBase =
   "block text-[10px] font-black uppercase tracking-widest text-neutral-500";
@@ -141,17 +144,16 @@ export default function PosteazaCerereClient() {
         return;
       }
 
-      // Price ID pentru pachetul „Cerere Capital" (99 RON) — sursa adevărului: lib/stripePackages.
-      const priceId = getPriceIdForPackageId("demand");
-      if (!priceId) {
-        setErrorMsg("Configurarea plății este indisponibilă. Te rugăm să încerci mai târziu.");
-        setIsSubmitting(false);
-        return;
-      }
-
+      // Price is derived server-side from demand_standard_30d — never send client Price IDs.
+      trackEvent("buyer_checkout_started", {
+        category,
+        price: DEMAND_STANDARD_PRICE_RON,
+        package: "demand_standard_30d",
+      });
       trackEvent("checkout_demand_started", {
         category,
-        price: 99,
+        price: DEMAND_STANDARD_PRICE_RON,
+        package: "demand_standard_30d",
       });
 
       // Ruta generică /api/stripe/checkout; type: "demand" îi spune webhook-ului ce să activeze.
@@ -171,7 +173,6 @@ export default function PosteazaCerereClient() {
           Authorization: `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({
-          priceId,
           demandId: insertedData.id,
           type: "demand",
         }),
@@ -247,9 +248,9 @@ export default function PosteazaCerereClient() {
             </p>
           </div>
           <div className="mx-auto mt-10 flex flex-wrap justify-center gap-2 md:gap-3">
-            <StepPill index={1} title="Activ căutat" />
-            <StepPill index={2} title="Buget și condiții" />
-            <StepPill index={3} title="Plată și publicare" />
+            <StepPill index={1} title="Ce vrei să cumperi" />
+            <StepPill index={2} title="Buget și criterii" />
+            <StepPill index={3} title="Revizuire și plată" />
           </div>
         </div>
 
@@ -529,6 +530,7 @@ export default function PosteazaCerereClient() {
                   type="button"
                   onClick={() => {
                     if (!hasTrackedStart) {
+                      trackEvent("buyer_request_started", { category });
                       trackEvent("start_post_demand", { category });
                       setHasTrackedStart(true);
                     }
@@ -537,7 +539,7 @@ export default function PosteazaCerereClient() {
                   disabled={!targetAsset}
                   className="w-full rounded-2xl border-[3px] border-black bg-[#FFD100] py-5 text-sm font-black uppercase tracking-[0.15em] text-black shadow-[6px_6px_0_0_#000] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-40"
                 >
-                  Continuă la buget și condiții →
+                  Continuă la buget și criterii →
                 </button>
                 {!targetAsset && (
                   <p className="mt-3 text-center text-xs font-semibold text-red-700">
@@ -637,12 +639,13 @@ export default function PosteazaCerereClient() {
                       return;
                     }
                     setErrorMsg("");
+                    trackEvent("buyer_request_reviewed", { category });
                     setStep(3);
                   }}
                   disabled={!budgetMin || !budget}
                   className="w-full flex-1 rounded-2xl border-[3px] border-black bg-black py-4 text-xs font-black uppercase tracking-widest text-[#FFD100] shadow-[6px_6px_0_0_#000] transition hover:bg-neutral-900 disabled:cursor-not-allowed disabled:opacity-40"
                 >
-                  Continuă la plată →
+                  Continuă la revizuire →
                 </button>
               </div>
               {errorMsg && (
@@ -660,27 +663,48 @@ export default function PosteazaCerereClient() {
             <div className="space-y-8 md:space-y-10">
               <div>
                 <h2 className="text-xl font-black uppercase italic tracking-tight text-black md:text-2xl">
-                  3. Activează cererea
+                  3. Revizuire și plată
                 </h2>
                 <p className="mt-2 text-sm font-medium text-neutral-600">
-                  Publică cererea și primește oferte de la vânzători.
+                  Activează Capital Disponibil și începe să primești oferte de la vânzători.
                 </p>
               </div>
 
-              <div className="relative overflow-hidden rounded-[2rem] border-[3px] border-black bg-[#F7F4EC]/80 p-6 md:p-8">
-                <span className="absolute right-4 top-4 rounded-full border-2 border-black bg-black px-3 py-1 text-[9px] font-black uppercase tracking-wider text-[#FFD100]">
-                  Potrivire automată
-                </span>
-                <h3 className="pr-24 text-lg font-black uppercase italic text-black md:text-xl">
-                  Cerere activă 30 zile
-                </h3>
-                <p className="mt-4 font-black tabular-nums text-4xl text-black">99 RON</p>
-                <p className="mt-4 max-w-xl text-sm font-medium leading-relaxed text-neutral-700">
-                  Cererea ta devine vizibilă pentru vânzători și poate primi oferte compatibile.
+              <div className="rounded-[2rem] border-[3px] border-black bg-white p-6 md:p-8">
+                <p className="text-[10px] font-black uppercase tracking-[0.22em] text-neutral-500">
+                  Sumar cerere
                 </p>
-                <p className="mt-6 text-xs font-medium leading-relaxed text-neutral-600">
-                  Verificarea identității poate fi cerută pentru protecția cumpărătorilor și
-                  vânzătorilor.
+                <h3 className="mt-3 text-xl font-black uppercase italic text-black md:text-2xl">
+                  {targetAsset || "—"}
+                </h3>
+                <p className="mt-2 text-xs font-bold uppercase tracking-widest text-neutral-600">
+                  {category}
+                </p>
+                <p className="mt-4 text-sm font-semibold text-neutral-700">
+                  Buget: €{budgetMin || "—"} – €{budget || "—"}
+                </p>
+              </div>
+
+              <div className="relative overflow-hidden rounded-[2rem] border-[3px] border-black bg-black p-6 text-white md:p-8">
+                <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#FFD100]">
+                  QuickExit — Capital Disponibil
+                </p>
+                <h3 className="mt-4 text-lg font-black uppercase italic md:text-xl">
+                  {DEMAND_STANDARD_DURATION_DAYS} zile de deal flow
+                </h3>
+                <p className="mt-4 font-black tabular-nums text-4xl text-[#FFD100]">
+                  {DEMAND_STANDARD_PRICE_RON} RON
+                </p>
+                <ul className="mt-6 space-y-2 text-sm font-medium leading-relaxed text-neutral-200">
+                  <li>Cerere de cumpărare publică cu buget vizibil</li>
+                  <li>Criterii vizibile pentru vânzători</li>
+                  <li>Primești oferte în dashboard</li>
+                  <li>Badge „Cumpărător verificat” dacă KYC este complet</li>
+                </ul>
+                <p className="mt-6 text-xs font-medium leading-relaxed text-neutral-400">
+                  Publică o cerere de cumpărare și primește oferte de la vânzători care au
+                  active potrivite. KYC adaugă prestigiu public; nu este obligatoriu pentru
+                  publicare.
                 </p>
               </div>
 
@@ -707,7 +731,9 @@ export default function PosteazaCerereClient() {
                   disabled={isSubmitting || !budgetMin || !budget}
                   className="w-full flex-1 rounded-2xl border-[3px] border-black bg-[#FFD100] py-4 text-xs font-black uppercase tracking-widest text-black shadow-[6px_6px_0_0_#000] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-40"
                 >
-                  {isSubmitting ? "Se pregătește plata..." : "Plătește și publică cererea"}
+                  {isSubmitting
+                    ? "Se pregătește plata..."
+                    : `Plătește ${DEMAND_STANDARD_PRICE_RON} RON și publică`}
                 </button>
               </div>
             </div>

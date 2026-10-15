@@ -1,0 +1,19 @@
+{
+  "ok": true,
+  "production_ref": "geywuzwbzecknokvnins",
+  "demand_ref": "5c2ab428…b530",
+  "demand_status": "pending_payment",
+  "paid": false,
+  "session_ref": "cs_live_…uHEj",
+  "session_mode": "live",
+  "livemode": true,
+  "amount_total": 4900,
+  "currency": "ron",
+  "packageId": "demand_standard_30d",
+  "type": "demand",
+  "expected_amount_minor": 4900,
+  "expected_amount_ron": "49.00",
+  "checkout_url_host": "checkout.stripe.com",
+  "payment_completed": false,
+  "note": "Live session facts from Stripe Checkout create response. Payment not completed (operator optional)."
+}

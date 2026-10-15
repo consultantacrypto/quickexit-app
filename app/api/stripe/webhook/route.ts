@@ -25,6 +25,7 @@ import {
 } from "@/lib/stripeListingFulfillment";
 import { resolveListingPackageIdFromRow } from "@/lib/listingSaleStrategy";
 import { getPriceIdForPackageId } from "@/lib/stripePackages";
+import { listingImagesReadyForCheckout } from "@/lib/listingPublishImages";
 import {
   classifyCombinedPaidSessionAmount,
   classifyListingLineItems,
@@ -42,6 +43,14 @@ import {
   shouldRejectTestModeEvent,
 } from "@/lib/mediaWebhookFulfillment";
 import { notifyMediaHqPaidQueued } from "@/lib/notifyMediaHq";
+import {
+  captureException,
+  captureMessage,
+  correlationFromStripeMetadata,
+  logError,
+  logInfo,
+  logWarn,
+} from "@/lib/observability";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -51,11 +60,51 @@ function fail(
   log: Record<string, unknown>,
 ) {
   const status = listingFulfillmentHttpStatus(code);
-  console.error("[stripe/webhook] fulfillment rejected", {
-    code,
+  const correlationId =
+    typeof log.correlationId === "string" ? log.correlationId : null;
+
+  logError({
+    component: "stripe_webhook",
+    operation: "fulfillment_reject",
+    result: status === 200 ? "skip" : "error",
+    error_code: code,
+    correlation_id: correlationId,
+    entity_id:
+      typeof log.listingId === "string"
+        ? log.listingId
+        : typeof log.demandId === "string"
+          ? log.demandId
+          : typeof log.mediaOrderId === "string"
+            ? log.mediaOrderId
+            : null,
     httpStatus: status,
-    ...log,
+    eventId: log.eventId ?? null,
+    sessionId: log.sessionId ?? null,
+    eventType: log.eventType ?? log.type ?? null,
   });
+
+  // Soft skips (idempotent / test_mode) stay in logs only — no Sentry flood.
+  if (status !== 200) {
+    captureMessage(`stripe.webhook.fulfillment_rejected:${code}`, {
+      component: "stripe_webhook",
+      operation: "fulfillment_reject",
+      error_code: code,
+      correlation_id: correlationId,
+      tags: {
+        http_status: status,
+        event_type: String(log.eventType ?? log.type ?? "unknown"),
+        livemode:
+          typeof log.livemode === "boolean" ? String(log.livemode) : "unknown",
+      },
+      extra: {
+        eventId: log.eventId ?? null,
+        sessionId: log.sessionId ?? null,
+        stage: "fulfillment_reject",
+      },
+      level: status >= 500 ? "error" : "warning",
+    });
+  }
+
   if (status === 200) {
     return NextResponse.json({ received: true, skipped: code });
   }
@@ -70,12 +119,30 @@ export async function POST(req: Request) {
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
     if (!stripeApiKey) {
+      captureMessage("stripe.webhook.config_missing:STRIPE_SECRET_KEY", {
+        component: "stripe_webhook",
+        operation: "config_check",
+        error_code: "missing_stripe_secret",
+        level: "error",
+      });
       return new NextResponse("Config server incompletă (STRIPE_SECRET_KEY).", { status: 500 });
     }
     if (!webhookSecret) {
+      captureMessage("stripe.webhook.config_missing:STRIPE_WEBHOOK_SECRET", {
+        component: "stripe_webhook",
+        operation: "config_check",
+        error_code: "missing_webhook_secret",
+        level: "error",
+      });
       return new NextResponse("Config server incompletă (STRIPE_WEBHOOK_SECRET).", { status: 500 });
     }
     if (!supabaseUrl || !serviceRoleKey) {
+      captureMessage("stripe.webhook.config_missing:SUPABASE_SERVICE_ROLE", {
+        component: "stripe_webhook",
+        operation: "config_check",
+        error_code: "missing_supabase_service_role",
+        level: "error",
+      });
       return new NextResponse("Config server incompletă (Supabase service role).", { status: 500 });
     }
 
@@ -87,7 +154,18 @@ export async function POST(req: Request) {
     const rawBody = await req.text();
     const signature = req.headers.get("stripe-signature");
     if (!signature) {
-      console.error("[stripe/webhook] Lipsește semnătura Stripe.");
+      logWarn({
+        component: "stripe_webhook",
+        operation: "signature_check",
+        result: "error",
+        error_code: "missing_signature",
+      });
+      captureMessage("stripe.webhook.missing_signature", {
+        component: "stripe_webhook",
+        operation: "signature_check",
+        error_code: "missing_signature",
+        level: "warning",
+      });
       return new NextResponse("Lipsește semnătura.", { status: 400 });
     }
 
@@ -96,7 +174,21 @@ export async function POST(req: Request) {
       event = stripe.webhooks.constructEvent(rawBody, signature, webhookSecret);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
-      console.error("[stripe/webhook] Semnătură invalidă:", { message });
+      logWarn({
+        component: "stripe_webhook",
+        operation: "signature_check",
+        result: "error",
+        error_code: "invalid_signature",
+        // Never log raw signature or body.
+        messageClass: message.slice(0, 120),
+      });
+      captureMessage("stripe.webhook.invalid_signature", {
+        component: "stripe_webhook",
+        operation: "signature_check",
+        error_code: "invalid_signature",
+        level: "warning",
+        extra: { messageClass: message.slice(0, 120) },
+      });
       return new NextResponse(`Eroare semnătură: ${message}`, { status: 400 });
     }
 
@@ -153,9 +245,16 @@ export async function POST(req: Request) {
     }
 
     const session = event.data.object as Stripe.Checkout.Session;
+    const earlyCorrelationId = correlationFromStripeMetadata(
+      (session.metadata as Record<string, string> | null) ?? null,
+    );
     const checkoutType = parseCheckoutObjectType(session.metadata?.type);
     if (!checkoutType) {
-      console.log("[stripe/webhook] checkout type ignored", {
+      logInfo({
+        component: "stripe_webhook",
+        operation: "checkout_type_ignored",
+        result: "skip",
+        correlation_id: earlyCorrelationId,
         eventId: event.id,
         sessionId: session.id,
         checkoutType: session.metadata?.type ?? "empty",
@@ -171,6 +270,8 @@ export async function POST(req: Request) {
         eventType: event.type,
         status: session.status ?? null,
         paymentStatus: session.payment_status ?? null,
+        correlationId: earlyCorrelationId,
+        livemode: event.livemode,
       });
     }
 
@@ -182,18 +283,25 @@ export async function POST(req: Request) {
     const { listingId, demandId, userId, metadata } = extractCheckoutIds(session);
     const mediaOrderId = extractMediaOrderIdFromMetadata(metadata);
     const metadataMediaPackage = extractMediaPackageFromMetadata(metadata);
+    const correlationId = correlationFromStripeMetadata(metadata);
     const type = checkoutType;
     const objectId = type === "demand" ? demandId : listingId;
     const table = type === "demand" ? "demands" : "listings";
 
-    console.log("[stripe/webhook] fulfillment event", {
+    logInfo({
+      component: "stripe_webhook",
+      operation: "fulfillment_event",
+      result: "info",
+      correlation_id: correlationId,
+      entity_id: objectId || mediaOrderId || null,
       eventId: event.id,
       eventType: event.type,
       sessionId: session.id,
       listingId: listingId || null,
       demandId: demandId || null,
       mediaOrderId,
-      type: checkoutType,
+      checkoutType,
+      livemode: event.livemode,
       canonicalEndpoint: CANONICAL_STRIPE_WEBHOOK_URL,
     });
 
@@ -204,6 +312,9 @@ export async function POST(req: Request) {
         type,
         listingId,
         demandId,
+        correlationId,
+        eventType: event.type,
+        livemode: event.livemode,
       });
     }
 
@@ -342,6 +453,32 @@ export async function POST(req: Request) {
           });
         }
       }
+    } else if (type === "demand") {
+      const demandPriceId = activation.priceId ?? "";
+      const expectedDemandMinor = expectedMinorAmountForPriceId(demandPriceId);
+      if (expectedDemandMinor == null) {
+        return fail("unknown_price_id", {
+          eventId: event.id,
+          sessionId: session.id,
+          demandId: objectId,
+          priceId: activation.priceId,
+        });
+      }
+      const amountCheck = classifyPaidSessionAmount({
+        amountTotal: Number(session.amount_total ?? 0),
+        currency: String(session.currency ?? ""),
+        expectedAmount: expectedDemandMinor,
+      });
+      if (amountCheck !== "ok") {
+        return fail(amountCheck, {
+          eventId: event.id,
+          sessionId: session.id,
+          demandId: objectId,
+          amountTotal: session.amount_total ?? null,
+          currency: session.currency ?? null,
+          expectedAmount: expectedDemandMinor,
+        });
+      }
     }
 
     type FulfillmentRow = {
@@ -349,6 +486,8 @@ export async function POST(req: Request) {
       status?: string;
       sale_strategy?: string | null;
       details?: unknown;
+      listing_kind?: string | null;
+      images?: unknown;
     };
 
     let existing: FulfillmentRow | null = null;
@@ -356,7 +495,7 @@ export async function POST(req: Request) {
     if (type === "listing") {
       const result = await supabase
         .from("listings")
-        .select("id, status, sale_strategy, details")
+        .select("id, status, sale_strategy, details, listing_kind, images")
         .eq("id", objectId)
         .maybeSingle();
       fetchError = result.error;
@@ -396,6 +535,29 @@ export async function POST(req: Request) {
     const row = existing;
 
     if (type === "listing") {
+      const imagesGate = listingImagesReadyForCheckout(row.listing_kind, row.images);
+      if (!imagesGate.ok) {
+        // Do not strand a paid customer — activate as usual, but surface for ops/edit remediation.
+        logWarn({
+          component: "listing_publish",
+          operation: "image_validation",
+          result: "warn",
+          entity_id: objectId,
+          error_code: "activate_zero_images",
+          event_id: event.id,
+          session_id: session.id,
+          listing_kind: imagesGate.kind,
+        });
+        captureMessage("listing.activate.zero_images", {
+          component: "stripe_webhook",
+          operation: "activate_listing",
+          correlation_id: correlationId,
+          entity_id: objectId,
+          error_code: "activate_zero_images",
+          level: "warning",
+        });
+      }
+
       const intent = assertListingSaleIntentForFulfillment(row);
       if (!intent.ok) {
         return fail("incompatible_sale_intent", {
@@ -465,10 +627,47 @@ export async function POST(req: Request) {
         result: "activated",
       };
 
+      let demandBuyerVerified = false;
+      if (type === "demand") {
+        const { data: demandOwner } = await supabase
+          .from("demands")
+          .select("buyer_id")
+          .eq("id", objectId)
+          .maybeSingle();
+        const buyerId =
+          demandOwner && typeof (demandOwner as { buyer_id?: string }).buyer_id === "string"
+            ? (demandOwner as { buyer_id: string }).buyer_id
+            : userId || null;
+        if (buyerId) {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("kyc_status")
+            .eq("id", buyerId)
+            .maybeSingle();
+          demandBuyerVerified =
+            String((profile as { kyc_status?: string } | null)?.kyc_status ?? "")
+              .trim()
+              .toLowerCase() === "verified";
+        }
+        logInfo({
+          component: "demand_fulfillment",
+          operation: "activate",
+          result: "info",
+          correlation_id: correlationId,
+          entity_id: objectId,
+          packageId: activation.packageId,
+          expires_at: activation.expiresAt,
+          buyer_verified: demandBuyerVerified,
+        });
+      }
+
       const extraPayload =
         type === "listing"
           ? { details: mergeStripeFulfillmentIntoDetails(row.details, fulfillment) }
-          : {};
+          : {
+              package_id: activation.packageId,
+              buyer_verified: demandBuyerVerified,
+            };
 
       const updateError = await activateRow(
         supabase,
@@ -675,9 +874,20 @@ export async function POST(req: Request) {
     });
   } catch (error: unknown) {
     const err = error instanceof Error ? error : new Error(String(error));
-    console.error("[stripe/webhook] Eroare generală neprevăzută:", {
-      message: err.message,
-      name: err.name,
+    logError({
+      component: "stripe_webhook",
+      operation: "unhandled",
+      result: "error",
+      error_code: "unhandled_exception",
+      error_name: err.name,
+      error_message: err.message.slice(0, 200),
+    });
+    captureException(err, {
+      component: "stripe_webhook",
+      operation: "unhandled",
+      error_code: "unhandled_exception",
+      tags: { stage: "top_level_catch" },
+      level: "error",
     });
     return new NextResponse("Eroare internă.", { status: 500 });
   }

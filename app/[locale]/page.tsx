@@ -17,6 +17,7 @@ import { adCardPricingProps } from "@/lib/listingPrice";
 import {
   fetchPublicActiveDemands,
   formatDemandBudget,
+  summarizePublicDemandCapital,
   HOME_PUBLIC_ACTIVE_DEMANDS_LIMIT,
 } from "@/lib/publicDemands";
 import { isPublicAuctionOpen } from "@/lib/auctionOpen";
@@ -185,8 +186,15 @@ export default async function Home({ params }: HomePageProps) {
     .order("expires_at", { ascending: true })
     .limit(12);
 
-  const homeDemands = await fetchPublicActiveDemands(HOME_PUBLIC_ACTIVE_DEMANDS_LIMIT);
+  const allActiveDemandsForStats = await fetchPublicActiveDemands(200);
+  const homeDemands = allActiveDemandsForStats.slice(0, HOME_PUBLIC_ACTIVE_DEMANDS_LIMIT);
+  const capitalSummary = summarizePublicDemandCapital(allActiveDemandsForStats);
   const hasActiveCapital = homeDemands.length > 0;
+  const capitalTotalLabel = new Intl.NumberFormat(locale === "en" ? "en-GB" : "ro-RO", {
+    style: "currency",
+    currency: "EUR",
+    maximumFractionDigits: 0,
+  }).format(capitalSummary.totalBudgetEur);
 
   const auctionsHome = (
     openAuctionListings?.filter((item) => isPublicAuctionOpen(item)) ?? []
@@ -330,8 +338,7 @@ export default async function Home({ params }: HomePageProps) {
                   id={item.id}
                   title={item.title}
                   image={
-                    item.images?.[0] ||
-                    "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=800&q=80"
+                    item.images?.[0] || ""
                   }
                   {...adCardPricingProps(item, numberLocale)}
                   type={normalizeSaleType(item.sale_strategy)}
@@ -372,6 +379,26 @@ export default async function Home({ params }: HomePageProps) {
             <p className="max-w-2xl text-sm font-bold leading-relaxed text-neutral-600">
               {tHome("capital.description")}
             </p>
+            <div className="mt-6 flex flex-wrap gap-4">
+              <p className="rounded-xl border-2 border-black bg-white px-4 py-2 text-sm font-black tracking-tight text-black">
+                {capitalTotalLabel}{" "}
+                <span className="font-bold text-neutral-600">
+                  {tHome("capital.totalCapitalLabel")}
+                </span>
+              </p>
+              <p className="rounded-xl border-2 border-black bg-black px-4 py-2 text-sm font-black text-[#FFD100]">
+                {capitalSummary.activeCount}{" "}
+                <span className="font-bold text-white/80">
+                  {tHome("capital.activeBuyersLabel")}
+                </span>
+              </p>
+              <Link
+                href="/posteaza-cerere"
+                className="inline-flex items-center justify-center rounded-xl border-2 border-black bg-[#FFD100] px-4 py-2 text-[11px] font-black uppercase tracking-widest text-black"
+              >
+                {tHome("capital.publishCta")}
+              </Link>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3 lg:gap-10">
@@ -387,6 +414,10 @@ export default async function Home({ params }: HomePageProps) {
                   locale === "en" ? "en" : "ro",
                 )}
                 description={demand.description ?? ""}
+                requirements={demand.requirements}
+                buyerVerified={demand.buyer_verified}
+                expiresAt={demand.expires_at}
+                locale={locale === "en" ? "en" : "ro"}
               />
             ))}
           </div>
@@ -434,8 +465,7 @@ export default async function Home({ params }: HomePageProps) {
                   id={item.id}
                   title={item.title}
                   image={
-                    item.images?.[0] ||
-                    "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=800&q=80"
+                    item.images?.[0] || ""
                   }
                   {...adCardPricingProps(item, numberLocale)}
                   type="auction"

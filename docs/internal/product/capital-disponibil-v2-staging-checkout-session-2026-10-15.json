@@ -1,0 +1,18 @@
+{
+  "ok": true,
+  "staging_ref": "nlnzlswjjplofpkhoxtr",
+  "demand_status": "pending_payment",
+  "paid": false,
+  "session_ref": "cs_test_…ro92",
+  "livemode": false,
+  "amount_total": 4900,
+  "amount_ron": "49.00",
+  "currency": "ron",
+  "packageId": "demand_standard_30d",
+  "type": "demand",
+  "demand_id_match": true,
+  "price_ref": "price_1U…KRpt",
+  "checkout_url_host": "checkout.stripe.com",
+  "not_99_ron": true,
+  "not_guest_offer": true
+}

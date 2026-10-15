@@ -1,0 +1,45 @@
+﻿{
+    "staging_alias_health":  {
+                                 "environment":  "staging",
+                                 "status":  "ok"
+                             },
+    "catalog_amounts_ron":  {
+                                "urgent_listing":  179,
+                                "demand_standard_30d":  49,
+                                "demand_legacy":  99,
+                                "auction_listing":  111,
+                                "economy_listing":  99,
+                                "standard_listing":  79,
+                                "guest_offer":  49
+                            },
+    "production_deployment_id":  "dpl_8HNWEk9NaZ8tcsPzTVFBjfowsx6z",
+    "at":  "2026-10-15T14:03:51.9968676Z",
+    "stripe_price_env_names":  [
+                                   "STRIPE_PRICE_DEMAND_STANDARD_49_RON",
+                                   "NEXT_PUBLIC_STRIPE_PRICE_CERERE_99_RON",
+                                   "NEXT_PUBLIC_STRIPE_PRICE_OFERTA_49_RON",
+                                   "NEXT_PUBLIC_STRIPE_PRICE_48_RON",
+                                   "NEXT_PUBLIC_STRIPE_PRICE_79_RON",
+                                   "NEXT_PUBLIC_STRIPE_PRICE_99_RON",
+                                   "NEXT_PUBLIC_STRIPE_PRICE_111_RON"
+                               ],
+    "health":  {
+                   "environment":  "production",
+                   "status":  "ok"
+               },
+    "blockers_pre":  [
+                         "Production CRON_SECRET missing",
+                         "CRON_ALLOW_PRODUCTION_EXPIRE not set (required for Production expire endpoint)"
+                     ],
+    "production_url":  "https://quickexit-rna2jbus5-daniel-mihais-projects-31598ec8.vercel.app",
+    "env_scope":  {
+                      "note":  "CRON_SECRET found Preview-only; Production missing at verification time",
+                      "production_has_STRIPE_PRICE_DEMAND_STANDARD_49_RON":  true,
+                      "production_has_STRIPE_SECRET_KEY":  true,
+                      "preview_has_CRON_SECRET":  true,
+                      "production_has_CRON_ALLOW_PRODUCTION_EXPIRE":  false,
+                      "production_has_CRON_SECRET":  false,
+                      "preview_has_STRIPE_PRICE_DEMAND_STANDARD_49_RON":  true
+                  },
+    "workspace_sha":  "f0e54bbc5bb46b774a5aaae0868971949ff4a590"
+}

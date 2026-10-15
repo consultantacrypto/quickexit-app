@@ -34,7 +34,8 @@ const LISTING_PACKAGES: Record<ListingPackageId, ListingPackage> = {
   },
 };
 
-const DEMAND_POSTING_PRICE_RON = 99;
+/** Canonical Capital Disponibil v2 fee (legacy checkout-demand path). */
+const DEMAND_POSTING_PRICE_RON = 49;
 
 export function validateListingPackage(packageId: string): packageId is ListingPackageId {
   return packageId in LISTING_PACKAGES;

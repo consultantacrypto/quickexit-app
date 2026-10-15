@@ -2,7 +2,7 @@
 
 import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { useRouter } from "@/src/i18n/navigation";
+import { Link, useRouter } from "@/src/i18n/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { supabase } from "@/lib/supabase";
 import { trackEvent } from "@/lib/analytics";
@@ -102,6 +102,7 @@ function DashboardContent() {
   const [kycStarting, setKycStarting] = useState(false);
   const [paymentCancelListingId, setPaymentCancelListingId] = useState<string | null>(null);
   const [paymentSuccessListingId, setPaymentSuccessListingId] = useState<string | null>(null);
+  const [paymentSuccessDemandId, setPaymentSuccessDemandId] = useState<string | null>(null);
   const [mediaOrdersByListingId, setMediaOrdersByListingId] = useState<
     Record<string, MediaOrderStatusView>
   >({});
@@ -133,19 +134,26 @@ function DashboardContent() {
 
     if (paymentStatus === "success" || paymentStatus === "success_demand") {
       const successListingId = (listingIdParam || listingId || "").trim();
+      const successDemandId = (demandIdParam || demandId || "").trim();
       if (successListingId && (checkoutTypeParam === "listing" || !checkoutTypeParam)) {
         setPaymentSuccessListingId(successListingId);
         setMediaStatusRefreshCount(0);
+      }
+      if (successDemandId && checkoutTypeParam === "demand") {
+        setPaymentSuccessDemandId(successDemandId);
+        setActiveTab("cumparari");
       }
       setIsLoading(true);
       const timer = setTimeout(() => {
         void fetchDashboardData();
         // Strip query params after first confirmation window; banner state is retained.
-        router.replace("/dashboard", { scroll: false });
+        const nextPath =
+          checkoutTypeParam === "demand" ? "/dashboard?tab=cumparari" : "/dashboard";
+        router.replace(nextPath, { scroll: false });
       }, 3000);
       return () => clearTimeout(timer);
     }
-  }, [paymentStatus, listingId, demandId, listingIdParam, checkoutTypeParam, router]);
+  }, [paymentStatus, listingId, demandId, listingIdParam, demandIdParam, checkoutTypeParam, router]);
 
   // Bounded read-only refresh while webhook may still be catching up (no fulfillment here).
   useEffect(() => {
@@ -329,11 +337,17 @@ function DashboardContent() {
 
       if (normalizedType === "demand" && normalizedPayment === "success") {
         trackEvent("checkout_demand_success", baseParams);
+        trackEvent("buyer_payment_success", baseParams);
+        trackEvent("buyer_request_published", baseParams);
+        if (demandIdParam || demandId) {
+          setPaymentSuccessDemandId((demandIdParam || demandId || "").trim() || null);
+        }
         return;
       }
 
       if (normalizedType === "demand" && normalizedPayment === "cancel") {
         trackEvent("checkout_demand_cancel", baseParams);
+        trackEvent("buyer_checkout_abandoned", baseParams);
       }
     };
 
@@ -348,6 +362,59 @@ function DashboardContent() {
     demandIdParam,
     router,
   ]);
+
+  const resumeDemandCheckout = async (targetDemandId: string) => {
+    if (checkoutLoadingId) return;
+    setCheckoutActionError(null);
+    setCheckoutLoadingId(targetDemandId);
+
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        setCheckoutActionError(tDash("finalizePaymentError"));
+        setCheckoutLoadingId(null);
+        return;
+      }
+
+      trackEvent("buyer_checkout_started", {
+        interaction_source: "dashboard_resume",
+        reason: "pending_payment",
+      });
+      trackEvent("checkout_demand_started", {
+        interaction_source: "dashboard_resume",
+        reason: "pending_payment",
+      });
+
+      // Price derived server-side — omit client Price IDs.
+      const res = await fetch("/api/stripe/checkout", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          demandId: targetDemandId,
+          type: "demand",
+          locale: locale === "en" ? "en" : "ro",
+        }),
+      });
+
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data?.url) {
+        setCheckoutActionError(
+          typeof data?.error === "string" ? data.error : tDash("finalizePaymentError"),
+        );
+        setCheckoutLoadingId(null);
+        return;
+      }
+      window.location.href = data.url;
+    } catch {
+      setCheckoutActionError(tDash("finalizePaymentError"));
+      setCheckoutLoadingId(null);
+    }
+  };
 
   const resumeListingCheckout = async (
     targetListingId: string,
@@ -941,7 +1008,7 @@ function DashboardContent() {
       case "active":
         return "Activ";
       case "pending_payment":
-        return "Așteaptă plata";
+        return "Plata nu este finalizată";
       case "seed":
         return "Index piață";
       case "hidden":
@@ -953,6 +1020,8 @@ function DashboardContent() {
         return "În așteptare";
       case "suspended":
         return "Suspendat";
+      case "expired":
+        return "Expirată";
       case "sold":
         return "Vândut";
       case "resolved":
@@ -1183,6 +1252,63 @@ function DashboardContent() {
           paymentSuccessContext
           onDismiss={() => setPaymentSuccessListingId(null)}
         />
+      ) : null}
+
+      {paymentSuccessDemandId ? (
+        <div
+          role="status"
+          className="mb-6 rounded-xl border-[3px] border-black bg-black p-4 text-white shadow-[4px_4px_0_0_#FFD100] md:p-5"
+        >
+          {(() => {
+            const demand = myDemands.find((item) => item.id === paymentSuccessDemandId);
+            const maxBudget = demand ? readDemandBudgetAmount(demand.budget) : null;
+            const minBudget = demand ? readDemandBudgetAmount(demand.budget_min) : null;
+            return (
+              <>
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#FFD100]">
+                  Capital Disponibil
+                </p>
+                <h2 className="mt-2 text-xl font-black uppercase italic tracking-tight md:text-2xl">
+                  Capitalul tău este acum vizibil.
+                </h2>
+                <p className="mt-3 text-sm font-semibold text-neutral-200">
+                  {demand?.target_asset || "Cererea ta"}
+                  {maxBudget != null
+                    ? ` · ${formatDemandBudgetCompact(
+                        minBudget !== null && minBudget <= maxBudget ? minBudget : null,
+                        maxBudget,
+                        "ro",
+                      )}`
+                    : ""}
+                </p>
+                {demand?.expires_at ? (
+                  <p className="mt-2 text-xs font-bold text-neutral-400">
+                    Activ până la {new Date(demand.expires_at).toLocaleDateString("ro-RO")}
+                  </p>
+                ) : (
+                  <p className="mt-2 text-xs font-bold text-neutral-400">
+                    Activare în curs — refresh dacă statusul încă spune „plata nefinalizată”.
+                  </p>
+                )}
+                <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+                  <Link
+                    href="/capital-disponibil"
+                    className="inline-flex items-center justify-center rounded-lg border-2 border-[#FFD100] bg-[#FFD100] px-5 py-2.5 text-xs font-black uppercase tracking-wide text-black"
+                  >
+                    Vezi cererea publică
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => setPaymentSuccessDemandId(null)}
+                    className="text-[11px] font-black uppercase tracking-widest text-neutral-400 underline-offset-4 hover:text-white hover:underline"
+                  >
+                    Închide
+                  </button>
+                </div>
+              </>
+            );
+          })()}
+        </div>
       ) : null}
 
       {paymentCancelListingId ? (
@@ -1438,13 +1564,32 @@ function DashboardContent() {
                   </div>
                   <div className="mt-6 pt-4 border-t-2 border-gray-100">
                     {demand.status === 'pending_payment' ? (
-                      <button className="w-full bg-[#FDFCF8] border-2 border-neutral-300 py-3 rounded-lg text-xs font-black uppercase text-neutral-500 cursor-not-allowed">
-                        Așteaptă Plata
+                      <button
+                        type="button"
+                        disabled={checkoutLoadingId === demand.id}
+                        onClick={() => void resumeDemandCheckout(demand.id)}
+                        className="w-full border-2 border-black bg-[#FFD100] py-3 rounded-lg text-xs font-black uppercase text-black transition-all shadow-[2px_2px_0_0_rgba(0,0,0,1)] enabled:hover:-translate-y-0.5 enabled:active:translate-y-px enabled:active:shadow-none disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {checkoutLoadingId === demand.id
+                          ? tDash("finalizePaymentLoading")
+                          : "Finalizează plata — 49 RON"}
                       </button>
                     ) : demand.status === 'resolved' ? (
                       <button className="w-full bg-[#FDFCF8] border-2 border-neutral-300 py-3 rounded-lg text-xs font-black uppercase text-neutral-500 cursor-not-allowed">
                         Cerere rezolvată
                       </button>
+                    ) : demand.status === 'expired' ? (
+                      <div className="w-full rounded-lg border-2 border-neutral-300 bg-[#FDFCF8] px-3 py-3 text-center">
+                        <p className="text-xs font-black uppercase text-neutral-600">Expirată</p>
+                        {demand.expires_at ? (
+                          <p className="mt-1 text-[11px] font-bold text-neutral-500">
+                            {new Date(demand.expires_at).toLocaleDateString("ro-RO")}
+                          </p>
+                        ) : null}
+                        <p className="mt-2 text-[11px] font-semibold text-neutral-600 leading-relaxed">
+                          Reînnoirea va fi disponibilă într-o versiune viitoare.
+                        </p>
+                      </div>
                     ) : (
                       <button 
                         onClick={() => toggleDemandStatus(demand)}
@@ -1453,7 +1598,7 @@ function DashboardContent() {
                         {demand.status === 'active' ? <><Power size={12}/> Oprește Căutarea</> : <><Play size={12}/> Reia Căutarea</>}
                       </button>
                     )}
-                    {demand.status !== 'pending_payment' && demand.status !== 'resolved' && (
+                    {demand.status !== 'pending_payment' && demand.status !== 'resolved' && demand.status !== 'expired' && (
                       <div className="mt-3">
                         <p className="mb-2 text-[11px] font-bold text-neutral-600 leading-relaxed">
                           Acceptarea unei oferte nu marchează automat cererea ca rezolvată. Marchează cererea ca rezolvată doar după ce tranzacția este finalizată între părți sau dacă nu mai cauți acest tip de achiziție.

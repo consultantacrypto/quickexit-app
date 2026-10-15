@@ -3,8 +3,8 @@
     "logoAlt": "Quick Exit — platformă de lichiditate rapidă pentru active",
     "home": "Acasă",
     "howItWorks": "Cum funcționează?",
-    "buyerOffers": "Oferte Cumpărători",
-    "buyWithCash": "Cumpăr cu Cash",
+    "buyerOffers": "Capital Disponibil",
+    "buyWithCash": "Publică ce vrei să cumperi",
     "postListing": "Pune anunț vânzare",
     "openMenu": "Deschide meniul principal",
     "closeMenu": "Închide meniul principal",
@@ -201,10 +201,10 @@
     "auctionListingFee": "Taxă listare licitație",
     "buyerServicesTitle": "Servicii cumpărători",
     "capitalRequest": {
-      "title": "Cerere Capital",
-      "description": "Anunță capital disponibil pentru achiziții urgente sub preț.",
-      "price": "99 RON",
-      "cta": "Postează bugetul"
+      "title": "Capital Disponibil",
+      "description": "Publică o cerere de cumpărare cu buget vizibil și primește oferte de la vânzători.",
+      "price": "49 RON",
+      "cta": "Publică ce vrei să cumperi"
     },
     "guestOffer": {
       "title": "Ofertă Guest",
@@ -258,17 +258,20 @@
     "capital": {
       "title": "Capital disponibil acum",
       "titleHighlight": "acum",
-      "viewAll": "Vezi toate cererile",
+      "viewAll": "Vezi cererile",
       "description": "Cumpărători activi caută proprietăți, automobile, afaceri și alte active.",
-      "empty": "Nicio cerere de capital înregistrată momentan.",
+      "empty": "Nicio cerere de cumpărare activă momentan.",
       "viewAllFooter": "Vezi tot capitalul disponibil",
-      "addOffer": "Adaugă ofertă de capital",
-      "fallbackTitle": "Cumpărători cu capital disponibil",
-      "fallbackText": "Publică activul pe care îl cauți sau descoperă cererile active ale cumpărătorilor.",
-      "fallbackPrimaryCta": "Publică o cerere",
-      "fallbackSecondaryCta": "Vezi toate cererile",
-      "emptyStripTitle": "Cumperi cu cash? Spune-ne ce cauți.",
-      "emptyStripCta": "PUBLICĂ O CERERE"
+      "addOffer": "Publică ce vrei să cumperi — 49 RON",
+      "fallbackTitle": "Capital disponibil",
+      "fallbackText": "Publică ce vrei să cumperi sau descoperă cererile active ale cumpărătorilor.",
+      "fallbackPrimaryCta": "Publică ce vrei să cumperi — 49 RON",
+      "fallbackSecondaryCta": "Vezi cererile",
+      "emptyStripTitle": "Ai capital disponibil? Spune ce cauți.",
+      "emptyStripCta": "Publică ce vrei să cumperi — 49 RON",
+      "totalCapitalLabel": "caută active",
+      "activeBuyersLabel": "cumpărători activi",
+      "publishCta": "Publică ce vrei să cumperi — 49 RON"
     },
     "auctions": {
       "title": "Licitații deschise",
@@ -360,13 +363,19 @@
     }
   },
   "DemandCard": {
+    "buyingLabel": "Cumpăr",
     "declaredBudget": "Buget declarat",
     "generalCategory": "General",
     "budgetDisclaimer": "Bugetul este declarat de cumpărător și trebuie verificat direct între părți.",
     "availableBudget": "Buget disponibil",
     "maxBudget": "Buget maxim",
-    "sellCta": "Vinde-i activul tău",
-    "sellCtaAria": "Vinde-i activul tău pentru cererea: {targetAsset}"
+    "location": "Locație",
+    "timeHorizon": "Orizont",
+    "timeHorizonValue": "Cumpăr în următoarele 30 zile",
+    "activeUntil": "Activ până la",
+    "verifiedBuyer": "Cumpărător verificat",
+    "sellCta": "Am un activ potrivit",
+    "sellCtaAria": "Am un activ potrivit pentru cererea: {targetAsset}"
   },
   "PosteazaCerere": {
     "budgetMinLabel": "Buget minim",
@@ -500,9 +509,9 @@
       "intro": "Pozele reale și descrierea sinceră cresc încrederea și numărul de oferte.",
       "descriptionLabel": "Descriere anunț",
       "descriptionPlaceholder": "Stare, dotări, motivul vânzării, eventuale defecte — transparența ajută la tranzacție.",
-      "photosLabel": "Fotografii",
+      "photosLabel": "Fotografii (obligatoriu)",
       "dropTitle": "Adaugă poze reale ale activului",
-      "dropHint": "Pozele cresc încrederea și viteza ofertelor.",
+      "dropHint": "Cel puțin o fotografie este obligatorie înainte de plată. Pozele cresc încrederea și viteza ofertelor.",
       "filesSelected": "{count} fișiere selectate",
       "orderHint": "Ordine poze — prima imagine este coperta anunțului",
       "photoAlt": "Fotografie {n}",
@@ -695,6 +704,8 @@
       "invalidPackage": "Pachet invalid pentru plată. Te rugăm să reîncerci.",
       "paymentFailed": "Nu am putut inițializa plata. Te rugăm să încerci din nou.",
       "uploadFailed": "Nu am putut încărca imaginile. Verifică fișierele și încearcă din nou.",
+      "uploadFailedNamed": "Nu am putut încărca fotografia „{name}”. Verifică fișierul și încearcă din nou — datele formularului sunt păstrate.",
+      "imagesRequired": "Adaugă cel puțin o fotografie înainte de plată. Checkout-ul nu poate porni fără imagini.",
       "genericFailed": "Nu am putut finaliza solicitarea sau pornirea plății. Te rugăm să încerci din nou.",
       "pendingReuse": "Ai deja un anunț salvat în așteptarea plății. Continuăm plata pentru acesta.",
       "pendingInvalid": "Anunțul salvat pentru plată nu mai este disponibil. Confirmă din nou publicarea pentru a crea unul nou.",
@@ -928,7 +939,8 @@
       "close": "Închide",
       "previousImage": "Imaginea anterioară",
       "nextImage": "Imaginea următoare",
-      "lightboxHint": "Apasă în afara imaginii sau tasta Esc pentru a închide"
+      "lightboxHint": "Apasă în afara imaginii sau tasta Esc pentru a închide",
+      "imagesUnavailable": "Fotografii indisponibile momentan"
     },
     "auction": {
       "title": "Licitație deschisă",

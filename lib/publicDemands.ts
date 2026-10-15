@@ -4,6 +4,7 @@ import {
   readDemandBudgetAmount,
   type DemandBudgetLocale,
 } from "@/lib/demandBudget";
+import { isDemandEffectivelyActive } from "@/lib/demandLifecycle";
 
 export type PublicDemandRow = {
   id: string;
@@ -12,13 +13,17 @@ export type PublicDemandRow = {
   budget_min: number | null;
   budget: number;
   description: string | null;
+  requirements: unknown;
   status: string;
   created_at: string | null;
+  expires_at: string | null;
+  activated_at: string | null;
+  buyer_verified: boolean;
 };
 
 /** Explicit public columns only — no private identity fields and no select star. */
 const PUBLIC_DEMAND_SELECT =
-  "id,target_asset,category,budget_min,budget,description,status,created_at" as const;
+  "id,target_asset,category,budget_min,budget,description,requirements,status,created_at,expires_at,activated_at,buyer_verified" as const;
 
 export const HOME_PUBLIC_ACTIVE_DEMANDS_LIMIT = 3;
 
@@ -37,13 +42,14 @@ export async function fetchPublicActiveDemands(limit = 100): Promise<PublicDeman
     .eq("status", "active")
     .order("created_at", { ascending: false })
     .order("id", { ascending: false })
-    .limit(limit);
+    .limit(Math.max(limit * 2, limit));
 
   if (error) {
     console.error("[fetchPublicActiveDemands]", error.message);
     return [];
   }
 
+  const now = new Date();
   const rows = (data ?? [])
     .map((row) => {
       const id = typeof row.id === "string" ? row.id.trim() : "";
@@ -54,7 +60,7 @@ export async function fetchPublicActiveDemands(limit = 100): Promise<PublicDeman
         return null;
       }
       const budgetMin = readDemandBudgetAmount(row.budget_min);
-      return {
+      const mapped: PublicDemandRow = {
         id,
         target_asset: targetAsset,
         category: typeof row.category === "string" ? row.category.trim() : null,
@@ -62,10 +68,18 @@ export async function fetchPublicActiveDemands(limit = 100): Promise<PublicDeman
         budget,
         description:
           typeof row.description === "string" ? row.description.trim() : null,
+        requirements: row.requirements ?? null,
         status: typeof row.status === "string" ? row.status : "active",
         created_at:
           typeof row.created_at === "string" ? row.created_at.trim() : null,
-      } satisfies PublicDemandRow;
+        expires_at:
+          typeof row.expires_at === "string" ? row.expires_at.trim() : null,
+        activated_at:
+          typeof row.activated_at === "string" ? row.activated_at.trim() : null,
+        buyer_verified: row.buyer_verified === true,
+      };
+      if (!isDemandEffectivelyActive(mapped, now)) return null;
+      return mapped;
     })
     .filter((row): row is PublicDemandRow => row !== null);
 
@@ -75,7 +89,25 @@ export async function fetchPublicActiveDemands(limit = 100): Promise<PublicDeman
     return b.id.localeCompare(a.id);
   });
 
-  return rows;
+  return rows.slice(0, limit);
+}
+
+export function summarizePublicDemandCapital(demands: PublicDemandRow[]): {
+  activeCount: number;
+  totalBudgetEur: number;
+  categories: string[];
+} {
+  const categorySet = new Set<string>();
+  let totalBudgetEur = 0;
+  for (const d of demands) {
+    totalBudgetEur += d.budget;
+    if (d.category) categorySet.add(d.category);
+  }
+  return {
+    activeCount: demands.length,
+    totalBudgetEur,
+    categories: Array.from(categorySet),
+  };
 }
 
 export function formatDemandBudget(

@@ -8,8 +8,13 @@ import { publicationLocationFromDetails } from "@/lib/listingLocation";
 import {
   getPackageByPriceId,
   getPriceIdForPackageId,
+  getDemandCheckoutPackageId,
   type ListingPackageId,
 } from "@/lib/stripePackages";
+import {
+  DEMAND_STANDARD_DURATION_DAYS,
+  DEMAND_STANDARD_PACKAGE_ID,
+} from "@/lib/demandLifecycle";
 import {
   resolveMediaCheckoutEligibility,
   type MediaPackageId,
@@ -27,6 +32,18 @@ import {
   persistMediaCheckoutSessionId,
   preparePendingMediaOrder,
 } from "@/lib/mediaCheckout";
+import {
+  captureException,
+  captureMessage,
+  ensureCorrelationId,
+  logError,
+  logInfo,
+  withCorrelationMetadata,
+} from "@/lib/observability";
+import {
+  BLOCKED_ZERO_IMAGES_CODE,
+  listingImagesReadyForCheckout,
+} from "@/lib/listingPublishImages";
 
 function extractBearerToken(req: Request): string | null {
   const header = req.headers.get("authorization") || req.headers.get("Authorization");
@@ -47,9 +64,17 @@ function parseCheckoutLocale(value: unknown): "ro" | "en" {
 }
 
 export async function POST(req: Request) {
+  const correlationId = ensureCorrelationId(req.headers);
   try {
     const stripeApiKey = process.env.STRIPE_SECRET_KEY;
     if (!stripeApiKey) {
+      captureMessage("stripe.checkout.config_missing:STRIPE_SECRET_KEY", {
+        component: "stripe_checkout",
+        operation: "config_check",
+        correlation_id: correlationId,
+        error_code: "missing_stripe_secret",
+        level: "error",
+      });
       return NextResponse.json(
         { error: "Config server incompletă: STRIPE_SECRET_KEY lipsește." },
         { status: 500 },
@@ -124,13 +149,16 @@ export async function POST(req: Request) {
 
     let priceId = "";
     let objectId = "";
-    const checkoutMetadata: Record<string, string> = {
-      type,
-      listingId: "",
-      demandId: "",
-      userId: user.id,
-      priceId: "",
-    };
+    const checkoutMetadata: Record<string, string> = withCorrelationMetadata(
+      {
+        type,
+        listingId: "",
+        demandId: "",
+        userId: user.id,
+        priceId: "",
+      },
+      correlationId,
+    );
 
     // Combined Media only applies to listing checkout.
     let mediaAttach: {
@@ -171,7 +199,9 @@ export async function POST(req: Request) {
 
       const { data: listingRow, error: listingError } = await adminSupabase
         .from("listings")
-        .select("id, user_id, status, is_seed, sale_strategy, details, exit_price, listing_kind")
+        .select(
+          "id, user_id, status, is_seed, sale_strategy, details, exit_price, listing_kind, images",
+        )
         .eq("id", listingId)
         .maybeSingle();
 
@@ -207,6 +237,32 @@ export async function POST(req: Request) {
         return NextResponse.json(
           { error: "Anunțul nu este în așteptarea plății." },
           { status: 409 },
+        );
+      }
+
+      const imagesGate = listingImagesReadyForCheckout(
+        listingRow.listing_kind,
+        listingRow.images,
+      );
+      if (!imagesGate.ok) {
+        logInfo({
+          component: "listing_publish",
+          operation: "image_validation",
+          result: "blocked_zero_images",
+          correlation_id: correlationId,
+          entity_id: listingId,
+          error_code: BLOCKED_ZERO_IMAGES_CODE,
+          listing_kind: imagesGate.kind,
+        });
+        return NextResponse.json(
+          {
+            error:
+              checkoutLocale === "en"
+                ? "Add at least one photo before payment. Checkout cannot start without images."
+                : "Adaugă cel puțin o fotografie înainte de plată. Checkout-ul nu poate porni fără imagini.",
+            code: BLOCKED_ZERO_IMAGES_CODE,
+          },
+          { status: 400 },
         );
       }
 
@@ -378,7 +434,8 @@ export async function POST(req: Request) {
         );
       }
 
-      const derivedDemandPriceId = getPriceIdForPackageId("demand");
+      const demandPackageId = getDemandCheckoutPackageId();
+      const derivedDemandPriceId = getPriceIdForPackageId(demandPackageId);
       if (!derivedDemandPriceId) {
         return NextResponse.json(
           { error: "Pachet invalid pentru plată. Te rugăm să reîncerci." },
@@ -386,7 +443,7 @@ export async function POST(req: Request) {
         );
       }
 
-      // Prefer server-derived demand price; reject mismatched client priceId if provided.
+      // Prefer server-derived v2 demand price; reject mismatched client priceId if provided.
       if (clientPriceId && clientPriceId !== derivedDemandPriceId) {
         return NextResponse.json(
           { error: "Pachet invalid: priceId necunoscut." },
@@ -398,6 +455,19 @@ export async function POST(req: Request) {
       objectId = demandId;
       checkoutMetadata.demandId = demandId;
       checkoutMetadata.priceId = priceId;
+      checkoutMetadata.packageId = DEMAND_STANDARD_PACKAGE_ID;
+      checkoutMetadata.duration_days = String(DEMAND_STANDARD_DURATION_DAYS);
+      checkoutMetadata.type = "demand";
+
+      logInfo({
+        component: "demand_checkout",
+        operation: "checkout_create",
+        result: "info",
+        correlation_id: correlationId,
+        entity_id: demandId,
+        packageId: DEMAND_STANDARD_PACKAGE_ID,
+        duration_days: DEMAND_STANDARD_DURATION_DAYS,
+      });
     }
 
     const pkg = getPackageByPriceId(priceId);
@@ -458,10 +528,30 @@ export async function POST(req: Request) {
       }
       const message =
         stripeError instanceof Error ? stripeError.message : "Eroare Stripe la sesiune.";
-      console.error("[stripe/checkout] Stripe session create failed", {
-        message,
+      logError({
+        component: "stripe_checkout",
+        operation: "session_create",
+        result: "error",
+        error_code: "stripe_session_failed",
+        correlation_id: correlationId,
+        entity_id: listingId || demandId || null,
         mediaOrderId: mediaAttach?.mediaOrderId ?? null,
-        listingId: listingId || null,
+        flow: type,
+        stripeMode: stripeApiKey.startsWith("sk_live") ? "live" : "test",
+        message: message.slice(0, 200),
+      });
+      captureException(stripeError, {
+        component: "stripe_checkout",
+        operation: "session_create",
+        correlation_id: correlationId,
+        entity_id: listingId || demandId || null,
+        error_code: "stripe_session_failed",
+        tags: {
+          flow: type,
+          stripe_mode: stripeApiKey.startsWith("sk_live") ? "live" : "test",
+          has_media: Boolean(mediaAttach),
+        },
+        level: "error",
       });
       return NextResponse.json(
         { error: "Nu am putut inițializa plata. Te rugăm să încerci din nou.", code: "stripe_session_failed" },
@@ -477,11 +567,25 @@ export async function POST(req: Request) {
       });
 
       if (!persisted.ok) {
-        console.error("[stripe/checkout] orphan Stripe session — media_orders session id persist failed", {
+        logError({
+          component: "stripe_checkout",
+          operation: "media_session_persist",
+          result: "error",
+          error_code: "media_session_persist_failed",
+          correlation_id: correlationId,
+          entity_id: listingId || null,
           sessionId: session.id,
           mediaOrderId: mediaAttach.mediaOrderId,
-          listingId,
-          message: persisted.message,
+          message: persisted.message.slice(0, 200),
+        });
+        captureMessage("stripe.checkout.media_session_persist_failed", {
+          component: "stripe_checkout",
+          operation: "media_session_persist",
+          correlation_id: correlationId,
+          entity_id: listingId || null,
+          error_code: "media_session_persist_failed",
+          tags: { flow: "listing_media", stage: "persist_session_id" },
+          level: "error",
         });
 
         try {
@@ -489,9 +593,21 @@ export async function POST(req: Request) {
         } catch (expireError: unknown) {
           const expireMessage =
             expireError instanceof Error ? expireError.message : String(expireError);
-          console.error("[stripe/checkout] failed to expire orphan session", {
+          logError({
+            component: "stripe_checkout",
+            operation: "expire_orphan_session",
+            result: "error",
+            error_code: "expire_orphan_failed",
+            correlation_id: correlationId,
             sessionId: session.id,
-            message: expireMessage,
+            message: expireMessage.slice(0, 200),
+          });
+          captureException(expireError, {
+            component: "stripe_checkout",
+            operation: "expire_orphan_session",
+            correlation_id: correlationId,
+            error_code: "expire_orphan_failed",
+            level: "error",
           });
         }
 
@@ -510,10 +626,33 @@ export async function POST(req: Request) {
       }
     }
 
-    return NextResponse.json({ url: session.url, sessionId: session.id });
+    return NextResponse.json({
+      url: session.url,
+      sessionId: session.id,
+      // Safe session facts for operator verification (no secrets).
+      amount_total: session.amount_total,
+      currency: session.currency,
+      livemode: session.livemode,
+      packageId: session.metadata?.packageId ?? null,
+      type: session.metadata?.type ?? null,
+    });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Eroare internă la inițializarea plății.";
-    console.error("[stripe/checkout] Eroare la generarea sesiunii:", message);
+    logError({
+      component: "stripe_checkout",
+      operation: "unhandled",
+      result: "error",
+      error_code: "checkout_unhandled",
+      correlation_id: correlationId,
+      message: message.slice(0, 200),
+    });
+    captureException(error, {
+      component: "stripe_checkout",
+      operation: "unhandled",
+      correlation_id: correlationId,
+      error_code: "checkout_unhandled",
+      level: "error",
+    });
     return NextResponse.json(
       { error: message },
       { status: 500 },

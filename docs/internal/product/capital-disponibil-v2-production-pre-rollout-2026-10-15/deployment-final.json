@@ -1,0 +1,16 @@
+﻿{
+    "final_deployment_id":  "dpl_CBu31SAYD3bv9aCDDZywzgQSkGv7",
+    "staging_deployment_id":  "dpl_HKVKJvopz8qHzWzSRqL1B5Y8hkFS",
+    "expire_allow":  "PASS",
+    "at":  "2026-10-15T14:21:16.4221304Z",
+    "expire_deny":  "PASS",
+    "cron_schedule":  "0 * * * *",
+    "production_url":  "https://www.quickexit.ro",
+    "live_payment":  "SKIPPED",
+    "live_checkout":  {
+                          "livemode":  true,
+                          "currency":  "ron",
+                          "packageId":  "demand_standard_30d",
+                          "amount_total":  4900
+                      }
+}

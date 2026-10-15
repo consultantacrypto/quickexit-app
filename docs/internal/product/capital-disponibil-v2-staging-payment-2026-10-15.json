@@ -1,0 +1,19 @@
+{
+  "ok": true,
+  "demand_ref": "e84c4546…010f",
+  "session_ref": "cs_test_…ro92",
+  "session_payment_status": "paid",
+  "session_livemode": false,
+  "session_amount_total": 4900,
+  "status": "active",
+  "paid": true,
+  "package_id": "demand_standard_30d",
+  "buyer_verified": true,
+  "owner_match": true,
+  "activated_at_set": true,
+  "expires_at_set": true,
+  "expires_days": 30,
+  "idempotent_expires_unchanged": true,
+  "stripe_event_ref": "evt_1UQn…Vp5M",
+  "stripe_event_livemode": false
+}

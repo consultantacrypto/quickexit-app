@@ -1,0 +1,24 @@
+{
+  "at": "2026-10-15T11:44:16.514Z",
+  "staging_ref": "nlnzlswjjplofpkhoxtr",
+  "production_touched": false,
+  "results": {
+    "schema_lifecycle_cols": "PASS",
+    "A_create_pending": "PASS",
+    "A_not_public": "PASS",
+    "C_activate_lifecycle": "PASS",
+    "F_verified_badge_field": "PASS",
+    "D_idempotent_activate": "PASS",
+    "E_resume_same_demand": "PASS",
+    "G_unverified_no_badge": "PASS",
+    "H_requirements": "PASS",
+    "I_expiry": "PASS",
+    "I_offer_deny_expired": "PASS",
+    "J_seller_offer": "PASS",
+    "K_metrics_effective_only": "PASS",
+    "B_checkout_49_ron_stripe": "BLOCKED_MISSING_PRICE_ENV",
+    "C_live_webhook": "BLOCKED_MISSING_STRIPE_LOCAL",
+    "K_h4b3b_rerun": "NOT_RUN_THIS_SESSION",
+    "L_listing_regression": "NOT_RUN_THIS_SESSION"
+  }
+}

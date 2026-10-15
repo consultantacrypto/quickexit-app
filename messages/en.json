@@ -3,8 +3,8 @@
     "logoAlt": "Quick Exit — rapid liquidity platform for assets",
     "home": "Home",
     "howItWorks": "How It Works",
-    "buyerOffers": "Buyer Offers",
-    "buyWithCash": "Buy with Cash",
+    "buyerOffers": "Buyer Capital",
+    "buyWithCash": "Post what you want to buy",
     "postListing": "List an Asset for Sale",
     "openMenu": "Open main menu",
     "closeMenu": "Close main menu",
@@ -201,10 +201,10 @@
     "auctionListingFee": "Auction listing fee",
     "buyerServicesTitle": "Buyer services",
     "capitalRequest": {
-      "title": "Capital Request",
-      "description": "Publish available capital for urgent below-market acquisitions.",
-      "price": "99 RON",
-      "cta": "Post your budget"
+      "title": "Buyer Capital",
+      "description": "Publish a buying request with a visible budget and receive offers from sellers.",
+      "price": "49 RON",
+      "cta": "Post what you want to buy"
     },
     "guestOffer": {
       "title": "Guest Offer",
@@ -256,19 +256,22 @@
       "empty": "No active listings at the moment."
     },
     "capital": {
-      "title": "Capital available now",
+      "title": "Buyer capital now",
       "titleHighlight": "now",
-      "viewAll": "View all requests",
+      "viewAll": "View requests",
       "description": "Active buyers are looking for property, automobiles, businesses, and other assets.",
-      "empty": "No capital requests registered at the moment.",
-      "viewAllFooter": "View all available capital",
-      "addOffer": "Add capital offer",
-      "fallbackTitle": "Buyers with available capital",
-      "fallbackText": "Publish the asset you want to acquire or explore active buyer requests.",
-      "fallbackPrimaryCta": "Publish a request",
-      "fallbackSecondaryCta": "View all requests",
-      "emptyStripTitle": "Buying with cash? Tell us what you’re looking for.",
-      "emptyStripCta": "POST A BUYER REQUEST"
+      "empty": "No active buying requests at the moment.",
+      "viewAllFooter": "View all buyer capital",
+      "addOffer": "Post what you want to buy — 49 RON",
+      "fallbackTitle": "Buyer Capital",
+      "fallbackText": "Post what you want to buy or explore active buying requests.",
+      "fallbackPrimaryCta": "Post what you want to buy — 49 RON",
+      "fallbackSecondaryCta": "View requests",
+      "emptyStripTitle": "Have capital ready? Tell us what you want to buy.",
+      "emptyStripCta": "Post what you want to buy — 49 RON",
+      "totalCapitalLabel": "looking for assets",
+      "activeBuyersLabel": "active buyers",
+      "publishCta": "Post what you want to buy — 49 RON"
     },
     "auctions": {
       "title": "Open auctions",
@@ -360,13 +363,19 @@
     }
   },
   "DemandCard": {
+    "buyingLabel": "Buying",
     "declaredBudget": "Declared budget",
     "generalCategory": "General",
     "budgetDisclaimer": "The budget is stated by the buyer and must be verified directly between parties.",
     "availableBudget": "Available budget",
     "maxBudget": "Maximum budget",
-    "sellCta": "Sell them your asset",
-    "sellCtaAria": "Sell your asset for the request: {targetAsset}"
+    "location": "Location",
+    "timeHorizon": "Timeframe",
+    "timeHorizonValue": "Buying within the next 30 days",
+    "activeUntil": "Active until",
+    "verifiedBuyer": "Verified buyer",
+    "sellCta": "I have a matching asset",
+    "sellCtaAria": "I have a matching asset for the request: {targetAsset}"
   },
   "PosteazaCerere": {
     "budgetMinLabel": "Minimum budget",
@@ -500,9 +509,9 @@
       "intro": "Real photos and an honest description increase trust and the number of offers.",
       "descriptionLabel": "Listing description",
       "descriptionPlaceholder": "Condition, features, reason for selling, any defects — transparency helps the deal.",
-      "photosLabel": "Photos",
+      "photosLabel": "Photos (required)",
       "dropTitle": "Add real photos of the asset",
-      "dropHint": "Photos increase trust and how quickly offers arrive.",
+      "dropHint": "At least one photo is required before payment. Photos increase trust and how quickly offers arrive.",
       "filesSelected": "{count} files selected",
       "orderHint": "Photo order — the first image is the listing cover",
       "photoAlt": "Photo {n}",
@@ -695,6 +704,8 @@
       "invalidPackage": "Invalid package for checkout. Please try again.",
       "paymentFailed": "We couldn't initialize payment. Please try again.",
       "uploadFailed": "We couldn't upload your images. Check your files and try again.",
+      "uploadFailedNamed": "We couldn't upload the photo “{name}”. Check the file and try again — your form data is preserved.",
+      "imagesRequired": "Add at least one photo before payment. Checkout cannot start without images.",
       "genericFailed": "We couldn't complete your request or start checkout. Please try again.",
       "pendingReuse": "You already have a listing saved awaiting payment. We'll continue checkout for that one.",
       "pendingInvalid": "The saved listing awaiting payment is no longer available. Confirm publish again to create a new one.",
@@ -928,7 +939,8 @@
       "close": "Close",
       "previousImage": "Previous image",
       "nextImage": "Next image",
-      "lightboxHint": "Click outside the image or press Esc to close"
+      "lightboxHint": "Click outside the image or press Esc to close",
+      "imagesUnavailable": "Photos unavailable for now"
     },
     "auction": {
       "title": "Open auction",

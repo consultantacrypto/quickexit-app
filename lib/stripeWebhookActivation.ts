@@ -4,8 +4,11 @@ import {
   getPackageByPriceId,
   getExpiryIsoForPackage,
   getPriceIdForPackageId,
+  getDemandCheckoutPackageId,
+  isDemandPackageId,
 } from "@/lib/stripePackages";
 import { getListingPackageById, getListingExpiryIso } from "@/lib/pricing";
+import { buildDemandActivationPayload } from "@/lib/demandLifecycle";
 
 export type CheckoutObjectType = "listing" | "demand";
 
@@ -75,9 +78,14 @@ export function resolveActivationFromMetadata(
   }
 
   if (type === "demand") {
-    const demandPriceId = priceId || getPriceIdForPackageId("demand") || "";
+    const canonicalId = getDemandCheckoutPackageId();
+    const demandPriceId =
+      priceId ||
+      getPriceIdForPackageId(canonicalId) ||
+      getPriceIdForPackageId("demand") ||
+      "";
     const demandPkg = demandPriceId ? getPackageByPriceId(demandPriceId) : null;
-    if (demandPkg) {
+    if (demandPkg && (isDemandPackageId(demandPkg.packageId) || !packageId)) {
       return {
         priceId: demandPkg.priceId,
         packageId: demandPkg.packageId,
@@ -227,10 +235,39 @@ export async function activateRow(
   logPrefix = "[stripe/webhook]",
   extraPayload: Record<string, unknown> = {},
 ): Promise<{ message: string; code?: string; supabase?: ReturnType<typeof formatSupabaseError> } | null> {
-  const payload: Record<string, unknown> = { status: "active", paid: true, ...extraPayload };
-  if (expiresAt) payload.expires_at = expiresAt;
+  const payload: Record<string, unknown> =
+    table === "demands"
+      ? {
+          ...buildDemandActivationPayload({
+            expiresAt,
+            packageId:
+              typeof extraPayload.package_id === "string"
+                ? extraPayload.package_id
+                : null,
+            buyerVerified:
+              typeof extraPayload.buyer_verified === "boolean"
+                ? extraPayload.buyer_verified
+                : undefined,
+          }),
+          ...extraPayload,
+        }
+      : { status: "active", paid: true, ...extraPayload };
 
-  for (let attempt = 0; attempt < 3; attempt++) {
+  if (table !== "demands" && expiresAt) {
+    payload.expires_at = expiresAt;
+  } else if (table === "demands" && expiresAt && !payload.expires_at) {
+    payload.expires_at = expiresAt;
+  }
+
+  const optionalDemandCols = [
+    "paid",
+    "expires_at",
+    "activated_at",
+    "package_id",
+    "buyer_verified",
+  ];
+
+  for (let attempt = 0; attempt < 5; attempt++) {
     const { data, error } = await supabase
       .from(table)
       .update(payload)
@@ -247,7 +284,7 @@ export async function activateRow(
       return { message: "Update a afectat mai multe rânduri.", code: "ambiguous_update" };
     }
 
-    console.error(`${logPrefix} activateRow — update eșuat (încercare ${attempt + 1}/3):`, {
+    console.error(`${logPrefix} activateRow — update eșuat (încercare ${attempt + 1}/5):`, {
       table,
       id,
       payloadKeys: Object.keys(payload),
@@ -255,7 +292,8 @@ export async function activateRow(
     });
 
     let removed = false;
-    for (const col of ["paid", "expires_at"]) {
+    const stripCols = table === "demands" ? optionalDemandCols : ["paid", "expires_at"];
+    for (const col of stripCols) {
       if (col in payload && isMissingColumnError(error, col)) {
         delete payload[col];
         removed = true;
