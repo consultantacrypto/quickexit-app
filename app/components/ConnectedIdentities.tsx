@@ -10,6 +10,11 @@ import {
 import type { LinkedIdentityView } from "@/lib/authIdentity/recovery";
 import { abbreviateEvmAddress } from "@/lib/walletIdentity/address";
 import { trackWalletIdentityEvent } from "@/lib/walletIdentity/analytics";
+import { trackWalletProviderDiag } from "@/lib/walletIdentity/providerDiag";
+import {
+  selectMetaMaskProvider,
+  type Eip1193Provider,
+} from "@/lib/walletIdentity/providerDiscovery";
 import {
   classifyProviderError,
   createWalletAttemptGuard,
@@ -20,18 +25,6 @@ import {
   type WalletFlowPhase,
   type WalletProviderErrorCode,
 } from "@/lib/walletIdentity/providerUx";
-
-type InjectedEthereum = {
-  request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
-  on?: (event: string, handler: (...args: unknown[]) => void) => void;
-  removeListener?: (event: string, handler: (...args: unknown[]) => void) => void;
-};
-
-function getInjectedEthereum(): InjectedEthereum | undefined {
-  if (typeof window === "undefined") return undefined;
-  const eth = (window as Window & { ethereum?: InjectedEthereum }).ethereum;
-  return eth;
-}
 
 function statusLabel(
   t: ReturnType<typeof useTranslations<"Dashboard.connectedIdentities">>,
@@ -62,6 +55,8 @@ export default function ConnectedIdentities() {
   const [walletInfo, setWalletInfo] = useState<string | null>(null);
   const attemptGuard = useRef(createWalletAttemptGuard()).current;
   const boundAddressRef = useRef<string | null>(null);
+  const selectedProviderRef = useRef<Eip1193Provider | null>(null);
+  const [providerEpoch, setProviderEpoch] = useState(0);
   const flowPhaseRef = useRef<WalletFlowPhase>(flowPhase);
   flowPhaseRef.current = flowPhase;
 
@@ -143,9 +138,9 @@ export default function ConnectedIdentities() {
     };
   }, [attemptGuard]);
 
-  // Surface account/chain/disconnect events while not mid-flow.
+  // Surface account/chain/disconnect events on the selected MetaMask provider.
   useEffect(() => {
-    const ethereum = getInjectedEthereum();
+    const ethereum = selectedProviderRef.current;
     if (!ethereum?.on || !ethereum.removeListener) return;
 
     const onAccountsChanged = (accounts: unknown) => {
@@ -176,7 +171,7 @@ export default function ConnectedIdentities() {
       ethereum.removeListener?.("chainChanged", onChainChanged);
       ethereum.removeListener?.("disconnect", onDisconnect);
     };
-  }, [t]);
+  }, [t, providerEpoch]);
 
   async function connectWallet() {
     if (isWalletFlowBusy(flowPhase)) return;
@@ -188,24 +183,83 @@ export default function ConnectedIdentities() {
       surface: "connected_identities",
     });
 
-    const ethereum = getInjectedEthereum();
-    if (!ethereum) {
-      failFlow("provider_unavailable", "no_provider");
-      return;
-    }
-
     const attempt = attemptGuard.begin();
     setFlowPhase("awaiting_accounts");
 
     try {
+      const selection = await selectMetaMaskProvider(300);
+      if (!attemptGuard.isCurrent(attempt)) return;
+
+      trackWalletProviderDiag("wallet_diag_provider_discovered", {
+        provider_count: selection.providerCount,
+        metamask_count: selection.metamaskCount,
+        eip6963_count: selection.eip6963Count,
+      });
+
+      if (!selection.ok) {
+        if (selection.reason === "provider_not_found") {
+          trackWalletProviderDiag("wallet_diag_provider_not_found", {
+            reason: selection.reason,
+            provider_count: 0,
+            metamask_count: 0,
+            eip6963_count: selection.eip6963Count,
+          });
+          failFlow("provider_unavailable", "no_provider");
+          return;
+        }
+        if (selection.reason === "ambiguous_multiple_metamask") {
+          trackWalletProviderDiag("wallet_diag_provider_not_found", {
+            reason: selection.reason,
+            provider_count: selection.providerCount,
+            metamask_count: selection.metamaskCount,
+            eip6963_count: selection.eip6963Count,
+          });
+          failFlow("ambiguous_multiple_metamask", selection.reason);
+          return;
+        }
+        trackWalletProviderDiag("wallet_diag_provider_not_found", {
+          reason: selection.reason,
+          provider_count: selection.providerCount,
+          metamask_count: selection.metamaskCount,
+          eip6963_count: selection.eip6963Count,
+        });
+        failFlow("metamask_not_found_among_injected", selection.reason);
+        return;
+      }
+
+      const ethereum = selection.provider;
+      selectedProviderRef.current = ethereum;
+      setProviderEpoch((n) => n + 1);
+      trackWalletProviderDiag("wallet_diag_provider_selected", {
+        source: selection.source,
+        kind: selection.kind,
+        provider_count: selection.providerCount,
+        metamask_count: selection.metamaskCount,
+        eip6963_count: selection.eip6963Count,
+      });
+
+      trackWalletProviderDiag("wallet_diag_request_accounts_started", {
+        source: selection.source,
+        kind: selection.kind,
+      });
+
       const accountsRace = await withProviderUiTimeout(
         ethereum.request({ method: "eth_requestAccounts" }) as Promise<string[]>,
       );
       if (!attemptGuard.isCurrent(attempt)) return;
       if (!accountsRace.ok) {
+        trackWalletProviderDiag("wallet_diag_request_accounts_timeout", {
+          source: selection.source,
+          kind: selection.kind,
+        });
         failFlow("request_timeout", "request_timeout");
         return;
       }
+
+      trackWalletProviderDiag("wallet_diag_request_accounts_resolved", {
+        source: selection.source,
+        kind: selection.kind,
+      });
 
       const address = accountsRace.value?.[0];
       if (!address) {
@@ -267,6 +321,10 @@ export default function ConnectedIdentities() {
       // Only one signature attempt per connect attempt; never start verify without it.
       setFlowPhase("awaiting_signature");
       setWalletInfo(t("walletProofHint"));
+      trackWalletProviderDiag("wallet_diag_signature_requested", {
+        source: selection.source,
+        kind: selection.kind,
+      });
 
       const signRace = await withProviderUiTimeout(
         ethereum.request({
@@ -322,6 +380,11 @@ export default function ConnectedIdentities() {
     } catch (err) {
       if (!attemptGuard.isCurrent(attempt)) return;
       const classified = classifyProviderError(err);
+      if (classified.code === "user_rejected") {
+        trackWalletProviderDiag("wallet_diag_request_accounts_rejected", {
+          reason: classified.reason,
+        });
+      }
       failFlow(classified.code, classified.reason);
     }
   }

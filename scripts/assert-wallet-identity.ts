@@ -25,6 +25,13 @@ import {
 } from "../lib/walletIdentity/siwe";
 import { WALLET_IDENTITY_EVENTS } from "../lib/walletIdentity/analytics";
 import {
+  classifyRdns,
+  looksLikeLegacyMetaMask,
+  selectFromDiscovered,
+  type Eip1193Provider,
+} from "../lib/walletIdentity/providerDiscovery";
+import { WALLET_PROVIDER_DIAG_EVENTS } from "../lib/walletIdentity/providerDiag";
+import {
   WALLET_PROVIDER_UI_TIMEOUT_MS,
   classifyProviderError,
   createWalletAttemptGuard,
@@ -263,6 +270,13 @@ async function main() {
   assert(connected.includes("createWalletAttemptGuard"), "attempt guard");
   assert(connected.includes("awaiting_accounts"), "flow phase awaiting_accounts");
   assert(connected.includes("isWalletFlowBusy"), "busy gate blocks double click");
+  assert(connected.includes("selectMetaMaskProvider"), "uses MetaMask provider selection");
+  assert(!connected.includes("getInjectedEthereum"), "no bare window.ethereum helper");
+  assert(
+    !/window\.ethereum(?!\?)/.test(connected) ||
+      connected.includes("selectMetaMaskProvider"),
+    "must not rely solely on window.ethereum",
+  );
   assert(!connected.toLowerCase().includes("sign in with wallet"), "no wallet login CTA");
 
   // --- E2. Provider UX pure logic (Phase 1C.1) ---
@@ -314,6 +328,67 @@ async function main() {
   const fastResult = await fast;
   assert(fastResult.ok && fastResult.value === "ok", "fast provider resolves");
 
+  // --- E3. Provider discovery selection (Phase 1C.1.1) ---
+  const stub = (flags: {
+    isMetaMask?: boolean;
+    _metamask?: unknown;
+  }): Eip1193Provider => ({
+    request: async () => [],
+    isMetaMask: flags.isMetaMask,
+    _metamask: flags._metamask,
+  });
+  assert(classifyRdns("io.metamask") === "metamask", "rdns metamask");
+  assert(classifyRdns("io.metamask.flask") === "metamask_flask", "rdns flask");
+  assert(classifyRdns("com.coinbase") === "other", "rdns other");
+  assert(looksLikeLegacyMetaMask(stub({ isMetaMask: true })), "legacy mm");
+  assert(!looksLikeLegacyMetaMask(stub({})), "non-mm legacy");
+
+  const mm = stub({ isMetaMask: true, _metamask: {} });
+  const other = stub({});
+  const eipPick = selectFromDiscovered({
+    eip6963: [{ rdns: "io.metamask", provider: mm }],
+    legacy: [other],
+  });
+  assert(eipPick.ok === true && eipPick.source === "eip6963", "prefer eip6963 mm");
+  assert(eipPick.ok && eipPick.provider === mm, "eip6963 provider handle");
+
+  const hijack = selectFromDiscovered({
+    eip6963: [{ rdns: "com.coinbase.wallet", provider: other }],
+    legacy: [other],
+  });
+  assert(
+    hijack.ok === false && hijack.reason === "metamask_not_found_among_injected",
+    "refuse non-MetaMask injected as silent default",
+  );
+
+  const legacyOnly = selectFromDiscovered({
+    eip6963: [],
+    legacy: [mm],
+  });
+  assert(
+    legacyOnly.ok === true && legacyOnly.kind === "legacy_metamask",
+    "legacy MetaMask fallback",
+  );
+
+  for (const ev of WALLET_PROVIDER_DIAG_EVENTS) {
+    assert(ev.startsWith("wallet_diag_"), `diag event prefix ${ev}`);
+    assert(!ev.includes("0x"), `diag no address ${ev}`);
+    assert(!ev.includes("nonce"), `diag no nonce ${ev}`);
+  }
+  const diagSrc = readFileSync(
+    resolve("lib/walletIdentity/providerDiag.ts"),
+    "utf8",
+  );
+  assert(
+    diagSrc.includes("isStagingWalletDiagnosticsEnabled"),
+    "diag gated to staging",
+  );
+  // Event names may say "signature_requested"; payloads must never carry signature values.
+  assert(
+    !diagSrc.includes("signature:") && !diagSrc.includes("nonce:"),
+    "diag payload has no signature/nonce fields",
+  );
+
   const authModal = readFileSync(resolve("app/components/AuthModal.tsx"), "utf8");
   assert(!authModal.includes("handleWeb3Login"), "AuthModal no web3 login");
   assert(
@@ -357,6 +432,8 @@ async function main() {
     "walletUserRejected",
     "walletRequestPending",
     "walletLocked",
+    "walletMetaMaskNotSelected",
+    "walletMultipleMetaMask",
     "walletAccountChanged",
     "walletChainChanged",
     "walletProviderDisconnected",

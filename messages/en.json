@@ -55,6 +55,8 @@
       "walletFreeHint": "Connecting is free: QuickExit only asks you to sign a message. No blockchain transaction, no gas, and no token approval.",
       "walletProofHint": "Connecting a wallet only verifies that you control this address. No transaction, gas, or token approval. It does not prove identity or funds.",
       "walletNoProvider": "No browser wallet found. Install MetaMask or another injected EVM wallet, then try again.",
+      "walletMetaMaskNotSelected": "Another browser wallet was detected, but not MetaMask. Temporarily disable other wallet extensions or make MetaMask the active provider, then try again.",
+      "walletMultipleMetaMask": "Multiple MetaMask instances are active. Keep a single MetaMask extension enabled, then try again.",
       "walletUserRejected": "You rejected the MetaMask request. You can try again anytime.",
       "walletRequestPending": "MetaMask already has a pending request. Open the MetaMask extension, approve or reject it, then click Connect wallet again.",
       "walletLocked": "MetaMask is locked. Unlock your wallet, then try again.",

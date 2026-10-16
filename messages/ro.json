@@ -55,6 +55,8 @@
       "walletFreeHint": "Conectarea este gratuită: QuickExit cere doar semnătura unui mesaj. Fără tranzacție pe blockchain, fără gas și fără aprobare de token.",
       "walletProofHint": "Conectarea unui wallet verifică doar că controlezi această adresă. Fără tranzacție, gas sau aprobare de token. Nu dovedește identitatea și nu dovedește fonduri.",
       "walletNoProvider": "Nu am găsit un wallet în browser. Instalează MetaMask sau un alt wallet EVM injectat, apoi reîncearcă.",
+      "walletMetaMaskNotSelected": "Am detectat un alt wallet în browser, dar nu MetaMask. Dezactivează temporar celelalte extensii de wallet sau setează MetaMask ca provider activ, apoi reîncearcă.",
+      "walletMultipleMetaMask": "Sunt active mai multe instanțe MetaMask. Păstrează o singură extensie MetaMask activă, apoi reîncearcă.",
       "walletUserRejected": "Ai refuzat cererea din MetaMask. Poți reîncerca oricând.",
       "walletRequestPending": "MetaMask are deja o cerere în așteptare. Deschide extensia MetaMask, aprobă sau respinge cererea, apoi apasă din nou Conectează wallet.",
       "walletLocked": "MetaMask este blocat. Deblochează wallet-ul, apoi reîncearcă.",

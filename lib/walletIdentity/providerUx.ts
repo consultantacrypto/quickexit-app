@@ -22,6 +22,8 @@ export type WalletProviderErrorCode =
   | "request_pending"
   | "wallet_locked"
   | "provider_unavailable"
+  | "metamask_not_found_among_injected"
+  | "ambiguous_multiple_metamask"
   | "account_changed"
   | "chain_changed"
   | "provider_disconnected"
@@ -217,6 +219,8 @@ export function providerErrorMessageKey(
   | "walletRequestPending"
   | "walletLocked"
   | "walletNoProvider"
+  | "walletMetaMaskNotSelected"
+  | "walletMultipleMetaMask"
   | "walletAccountChanged"
   | "walletChainChanged"
   | "walletProviderDisconnected"
@@ -235,6 +239,10 @@ export function providerErrorMessageKey(
       return "walletLocked";
     case "provider_unavailable":
       return "walletNoProvider";
+    case "metamask_not_found_among_injected":
+      return "walletMetaMaskNotSelected";
+    case "ambiguous_multiple_metamask":
+      return "walletMultipleMetaMask";
     case "account_changed":
       return "walletAccountChanged";
     case "chain_changed":
