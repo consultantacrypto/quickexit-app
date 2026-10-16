@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { supabase } from "@/lib/supabase";
 import {
@@ -10,9 +10,21 @@ import {
 import type { LinkedIdentityView } from "@/lib/authIdentity/recovery";
 import { abbreviateEvmAddress } from "@/lib/walletIdentity/address";
 import { trackWalletIdentityEvent } from "@/lib/walletIdentity/analytics";
+import {
+  classifyProviderError,
+  createWalletAttemptGuard,
+  flowPhaseStatusKey,
+  isWalletFlowBusy,
+  providerErrorMessageKey,
+  withProviderUiTimeout,
+  type WalletFlowPhase,
+  type WalletProviderErrorCode,
+} from "@/lib/walletIdentity/providerUx";
 
 type InjectedEthereum = {
   request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
+  on?: (event: string, handler: (...args: unknown[]) => void) => void;
+  removeListener?: (event: string, handler: (...args: unknown[]) => void) => void;
 };
 
 function getInjectedEthereum(): InjectedEthereum | undefined {
@@ -30,23 +42,47 @@ function statusLabel(
   return t("statusNotConnected");
 }
 
-type WalletState =
+type WalletBindState =
   | { status: "loading" }
   | { status: "none" }
   | { status: "connected"; address: string };
 
 /**
- * Phase 1C: Email + Google (status) + Wallet bind (connect/disconnect).
- * Apple UI gated until configured. Wallet = ownership proof only — not login/KYC/recovery.
+ * Phase 1C / 1C.1: Email + Google (status) + Wallet bind (connect/disconnect).
+ * Wallet = ownership proof only — not login/KYC/recovery.
+ * MetaMask RPC timeouts restore UI without cancelling the underlying provider request.
  */
 export default function ConnectedIdentities() {
   const t = useTranslations("Dashboard.connectedIdentities");
   const [rows, setRows] = useState<ConnectedIdentityRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [wallet, setWallet] = useState<WalletState>({ status: "loading" });
-  const [walletBusy, setWalletBusy] = useState(false);
+  const [wallet, setWallet] = useState<WalletBindState>({ status: "loading" });
+  const [flowPhase, setFlowPhase] = useState<WalletFlowPhase>("idle");
   const [walletError, setWalletError] = useState<string | null>(null);
   const [walletInfo, setWalletInfo] = useState<string | null>(null);
+  const attemptGuard = useRef(createWalletAttemptGuard()).current;
+  const boundAddressRef = useRef<string | null>(null);
+  const flowPhaseRef = useRef<WalletFlowPhase>(flowPhase);
+  flowPhaseRef.current = flowPhase;
+
+  function messageForCode(code: WalletProviderErrorCode): string {
+    return t(providerErrorMessageKey(code));
+  }
+
+  function failFlow(
+    code: WalletProviderErrorCode,
+    reason: string,
+    event: "wallet_connect_failed" | "wallet_disconnect_failed" = "wallet_connect_failed",
+  ) {
+    setFlowPhase("error");
+    setWalletError(messageForCode(code));
+    setWalletInfo(null);
+    trackWalletIdentityEvent(event, {
+      chain_family: "evm",
+      reason: reason.slice(0, 40),
+      surface: "connected_identities",
+    });
+  }
 
   async function loadWallets() {
     const { data, error } = await supabase
@@ -56,13 +92,18 @@ export default function ConnectedIdentities() {
       .order("created_at", { ascending: true });
     if (error) {
       setWallet({ status: "none" });
+      boundAddressRef.current = null;
       return;
     }
     const first = data?.[0]?.address;
     if (typeof first === "string" && first) {
       setWallet({ status: "connected", address: first });
+      boundAddressRef.current = first;
+      setFlowPhase("connected");
     } else {
       setWallet({ status: "none" });
+      boundAddressRef.current = null;
+      setFlowPhase("idle");
     }
   }
 
@@ -98,12 +139,50 @@ export default function ConnectedIdentities() {
     })();
     return () => {
       cancelled = true;
+      attemptGuard.invalidate();
     };
-  }, []);
+  }, [attemptGuard]);
+
+  // Surface account/chain/disconnect events while not mid-flow.
+  useEffect(() => {
+    const ethereum = getInjectedEthereum();
+    if (!ethereum?.on || !ethereum.removeListener) return;
+
+    const onAccountsChanged = (accounts: unknown) => {
+      if (isWalletFlowBusy(flowPhaseRef.current)) return;
+      const list = Array.isArray(accounts) ? (accounts as string[]) : [];
+      const next = list[0]?.toLowerCase() ?? null;
+      const bound = boundAddressRef.current?.toLowerCase() ?? null;
+      if (bound && next && next !== bound) {
+        setWalletError(t("walletAccountChanged"));
+        setFlowPhase("error");
+      }
+    };
+    const onChainChanged = () => {
+      if (isWalletFlowBusy(flowPhaseRef.current)) return;
+      setWalletInfo(t("walletChainChanged"));
+    };
+    const onDisconnect = () => {
+      if (isWalletFlowBusy(flowPhaseRef.current)) return;
+      setWalletError(t("walletProviderDisconnected"));
+      setFlowPhase("error");
+    };
+
+    ethereum.on("accountsChanged", onAccountsChanged);
+    ethereum.on("chainChanged", onChainChanged);
+    ethereum.on("disconnect", onDisconnect);
+    return () => {
+      ethereum.removeListener?.("accountsChanged", onAccountsChanged);
+      ethereum.removeListener?.("chainChanged", onChainChanged);
+      ethereum.removeListener?.("disconnect", onDisconnect);
+    };
+  }, [t]);
 
   async function connectWallet() {
+    if (isWalletFlowBusy(flowPhase)) return;
+
     setWalletError(null);
-    setWalletInfo(null);
+    setWalletInfo(t("walletFreeHint"));
     trackWalletIdentityEvent("wallet_connect_started", {
       chain_family: "evm",
       surface: "connected_identities",
@@ -111,36 +190,55 @@ export default function ConnectedIdentities() {
 
     const ethereum = getInjectedEthereum();
     if (!ethereum) {
-      setWalletError(t("walletNoProvider"));
-      trackWalletIdentityEvent("wallet_connect_failed", {
-        chain_family: "evm",
-        reason: "no_provider",
-        surface: "connected_identities",
-      });
+      failFlow("provider_unavailable", "no_provider");
       return;
     }
 
-    setWalletBusy(true);
+    const attempt = attemptGuard.begin();
+    setFlowPhase("awaiting_accounts");
+
     try {
-      const accounts = (await ethereum.request({
-        method: "eth_requestAccounts",
-      })) as string[];
-      const address = accounts?.[0];
-      if (!address) {
-        throw new Error("no_account");
+      const accountsRace = await withProviderUiTimeout(
+        ethereum.request({ method: "eth_requestAccounts" }) as Promise<string[]>,
+      );
+      if (!attemptGuard.isCurrent(attempt)) return;
+      if (!accountsRace.ok) {
+        failFlow("request_timeout", "request_timeout");
+        return;
       }
-      const chainIdHex = (await ethereum.request({
-        method: "eth_chainId",
-      })) as string;
-      const chainId = Number.parseInt(chainIdHex, 16);
+
+      const address = accountsRace.value?.[0];
+      if (!address) {
+        failFlow("no_account", "no_account");
+        return;
+      }
+
+      const chainRace = await withProviderUiTimeout(
+        ethereum.request({ method: "eth_chainId" }) as Promise<string>,
+      );
+      if (!attemptGuard.isCurrent(attempt)) return;
+      if (!chainRace.ok) {
+        failFlow("request_timeout", "request_timeout");
+        return;
+      }
+      const chainId = Number.parseInt(chainRace.value, 16);
+      if (!Number.isInteger(chainId) || chainId <= 0) {
+        failFlow("chain_changed", "invalid_chain");
+        return;
+      }
 
       const {
         data: { session },
       } = await supabase.auth.getSession();
+      if (!attemptGuard.isCurrent(attempt)) return;
       const token = session?.access_token;
       if (!token) {
-        throw new Error("auth_required");
+        failFlow("auth_required", "auth_required");
+        return;
       }
+
+      setFlowPhase("obtaining_challenge");
+      setWalletInfo(t("walletFreeHint"));
 
       const nonceRes = await fetch("/api/wallet/nonce", {
         method: "POST",
@@ -150,21 +248,40 @@ export default function ConnectedIdentities() {
         },
         body: JSON.stringify({ address, chainId }),
       });
+      if (!attemptGuard.isCurrent(attempt)) return;
       const nonceJson = (await nonceRes.json()) as {
         success?: boolean;
         error_code?: string;
         message?: string;
       };
+      if (!attemptGuard.isCurrent(attempt)) return;
       if (!nonceRes.ok || !nonceJson.success || !nonceJson.message) {
-        throw new Error(nonceJson.error_code || "nonce_failed");
+        if (nonceJson.error_code === "auth_required") {
+          failFlow("auth_required", "auth_required");
+        } else {
+          failFlow("connect_failed", nonceJson.error_code || "nonce_failed");
+        }
+        return;
       }
 
+      // Only one signature attempt per connect attempt; never start verify without it.
+      setFlowPhase("awaiting_signature");
       setWalletInfo(t("walletProofHint"));
 
-      const signature = (await ethereum.request({
-        method: "personal_sign",
-        params: [nonceJson.message, address],
-      })) as string;
+      const signRace = await withProviderUiTimeout(
+        ethereum.request({
+          method: "personal_sign",
+          params: [nonceJson.message, address],
+        }) as Promise<string>,
+      );
+      if (!attemptGuard.isCurrent(attempt)) return;
+      if (!signRace.ok) {
+        failFlow("request_timeout", "request_timeout");
+        return;
+      }
+
+      setFlowPhase("verifying");
+      setWalletInfo(t("walletPhaseVerifying"));
 
       const verifyRes = await fetch("/api/wallet/verify", {
         method: "POST",
@@ -174,65 +291,64 @@ export default function ConnectedIdentities() {
         },
         body: JSON.stringify({
           message: nonceJson.message,
-          signature,
+          signature: signRace.value,
         }),
       });
+      if (!attemptGuard.isCurrent(attempt)) return;
       const verifyJson = (await verifyRes.json()) as {
         success?: boolean;
         error_code?: string;
-        error?: string;
-        address?: string;
       };
+      if (!attemptGuard.isCurrent(attempt)) return;
 
       if (!verifyRes.ok || !verifyJson.success) {
         if (verifyJson.error_code === "wallet_owned_elsewhere") {
-          setWalletError(t("walletOwnedElsewhere"));
+          failFlow("wallet_owned_elsewhere", "wallet_owned_elsewhere");
         } else {
-          setWalletError(t("walletConnectFailed"));
+          failFlow("connect_failed", verifyJson.error_code || "verify_failed");
         }
-        trackWalletIdentityEvent("wallet_connect_failed", {
-          chain_family: "evm",
-          reason: verifyJson.error_code || "verify_failed",
-          surface: "connected_identities",
-        });
         return;
       }
 
       await loadWallets();
+      if (!attemptGuard.isCurrent(attempt)) return;
       setWalletInfo(null);
+      setWalletError(null);
+      setFlowPhase("connected");
       trackWalletIdentityEvent("wallet_connect_success", {
         chain_family: "evm",
         surface: "connected_identities",
       });
     } catch (err) {
-      const code = err instanceof Error ? err.message : "error";
-      setWalletError(t("walletConnectFailed"));
-      trackWalletIdentityEvent("wallet_connect_failed", {
-        chain_family: "evm",
-        reason: code.slice(0, 40),
-        surface: "connected_identities",
-      });
-    } finally {
-      setWalletBusy(false);
+      if (!attemptGuard.isCurrent(attempt)) return;
+      const classified = classifyProviderError(err);
+      failFlow(classified.code, classified.reason);
     }
   }
 
   async function disconnectWallet() {
     if (wallet.status !== "connected") return;
+    if (isWalletFlowBusy(flowPhase)) return;
+
     setWalletError(null);
     setWalletInfo(null);
     trackWalletIdentityEvent("wallet_disconnect_started", {
       chain_family: "evm",
       surface: "connected_identities",
     });
-    setWalletBusy(true);
+
+    const attempt = attemptGuard.begin();
+    setFlowPhase("disconnecting");
+
     try {
       const {
         data: { session },
       } = await supabase.auth.getSession();
+      if (!attemptGuard.isCurrent(attempt)) return;
       const token = session?.access_token;
       if (!token) {
-        throw new Error("auth_required");
+        failFlow("auth_required", "auth_required", "wallet_disconnect_failed");
+        return;
       }
       const res = await fetch("/api/wallet/unlink", {
         method: "POST",
@@ -242,33 +358,35 @@ export default function ConnectedIdentities() {
         },
         body: JSON.stringify({ address: wallet.address }),
       });
+      if (!attemptGuard.isCurrent(attempt)) return;
       const json = (await res.json()) as {
         success?: boolean;
         error_code?: string;
       };
+      if (!attemptGuard.isCurrent(attempt)) return;
       if (!res.ok || !json.success) {
-        setWalletError(t("walletDisconnectFailed"));
-        trackWalletIdentityEvent("wallet_disconnect_failed", {
-          chain_family: "evm",
-          reason: json.error_code || "unlink_failed",
-          surface: "connected_identities",
-        });
+        failFlow(
+          "disconnect_failed",
+          json.error_code || "unlink_failed",
+          "wallet_disconnect_failed",
+        );
         return;
       }
       setWallet({ status: "none" });
+      boundAddressRef.current = null;
+      setFlowPhase("idle");
       trackWalletIdentityEvent("wallet_disconnect_success", {
         chain_family: "evm",
         surface: "connected_identities",
       });
-    } catch {
-      setWalletError(t("walletDisconnectFailed"));
-      trackWalletIdentityEvent("wallet_disconnect_failed", {
-        chain_family: "evm",
-        reason: "error",
-        surface: "connected_identities",
-      });
-    } finally {
-      setWalletBusy(false);
+    } catch (err) {
+      if (!attemptGuard.isCurrent(attempt)) return;
+      const classified = classifyProviderError(err);
+      failFlow(
+        classified.code === "connect_failed" ? "disconnect_failed" : classified.code,
+        classified.reason,
+        "wallet_disconnect_failed",
+      );
     }
   }
 
@@ -276,6 +394,15 @@ export default function ConnectedIdentities() {
   if (rows.length === 0) return null;
 
   const walletConnected = wallet.status === "connected";
+  const busy = isWalletFlowBusy(flowPhase);
+  const phaseKey = flowPhaseStatusKey(flowPhase);
+  const buttonLabel = busy
+    ? phaseKey
+      ? t(phaseKey)
+      : t("walletWorking")
+    : walletConnected
+      ? t("walletDisconnect")
+      : t("walletConnect");
 
   return (
     <div className="bg-[#FDFCF8] border-[3px] border-black rounded-2xl p-4 md:p-5 shadow-[5px_5px_0_0_rgba(0,0,0,0.12)] mb-6">
@@ -316,17 +443,13 @@ export default function ConnectedIdentities() {
             </div>
             <button
               type="button"
-              disabled={walletBusy || wallet.status === "loading"}
+              disabled={busy || wallet.status === "loading"}
               onClick={() =>
                 void (walletConnected ? disconnectWallet() : connectWallet())
               }
               className="shrink-0 rounded-lg border-2 border-black bg-[#FDFCF8] px-3 py-2 text-[10px] font-black uppercase tracking-widest disabled:opacity-50"
             >
-              {walletBusy
-                ? t("walletWorking")
-                : walletConnected
-                  ? t("walletDisconnect")
-                  : t("walletConnect")}
+              {buttonLabel}
             </button>
           </div>
           {walletInfo ? (
@@ -335,7 +458,7 @@ export default function ConnectedIdentities() {
             </p>
           ) : null}
           {walletError ? (
-            <p className="mt-2 text-[11px] font-semibold text-red-700">
+            <p className="mt-2 text-[11px] font-semibold text-red-700" role="alert">
               {walletError}
             </p>
           ) : null}
@@ -346,6 +469,9 @@ export default function ConnectedIdentities() {
       </p>
       <p className="mt-2 text-[11px] font-semibold leading-relaxed text-neutral-500">
         {t("walletSemantics")}
+      </p>
+      <p className="mt-2 text-[11px] font-semibold leading-relaxed text-neutral-500">
+        {t("walletFreeHint")}
       </p>
     </div>
   );

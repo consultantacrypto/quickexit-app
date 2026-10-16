@@ -24,6 +24,15 @@ import {
   verifySiweBindMessage,
 } from "../lib/walletIdentity/siwe";
 import { WALLET_IDENTITY_EVENTS } from "../lib/walletIdentity/analytics";
+import {
+  WALLET_PROVIDER_UI_TIMEOUT_MS,
+  classifyProviderError,
+  createWalletAttemptGuard,
+  flowPhaseStatusKey,
+  isWalletFlowBusy,
+  providerErrorMessageKey,
+  withProviderUiTimeout,
+} from "../lib/walletIdentity/providerUx";
 
 function fail(message: string): never {
   console.error(`FAIL ${message}`);
@@ -250,7 +259,60 @@ async function main() {
   assert(connected.includes("walletDisconnect"), "disconnect CTA");
   assert(connected.includes("abbreviateEvmAddress"), "abbreviated address");
   assert(connected.includes("walletProofHint"), "proof hint");
+  assert(connected.includes("withProviderUiTimeout"), "provider UI timeout");
+  assert(connected.includes("createWalletAttemptGuard"), "attempt guard");
+  assert(connected.includes("awaiting_accounts"), "flow phase awaiting_accounts");
+  assert(connected.includes("isWalletFlowBusy"), "busy gate blocks double click");
   assert(!connected.toLowerCase().includes("sign in with wallet"), "no wallet login CTA");
+
+  // --- E2. Provider UX pure logic (Phase 1C.1) ---
+  assert(WALLET_PROVIDER_UI_TIMEOUT_MS === 60_000, "60s UI timeout");
+  assert(isWalletFlowBusy("awaiting_accounts"), "busy awaiting_accounts");
+  assert(isWalletFlowBusy("awaiting_signature"), "busy awaiting_signature");
+  assert(!isWalletFlowBusy("idle"), "idle not busy");
+  assert(!isWalletFlowBusy("error"), "error not busy — recoverable");
+  assert(
+    flowPhaseStatusKey("awaiting_accounts") === "walletPhaseAwaitingAccounts",
+    "phase key accounts",
+  );
+  assert(
+    providerErrorMessageKey("request_timeout") === "walletRequestTimeout",
+    "timeout message key",
+  );
+  assert(
+    providerErrorMessageKey("request_pending") === "walletRequestPending",
+    "pending message key",
+  );
+  assert(classifyProviderError({ code: 4001 }).code === "user_rejected", "4001");
+  assert(
+    classifyProviderError({ code: -32002, message: "Already pending" }).code ===
+      "request_pending",
+    "-32002",
+  );
+  assert(
+    classifyProviderError({ message: "MetaMask is locked" }).code === "wallet_locked",
+    "locked",
+  );
+
+  const guard = createWalletAttemptGuard();
+  const a1 = guard.begin();
+  const a2 = guard.begin();
+  assert(guard.isCurrent(a2), "latest attempt current");
+  assert(!guard.isCurrent(a1), "stale attempt ignored");
+  guard.invalidate();
+  assert(!guard.isCurrent(a2), "invalidate drops in-flight");
+
+  const slow = new Promise<string>((resolve) => {
+    setTimeout(() => resolve("late"), 30);
+  });
+  const timed = await withProviderUiTimeout(slow, 5);
+  assert(timed.ok === false && timed.timedOut === true, "UI timeout wins race");
+  // Late resolution must not throw; wait past original resolve.
+  await new Promise((r) => setTimeout(r, 40));
+
+  const fast = withProviderUiTimeout(Promise.resolve("ok"), 1000);
+  const fastResult = await fast;
+  assert(fastResult.ok && fastResult.value === "ok", "fast provider resolves");
 
   const authModal = readFileSync(resolve("app/components/AuthModal.tsx"), "utf8");
   assert(!authModal.includes("handleWeb3Login"), "AuthModal no web3 login");
@@ -284,6 +346,47 @@ async function main() {
       "another QuickExit account",
     ),
     "EN conflict copy",
+  );
+  const requiredUxKeys = [
+    "walletPhaseAwaitingAccounts",
+    "walletPhaseObtainingChallenge",
+    "walletPhaseAwaitingSignature",
+    "walletPhaseVerifying",
+    "walletPhaseDisconnecting",
+    "walletFreeHint",
+    "walletUserRejected",
+    "walletRequestPending",
+    "walletLocked",
+    "walletAccountChanged",
+    "walletChainChanged",
+    "walletProviderDisconnected",
+    "walletRequestTimeout",
+    "walletAuthRequired",
+    "walletNoAccount",
+  ] as const;
+  for (const key of requiredUxKeys) {
+    assert(
+      typeof en.Dashboard.connectedIdentities[key] === "string" &&
+        en.Dashboard.connectedIdentities[key].length > 8,
+      `EN i18n ${key}`,
+    );
+    assert(
+      typeof ro.Dashboard.connectedIdentities[key] === "string" &&
+        ro.Dashboard.connectedIdentities[key].length > 8,
+      `RO i18n ${key}`,
+    );
+  }
+  assert(
+    en.Dashboard.connectedIdentities.walletFreeHint.toLowerCase().includes("gas"),
+    "EN free/gas hint",
+  );
+  assert(
+    ro.Dashboard.connectedIdentities.walletRequestTimeout.includes("60"),
+    "RO timeout mentions 60s",
+  );
+  assert(
+    !en.Dashboard.connectedIdentities.walletProofHint.toLowerCase().includes("0x"),
+    "no address in proof hint",
   );
 
   // --- F. Docs ---
