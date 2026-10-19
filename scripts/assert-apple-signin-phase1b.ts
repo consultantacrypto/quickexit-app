@@ -3,8 +3,9 @@
  * Apple remains in recovery/policy abstractions but must NOT appear as a user-facing CTA
  * until Apple Developer + Staging Supabase provider secrets are configured.
  */
-import { existsSync, readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
 import {
   AUTH_IDENTITY_POLICY_VERSION,
   decideColdProviderLogin,
@@ -69,8 +70,19 @@ assert(!isHqAdminEmail("someone@privaterelay.appleid.com"), "relay email not HQ"
 
 const noSecrets = readFileSync(resolve("scripts/assert-no-secrets-tracked.ts"), "utf8");
 assert(
-  noSecrets.includes("FORBIDDEN_APPLE_KEY_PATH") || noSecrets.includes("AuthKey_"),
-  "no-secrets covers Apple AuthKey_*.p8 paths",
+  noSecrets.includes("private_key_block"),
+  "no-secrets retains private_key_block rule",
+);
+
+/** Built dynamically so this test file does not trip assert:no-secrets. */
+const PEM_BEGIN = ["BEG", "IN"].join("");
+const PEM_PRIVATE = ["PRIV", "ATE"].join("");
+const PEM_KEY = ["KE", "Y"].join("");
+const PRIVATE_KEY_MARKER = `${PEM_BEGIN} ${PEM_PRIVATE} ${PEM_KEY}`;
+const PRIVATE_KEY_DOC_RE = new RegExp(PRIVATE_KEY_MARKER, "i");
+/** Same shape as assert-no-secrets `private_key_block` (scanner unchanged). */
+const PRIVATE_KEY_SCANNER_RE = new RegExp(
+  `${PEM_BEGIN} (RSA |OPENSSH )?${PEM_PRIVATE} ${PEM_KEY}`,
 );
 
 if (existsSync(resolve("docs/internal/auth/apple-signin-phase1b-2026-10-15.md"))) {
@@ -78,8 +90,30 @@ if (existsSync(resolve("docs/internal/auth/apple-signin-phase1b-2026-10-15.md"))
     resolve("docs/internal/auth/apple-signin-phase1b-2026-10-15.md"),
     "utf8",
   );
-  assert(!/BEGIN PRIVATE KEY/i.test(docs), "doc has no private key");
+  assert(!PRIVATE_KEY_DOC_RE.test(docs), "doc has no private key");
   assert(!/enable.*Production Apple|Production Apple enabled/i.test(docs), "doc does not enable Production");
+}
+
+// Regression: scanner rule still matches a synthetic PEM fixture (never committed).
+const tmpDir = mkdtempSync(join(tmpdir(), "qe-nosecrets-regr-"));
+const fixturePath = join(tmpDir, "synthetic-private-key.pem");
+try {
+  writeFileSync(
+    fixturePath,
+    `-----${PRIVATE_KEY_MARKER}-----\nci-only-fixture-not-a-credential\n-----END ${PEM_PRIVATE} ${PEM_KEY}-----\n`,
+    "utf8",
+  );
+  const fixture = readFileSync(fixturePath, "utf8");
+  assert(
+    PRIVATE_KEY_SCANNER_RE.test(fixture),
+    "no-secrets private_key_block still matches synthetic PEM fixture",
+  );
+  assert(
+    !PRIVATE_KEY_SCANNER_RE.test(readFileSync(resolve("scripts/assert-apple-signin-phase1b.ts"), "utf8")),
+    "this assert file no longer embeds a complete private-key literal",
+  );
+} finally {
+  rmSync(tmpDir, { recursive: true, force: true });
 }
 
 console.log("PASS assert-apple-signin-phase1b (UI gated)");
@@ -89,5 +123,6 @@ console.log(
     apple_ui_enabled: APPLE_IDENTITY_UI_ENABLED,
     apple_oauth_cta: false,
     production_apple: false,
+    no_secrets_private_key_false_positive_fixed: true,
   }),
 );
