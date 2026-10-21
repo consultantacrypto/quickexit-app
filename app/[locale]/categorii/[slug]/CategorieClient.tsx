@@ -66,7 +66,8 @@ function CategoryContent() {
           .eq("status", "active")
           .eq("is_seed", false)
           .or(PUBLIC_AVAILABILITY_OR)
-          .order("created_at", { ascending: false });
+          .order("effective_sort_at", { ascending: false })
+          .order("id", { ascending: false });
 
         const { data: demandData } = await supabase
           .from("demands")

@@ -386,7 +386,8 @@ export async function fetchPublicSearchListings(
     .select(PUBLIC_LISTING_SEARCH_FIELDS, { count: "exact" })
     .eq("status", "active")
     .eq("is_seed", false)
-    .order("created_at", { ascending: false })
+    .order("effective_sort_at", { ascending: false })
+    .order("id", { ascending: false })
     .range(from, to);
 
   const keywordOr = buildKeywordOrFilter(parsed.q);

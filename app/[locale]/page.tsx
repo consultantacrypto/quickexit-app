@@ -170,7 +170,8 @@ export default async function Home({ params }: HomePageProps) {
     .eq("status", "active")
     .eq("is_seed", false)
     .or(PUBLIC_AVAILABILITY_OR)
-    .order("created_at", { ascending: false })
+    .order("effective_sort_at", { ascending: false })
+    .order("id", { ascending: false })
     .limit(48);
 
   const { data: openAuctionListings } = await supabase

@@ -10,6 +10,10 @@ import {
   publicationLocationFromDetails,
 } from "@/lib/listingLocation";
 import { isHqUuid } from "@/lib/hqOverview";
+import {
+  evaluateListingBumpEligibility,
+  listingBumpDenialMessage,
+} from "@/lib/listingRank";
 
 // Tabelele pe care le poate administra adminul prin aceste acțiuni.
 export type AdminTable = "listings" | "demands";
@@ -20,6 +24,10 @@ export type AdminRenewAuctionExpiryResult =
   | { ok: true; newExpiresAt: string; previousExpiresAt: string | null }
   | { ok: false; error: string };
 
+export type AdminBumpListingResult =
+  | { ok: true; bumpedAt: string }
+  | { ok: false; error: string };
+
 const AUCTION_RENEWAL_DAYS = 90;
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
@@ -27,6 +35,16 @@ function revalidateAuctionListingPages(listingId: string): void {
   for (const locale of ["ro", "en"] as const) {
     revalidatePath(`/${locale}`);
     revalidatePath(`/${locale}/licitatii`);
+    revalidatePath(`/${locale}/anunt/${listingId}`);
+    revalidatePath(`/${locale}/hq-admin`);
+  }
+}
+
+function revalidatePublicListingDiscovery(listingId: string): void {
+  for (const locale of ["ro", "en"] as const) {
+    revalidatePath(`/${locale}`);
+    revalidatePath(`/${locale}/anunturi`);
+    revalidatePath(`/${locale}/cauta`);
     revalidatePath(`/${locale}/anunt/${listingId}`);
     revalidatePath(`/${locale}/hq-admin`);
   }
@@ -431,6 +449,81 @@ export async function adminSoftHideDemand(
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : "Eroare necunoscută.";
     console.error("[adminSoftHideDemand] excepție:", msg);
+    return { ok: false, error: msg };
+  }
+}
+
+/**
+ * HQ „Adu primul”: sets listings.bumped_at via atomic RPC + audit event.
+ * Does not change created_at, expires_at, prices, ownership, or payments.
+ */
+export async function adminBumpListing(
+  id: string,
+  accessToken: string,
+): Promise<AdminBumpListingResult> {
+  try {
+    if (!isHqUuid(id)) {
+      return { ok: false, error: "ID listing invalid." };
+    }
+
+    const auth = await assertHqAdminFromAccessToken(accessToken);
+    if (!auth.ok) {
+      if (auth.status === 401) {
+        return { ok: false, error: "Sesiune invalidă sau expirată." };
+      }
+      return { ok: false, error: "Acces refuzat." };
+    }
+
+    const { data: listing, error: fetchError } = await auth.supabase
+      .from("listings")
+      .select("id, status, is_seed, availability_status")
+      .eq("id", id)
+      .maybeSingle();
+
+    if (fetchError) {
+      console.error("[adminBumpListing] fetch:", { id, error: fetchError.message });
+      return { ok: false, error: "Nu am putut încărca anunțul." };
+    }
+
+    const eligibility = evaluateListingBumpEligibility(listing);
+    if (!eligibility.ok) {
+      return { ok: false, error: listingBumpDenialMessage(eligibility.reason) };
+    }
+
+    const { data: bumpedAtRaw, error: rpcError } = await auth.supabase.rpc("hq_bump_listing", {
+      p_listing_id: id,
+      p_actor_user_id: auth.userId,
+      p_actor_email: auth.userEmail,
+    });
+
+    if (rpcError) {
+      const msg = String(rpcError.message || "");
+      console.error("[adminBumpListing] rpc:", { id, error: msg });
+      if (msg.includes("bump_not_eligible") || msg.includes("QEX:bump_not_eligible")) {
+        return { ok: false, error: "Anunțul nu este eligibil pentru bump." };
+      }
+      if (msg.includes("bump_not_found") || msg.includes("QEX:bump_not_found")) {
+        return { ok: false, error: "Anunțul nu a fost găsit." };
+      }
+      return { ok: false, error: "Bump eșuat." };
+    }
+
+    const bumpedAt =
+      typeof bumpedAtRaw === "string" && bumpedAtRaw.trim()
+        ? bumpedAtRaw
+        : new Date().toISOString();
+
+    console.log("[adminBumpListing] ok", {
+      listing_id: id,
+      actor_user_id: auth.userId,
+      bumped_at: bumpedAt,
+    });
+
+    revalidatePublicListingDiscovery(id);
+    return { ok: true, bumpedAt };
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : "Eroare necunoscută.";
+    console.error("[adminBumpListing] excepție:", msg);
     return { ok: false, error: msg };
   }
 }

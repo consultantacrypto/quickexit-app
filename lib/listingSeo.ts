@@ -191,7 +191,8 @@ export async function fetchListingSellerContext(
       .eq("is_seed", SELLER_PUBLIC_LISTING_IS_SEED)
       .or(PUBLIC_AVAILABILITY_OR)
       .neq("id", listingId)
-      .order("created_at", { ascending: false })
+      .order("effective_sort_at", { ascending: false })
+      .order("id", { ascending: false })
       .limit(3),
     supabase
       .from("listings")
@@ -239,7 +240,8 @@ export async function fetchFutureMobilityListings(): Promise<PublicListingRow[]>
     .eq("is_seed", false)
     .or(PUBLIC_AVAILABILITY_OR)
     .filter("details->>collection", "eq", "future_mobility")
-    .order("created_at", { ascending: false });
+    .order("effective_sort_at", { ascending: false })
+    .order("id", { ascending: false });
 
   if (error) {
     console.warn("listingSeo.fetchFutureMobilityListings failed", {

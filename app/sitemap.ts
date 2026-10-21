@@ -47,7 +47,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       .eq("status", "active")
       .eq("is_seed", false)
       .or(PUBLIC_AVAILABILITY_OR)
-      .order("created_at", { ascending: false })
+      .order("effective_sort_at", { ascending: false })
+      .order("id", { ascending: false })
       .limit(500);
 
     const timeout = new Promise<never>((_, reject) => {

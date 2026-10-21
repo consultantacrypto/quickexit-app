@@ -44,7 +44,8 @@ export default async function LicitatiiPage({ params }: PageProps) {
     .eq("status", "active")
     .eq("is_seed", false)
     .or(PUBLIC_AVAILABILITY_OR)
-    .order("created_at", { ascending: false })
+    .order("effective_sort_at", { ascending: false })
+    .order("id", { ascending: false })
     .limit(100);
 
   const auctions =

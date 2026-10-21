@@ -31,7 +31,11 @@ assert(parseListingsCategoryParam("not-a-category") === null, "unknown slug is a
 const anunturiPage = readFileSync("app/[locale]/anunturi/page.tsx", "utf8");
 assert(anunturiPage.includes('.eq("status", "active")'), "public status filter");
 assert(anunturiPage.includes('.eq("is_seed", false)'), "seed listings excluded");
-assert(anunturiPage.includes('.order("created_at", { ascending: false })'), "newest first");
+assert(
+  anunturiPage.includes('.order("effective_sort_at", { ascending: false })'),
+  "effective_sort_at first",
+);
+assert(anunturiPage.includes('.order("id", { ascending: false })'), "id tie-break");
 assert(!anunturiPage.includes('.eq("category"'), "all-listings query is not Auto-only");
 
 assert(!existsSync("app/[locale]/editeaza-anunt/brand-harness"), "brand-harness runtime route removed");

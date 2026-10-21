@@ -1570,5 +1570,12 @@
       "body": "Email us for QuickExit Media. Dedicated checkout comes later; until then, interest is registered by email.",
       "note": "Listing publication fees stay separate. Media does not replace listing."
     }
+  },
+  "HqAdminBump": {
+    "button": "Move to top",
+    "buttonPending": "Moving to top...",
+    "confirm": "Move this listing temporarily to the top of general marketplace results? Newer listings and later bumps can outrank it. This is not a permanent pin.",
+    "success": "Listing moved to top.",
+    "errorPrefix": "Move to top failed"
   }
 }

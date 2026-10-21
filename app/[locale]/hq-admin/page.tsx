@@ -7,6 +7,7 @@ import { companyInfo } from "@/lib/company";
 import { buildSocialShareKit } from "@/lib/socialShare";
 import { trackEvent } from "@/lib/analytics";
 import {
+  adminBumpListing,
   adminDeleteListing,
   adminForcePublish,
   adminPatchListingLocation,
@@ -16,6 +17,7 @@ import {
   adminSoftHideListing,
   type AdminTable,
 } from "@/app/actions/adminActions";
+import { evaluateListingBumpEligibility } from "@/lib/listingRank";
 import { formatAdminPriceCell } from "@/lib/listingPrice";
 import { formatDemandBudgetCompact, readDemandBudgetAmount } from "@/lib/demandBudget";
 import {
@@ -306,6 +308,7 @@ export default function AdminHQ() {
   const [loadNote, setLoadNote] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [renewingAuctionId, setRenewingAuctionId] = useState<string | null>(null);
+  const [bumpingListingId, setBumpingListingId] = useState<string | null>(null);
   const [locationEditId, setLocationEditId] = useState<string | null>(null);
   const [locationEdit, setLocationEdit] = useState({ country_code: "RO", county: "", city: "", district: "" });
   const [listingsPendingOnly, setListingsPendingOnly] = useState(false);
@@ -922,6 +925,45 @@ export default function AdminHQ() {
 
     setLoadNote("Rând publicat forțat (active, +30 zile).");
     await loadAdminData();
+  };
+
+  const bumpListingToTop = async (listing: {
+    id: string;
+    title?: unknown;
+    status?: unknown;
+    is_seed?: unknown;
+    availability_status?: unknown;
+  }) => {
+    const eligibility = evaluateListingBumpEligibility(listing);
+    if (!eligibility.ok) {
+      setActionError("Anunțul nu este eligibil pentru „Adu primul”.");
+      return;
+    }
+    const title = String(listing.title || listing.id).slice(0, 80);
+    const ok = window.confirm(
+      `ADU PRIMUL / MOVE TO TOP\n\n„${title}”\n\nAnunțul trece temporar în fruntea listărilor generale (nu este pin permanent). Listing-urile mai noi și bump-urile ulterioare îl pot depăși. Continui?`,
+    );
+    if (!ok) return;
+    if (bumpingListingId) return;
+
+    setActionError(null);
+    setBumpingListingId(listing.id);
+    try {
+      const token = await getAccessToken();
+      if (!token) {
+        setActionError("Sesiunea a expirat. Reautentifică-te și încearcă din nou.");
+        return;
+      }
+      const res = await adminBumpListing(listing.id, token);
+      if (!res.ok) {
+        setActionError(`Adu primul eșuat: ${res.error}`);
+        return;
+      }
+      setLoadNote(`Anunț adus primul (bumped_at=${res.bumpedAt}).`);
+      await loadAdminData();
+    } finally {
+      setBumpingListingId(null);
+    }
   };
 
   const renewAuctionExpiryRow = async (listingId: string) => {
@@ -1634,6 +1676,19 @@ export default function AdminHQ() {
                           >
                             Ascunde
                           </button>
+                          {evaluateListingBumpEligibility(listing).ok && (
+                            <button
+                              type="button"
+                              disabled={bumpingListingId === listing.id}
+                              onClick={() => void bumpListingToTop(listing)}
+                              className="block w-full rounded-lg border-[3px] border-black bg-indigo-600 px-2 py-1.5 text-[9px] font-black uppercase text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
+                              title="Move to top"
+                            >
+                              {bumpingListingId === listing.id
+                                ? "Se aduce primul..."
+                                : "Adu primul"}
+                            </button>
+                          )}
                           {listing.status === "active" &&
                             normalizeSaleType(listing.sale_strategy) === "auction" && (
                               <button

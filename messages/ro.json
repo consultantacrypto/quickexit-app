@@ -1562,5 +1562,12 @@
       "body": "Scrie-ne pentru QuickExit Media. Checkout-ul dedicat urmează; până atunci, interesul se înregistrează prin email.",
       "note": "Taxa de publicare a anunțului rămâne separată. Media nu înlocuiește listarea."
     }
+  },
+  "HqAdminBump": {
+    "button": "Adu primul",
+    "buttonPending": "Se aduce primul...",
+    "confirm": "Mută temporar acest anunț în fruntea listărilor generale? Listing-urile mai noi și bump-urile ulterioare îl pot depăși. Nu este un pin permanent.",
+    "success": "Anunțul a fost adus primul.",
+    "errorPrefix": "Adu primul eșuat"
   }
 }
