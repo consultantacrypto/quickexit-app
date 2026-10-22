@@ -26,8 +26,9 @@ import {
 } from "@/lib/listingLocation";
 import ListingLocationFields from "@/app/components/ListingLocationFields";
 import { normalizeSaleType } from "@/utils/normalizeSaleType";
+import HqMetricsPanel from "@/app/components/HqMetricsPanel";
 
-type TabId = "overview" | "copilot" | "listings" | "demands" | "offers" | "inquiries" | "profiles" | "risks";
+type TabId = "overview" | "metrics" | "copilot" | "listings" | "demands" | "offers" | "inquiries" | "profiles" | "risks";
 
 type OperationalRiskSeverity = "critical" | "high" | "medium" | "low";
 
@@ -273,6 +274,7 @@ function kycBadgeLabel(status: string | null | undefined): string {
 
 const TAB_LABELS: { id: TabId; label: string }[] = [
   { id: "overview", label: "Panou general" },
+  { id: "metrics", label: "Metrici" },
   { id: "copilot", label: "HQ Copilot" },
   { id: "listings", label: "Listări" },
   { id: "demands", label: "Cereri" },
@@ -1200,6 +1202,8 @@ export default function AdminHQ() {
         </div>
 
         <div className="rounded-[2rem] border-[3px] border-black bg-white p-6 shadow-[12px_12px_0_0_rgba(0,0,0,0.08)] md:p-10 md:shadow-[14px_14px_0_0_#FFD100]">
+          {activeTab === "metrics" && <HqMetricsPanel />}
+
           {activeTab === "overview" && (
             <div className="space-y-6">
               <h2 className="text-xl font-black uppercase italic tracking-tight text-black">Panou general</h2>

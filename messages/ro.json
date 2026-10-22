@@ -1239,6 +1239,8 @@
       "x": "X",
       "linkedin": "LinkedIn",
       "instagram": "Instagram",
+      "youtube": "YouTube",
+      "tiktok": "TikTok",
       "copied": "Copiat.",
       "quickShareAria": "Distribuie rapid anunțul",
       "copyLinkAria": "Copiază linkul anunțului pentru distribuire",
@@ -1246,7 +1248,9 @@
       "telegramAria": "Copiază mesajul pentru Telegram",
       "xAria": "Copiază mesajul pentru X (Twitter)",
       "linkedinAria": "Copiază mesajul pentru LinkedIn",
-      "instagramAria": "Copiază mesajul pentru Instagram"
+      "instagramAria": "Copiază mesajul pentru Instagram",
+      "youtubeAria": "Copiază descrierea pentru YouTube",
+      "tiktokAria": "Copiază descrierea pentru TikTok"
     },
     "sections": {
       "otherSellerTitle": "Alte active ale",

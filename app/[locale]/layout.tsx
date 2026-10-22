@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { NextIntlClientProvider, hasLocale } from "next-intl";
 import { getMessages, setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
@@ -9,6 +10,8 @@ import AuthHashCleaner from "../components/AuthHashCleaner";
 import AuthStatusBanner from "../components/AuthStatusBanner";
 import { ConsentProvider } from "../components/ConsentProvider";
 import ConsentedPageViewTracker from "../components/ConsentedPageViewTracker";
+import AttributionCapture from "../components/AttributionCapture";
+import AttributionSync from "../components/AttributionSync";
 import ConsentBanner from "../components/ConsentBanner";
 import VercelWebAnalytics from "../components/VercelWebAnalytics";
 import { getSiteUrl } from "@/lib/siteUrl";
@@ -95,6 +98,10 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
         <NextIntlClientProvider locale={locale} messages={messages}>
           <ConsentProvider>
             <ConsentedPageViewTracker />
+            <Suspense fallback={null}>
+              <AttributionCapture />
+            </Suspense>
+            <AttributionSync />
             <AuthHashCleaner />
             <StructuredData siteUrl={siteUrl} />
             <Header />

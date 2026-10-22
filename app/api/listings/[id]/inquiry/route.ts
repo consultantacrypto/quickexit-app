@@ -20,6 +20,13 @@ import {
   notificationStatusFromResult,
   notifySellerOfInquiry,
 } from "@/lib/notifySeller";
+import {
+  attributionDbFields,
+  isOptionalAttributionColumnError,
+  mergeSnapshots,
+  readAttributionFromCookieHeader,
+  sanitizeSnapshot,
+} from "@/lib/attribution";
 
 export const runtime = "nodejs";
 
@@ -160,16 +167,30 @@ export async function POST(
     return jsonError(403, "own_listing", locale);
   }
 
-  const { data: inserted, error: insertError } = await supabase
+  const bodyRecord =
+    rawBody && typeof rawBody === "object" && !Array.isArray(rawBody)
+      ? (rawBody as Record<string, unknown>)
+      : null;
+  const inquirySnapshot = mergeSnapshots(
+    readAttributionFromCookieHeader(req.headers.get("cookie")),
+    sanitizeSnapshot(bodyRecord?.attribution),
+  );
+  const inquiryRow = {
+    listing_id: validated.data.listingId,
+    buyer_phone: validated.data.phone,
+    message: validated.data.message,
+    consent_version: LISTING_INQUIRY_CONSENT_VERSION,
+  };
+  let { data: inserted, error: insertError } = await supabase
     .from("listing_inquiries")
-    .insert({
-      listing_id: validated.data.listingId,
-      buyer_phone: validated.data.phone,
-      message: validated.data.message,
-      consent_version: LISTING_INQUIRY_CONSENT_VERSION,
-    })
+    .insert({ ...inquiryRow, ...attributionDbFields(inquirySnapshot) })
     .select("id")
     .single();
+  if (insertError && isOptionalAttributionColumnError(insertError)) {
+    const retry = await supabase.from("listing_inquiries").insert(inquiryRow).select("id").single();
+    inserted = retry.data;
+    insertError = retry.error;
+  }
 
   if (insertError || !inserted?.id) {
     const mapped = mapInquiryWriteError(insertError);

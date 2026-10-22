@@ -272,6 +272,18 @@ Folosit pentru atribuire checkout și evenimente `payment_*_from_evaluation`.
 
 - protecția centrală rămâne fail-closed pe cheile rezervate GA4; nu reintroduce `source`/`medium`/`campaign` în payloaduri
 - integrare Google Analytics Data API în HQ Copilot pentru insight-uri automate
-- evaluare `page_view` custom doar dacă apare nevoie reală (evităm dublări inutile)
-- tracking conversii reale din webhook, separat, server-side, într-un sprint viitor
+- `page_view` pornește după consimțământul analytics și se retrimite la fiecare navigare client-side (același path nu se duplică)
+- `purchase` server-side prin Measurement Protocol doar dacă `GA4_MEASUREMENT_PROTOCOL_API_SECRET` este setat; altfel webhook-ul nu trimite nimic către GA4
+
+## Atribuire operațională
+
+Canalul, UTM-urile, click id-urile (`gclid`, `fbclid`, `ttclid`), referrer-ul și landing path-ul se păstrează first-party în cookie-ul `qe_attr`. Cheia de analytics `quickexit_attribution` rămâne doar după consimțământ și nu primește click id-uri.
+
+Evenimente noi, tot după consimțământ în browser:
+
+| Eveniment | Când |
+|---|---|
+| `sign_up` | Prima sesiune a unui cont creat în ultimele 30 de minute |
+| `listing_published` | Anunțul a fost salvat (`pending_payment`) |
+| `purchase` | Revenire cu `payment=success`. Fără `value`, ca să nu dubleze venitul față de evenimentul server-side |
 

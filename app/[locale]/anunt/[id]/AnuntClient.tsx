@@ -15,6 +15,8 @@ import { normalizeSaleType } from "@/utils/normalizeSaleType";
 import { parseListingOfferCount } from "@/utils/auctionListingUi";
 import { buildSocialShareKit } from "@/lib/socialShare";
 import { trackEvent } from "@/lib/analytics";
+import { attributionDbFields, isOptionalAttributionColumnError, readAttributionSnapshot } from "@/lib/attribution";
+import { snapshotForWrite } from "@/lib/attributionWrite";
 import { trackFunnelEvent } from "@/lib/funnelAnalytics";
 import { categoryLabelToTrackingKey } from "@/lib/evaluationTracking";
 import { canonicalListingImageSrc } from "@/lib/listingMedia";
@@ -521,7 +523,7 @@ export default function AnuntClient({
       const {
         data: { user },
       } = await supabase.auth.getUser();
-      const { error } = await supabase.from("listing_offers").insert({
+      const offerRow = {
         listing_id: adData.id,
         buyer_user_id: user ? user.id : null,
         offer_price: Number(offerPrice),
@@ -529,7 +531,15 @@ export default function AnuntClient({
         buyer_email: buyerEmail,
         message: offerMessage,
         status: "new",
-      });
+      };
+      const offerSnapshot = await snapshotForWrite(user?.id ?? null);
+      let { error } = await supabase
+        .from("listing_offers")
+        .insert({ ...offerRow, ...attributionDbFields(offerSnapshot) });
+      if (error && isOptionalAttributionColumnError(error)) {
+        const retry = await supabase.from("listing_offers").insert(offerRow);
+        error = retry.error;
+      }
       if (error) throw error;
       trackEvent("submit_listing_offer", {
         interaction_source: "listing_detail",
@@ -563,7 +573,7 @@ export default function AnuntClient({
       const {
         data: { user },
       } = await supabase.auth.getUser();
-      const { error } = await supabase.from("listing_offers").insert({
+      const acceptRow = {
         listing_id: adData.id,
         buyer_user_id: user ? user.id : null,
         offer_price: adData.exit_price,
@@ -571,7 +581,15 @@ export default function AnuntClient({
         buyer_email: acceptEmail,
         message: "⚠️ CLIENTUL A ACCEPTAT PREȚUL DE EXIT ȘI DOREȘTE TRANZACȚIA ACUM!",
         status: "accepted_exit_price",
-      });
+      };
+      const acceptSnapshot = await snapshotForWrite(user?.id ?? null);
+      let { error } = await supabase
+        .from("listing_offers")
+        .insert({ ...acceptRow, ...attributionDbFields(acceptSnapshot) });
+      if (error && isOptionalAttributionColumnError(error)) {
+        const retry = await supabase.from("listing_offers").insert(acceptRow);
+        error = retry.error;
+      }
       if (error) throw error;
       trackEvent("submit_accept_exit_price", {
         interaction_source: "listing_detail",
@@ -900,6 +918,7 @@ export default function AnuntClient({
           message: inquiryMessage,
           consent: inquiryConsent,
           locale: locale === "en" ? "en" : "ro",
+          attribution: readAttributionSnapshot(),
         }),
       });
       const payload = await response.json().catch(() => null);
@@ -1442,6 +1461,22 @@ export default function AnuntClient({
                       className="rounded-xl border-2 border-black bg-white px-3 py-2 text-[10px] font-black uppercase tracking-wider hover:bg-[#FFD100]/60"
                     >
                       {t("share.instagram")}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void copyShareText("youtube", socialKit.youtubeCaption)}
+                      aria-label={t("share.youtubeAria")}
+                      className="rounded-xl border-2 border-black bg-white px-3 py-2 text-[10px] font-black uppercase tracking-wider hover:bg-[#FFD100]/60"
+                    >
+                      {t("share.youtube")}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void copyShareText("tiktok", socialKit.tiktokCaption)}
+                      aria-label={t("share.tiktokAria")}
+                      className="rounded-xl border-2 border-black bg-white px-3 py-2 text-[10px] font-black uppercase tracking-wider hover:bg-[#FFD100]/60"
+                    >
+                      {t("share.tiktok")}
                     </button>
                   </div>
                   {shareCopiedKey && (
