@@ -1,9 +1,12 @@
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { readdirSync, readFileSync, statSync } from "node:fs";
+import { join, resolve } from "node:path";
 import {
   parseHqAdminEmails,
   isHqAdminEmail,
   getHqAdminEmails,
+  getEffectiveHqAdminEmails,
+  getHqStagingAdditionalEmails,
+  isHqStagingAdditionalAllowlistEligible,
   extractBearerToken,
 } from "../lib/hqAdminAuth";
 
@@ -18,6 +21,33 @@ function assert(condition: unknown, message: string) {
 
 const ADMIN = "admin@quickexit.ro";
 const OTHER = "user@example.com";
+const STAGING_EXTRA = "staging-extra@example.test";
+const STAGING_URL = "https://nlnzlswjjplofpkhoxtr.supabase.co";
+const PRODUCTION_URL = "https://geywuzwbzecknokvnins.supabase.co";
+
+const savedEnv: Record<string, string | undefined> = {
+  HQ_ADMIN_EMAILS: process.env.HQ_ADMIN_EMAILS,
+  HQ_STAGING_ADDITIONAL_EMAILS: process.env.HQ_STAGING_ADDITIONAL_EMAILS,
+  NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
+  VERCEL_ENV: process.env.VERCEL_ENV,
+  QE_STAGING_SITE: process.env.QE_STAGING_SITE,
+  NODE_ENV: process.env.NODE_ENV,
+};
+
+function restoreEnv() {
+  for (const [key, value] of Object.entries(savedEnv)) {
+    if (value === undefined) delete process.env[key];
+    else process.env[key] = value;
+  }
+}
+
+function clearAdditiveEnv() {
+  delete process.env.HQ_ADMIN_EMAILS;
+  delete process.env.HQ_STAGING_ADDITIONAL_EMAILS;
+  delete process.env.NEXT_PUBLIC_SUPABASE_URL;
+  delete process.env.VERCEL_ENV;
+  delete process.env.QE_STAGING_SITE;
+}
 
 // --- A–G: allowlist parsing / membership (pure) ---
 
@@ -36,9 +66,8 @@ assert(
   "dedupe emails"
 );
 
-const prev = process.env.HQ_ADMIN_EMAILS;
 try {
-  delete process.env.HQ_ADMIN_EMAILS;
+  clearAdditiveEnv();
   assert(getHqAdminEmails().length === 0, "live env missing -> empty");
   assert(!isHqAdminEmail(ADMIN), "env missing -> deny even listed-looking email");
 
@@ -57,9 +86,125 @@ try {
   assert(!isHqAdminEmail(OTHER), "authenticated non-admin -> deny");
   assert(!isHqAdminEmail(""), "empty email -> deny");
   assert(!isHqAdminEmail(null), "null email -> deny");
+
+  // --- Staging additive allowlist ---
+  clearAdditiveEnv();
+  process.env.HQ_ADMIN_EMAILS = ADMIN;
+  process.env.HQ_STAGING_ADDITIONAL_EMAILS = STAGING_EXTRA;
+  process.env.NEXT_PUBLIC_SUPABASE_URL = STAGING_URL;
+  process.env.VERCEL_ENV = "preview";
+
+  assert(
+    isHqStagingAdditionalAllowlistEligible(),
+    "staging host + preview vercel -> additional eligible",
+  );
+  assert(
+    getHqStagingAdditionalEmails().join(",") === STAGING_EXTRA,
+    "additional emails parsed when eligible",
+  );
+  assert(
+    getEffectiveHqAdminEmails().join(",") === `${ADMIN},${STAGING_EXTRA}`,
+    "effective = primary ∪ additional",
+  );
+  assert(isHqAdminEmail(ADMIN), "primary admin still allowed with additive");
+  assert(isHqAdminEmail(STAGING_EXTRA), "staging additional admin allowed");
+  assert(!isHqAdminEmail(OTHER), "unknown user denied with additive");
+  assert(
+    getHqAdminEmails().join(",") === ADMIN,
+    "primary getHqAdminEmails unchanged by additive",
+  );
+
+  // Production URL denies additional even on Preview
+  process.env.NEXT_PUBLIC_SUPABASE_URL = PRODUCTION_URL;
+  process.env.VERCEL_ENV = "preview";
+  process.env.QE_STAGING_SITE = "1";
+  assert(
+    !isHqStagingAdditionalAllowlistEligible(),
+    "production URL not eligible for additional",
+  );
+  assert(
+    getHqStagingAdditionalEmails().length === 0,
+    "additional empty on production URL",
+  );
+  assert(isHqAdminEmail(ADMIN), "primary still works on production URL");
+  assert(
+    !isHqAdminEmail(STAGING_EXTRA),
+    "additional denied on production URL despite preview label + QE_STAGING_SITE",
+  );
+
+  // Production Vercel context denies additional even with Staging URL
+  process.env.NEXT_PUBLIC_SUPABASE_URL = STAGING_URL;
+  process.env.VERCEL_ENV = "production";
+  delete process.env.QE_STAGING_SITE;
+  assert(
+    !isHqStagingAdditionalAllowlistEligible(),
+    "production vercel env denies additional",
+  );
+  assert(
+    !isHqAdminEmail(STAGING_EXTRA),
+    "additional denied on production deployment context with staging URL",
+  );
+  assert(isHqAdminEmail(ADMIN), "primary still works under production vercel env");
+
+  // Missing / invalid environment denies additional
+  clearAdditiveEnv();
+  process.env.HQ_ADMIN_EMAILS = ADMIN;
+  process.env.HQ_STAGING_ADDITIONAL_EMAILS = STAGING_EXTRA;
+  process.env.NEXT_PUBLIC_SUPABASE_URL = STAGING_URL;
+  // no VERCEL_ENV
+  assert(
+    !isHqStagingAdditionalAllowlistEligible(),
+    "missing VERCEL_ENV fails closed for additional",
+  );
+  assert(!isHqAdminEmail(STAGING_EXTRA), "additional denied without vercel context");
+
+  process.env.VERCEL_ENV = "preview";
+  delete process.env.NEXT_PUBLIC_SUPABASE_URL;
+  assert(
+    !isHqStagingAdditionalAllowlistEligible(),
+    "missing supabase URL fails closed for additional",
+  );
+  assert(!isHqAdminEmail(STAGING_EXTRA), "additional denied without supabase URL");
+
+  process.env.NEXT_PUBLIC_SUPABASE_URL = "not-a-url";
+  assert(
+    !isHqStagingAdditionalAllowlistEligible(),
+    "invalid supabase URL fails closed for additional",
+  );
+
+  process.env.NEXT_PUBLIC_SUPABASE_URL = STAGING_URL;
+  process.env.HQ_STAGING_ADDITIONAL_EMAILS = "not-an-email,,,";
+  assert(
+    getHqStagingAdditionalEmails().length === 0,
+    "invalid additional emails parse to empty",
+  );
+  assert(!isHqAdminEmail(STAGING_EXTRA), "invalid additional does not invent membership");
+
+  // Preview labels alone with Production URL do not grant access
+  clearAdditiveEnv();
+  process.env.HQ_STAGING_ADDITIONAL_EMAILS = STAGING_EXTRA;
+  process.env.NEXT_PUBLIC_SUPABASE_URL = PRODUCTION_URL;
+  process.env.VERCEL_ENV = "preview";
+  process.env.QE_STAGING_SITE = "1";
+  process.env.NODE_ENV = "production";
+  assert(
+    !isHqAdminEmail(STAGING_EXTRA),
+    "preview + QE_STAGING_SITE + production URL deny additional",
+  );
+
+  // Additive-only (empty primary) on verified Staging preview
+  clearAdditiveEnv();
+  process.env.HQ_STAGING_ADDITIONAL_EMAILS = STAGING_EXTRA;
+  process.env.NEXT_PUBLIC_SUPABASE_URL = STAGING_URL;
+  process.env.VERCEL_ENV = "preview";
+  assert(getHqAdminEmails().length === 0, "primary empty preserved");
+  assert(
+    isHqAdminEmail(STAGING_EXTRA),
+    "additive-only membership works on verified staging preview",
+  );
+  assert(!isHqAdminEmail(OTHER), "additive-only still denies strangers");
 } finally {
-  if (prev === undefined) delete process.env.HQ_ADMIN_EMAILS;
-  else process.env.HQ_ADMIN_EMAILS = prev;
+  restoreEnv();
 }
 
 assert(extractBearerToken(new Request("http://localhost/x")) === "", "unauthenticated bearer empty");
@@ -91,6 +236,23 @@ const forceActivate = readFileSync(
 );
 
 assert(allowlist.includes("parseHqAdminEmails"), "canonical parser in allowlist module");
+assert(
+  allowlist.includes("HQ_STAGING_ADDITIONAL_EMAILS"),
+  "additive staging env documented in allowlist module",
+);
+assert(
+  allowlist.includes("nlnzlswjjplofpkhoxtr.supabase.co"),
+  "exact staging supabase host gate",
+);
+assert(
+  allowlist.includes("VERCEL_ENV") && allowlist.includes("preview"),
+  "vercel non-production deployment gate",
+);
+assert(
+  !allowlist.includes("QE_STAGING_SITE") ||
+    allowlist.includes("Does not trust QE_STAGING_SITE"),
+  "must not authorize on QE_STAGING_SITE alone",
+);
 assert(pageAuth.includes("resolveHqAdminPageAuth"), "cookie page auth in page module");
 assert(pageAuth.includes("createServerSupabaseClient"), "page auth uses cookie session");
 assert(!hqAuth.includes("next/headers") && !hqAuth.includes("createServerSupabaseClient"), "API auth module stays free of next/headers");
@@ -105,6 +267,31 @@ assert(
 assert(
   allowlist.includes("allowlist.length === 0") || allowlist.includes("length === 0"),
   "empty allowlist fails closed"
+);
+
+// Only the allowlist module may read HQ_STAGING_ADDITIONAL_EMAILS
+function walkTsFiles(dir: string, out: string[] = []): string[] {
+  for (const name of readdirSync(dir)) {
+    if (name === "node_modules" || name === ".next" || name === ".git") continue;
+    const full = join(dir, name);
+    const st = statSync(full);
+    if (st.isDirectory()) walkTsFiles(full, out);
+    else if (/\.(ts|tsx|mjs|js)$/.test(name)) out.push(full);
+  }
+  return out;
+}
+const root = resolve(".");
+const offenders = walkTsFiles(root).filter((path) => {
+  const normalized = path.replace(/\\/g, "/");
+  if (normalized.endsWith("/lib/hqAdminAllowlist.ts")) return false;
+  if (normalized.includes("/scripts/assert-hq-admin-auth.ts")) return false;
+  if (normalized.includes("/scripts/_tmp_")) return false;
+  const src = readFileSync(path, "utf8");
+  return src.includes("HQ_STAGING_ADDITIONAL_EMAILS");
+});
+assert(
+  offenders.length === 0,
+  `no other module reads HQ_STAGING_ADDITIONAL_EMAILS (${offenders.join(", ")})`,
 );
 
 assert(mediaAuth.includes("resolveHqAdminPageAuth"), "Media HQ reuses canonical page auth");

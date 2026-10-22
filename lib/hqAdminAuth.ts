@@ -7,7 +7,10 @@ export type HqAdminAuthResult =
 
 export {
   getHqAdminEmails,
+  getEffectiveHqAdminEmails,
+  getHqStagingAdditionalEmails,
   isHqAdminEmail,
+  isHqStagingAdditionalAllowlistEligible,
   parseHqAdminEmails,
 } from "@/lib/hqAdminAllowlist";
 
