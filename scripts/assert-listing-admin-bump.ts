@@ -3,6 +3,7 @@
  * Run: npx tsx scripts/assert-listing-admin-bump.ts
  */
 import { readFileSync } from "node:fs";
+import { HQ_LISTING_COLUMNS } from "../lib/hqOverview";
 import {
   evaluateListingBumpEligibility,
   PUBLIC_LISTING_SORT_PRIMARY,
@@ -69,14 +70,24 @@ assert(
   "home auction rail still deadline-ordered",
 );
 
-// Eligibility unit cases
+// HQ overview data contract must expose availability for bump eligibility UI.
+assert(
+  HQ_LISTING_COLUMNS.split(",").map((c) => c.trim()).includes("availability_status"),
+  "HQ_LISTING_COLUMNS includes availability_status",
+);
+assert(
+  HQ_LISTING_COLUMNS.includes("is_seed") && HQ_LISTING_COLUMNS.includes("status"),
+  "HQ_LISTING_COLUMNS retains status and is_seed",
+);
+
+// Eligibility unit cases (including overview-shaped rows)
 assert(
   evaluateListingBumpEligibility({
     status: "active",
     is_seed: false,
     availability_status: "available",
   }).ok,
-  "active available eligible",
+  "overview-shaped active available eligible",
 );
 assert(
   evaluateListingBumpEligibility({
@@ -85,6 +96,13 @@ assert(
     availability_status: "needs_confirmation",
   }).ok,
   "needs_confirmation eligible",
+);
+assert(
+  !evaluateListingBumpEligibility({
+    status: "active",
+    is_seed: false,
+  }).ok,
+  "overview row missing availability_status denied",
 );
 assert(
   !evaluateListingBumpEligibility({
@@ -117,6 +135,14 @@ assert(
     availability_status: "available",
   }).ok,
   "admin_removed denied",
+);
+assert(
+  !evaluateListingBumpEligibility({
+    status: "active",
+    is_seed: false,
+    availability_status: "unavailable",
+  }).ok,
+  "unavailable denied",
 );
 
 console.log("OK listing-admin-bump");

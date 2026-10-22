@@ -20,6 +20,7 @@ export const HQ_LISTING_COLUMNS = [
   "category",
   "status",
   "is_seed",
+  "availability_status",
   "market_price",
   "exit_price",
   "created_at",
