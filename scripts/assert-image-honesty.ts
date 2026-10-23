@@ -90,4 +90,26 @@ assert(anunturi.includes('const FALLBACK_IMAGE = ""'), "anunturi use empty fallb
 const cauta = readFileSync(resolve("app/[locale]/cauta/page.tsx"), "utf8");
 assert(cauta.includes('const FALLBACK_IMAGE = ""'), "search uses empty fallback constant");
 
+const nextConfig = readFileSync(resolve("next.config.ts"), "utf8");
+assert(
+  nextConfig.includes('hostname: "geywuzwbzecknokvnins.supabase.co"'),
+  "next.config allows Production Supabase images",
+);
+assert(
+  nextConfig.includes('hostname: "nlnzlswjjplofpkhoxtr.supabase.co"'),
+  "next.config allows Staging Supabase images",
+);
+assert(
+  nextConfig.includes('pathname: "/storage/v1/**"'),
+  "Staging image host is narrowed to Storage paths",
+);
+assert(
+  !nextConfig.includes('hostname: "*"') && !nextConfig.includes("hostname: '**'"),
+  "next.config has no wildcard image hostnames",
+);
+assert(
+  nextConfig.includes('hostname: "i.ytimg.com"'),
+  "next.config retains YouTube image host",
+);
+
 console.log("OK image-honesty");

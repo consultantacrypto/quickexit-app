@@ -17,6 +17,12 @@ const nextConfig: NextConfig = {
         pathname: "/**",
       },
       {
+        // Staging Supabase Storage (quickexit-staging) — Preview/Staging isolation
+        protocol: "https",
+        hostname: "nlnzlswjjplofpkhoxtr.supabase.co",
+        pathname: "/storage/v1/**",
+      },
+      {
         protocol: "https",
         hostname: "i.ytimg.com",
         pathname: "/vi/**",
