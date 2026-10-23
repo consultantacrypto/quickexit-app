@@ -56,10 +56,7 @@ export default function FutureMobilityListingGrid({
               catalogOffer={isCatalogOffer(item.listing_kind)}
               id={item.id}
               title={item.title || ""}
-              image={
-                item.images?.[0] ||
-                "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=800&q=80"
-              }
+              image={item.images?.[0] || ""}
               marketPrice={formatEurAmount(Number(item.market_price ?? 0), locale)}
               exitPrice={formatEurAmount(Number(item.exit_price ?? 0), locale)}
               discount={item.discount?.toString() || "0"}

@@ -23,6 +23,7 @@
     "assert:capital-disponibil-v2": "tsx scripts/assert-capital-disponibil-v2.ts",
     "assert:media-pricing": "tsx scripts/assert-media-pricing.ts",
     "assert:listing-admin-bump": "tsx scripts/assert-listing-admin-bump.ts",
+    "assert:image-honesty": "tsx scripts/assert-image-honesty.ts",
     "assert:all-listings-link": "tsx scripts/assert-all-listings-link.ts",
     "audit:auth-profiles": "tsx scripts/audit-auth-profiles.ts",
     "storage:wire-env": "tsx scripts/storage-backup/wire-env.ts",

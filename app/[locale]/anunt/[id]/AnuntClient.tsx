@@ -18,6 +18,7 @@ import { trackEvent } from "@/lib/analytics";
 import { trackFunnelEvent } from "@/lib/funnelAnalytics";
 import { categoryLabelToTrackingKey } from "@/lib/evaluationTracking";
 import { canonicalListingImageSrc } from "@/lib/listingMedia";
+import { sanitizeListingImageUrls } from "@/lib/listingImageUpload";
 import {
   formatEurAmount,
   formatMemberSince,
@@ -459,12 +460,11 @@ export default function AnuntClient({
       setImageLightboxOpen(false);
       return;
     }
-    const urls =
-      Array.isArray(adData.images) && adData.images.length > 0
-        ? adData.images
-        : [
-            "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1200&q=80",
-          ];
+    const urls = sanitizeListingImageUrls(adData.images);
+    if (urls.length === 0) {
+      setImageLightboxOpen(false);
+      return;
+    }
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         setImageLightboxOpen(false);
@@ -624,12 +624,8 @@ export default function AnuntClient({
     if (!Number.isFinite(value)) return minOffer;
     return Math.min(maxOffer, Math.max(minOffer, Math.round(value)));
   };
-  const displayImages =
-    adData.images && adData.images.length > 0
-      ? adData.images
-      : [
-          "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1200&q=80",
-        ];
+  const displayImages = sanitizeListingImageUrls(adData.images);
+  const hasListingImages = displayImages.length > 0;
 
   const sellerDisplayName = resolvePublicSellerDisplayName(
     sellerProfile,
@@ -1200,32 +1196,54 @@ export default function AnuntClient({
         <div className="mb-14 grid grid-cols-1 gap-8 lg:grid-cols-12 lg:gap-10 xl:gap-12">
           <div className="space-y-6 lg:col-span-8">
             <div className="space-y-4">
-              <button
-                type="button"
-                onClick={() => setImageLightboxOpen(true)}
-                className="group relative h-[300px] w-full cursor-pointer overflow-hidden rounded-[2rem] border-[3px] border-black bg-[#F5F1E8] text-left shadow-[10px_10px_0_0_#FFD100] transition hover:border-[#FFD100] md:h-[400px] lg:h-[450px]"
-                aria-label={t("gallery.openLightbox")}
-              >
-                <ListingMedia
-                  src={displayImages[currentImageIndex]}
-                  alt={listingTitle || t("defaults.listingImageAlt")}
-                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 70vw, 900px"
-                  priority
-                  containerAspect={16 / 9}
-                  className="absolute inset-0"
-                  imgClassName="transition-transform duration-500 group-hover:scale-[1.02]"
-                />
-                {isAuctionDetail ? (
-                  <div className="pointer-events-none absolute left-4 top-4 rounded-lg border-2 border-black bg-black px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-[#FFD100]">
-                    {t("strategyBadge.auction")}
+              {hasListingImages ? (
+                <button
+                  type="button"
+                  onClick={() => setImageLightboxOpen(true)}
+                  className="group relative h-[300px] w-full cursor-pointer overflow-hidden rounded-[2rem] border-[3px] border-black bg-[#F5F1E8] text-left shadow-[10px_10px_0_0_#FFD100] transition hover:border-[#FFD100] md:h-[400px] lg:h-[450px]"
+                  aria-label={t("gallery.openLightbox")}
+                >
+                  <ListingMedia
+                    src={displayImages[currentImageIndex]}
+                    alt={listingTitle || t("defaults.listingImageAlt")}
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 70vw, 900px"
+                    priority
+                    containerAspect={16 / 9}
+                    className="absolute inset-0"
+                    imgClassName="transition-transform duration-500 group-hover:scale-[1.02]"
+                  />
+                  {isAuctionDetail ? (
+                    <div className="pointer-events-none absolute left-4 top-4 rounded-lg border-2 border-black bg-black px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-[#FFD100]">
+                      {t("strategyBadge.auction")}
+                    </div>
+                  ) : null}
+                  <div className="pointer-events-none absolute bottom-3 left-1/2 max-w-[90%] -translate-x-1/2 rounded-lg bg-black/65 px-3 py-1.5 text-center text-[9px] font-bold uppercase tracking-wide text-white">
+                    {t("gallery.tapToEnlarge")}
                   </div>
-                ) : null}
-                <div className="pointer-events-none absolute bottom-3 left-1/2 max-w-[90%] -translate-x-1/2 rounded-lg bg-black/65 px-3 py-1.5 text-center text-[9px] font-bold uppercase tracking-wide text-white">
-                  {t("gallery.tapToEnlarge")}
+                </button>
+              ) : (
+                <div
+                  className="relative flex h-[300px] w-full items-center justify-center overflow-hidden rounded-[2rem] border-[3px] border-black bg-[#F5F1E8] shadow-[10px_10px_0_0_#FFD100] md:h-[400px] lg:h-[450px]"
+                  role="img"
+                  aria-label={t("gallery.imagesUnavailable")}
+                >
+                  {isAuctionDetail ? (
+                    <div className="pointer-events-none absolute left-4 top-4 rounded-lg border-2 border-black bg-black px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-[#FFD100]">
+                      {t("strategyBadge.auction")}
+                    </div>
+                  ) : null}
+                  <div className="px-6 text-center">
+                    <p className="text-[11px] font-black uppercase tracking-[0.22em] text-black/70">
+                      QuickExit
+                    </p>
+                    <p className="mt-3 text-sm font-bold uppercase tracking-wide text-black md:text-base">
+                      {t("gallery.imagesUnavailable")}
+                    </p>
+                  </div>
                 </div>
-              </button>
+              )}
 
-              {displayImages.length > 1 && (
+              {hasListingImages && displayImages.length > 1 && (
                 <div className="grid grid-cols-4 gap-3 md:gap-4">
                   {displayImages.map((img: string, index: number) => (
                     <button
@@ -1483,10 +1501,7 @@ export default function AnuntClient({
                     catalogOffer={isCatalogOffer(item.listing_kind)}
                     id={item.id}
                     title={item.title || ""}
-                    image={
-                      item.images?.[0] ||
-                      "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=800&q=80"
-                    }
+                    image={item.images?.[0] || ""}
                     {...adCardPricingProps(item, getNumberLocale(locale))}
                     type={st}
                     location={listingLocationLabelFromUnknown(item.details)}
@@ -1528,10 +1543,7 @@ export default function AnuntClient({
                   catalogOffer={isCatalogOffer(item.listing_kind)}
                   id={item.id}
                   title={item.title || ""}
-                  image={
-                    item.images?.[0] ||
-                    "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=800&q=80"
-                  }
+                  image={item.images?.[0] || ""}
                   {...adCardPricingProps(item, getNumberLocale(locale))}
                   type={st}
                   location={listingLocationLabelFromUnknown(item.details)}
@@ -1624,7 +1636,7 @@ export default function AnuntClient({
         />
       ) : null}
 
-      {imageLightboxOpen ? (
+      {imageLightboxOpen && hasListingImages ? (
         <div
           className="fixed inset-0 z-[200] flex items-center justify-center bg-black/92 p-4"
           role="dialog"

@@ -20,8 +20,8 @@ import { normalizeSaleType } from "@/utils/normalizeSaleType";
 
 export const revalidate = 60;
 
-const FALLBACK_IMAGE =
-  "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=800&q=80";
+/** Neutral ListingMedia empty frame — never show unrelated stock photos. */
+const FALLBACK_IMAGE = "";
 
 type PageProps = {
   params: Promise<{ locale: string }>;

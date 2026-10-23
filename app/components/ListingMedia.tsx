@@ -62,6 +62,10 @@ function ListingMediaInner({
       // utilities together collapse this box to height 0 (fill image unpainted).
       className={`h-full w-full overflow-hidden ${className}`.trim()}
       style={{ backgroundColor: LISTING_MEDIA_NEUTRAL_BG }}
+      // Empty src: neutral frame only — never request a blank/invalid URL.
+      {...(!canonical
+        ? { role: "img" as const, "aria-label": alt || "Listing photo unavailable" }
+        : {})}
     >
       {canonical ? (
         <Image
