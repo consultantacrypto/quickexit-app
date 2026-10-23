@@ -1239,6 +1239,8 @@
       "x": "X",
       "linkedin": "LinkedIn",
       "instagram": "Instagram",
+      "youtube": "YouTube",
+      "tiktok": "TikTok",
       "copied": "Copied.",
       "quickShareAria": "Quick share listing",
       "copyLinkAria": "Copy listing link for sharing",
@@ -1246,7 +1248,9 @@
       "telegramAria": "Copy message for Telegram",
       "xAria": "Copy message for X (Twitter)",
       "linkedinAria": "Copy message for LinkedIn",
-      "instagramAria": "Copy message for Instagram"
+      "instagramAria": "Copy message for Instagram",
+      "youtubeAria": "Copy caption for YouTube",
+      "tiktokAria": "Copy caption for TikTok"
     },
     "sections": {
       "otherSellerTitle": "Other assets from this",

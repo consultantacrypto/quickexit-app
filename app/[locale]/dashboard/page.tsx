@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { Link, useRouter } from "@/src/i18n/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { supabase } from "@/lib/supabase";
-import { trackEvent } from "@/lib/analytics";
+import { trackEvent, trackPurchaseEvent } from "@/lib/analytics";
 import {
   clearListingDraft,
   listingDraftAnalyticsParams,
@@ -252,6 +252,10 @@ function DashboardContent() {
 
       if (normalizedType === "listing" && normalizedPayment === "success") {
         trackEvent("checkout_listing_success", baseParams);
+        trackPurchaseEvent({
+          transaction_id: sessionIdParam || undefined,
+          listing_id: effectiveListingId,
+        });
 
         if (effectiveListingId) {
           const { data: listingRow } = await supabase
@@ -338,6 +342,10 @@ function DashboardContent() {
 
       if (normalizedType === "demand" && normalizedPayment === "success") {
         trackEvent("checkout_demand_success", baseParams);
+        trackPurchaseEvent({
+          transaction_id: sessionIdParam || undefined,
+          demand_id: effectiveDemandId,
+        });
         trackEvent("buyer_payment_success", baseParams);
         trackEvent("buyer_request_published", baseParams);
         if (demandIdParam || demandId) {

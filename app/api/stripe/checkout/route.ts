@@ -44,6 +44,7 @@ import {
   BLOCKED_ZERO_IMAGES_CODE,
   listingImagesReadyForCheckout,
 } from "@/lib/listingPublishImages";
+import { resolveCheckoutAttribution } from "@/lib/checkoutAttribution";
 
 function extractBearerToken(req: Request): string | null {
   const header = req.headers.get("authorization") || req.headers.get("Authorization");
@@ -501,12 +502,26 @@ export async function POST(req: Request) {
 
     // Listing-only / demand: preserve card-only (current Production behavior).
     // Combined Media: omit payment_method_types → Stripe dynamic payment methods.
+    const attribution = await resolveCheckoutAttribution({
+      admin: adminSupabase,
+      userId: user.id,
+      listingId: type === "listing" ? listingId : undefined,
+      demandId: type === "demand" ? demandId : undefined,
+      cookieHeader: req.headers.get("cookie"),
+      bodyAttribution: body?.attribution,
+    });
+    const sessionMetadataWithAttribution: Record<string, string> = {
+      ...sessionMetadata,
+      ...attribution.metadata,
+    };
+
     const sessionParams: Stripe.Checkout.SessionCreateParams = {
       mode: "payment",
       line_items: lineItems,
       success_url: `${baseUrl}/dashboard?${successQuery}&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${baseUrl}/dashboard?${cancelQuery}`,
-      metadata: sessionMetadata,
+      client_reference_id: user.id,
+      metadata: sessionMetadataWithAttribution,
     };
     if (!mediaAttach) {
       sessionParams.payment_method_types = ["card"];

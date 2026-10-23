@@ -16,6 +16,15 @@ import {
 } from "@/lib/cryptoPayment";
 import PublishDraftRecoveryDialog from "./PublishDraftRecoveryDialog";
 import { trackEvent } from "@/lib/analytics";
+import HeardFromFields from "@/app/components/HeardFromFields";
+import {
+  attributionDbFields,
+  isOptionalAttributionColumnError,
+  parseHeardFrom,
+  readAttributionSnapshot,
+  rememberSelfReport,
+} from "@/lib/attribution";
+import { snapshotForWrite } from "@/lib/attributionWrite";
 import { trackFunnelEvent } from "@/lib/funnelAnalytics";
 import EvaluateTurnstile, { type EvaluateTurnstileHandle } from "@/components/EvaluateTurnstile";
 import { isEvaluateTurnstileUiEnabled } from "@/lib/turnstilePublic";
@@ -168,6 +177,18 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
   const [listingTurnstileToken, setListingTurnstileToken] = useState<string | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [sellerPhone, setSellerPhone] = useState("");
+  const [heardFrom, setHeardFrom] = useState("");
+  const [heardFromDetail, setHeardFromDetail] = useState("");
+
+  useEffect(() => {
+    const stored = readAttributionSnapshot();
+    if (!stored.heard_from) return;
+    const frame = window.setTimeout(() => {
+      setHeardFrom((current) => current || stored.heard_from || "");
+      setHeardFromDetail((current) => current || stored.heard_from_detail || "");
+    }, 0);
+    return () => window.clearTimeout(frame);
+  }, []);
   const [draftReady, setDraftReady] = useState(false);
   const [draftRestored, setDraftRestored] = useState(false);
   const [draftDecision, setDraftDecision] = useState<
@@ -1155,6 +1176,17 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
       setIsSaving(false);
       return;
     }
+    const heard = parseHeardFrom(heardFrom, heardFromDetail);
+    if (!heard) {
+      setFlowError(
+        heardFrom === "other"
+          ? "Scrie pe scurt de unde ai aflat de QuickExit."
+          : "Spune-ne de unde ai aflat de QuickExit.",
+      );
+      setIsSaving(false);
+      return;
+    }
+    rememberSelfReport(heard.heard_from, heard.heard_from_detail);
     if (pricingMode === "fixed_price") {
       if (!hasValidExitPriceInput) {
         setFlowError(tPost("pricingMode.validation.fixedPriceRequired"));
@@ -1258,6 +1290,17 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
             return;
           }
 
+          const reuseSnapshot = await snapshotForWrite(user.id, heard);
+          const reuseAttribution = await supabase
+            .from("listings")
+            .update(attributionDbFields(reuseSnapshot))
+            .eq("id", existingListing.id)
+            .eq("user_id", user.id)
+            .eq("status", "pending_payment");
+          if (reuseAttribution.error && !isOptionalAttributionColumnError(reuseAttribution.error)) {
+            console.error("[pune-anunt] attribution update failed", reuseAttribution.error.message);
+          }
+
           setFlowError(tPost("checkoutErrors.pendingReuse"));
           trackEvent("listing_pending_reused", {
             interaction_source: "publish_form",
@@ -1351,41 +1394,48 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
 
       // 1. Salvăm anunțul ca "PENDING_PAYMENT" și îl returnăm din baza de date
       const saleFields = saleIntent;
-      const { data: insertedData, error } = await supabase
+      const listingSnapshot = await snapshotForWrite(user.id, heard);
+      const listingRow = {
+        user_id: user.id,
+        title: adTitle,
+        category: category,
+        description: description || tPost("descriptionFallback"),
+        market_price: finalMarketPrice,
+        exit_price: finalExitPrice,
+        sale_strategy: saleFields.sale_strategy,
+        status: "pending_payment", // Anunțul este reținut până se confirmă plata
+        is_seed: false,
+        deal_score: dealScore,
+        discount: finalDiscount,
+        images: uploadedImageUrls,
+        crypto_payment_mode: cryptoPayment.value.mode,
+        crypto_assets: cryptoPayment.value.assets,
+        ...publicListingKindPayload(),
+        details: applyListingLocationToDetails(
+          {
+          ...formData,
+          package: saleFields.detailsPackage,
+          strategy: saleFields.detailsStrategy,
+          sale_method: saleFields.detailsSaleMethod,
+          pricing_mode: pricingMode,
+          ...buildListingAcquisitionDetails(evaluationTrackingRef.current),
+          },
+          locationCheck.location,
+        ),
+      };
+      let { data: insertedData, error } = await supabase
         .from("listings")
-        .insert({
-          user_id: user.id,
-          title: adTitle,
-          category: category,
-          description: description || tPost("descriptionFallback"),
-          market_price: finalMarketPrice,
-          exit_price: finalExitPrice,
-          sale_strategy: saleFields.sale_strategy,
-          status: "pending_payment", // Anunțul este reținut până se confirmă plata
-          is_seed: false,
-          deal_score: dealScore,
-          discount: finalDiscount,
-          images: uploadedImageUrls,
-          crypto_payment_mode: cryptoPayment.value.mode,
-          crypto_assets: cryptoPayment.value.assets,
-          ...publicListingKindPayload(),
-          details: applyListingLocationToDetails(
-            {
-            ...formData,
-            package: saleFields.detailsPackage,
-            strategy: saleFields.detailsStrategy,
-            sale_method: saleFields.detailsSaleMethod,
-            pricing_mode: pricingMode,
-            ...buildListingAcquisitionDetails(evaluationTrackingRef.current),
-            },
-            locationCheck.location,
-          ),
-        })
+        .insert({ ...listingRow, ...attributionDbFields(listingSnapshot) })
         .select()
         .single();
+      if (error && isOptionalAttributionColumnError(error)) {
+        const retry = await supabase.from("listings").insert(listingRow).select().single();
+        insertedData = retry.data;
+        error = retry.error;
+      }
 
-      if (error) {
-        console.error("Eroare la salvarea anunțului:", error.message);
+      if (error || !insertedData) {
+        console.error("Eroare la salvarea anunțului:", error?.message);
         trackEvent(
           "listing_submit_attempt",
           toEvaluationTrackingEventParams(evaluationTrackingRef.current, {
@@ -1400,6 +1450,13 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
         setIsSaving(false);
         return;
       }
+
+      trackEvent("listing_published", {
+        listing_id: insertedData.id,
+        category: categoryLabelToTrackingKey(category),
+        package_id: selectedPackage,
+        heard_from: heard.heard_from,
+      });
 
       // Persist pendingListingId BEFORE Stripe session — so cancel/retry reuses this row.
       const createdAt = Date.now();
@@ -2981,6 +3038,16 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                   placeholder={tPost("sellerPhone.placeholder")}
                   className="mt-3 w-full rounded-xl border-[3px] border-black bg-[#FDFCF8] px-4 py-3 text-sm font-semibold text-black outline-none focus:border-[#FFD100]"
                   required
+                />
+              </div>
+
+              <div className="rounded-2xl border-[3px] border-black bg-white px-5 py-5">
+                <HeardFromFields
+                  idPrefix="publish-heard-from"
+                  value={heardFrom}
+                  detail={heardFromDetail}
+                  onValueChange={setHeardFrom}
+                  onDetailChange={setHeardFromDetail}
                 />
               </div>
 

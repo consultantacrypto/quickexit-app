@@ -181,10 +181,10 @@ export function clearAnalyticsAttribution(): void {
   }
 }
 
-let consentedPageViewSentThisCycle = false;
+let lastConsentedPageViewPath: string | null = null;
 
 function rearmConsentedPageViewCycle(): void {
-  consentedPageViewSentThisCycle = false;
+  lastConsentedPageViewPath = null;
 }
 
 export function applyConsentPreferences(input: ConsentChoiceInput): ConsentPreferences {
@@ -323,7 +323,6 @@ export function trackConsentedPageView(path?: string): boolean {
     rearmConsentedPageViewCycle();
     return false;
   }
-  if (consentedPageViewSentThisCycle) return false;
 
   const pagePath = sanitizePageViewPath(
     path ??
@@ -332,6 +331,7 @@ export function trackConsentedPageView(path?: string): boolean {
         : undefined),
   );
   if (!pagePath) return false;
+  if (lastConsentedPageViewPath === pagePath) return false;
 
   try {
     const prefs = readConsentPreferences();
@@ -342,11 +342,25 @@ export function trackConsentedPageView(path?: string): boolean {
       "page_view",
       stripReservedAnalyticsParams({ page_path: pagePath }),
     );
-    consentedPageViewSentThisCycle = true;
+    lastConsentedPageViewPath = pagePath;
     return true;
   } catch {
     return false;
   }
+}
+
+export function trackPurchaseEvent(params: {
+  transaction_id?: string;
+  listing_id?: string;
+  demand_id?: string;
+}): void {
+  trackEvent("purchase", {
+    transaction_id: params.transaction_id,
+    currency: "RON",
+    listing_id: params.listing_id,
+    demand_id: params.demand_id,
+    purchase_source: "client",
+  });
 }
 
 function trackTikTokEvent(eventName: string, params?: EventParams): void {
