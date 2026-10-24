@@ -26,6 +26,7 @@
     "assert:image-honesty": "tsx scripts/assert-image-honesty.ts",
     "assert:listing-publication-security": "tsx scripts/assert-listing-publication-security.ts",
     "e2e:listing-publication-security-staging": "tsx scripts/e2e-listing-publication-security-staging.ts",
+    "assert:staging-image-honesty-qa": "tsx scripts/assert-staging-image-honesty-qa.ts",
     "assert:all-listings-link": "tsx scripts/assert-all-listings-link.ts",
     "audit:auth-profiles": "tsx scripts/audit-auth-profiles.ts",
     "storage:wire-env": "tsx scripts/storage-backup/wire-env.ts",
