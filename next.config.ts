@@ -4,6 +4,15 @@ import createNextIntlPlugin from "next-intl/plugin";
 const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 
 const nextConfig: NextConfig = {
+  async rewrites() {
+    return {
+      // afterFiles: public/bmk/*.png is served first; only the page path is rewritten.
+      afterFiles: [
+        { source: "/bmk", destination: "/ro/bmk" },
+        { source: "/bmk/", destination: "/ro/bmk" },
+      ],
+    };
+  },
   images: {
     remotePatterns: [
       {

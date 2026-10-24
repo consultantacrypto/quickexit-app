@@ -68,6 +68,7 @@ export function staticAndCategorySitemapPaths(): string[] {
     "/cum-functioneaza",
     "/future-mobility",
     "/contact",
+    "/bmk",
     "/termeni",
     "/confidentialitate",
     "/cookies",
@@ -86,20 +87,32 @@ export function buildStaticSitemapEntries(
   now: Date,
 ): MetadataRoute.Sitemap {
   const origin = siteUrl.replace(/\/+$/, "") || PRODUCTION_SITE_URL;
-  return SITEMAP_LOCALES.flatMap((locale) =>
+  const localized = SITEMAP_LOCALES.flatMap((locale) =>
     staticAndCategorySitemapPaths().map((path) => {
       const isAiLanding = AI_ANSWER_LANDING_PATHS.includes(
         path as (typeof AI_ANSWER_LANDING_PATHS)[number],
       );
       const isGuide = path.startsWith("/ghid/");
+      const isBmk = path === "/bmk";
       return {
         url: localizedSitemapUrl(origin, locale, path),
         lastModified: now,
-        changeFrequency: isGuide || isAiLanding ? ("monthly" as const) : ("daily" as const),
-        priority: path === "/" ? 1 : isGuide ? 0.7 : isAiLanding ? 0.75 : 0.8,
+        changeFrequency:
+          isGuide || isAiLanding || isBmk ? ("monthly" as const) : ("daily" as const),
+        priority: path === "/" ? 1 : isBmk ? 0.6 : isGuide ? 0.7 : isAiLanding ? 0.75 : 0.8,
       };
     }),
   );
+
+  return [
+    ...localized,
+    {
+      url: `${origin}/bmk`,
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.6,
+    },
+  ];
 }
 
 export function buildListingSitemapEntries(
