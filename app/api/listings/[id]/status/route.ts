@@ -10,6 +10,13 @@ function extractBearerToken(req: Request): string | null {
   return token || null;
 }
 
+/**
+ * Owner pause/resume only.
+ * - active → suspended (pause)
+ * - suspended → active when expires_at is present and still in the future (resume)
+ * Never activates pending_payment or other unpaid intermediate statuses.
+ * Privileged unpaid publish remains HQ Force Publish / Force Activate (service_role).
+ */
 export async function POST(
   req: Request,
   context: { params: Promise<{ id: string }> },
@@ -48,7 +55,10 @@ export async function POST(
     }
 
     const body = await req.json().catch(() => null);
-    const nextStatus = body && typeof body === "object" ? String((body as { status?: unknown }).status ?? "") : "";
+    const nextStatus =
+      body && typeof body === "object"
+        ? String((body as { status?: unknown }).status ?? "")
+        : "";
     if (nextStatus !== "active" && nextStatus !== "suspended") {
       return NextResponse.json({ error: "Status invalid." }, { status: 400 });
     }
@@ -66,7 +76,32 @@ export async function POST(
       return NextResponse.json({ error: "Nu poți actualiza acest anunț." }, { status: 403 });
     }
 
+    const currentStatus = String(existing.status ?? "").trim().toLowerCase();
+
+    if (nextStatus === "suspended") {
+      if (currentStatus !== "active") {
+        return NextResponse.json(
+          {
+            error: "Doar anunțurile active pot fi suspendate.",
+            code: "invalid_status_transition",
+          },
+          { status: 400 },
+        );
+      }
+    }
+
     if (nextStatus === "active") {
+      if (currentStatus !== "suspended") {
+        return NextResponse.json(
+          {
+            error:
+              "Reactivarea este permisă doar din suspendat, după publicare verificată.",
+            code: "invalid_status_transition",
+          },
+          { status: 400 },
+        );
+      }
+
       const locationCheck = publicationLocationFromDetails(existing.details);
       if (!locationCheck.ok) {
         return NextResponse.json(
@@ -74,25 +109,53 @@ export async function POST(
           { status: 400 },
         );
       }
-      if (existing.expires_at && new Date(String(existing.expires_at)) < new Date()) {
+
+      if (!existing.expires_at) {
         return NextResponse.json(
-          { error: "Perioada plătită a expirat. Reînnoiește pachetul pentru a reactiva acest anunț." },
+          {
+            error:
+              "Anunțul nu are o fereastră de publicare validă. Publicarea se face prin plată sau HQ.",
+            code: "missing_publication_window",
+          },
+          { status: 400 },
+        );
+      }
+      if (new Date(String(existing.expires_at)) < new Date()) {
+        return NextResponse.json(
+          {
+            error:
+              "Perioada plătită a expirat. Reînnoiește pachetul pentru a reactiva acest anunț.",
+            code: "publication_expired",
+          },
           { status: 400 },
         );
       }
     }
 
-    const { error: updateError } = await authSupabase
+    const { data: updated, error: updateError } = await authSupabase
       .from("listings")
       .update({ status: nextStatus })
       .eq("id", listingId)
-      .eq("user_id", user.id);
+      .eq("user_id", user.id)
+      .select("id, status")
+      .maybeSingle();
 
     if (updateError) {
+      const msg = String(updateError.message ?? "");
+      if (msg.includes("QEX:publication_forbidden") || updateError.code === "42501") {
+        return NextResponse.json(
+          { error: "Tranziție de status nepermisă.", code: "publication_forbidden" },
+          { status: 403 },
+        );
+      }
       return NextResponse.json({ error: "Eroare la actualizare." }, { status: 500 });
     }
 
-    return NextResponse.json({ ok: true, status: nextStatus });
+    if (!updated) {
+      return NextResponse.json({ error: "Eroare la actualizare." }, { status: 500 });
+    }
+
+    return NextResponse.json({ ok: true, status: updated.status });
   } catch {
     return NextResponse.json({ error: "Eroare la actualizare." }, { status: 500 });
   }
