@@ -125,6 +125,11 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
+                <Link href="/bmk" className={footerLink}>
+                  {t("legal.bmk")}
+                </Link>
+              </li>
+              <li>
                 <a
                   href={`mailto:${companyInfo.publicEmail}?subject=${encodeURIComponent(t("legal.feedbackSubject"))}`}
                   className={footerLink}

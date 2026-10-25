@@ -97,6 +97,10 @@ assert(
     middleware.includes("(?!api|trpc|_next|_vercel"),
   "L. API routes still excluded from middleware matcher"
 );
+assert(
+  middleware.includes('pathname === "/bmk"'),
+  "L. /bmk is not redirected by locale middleware"
+);
 
 assert(
   callbackRoute.includes("exchangeCodeForSession") &&

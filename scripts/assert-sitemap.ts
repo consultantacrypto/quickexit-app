@@ -105,6 +105,18 @@ assert(
   staticEntries.every((e) => e.url.startsWith(PRODUCTION_SITE_URL)),
   "static urls are production canonical",
 );
+assert(
+  staticEntries.some((e) => e.url === `${PRODUCTION_SITE_URL}/bmk`),
+  "official /bmk url present",
+);
+assert(
+  staticEntries.some((e) => e.url === `${PRODUCTION_SITE_URL}/ro/bmk`),
+  "ro bmk present",
+);
+assert(
+  staticEntries.some((e) => e.url === `${PRODUCTION_SITE_URL}/en/bmk`),
+  "en bmk present",
+);
 
 const merged = mergeSitemapEntries(staticEntries, entries, [
   { url: "https://evil.example/leak", lastModified: now },
