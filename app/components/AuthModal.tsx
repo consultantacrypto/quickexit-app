@@ -6,6 +6,8 @@ import { supabase } from "@/lib/supabase";
 import { safeInternalPath } from "@/lib/authRedirect";
 import { trackAuthIdentityEvent } from "@/lib/authIdentity/analytics";
 import { getAuthCallbackUrl } from "@/lib/siteUrl";
+import HeardFromFields from "@/app/components/HeardFromFields";
+import { parseHeardFrom, readAttributionSnapshot, rememberSelfReport } from "@/lib/attribution";
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -18,6 +20,9 @@ export default function AuthModal({ isOpen, onClose, nextPath = "/dashboard" }: 
   const locale = useLocale();
   const t = useTranslations("Auth");
   const [email, setEmail] = useState("");
+  const [heardFrom, setHeardFrom] = useState("");
+  const [heardFromDetail, setHeardFromDetail] = useState("");
+  const [heardError, setHeardError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState<{ text: string; type: "error" | "success" | "" }>({ text: "", type: "" });
   const safeNextPath = safeInternalPath(nextPath, "/dashboard");
@@ -27,6 +32,11 @@ export default function AuthModal({ isOpen, onClose, nextPath = "/dashboard" }: 
       const savedEmail = localStorage.getItem("quickexit_email");
       if (savedEmail) {
         setEmail(savedEmail);
+      }
+      const stored = readAttributionSnapshot();
+      if (stored.heard_from) {
+        setHeardFrom(stored.heard_from);
+        setHeardFromDetail(stored.heard_from_detail || "");
       }
       setMessage({ text: "", type: "" });
       trackAuthIdentityEvent("auth_started", { surface: "auth_modal" });
@@ -44,8 +54,24 @@ export default function AuthModal({ isOpen, onClose, nextPath = "/dashboard" }: 
 
   if (!isOpen) return null;
 
+  const requireHeardFrom = () => {
+    const parsed = parseHeardFrom(heardFrom, heardFromDetail);
+    if (!parsed) {
+      setHeardError(
+        heardFrom === "other"
+          ? "Scrie pe scurt de unde ai aflat."
+          : "Alege de unde ai aflat de QuickExit.",
+      );
+      return false;
+    }
+    rememberSelfReport(parsed.heard_from, parsed.heard_from_detail);
+    setHeardError(null);
+    return true;
+  };
+
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!requireHeardFrom()) return;
     setIsLoading(true);
     setMessage({ text: "", type: "" });
 
@@ -83,6 +109,7 @@ export default function AuthModal({ isOpen, onClose, nextPath = "/dashboard" }: 
   };
 
   const handleGoogleLogin = async () => {
+    if (!requireHeardFrom()) return;
     trackAuthIdentityEvent("auth_provider_selected", {
       provider_category: "google",
       surface: "auth_modal",
@@ -140,6 +167,14 @@ export default function AuthModal({ isOpen, onClose, nextPath = "/dashboard" }: 
         </div>
 
         <div className="px-10 pb-12 space-y-6">
+          <HeardFromFields
+            idPrefix="signup-heard-from"
+            value={heardFrom}
+            detail={heardFromDetail}
+            onValueChange={setHeardFrom}
+            onDetailChange={setHeardFromDetail}
+            error={heardError}
+          />
           <button
             type="button"
             onClick={() => void handleGoogleLogin()}

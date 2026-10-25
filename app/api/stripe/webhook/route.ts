@@ -43,6 +43,7 @@ import {
   shouldRejectTestModeEvent,
 } from "@/lib/mediaWebhookFulfillment";
 import { notifyMediaHqPaidQueued } from "@/lib/notifyMediaHq";
+import { recordCheckoutPayment } from "@/lib/recordCheckoutPayment";
 import {
   captureException,
   captureMessage,
@@ -533,6 +534,20 @@ export async function POST(req: Request) {
     }
 
     const row = existing;
+
+    const paymentWrite = await recordCheckoutPayment({
+      supabase,
+      session,
+      packageId: activation.packageId,
+      priceId: activation.priceId,
+      listingId,
+      demandId,
+      userId,
+      mediaOrderId: type === "listing" ? mediaOrderId : null,
+    });
+    if (paymentWrite === "retry") {
+      return new NextResponse("payments persist failed", { status: 500 });
+    }
 
     if (type === "listing") {
       const imagesGate = listingImagesReadyForCheckout(row.listing_kind, row.images);

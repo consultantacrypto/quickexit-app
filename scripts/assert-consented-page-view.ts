@@ -131,11 +131,12 @@ assert(pageViewEvents().length === 1, "same-route rerender does not duplicate pa
 assert(trackConsentedPageView("/ro") === false, "Strict Mode remount does not duplicate");
 assert(pageViewEvents().length === 1, "Strict Mode remount keeps a single page_view");
 
-assert(trackConsentedPageView("/ro/anunturi") === false, "internal navigation does not send");
-assert(pageViewEvents().length === 1, "internal navigation keeps a single explicit page_view");
-assert(pageViewPaths()[0] === "/ro", "internal navigation does not replace the grant path");
-assert(trackConsentedPageView("/ro/tarife") === false, "later client route does not send");
-assert(pageViewEvents().length === 1, "later client route does not add page_view");
+assert(trackConsentedPageView("/ro/anunturi") === true, "internal navigation sends page_view");
+assert(pageViewEvents().length === 2, "internal navigation adds a page_view");
+assert(pageViewPaths()[1] === "/ro/anunturi", "internal navigation uses the new path");
+assert(trackConsentedPageView("/ro/tarife") === true, "later client route sends page_view");
+assert(pageViewEvents().length === 3, "later client route adds a page_view");
+assert(pageViewPaths()[2] === "/ro/tarife", "later client route uses its path");
 
 revokeAnalyticsConsent();
 const afterRevoke = pageViewEvents().length;
@@ -149,8 +150,8 @@ assert(trackConsentedPageView("/ro/anunturi") === true, "re-grant sends current 
 assert(pageViewEvents().length === afterRevoke + 1, "re-grant sends exactly one page_view");
 assert(pageViewPaths()[afterRevoke] === "/ro/anunturi", "re-grant page_view uses current path");
 assert(trackConsentedPageView("/ro/anunturi") === false, "re-grant remount does not duplicate");
-assert(trackConsentedPageView("/ro") === false, "post-regrant navigation does not send");
-assert(pageViewEvents().length === afterRevoke + 1, "post-regrant navigation stays at one page_view");
+assert(trackConsentedPageView("/ro") === true, "post-regrant navigation sends page_view");
+assert(pageViewEvents().length === afterRevoke + 2, "post-regrant navigation adds a page_view");
 
 const consentTags = readFileSync("lib/consentTags.ts", "utf8");
 assert(
@@ -180,8 +181,8 @@ assert(!layout.includes("@vercel/analytics"), "layout does not add Vercel Analyt
 const analytics = readFileSync("lib/analytics.ts", "utf8");
 assert(analytics.includes("trackConsentedPageView"), "consented page_view helper exists");
 assert(analytics.includes('dispatchGtagEvent(') && analytics.includes('"page_view"'), "helper dispatches GA4 page_view");
-assert(analytics.includes("consentedPageViewSentThisCycle"), "helper uses a per-consent-cycle gate");
-assert(!analytics.includes("lastConsentedPageViewPath"), "helper does not dedupe by last pathname");
-assert(!analytics.includes('eventName: "purchase"'), "helper does not add purchase");
+assert(analytics.includes("lastConsentedPageViewPath"), "helper dedupes consented page views by path");
+assert(!analytics.includes("consentedPageViewSentThisCycle"), "boolean consent-cycle gate is gone");
+assert(analytics.includes("trackPurchaseEvent"), "client purchase helper exists");
 
 console.log("OK consented-page-view");

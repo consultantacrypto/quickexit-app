@@ -5,6 +5,8 @@ import { supabase } from "@/lib/supabase";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { trackEvent } from "@/lib/analytics";
+import { attributionDbFields, isOptionalAttributionColumnError } from "@/lib/attribution";
+import { snapshotForWrite } from "@/lib/attributionWrite";
 import { parseDemandBudgetRange, type DemandBudgetRangeErrorCode } from "@/lib/demandBudget";
 import {
   DEMAND_STANDARD_DURATION_DAYS,
@@ -115,22 +117,27 @@ export default function PosteazaCerereClient() {
         console.error("[posteaza-cerere] excepție la profiles update (ignorată):", profileErr);
       }
 
-      const { data: insertedData, error } = await supabase
+      const demandSnapshot = await snapshotForWrite(user.id);
+      const demandRow = {
+        buyer_id: user.id,
+        target_asset: targetAsset,
+        category: category,
+        budget_min: parsedRange.budgetMin,
+        budget: parsedRange.budget,
+        description: description,
+        requirements: requirements,
+        status: "pending_payment",
+      };
+      let { data: insertedData, error } = await supabase
         .from("demands")
-        .insert([
-          {
-            buyer_id: user.id,
-            target_asset: targetAsset,
-            category: category,
-            budget_min: parsedRange.budgetMin,
-            budget: parsedRange.budget,
-            description: description,
-            requirements: requirements,
-            status: "pending_payment",
-          },
-        ])
+        .insert([{ ...demandRow, ...attributionDbFields(demandSnapshot) }])
         .select()
         .single();
+      if (error && isOptionalAttributionColumnError(error)) {
+        const retry = await supabase.from("demands").insert([demandRow]).select().single();
+        insertedData = retry.data;
+        error = retry.error;
+      }
 
       if (error) {
         console.error("[posteaza-cerere] demands insert error:", {

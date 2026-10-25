@@ -1,7 +1,15 @@
 import { getSiteUrl } from "@/lib/siteUrl";
 import { listingLocationLabelFromUnknown } from "@/lib/listingLocation";
 
-type SocialChannel = "x" | "linkedin" | "whatsapp" | "telegram" | "instagram" | "hq";
+type SocialChannel =
+  | "x"
+  | "linkedin"
+  | "whatsapp"
+  | "telegram"
+  | "instagram"
+  | "youtube"
+  | "tiktok"
+  | "hq";
 
 type ListingForShare = {
   id: string;
@@ -29,6 +37,8 @@ type ShareKit = {
   xPost: string;
   linkedinPost: string;
   instagramCaption: string;
+  youtubeCaption: string;
+  tiktokCaption: string;
   hashtags: string[];
 };
 
@@ -38,6 +48,8 @@ const UTM_BY_CHANNEL: Record<SocialChannel, { source: string; medium: string }> 
   whatsapp: { source: "whatsapp", medium: "share" },
   telegram: { source: "telegram", medium: "share" },
   instagram: { source: "instagram", medium: "social" },
+  youtube: { source: "youtube", medium: "social" },
+  tiktok: { source: "tiktok", medium: "social" },
   hq: { source: "hq_admin", medium: "manual_distribution" },
 };
 
@@ -126,6 +138,8 @@ export function buildSocialShareKit(listing: ListingForShare, baseOrigin?: strin
     whatsapp: buildUtmUrl(listingUrl, "whatsapp", listing.id),
     telegram: buildUtmUrl(listingUrl, "telegram", listing.id),
     instagram: buildUtmUrl(listingUrl, "instagram", listing.id),
+    youtube: buildUtmUrl(listingUrl, "youtube", listing.id),
+    tiktok: buildUtmUrl(listingUrl, "tiktok", listing.id),
     hq: buildUtmUrl(listingUrl, "hq", listing.id),
   };
 
@@ -193,6 +207,24 @@ export function buildSocialShareKit(listing: ListingForShare, baseOrigin?: strin
     .filter(Boolean)
     .join("\n");
 
+  const youtubeCaption = [
+    title,
+    exitPrice ? `Preț de vânzare rapidă: ${exitPrice}` : null,
+    "Detalii:",
+    utm.youtube,
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  const tiktokCaption = [
+    title,
+    exitPrice ? `Preț: ${exitPrice}` : null,
+    utm.tiktok,
+    hashtags.slice(0, 5).join(" "),
+  ]
+    .filter(Boolean)
+    .join("\n");
+
   return {
     listingUrl,
     utm,
@@ -203,6 +235,8 @@ export function buildSocialShareKit(listing: ListingForShare, baseOrigin?: strin
     xPost,
     linkedinPost,
     instagramCaption,
+    youtubeCaption,
+    tiktokCaption,
     hashtags,
   };
 }
