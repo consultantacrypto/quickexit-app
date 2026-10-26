@@ -53,9 +53,11 @@
 
 ## Post-promote
 
-10. **www health**
+10. **www health and the URLs this release changes**
     - `curl -fsS https://www.quickexit.ro/api/health` → 200
     - Apex `https://quickexit.ro/api/health` → 200 (or expected redirect to www)
+    - A Ready Staged deploy is not live until these succeed on `www`
+    - BMK release: `/bmk` → 200 (Romanian page, URL stays `/bmk`), `/en/bmk` → 200, `/bmk/bmk-logo-64.png` → 200 `image/png`
 
 11. **Logs / Sentry / Better Stack**
     - No spike in 5xx / health probe failures
