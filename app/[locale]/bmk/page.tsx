@@ -150,15 +150,13 @@ function BmkArticle({ copy, locale }: { copy: BmkCopy; locale: PageLocale }) {
               {copy.rebrandContractLead}{" "}
               <code className="break-all font-mono text-[13px] font-bold">{BMK_CONTRACT}</code>
             </p>
-            <p className="text-sm font-bold leading-relaxed md:text-base">
-              {copy.rebrandPageLabel}{" "}
-              <a
-                href={BMK_OFFICIAL_PAGE_URL}
-                className="break-all font-black underline decoration-black decoration-2 underline-offset-4"
-              >
-                {BMK_OFFICIAL_PAGE_URL}
-              </a>
-            </p>
+            <p className="text-sm font-bold leading-relaxed md:text-base">{copy.rebrandPageLabel}</p>
+            <a
+              href={BMK_OFFICIAL_PAGE_URL}
+              className="inline-block max-w-full text-sm font-black underline decoration-black decoration-2 underline-offset-4 md:text-base"
+            >
+              {BMK_OFFICIAL_PAGE_URL}
+            </a>
           </section>
 
           <section className="space-y-4 border-t border-black/10 pt-8">
