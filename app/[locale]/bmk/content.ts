@@ -11,6 +11,9 @@ export const BMK_POOL_ADDRESS = "0xc327fad26eb44ad0a6df53c00f1846a4f67d5f21";
 
 export const BMK_PAGE_TITLE = "Bitmarket (BMK) - QuickExit";
 
+/** Official public page named in the rebrand announcement. Apex redirects to www. */
+export const BMK_OFFICIAL_PAGE_URL = "https://quickexit.ro/bmk";
+
 export type BmkUse = {
   name: string;
   href: string;
@@ -39,6 +42,12 @@ export type BmkCopy = {
   heroNote: string;
   whatTitle: string;
   what: readonly [string, string];
+  rebrandKicker: string;
+  rebrandTitle: string;
+  rebrandLead: string;
+  rebrandBody: string;
+  rebrandContractLead: string;
+  rebrandPageLabel: string;
   officialTitle: string;
   details: readonly BmkDetail[];
   contractLabel: string;
@@ -86,6 +95,13 @@ const ro: BmkCopy = {
     "Bitmarket (BMK) este un token BEP-20 pe BNB Smart Chain, folosit ca mijloc de plată pentru servicii pe site-urile din ecosistemul nostru. Plătești în BMK servicii concrete (listări, pachete media, analize, verificări), la fel ca în orice altă monedă acceptată.",
     "BMK nu reprezintă acțiuni, dividende, dobândă sau vreun drept asupra companiei. Nu promitem randamente și nu facem afirmații despre preț.",
   ],
+  rebrandKicker: "Anunț oficial",
+  rebrandTitle: "Anunț oficial Bitmarket (BMK)",
+  rebrandLead: "Tokenul nu mai e prezentat ca proiect P2P/Payrico.",
+  rebrandBody:
+    "BMK este acum token de utilitate/plată pentru servicii în ecosistemul QuickExit: listings, pachete media, analiză tehnică și verificare adrese pe quickexit.ro, plus servicii pe mihaidaniel.ro, stirilecrypto.ro și stiriai.ro.",
+  rebrandContractLead: "Același contract BEP-20 pe BNB Smart Chain:",
+  rebrandPageLabel: "Pagina oficială:",
   officialTitle: "Date oficiale",
   details: [
     { label: "Nume / simbol", value: "Bitmarket / BMK" },
@@ -205,6 +221,13 @@ const en: BmkCopy = {
     "Bitmarket (BMK) is a BEP-20 token on BNB Smart Chain, used as a means of payment for services across our websites. You use BMK to pay for specific services (listings, media packages, analyses, verifications), the same way you would with any other accepted currency.",
     "BMK does not represent shares, dividends, interest or any claim on the company. We make no promises about returns and no statements about price.",
   ],
+  rebrandKicker: "Official announcement",
+  rebrandTitle: "Official Bitmarket (BMK) announcement",
+  rebrandLead: "The token is no longer presented as a P2P/Payrico project.",
+  rebrandBody:
+    "BMK is now a utility/payment token for services in the QuickExit ecosystem: listings, media packages, technical analysis and address verification on quickexit.ro, plus services on mihaidaniel.ro, stirilecrypto.ro and stiriai.ro.",
+  rebrandContractLead: "Same BEP-20 contract on BNB Smart Chain:",
+  rebrandPageLabel: "Official page:",
   officialTitle: "Official details",
   details: [
     { label: "Name / symbol", value: "Bitmarket / BMK" },
