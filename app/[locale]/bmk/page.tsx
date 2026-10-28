@@ -9,6 +9,7 @@ import CopyAddressButton from "./CopyAddressButton";
 import {
   BMK_BSCSCAN_TOKEN_URL,
   BMK_CONTRACT,
+  BMK_OFFICIAL_PAGE_URL,
   BMK_PAGE_TITLE,
   BMK_PANCAKE_URL,
   BMK_POOL_ADDRESS,
@@ -134,7 +135,33 @@ function BmkArticle({ copy, locale }: { copy: BmkCopy; locale: PageLocale }) {
         </header>
 
         <div className="space-y-10 rounded-[2rem] border-[3px] border-black bg-white p-6 shadow-[12px_12px_0_0_rgba(0,0,0,0.1)] md:p-14 md:shadow-[14px_14px_0_0_#FFD100]">
-          <section className="space-y-4">
+          <section
+            id="rebrand"
+            aria-labelledby="bmk-rebrand"
+            className="scroll-mt-20 space-y-4 rounded-2xl border-[3px] border-black bg-[#FFD100] p-5 text-black md:scroll-mt-36 md:p-6"
+          >
+            <p className="text-[10px] font-black uppercase tracking-[0.28em]">{copy.rebrandKicker}</p>
+            <h2 id="bmk-rebrand" className="text-xl font-black uppercase italic tracking-tight md:text-2xl">
+              {copy.rebrandTitle}
+            </h2>
+            <p className="text-sm font-black leading-relaxed md:text-base">{copy.rebrandLead}</p>
+            <p className="text-sm font-medium leading-relaxed md:text-base">{copy.rebrandBody}</p>
+            <p className="text-sm font-medium leading-relaxed md:text-base">
+              {copy.rebrandContractLead}{" "}
+              <code className="break-all font-mono text-[13px] font-bold">{BMK_CONTRACT}</code>
+            </p>
+            <p className="text-sm font-bold leading-relaxed md:text-base">
+              {copy.rebrandPageLabel}{" "}
+              <a
+                href={BMK_OFFICIAL_PAGE_URL}
+                className="break-all font-black underline decoration-black decoration-2 underline-offset-4"
+              >
+                {BMK_OFFICIAL_PAGE_URL}
+              </a>
+            </p>
+          </section>
+
+          <section className="space-y-4 border-t border-black/10 pt-8">
             <h2 className="text-xl font-black uppercase italic tracking-tight text-black md:text-2xl">{copy.whatTitle}</h2>
             {copy.what.map((paragraph) => (
               <p key={paragraph} className="text-sm font-medium leading-relaxed text-neutral-700 md:text-base">
