@@ -51,6 +51,10 @@ import {
   logInfo,
   logWarn,
 } from "@/lib/observability";
+import {
+  DEALER_CHECKOUT_TYPE,
+  classifyDealerWebhookSession,
+} from "@/lib/dealerSubscription";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -248,6 +252,28 @@ export async function POST(req: Request) {
     const earlyCorrelationId = correlationFromStripeMetadata(
       (session.metadata as Record<string, string> | null) ?? null,
     );
+
+    if (session.metadata?.type === DEALER_CHECKOUT_TYPE) {
+      const decision = classifyDealerWebhookSession(session);
+      logInfo({
+        component: "stripe_webhook",
+        operation: "dealer_subscription",
+        result: decision.action === "rejected" ? "skip" : "ok",
+        correlation_id: earlyCorrelationId,
+        eventId: event.id,
+        sessionId: session.id,
+        dealer_action: decision.action,
+        error_code: decision.action === "rejected" ? decision.code : null,
+        amount_total: session.amount_total,
+        currency: session.currency,
+      });
+      return NextResponse.json({
+        received: true,
+        dealer: decision.action,
+        ...(decision.action === "rejected" ? { code: decision.code } : {}),
+      });
+    }
+
     const checkoutType = parseCheckoutObjectType(session.metadata?.type);
     if (!checkoutType) {
       logInfo({
