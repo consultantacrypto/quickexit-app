@@ -117,6 +117,14 @@ assert(
   staticEntries.some((e) => e.url === `${PRODUCTION_SITE_URL}/en/bmk`),
   "en bmk present",
 );
+assert(
+  staticEntries.some((e) => e.url === `${PRODUCTION_SITE_URL}/dealeri`),
+  "official /dealeri url present",
+);
+assert(
+  staticEntries.some((e) => e.url === `${PRODUCTION_SITE_URL}/ro/dealeri`),
+  "ro dealeri present",
+);
 
 const merged = mergeSitemapEntries(staticEntries, entries, [
   { url: "https://evil.example/leak", lastModified: now },

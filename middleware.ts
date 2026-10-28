@@ -7,10 +7,14 @@ const handleI18nRouting = createMiddleware(routing);
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  // /bmk is the public token page (rewritten to /ro/bmk). next-intl must not
-  // redirect it to /ro/bmk. Logo files under /bmk/*.png are already outside
-  // this matcher because the path contains a dot.
-  if (pathname === "/bmk" || pathname === "/bmk/") {
+  // /bmk and /dealeri are public unprefixed URLs (rewritten to /ro/...).
+  // next-intl must not redirect them to /ro/bmk or /ro/dealeri.
+  if (
+    pathname === "/bmk" ||
+    pathname === "/bmk/" ||
+    pathname === "/dealeri" ||
+    pathname === "/dealeri/"
+  ) {
     return NextResponse.next();
   }
 

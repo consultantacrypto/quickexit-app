@@ -10,6 +10,8 @@ const nextConfig: NextConfig = {
       afterFiles: [
         { source: "/bmk", destination: "/ro/bmk" },
         { source: "/bmk/", destination: "/ro/bmk" },
+        { source: "/dealeri", destination: "/ro/dealeri" },
+        { source: "/dealeri/", destination: "/ro/dealeri" },
       ],
     };
   },

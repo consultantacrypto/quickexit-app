@@ -69,6 +69,7 @@ export function staticAndCategorySitemapPaths(): string[] {
     "/future-mobility",
     "/contact",
     "/bmk",
+    "/dealeri",
     "/termeni",
     "/confidentialitate",
     "/cookies",
@@ -94,12 +95,14 @@ export function buildStaticSitemapEntries(
       );
       const isGuide = path.startsWith("/ghid/");
       const isBmk = path === "/bmk";
+      const isDealeri = path === "/dealeri";
       return {
         url: localizedSitemapUrl(origin, locale, path),
         lastModified: now,
         changeFrequency:
-          isGuide || isAiLanding || isBmk ? ("monthly" as const) : ("daily" as const),
-        priority: path === "/" ? 1 : isBmk ? 0.6 : isGuide ? 0.7 : isAiLanding ? 0.75 : 0.8,
+          isGuide || isAiLanding || isBmk || isDealeri ? ("monthly" as const) : ("daily" as const),
+        priority:
+          path === "/" ? 1 : isBmk ? 0.6 : isDealeri || isGuide ? 0.7 : isAiLanding ? 0.75 : 0.8,
       };
     }),
   );
@@ -111,6 +114,12 @@ export function buildStaticSitemapEntries(
       lastModified: now,
       changeFrequency: "monthly",
       priority: 0.6,
+    },
+    {
+      url: `${origin}/dealeri`,
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.7,
     },
   ];
 }
