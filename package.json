@@ -24,6 +24,7 @@
     "assert:media-pricing": "tsx scripts/assert-media-pricing.ts",
     "assert:listing-admin-bump": "tsx scripts/assert-listing-admin-bump.ts",
     "assert:listing-publication-security": "tsx scripts/assert-listing-publication-security.ts",
+    "assert:listing-description": "tsx scripts/assert-listing-description.ts",
     "e2e:listing-publication-security-staging": "tsx scripts/e2e-listing-publication-security-staging.ts",
     "assert:all-listings-link": "tsx scripts/assert-all-listings-link.ts",
     "audit:auth-profiles": "tsx scripts/audit-auth-profiles.ts",

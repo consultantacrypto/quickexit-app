@@ -20,6 +20,8 @@ import { trackFunnelEvent } from "@/lib/funnelAnalytics";
 import EvaluateTurnstile, { type EvaluateTurnstileHandle } from "@/components/EvaluateTurnstile";
 import { isEvaluateTurnstileUiEnabled } from "@/lib/turnstilePublic";
 import { publicListingKindPayload } from "@/lib/listingInventory";
+import { mergePastedListingDescription } from "@/lib/listingDescription";
+import { uploadListingImageFile } from "@/lib/listingImageUpload";
 import { getPriceIdForPackageId } from "@/lib/stripePackages";
 import { normalizePhone } from "@/lib/financingLead";
 import { resolveEvaluateCategoryKey } from "@/lib/evaluateSafety";
@@ -1155,6 +1157,11 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
       setIsSaving(false);
       return;
     }
+    if (images.length < 1) {
+      setFlowError(tPost("checkoutErrors.imagesRequired"));
+      setIsSaving(false);
+      return;
+    }
     if (pricingMode === "fixed_price") {
       if (!hasValidExitPriceInput) {
         setFlowError(tPost("pricingMode.validation.fixedPriceRequired"));
@@ -1305,25 +1312,12 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
       }
 
       const uploadedImageUrls: string[] = [];
-      if (images.length > 0) {
-        for (const file of images) {
-          const fileExt = file.name.split(".").pop();
-          const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
-          const filePath = `${user.id}/${fileName}`;
-
-          const { error: uploadError } = await supabase.storage
-            .from("listings")
-            .upload(filePath, file);
-          if (uploadError) {
-            console.error("Supabase Upload Error:", uploadError);
-            throw new Error("upload_failed");
-          }
-
-          const { data: publicUrlData } = supabase.storage
-            .from("listings")
-            .getPublicUrl(filePath);
-          uploadedImageUrls.push(publicUrlData.publicUrl);
+      for (const file of images) {
+        const uploaded = await uploadListingImageFile(supabase, user.id, file);
+        if (!uploaded.ok) {
+          throw new Error(`upload_failed:${file.name}`);
         }
+        uploadedImageUrls.push(uploaded.url);
       }
 
       const finalMarketPrice =
@@ -1453,15 +1447,20 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
           pricing_mode: pricingMode,
           status: "failed",
           reason:
-            typeof error?.message === "string" && error.message === "upload_failed"
+            typeof error?.message === "string" && error.message.startsWith("upload_failed")
               ? "upload_failed"
               : typeof error?.message === "string" && error.message === "auth_required"
                 ? "auth_required"
                 : "checkout_error",
         }),
       );
-      const msg =
-        typeof error?.message === "string" && error.message === "upload_failed"
+      const uploadFailedName =
+        typeof error?.message === "string" && error.message.startsWith("upload_failed:")
+          ? error.message.slice("upload_failed:".length)
+          : "";
+      const msg = uploadFailedName
+        ? tPost("checkoutErrors.uploadFailedNamed", { name: uploadFailedName })
+        : typeof error?.message === "string" && error.message === "upload_failed"
           ? tPost("checkoutErrors.uploadFailed")
           : typeof error?.message === "string" && error.message === "auth_required"
             ? tPost("checkoutErrors.authRequired")
@@ -2229,8 +2228,24 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                   rows={5}
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
+                  onPaste={(event) => {
+                    const merged = mergePastedListingDescription(
+                      description,
+                      event.currentTarget.selectionStart ?? description.length,
+                      event.currentTarget.selectionEnd ?? description.length,
+                      event.clipboardData.getData("text/plain"),
+                      event.clipboardData.getData("text/html"),
+                    );
+                    if (!merged) return;
+                    event.preventDefault();
+                    const field = event.currentTarget;
+                    setDescription(merged.value);
+                    requestAnimationFrame(() => {
+                      field.setSelectionRange(merged.caret, merged.caret);
+                    });
+                  }}
                   placeholder={tPost("step2.descriptionPlaceholder")}
-                  className={`${inputBase} mt-2 resize-none font-medium leading-relaxed normal-case`}
+                  className={`${inputBase} mt-2 max-w-full resize-none whitespace-pre-wrap break-words font-medium leading-relaxed normal-case`}
                 />
 
                 <div className="mt-10">

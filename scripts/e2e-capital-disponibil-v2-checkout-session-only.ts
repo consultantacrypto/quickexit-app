@@ -22,7 +22,7 @@ function load(path: string): Record<string, string> {
     if (!line || line.startsWith("#")) continue;
     const i = line.indexOf("=");
     if (i < 1) continue;
-    let v = line.slice(i + 1).trim().replace(/^["']|["']$/g, "");
+    const v = line.slice(i + 1).trim().replace(/^["']|["']$/g, "");
     o[line.slice(0, i).trim()] = v;
   }
   return o;
