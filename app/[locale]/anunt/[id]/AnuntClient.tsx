@@ -33,6 +33,7 @@ import {
 import { listingLocationLabelFromUnknown } from "@/lib/listingLocation";
 import { getPricingMode } from "@/lib/pricingMode";
 import { resolveListingField } from "@/lib/i18n/listingContent";
+import { normalizeListingDescription } from "@/lib/listingDescription";
 import type {
   ListingSellerContext,
   PublicListingRow,
@@ -1344,8 +1345,8 @@ export default function AnuntClient({
                   {t("about.title")}{" "}
                   <span className="text-neutral-500">{t("about.titleHighlight")}</span>
                 </h2>
-                <p className="max-w-3xl whitespace-pre-wrap text-sm font-medium italic leading-relaxed text-neutral-800 md:text-base">
-                  {listingDescription}
+                <p className="max-w-3xl whitespace-pre-wrap break-words text-sm font-medium italic leading-relaxed text-neutral-800 md:text-base">
+                  {normalizeListingDescription(listingDescription)}
                 </p>
               </div>
             </div>

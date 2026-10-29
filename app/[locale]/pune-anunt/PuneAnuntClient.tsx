@@ -20,6 +20,7 @@ import { trackFunnelEvent } from "@/lib/funnelAnalytics";
 import EvaluateTurnstile, { type EvaluateTurnstileHandle } from "@/components/EvaluateTurnstile";
 import { isEvaluateTurnstileUiEnabled } from "@/lib/turnstilePublic";
 import { publicListingKindPayload } from "@/lib/listingInventory";
+import { mergePastedListingDescription } from "@/lib/listingDescription";
 import { getPriceIdForPackageId } from "@/lib/stripePackages";
 import { normalizePhone } from "@/lib/financingLead";
 import { resolveEvaluateCategoryKey } from "@/lib/evaluateSafety";
@@ -2229,8 +2230,24 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                   rows={5}
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
+                  onPaste={(event) => {
+                    const merged = mergePastedListingDescription(
+                      description,
+                      event.currentTarget.selectionStart ?? description.length,
+                      event.currentTarget.selectionEnd ?? description.length,
+                      event.clipboardData.getData("text/plain"),
+                      event.clipboardData.getData("text/html"),
+                    );
+                    if (!merged) return;
+                    event.preventDefault();
+                    const field = event.currentTarget;
+                    setDescription(merged.value);
+                    requestAnimationFrame(() => {
+                      field.setSelectionRange(merged.caret, merged.caret);
+                    });
+                  }}
                   placeholder={tPost("step2.descriptionPlaceholder")}
-                  className={`${inputBase} mt-2 resize-none font-medium leading-relaxed normal-case`}
+                  className={`${inputBase} mt-2 max-w-full resize-none whitespace-pre-wrap break-words font-medium leading-relaxed normal-case`}
                 />
 
                 <div className="mt-10">

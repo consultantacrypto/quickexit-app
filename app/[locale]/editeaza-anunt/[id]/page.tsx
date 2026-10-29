@@ -26,6 +26,7 @@ import {
   parseListingLocationFromDetails,
   tryParseLegacyListingLocation,
 } from "@/lib/listingLocation";
+import { mergePastedListingDescription } from "@/lib/listingDescription";
 
 function EditAdPage() {
   const tPost = useTranslations("PostListing");
@@ -517,7 +518,28 @@ function EditAdPage() {
 
             <div className="md:col-span-2">
               <label className="text-[10px] font-black uppercase text-gray-400">Descriere & Condiții</label>
-              <textarea rows={6} value={description} onChange={(e) => setDescription(e.target.value)} className="w-full mt-1 p-4 border-2 border-black rounded-xl font-bold italic resize-none focus:border-[#FFD100] outline-none" />
+              <textarea
+                rows={6}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                onPaste={(event) => {
+                  const merged = mergePastedListingDescription(
+                    description,
+                    event.currentTarget.selectionStart ?? description.length,
+                    event.currentTarget.selectionEnd ?? description.length,
+                    event.clipboardData.getData("text/plain"),
+                    event.clipboardData.getData("text/html"),
+                  );
+                  if (!merged) return;
+                  event.preventDefault();
+                  const field = event.currentTarget;
+                  setDescription(merged.value);
+                  requestAnimationFrame(() => {
+                    field.setSelectionRange(merged.caret, merged.caret);
+                  });
+                }}
+                className="mt-1 w-full max-w-full resize-none whitespace-pre-wrap break-words rounded-xl border-2 border-black p-4 font-bold italic leading-relaxed outline-none focus:border-[#FFD100]"
+              />
             </div>
 
             {isOwner ? (
