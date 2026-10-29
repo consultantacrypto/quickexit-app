@@ -37,9 +37,15 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
           NEXT_PUBLIC_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJleGFtcGxlIn0.stubble
           NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: pk_test_ci_stub
+          # Module-scope Stripe/Supabase clients must not throw while collecting page data.
+          STRIPE_SECRET_KEY: sk_test_ci_stub
+          SUPABASE_SERVICE_ROLE_KEY: ci_stub_service_role
         run: npm run build
 
       - name: Preview boundary assert
+        env:
+          # Public project host already pinned in next.config.ts. CI has no .env.local.
+          NEXT_PUBLIC_SUPABASE_URL: https://geywuzwbzecknokvnins.supabase.co
         run: npm run assert:boundary
 
       - name: Zero-image guard

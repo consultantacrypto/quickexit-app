@@ -146,7 +146,7 @@ async function main() {
     OTHER: 0,
   };
 
-  let backfill = { attempted: false, inserted: 0, errors: 0 };
+  const backfill = { attempted: false, inserted: 0, errors: 0 };
   if (doBackfill && missingIds.length > 0) {
     backfill.attempted = true;
     // Insert only id — never touch kyc_status / other columns

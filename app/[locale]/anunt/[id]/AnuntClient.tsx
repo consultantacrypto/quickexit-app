@@ -460,12 +460,13 @@ export default function AnuntClient({
       setImageLightboxOpen(false);
       return;
     }
-    const urls =
-      Array.isArray(adData.images) && adData.images.length > 0
-        ? adData.images
-        : [
-            "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1200&q=80",
-          ];
+    const urls = Array.isArray(adData.images)
+      ? adData.images.filter((img): img is string => typeof img === "string" && img.trim().length > 0)
+      : [];
+    if (urls.length === 0) {
+      setImageLightboxOpen(false);
+      return;
+    }
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         setImageLightboxOpen(false);
@@ -625,12 +626,9 @@ export default function AnuntClient({
     if (!Number.isFinite(value)) return minOffer;
     return Math.min(maxOffer, Math.max(minOffer, Math.round(value)));
   };
-  const displayImages =
-    adData.images && adData.images.length > 0
-      ? adData.images
-      : [
-          "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1200&q=80",
-        ];
+  const displayImages = Array.isArray(adData.images)
+    ? adData.images.filter((img): img is string => typeof img === "string" && img.trim().length > 0)
+    : [];
 
   const sellerDisplayName = resolvePublicSellerDisplayName(
     sellerProfile,
@@ -1201,6 +1199,7 @@ export default function AnuntClient({
         <div className="mb-14 grid grid-cols-1 gap-8 lg:grid-cols-12 lg:gap-10 xl:gap-12">
           <div className="space-y-6 lg:col-span-8">
             <div className="space-y-4">
+              {displayImages.length > 0 ? (
               <button
                 type="button"
                 onClick={() => setImageLightboxOpen(true)}
@@ -1208,7 +1207,7 @@ export default function AnuntClient({
                 aria-label={t("gallery.openLightbox")}
               >
                 <ListingMedia
-                  src={displayImages[currentImageIndex]}
+                  src={displayImages[currentImageIndex] ?? displayImages[0]}
                   alt={listingTitle || t("defaults.listingImageAlt")}
                   sizes="(max-width: 768px) 100vw, (max-width: 1200px) 70vw, 900px"
                   priority
@@ -1225,6 +1224,17 @@ export default function AnuntClient({
                   {t("gallery.tapToEnlarge")}
                 </div>
               </button>
+              ) : (
+                <div
+                  className="flex h-[300px] w-full items-center justify-center rounded-[2rem] border-[3px] border-black bg-[#F5F1E8] px-6 text-center shadow-[10px_10px_0_0_#FFD100] md:h-[400px] lg:h-[450px]"
+                  role="img"
+                  aria-label={t("gallery.imagesUnavailable")}
+                >
+                  <p className="max-w-sm text-sm font-black uppercase italic tracking-wide text-neutral-700">
+                    {t("gallery.imagesUnavailable")}
+                  </p>
+                </div>
+              )}
 
               {displayImages.length > 1 && (
                 <div className="grid grid-cols-4 gap-3 md:gap-4">
@@ -1484,10 +1494,7 @@ export default function AnuntClient({
                     catalogOffer={isCatalogOffer(item.listing_kind)}
                     id={item.id}
                     title={item.title || ""}
-                    image={
-                      item.images?.[0] ||
-                      "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=800&q=80"
-                    }
+                    image={item.images?.[0] || ""}
                     {...adCardPricingProps(item, getNumberLocale(locale))}
                     type={st}
                     location={listingLocationLabelFromUnknown(item.details)}
@@ -1529,10 +1536,7 @@ export default function AnuntClient({
                   catalogOffer={isCatalogOffer(item.listing_kind)}
                   id={item.id}
                   title={item.title || ""}
-                  image={
-                    item.images?.[0] ||
-                    "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=800&q=80"
-                  }
+                  image={item.images?.[0] || ""}
                   {...adCardPricingProps(item, getNumberLocale(locale))}
                   type={st}
                   location={listingLocationLabelFromUnknown(item.details)}
@@ -1676,6 +1680,7 @@ export default function AnuntClient({
             className="relative h-[min(85vh,920px)] w-full max-w-6xl"
             onClick={(e) => e.stopPropagation()}
           >
+            {displayImages[currentImageIndex] ? (
             <Image
               src={canonicalListingImageSrc(displayImages[currentImageIndex])}
               alt={listingTitle || t("defaults.listingImageAlt")}
@@ -1684,6 +1689,11 @@ export default function AnuntClient({
               sizes="100vw"
               priority
             />
+            ) : (
+              <p className="flex h-full items-center justify-center text-center text-sm font-black uppercase italic text-white">
+                {t("gallery.imagesUnavailable")}
+              </p>
+            )}
           </div>
 
           <p className="pointer-events-none absolute bottom-3 left-0 right-0 px-4 text-center text-[10px] font-semibold uppercase tracking-wide text-white/75">
