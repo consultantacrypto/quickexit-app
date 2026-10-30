@@ -28,6 +28,14 @@ const nextConfig: NextConfig = {
         pathname: "/**",
       },
       {
+        // Public Cloudflare R2 bucket used for listing photos.
+        // Exact host only: r2.dev is multi-tenant, so a wildcard would let
+        // /_next/image optimize any public bucket.
+        protocol: "https",
+        hostname: "pub-a59ba04ade6e43e4a85828560315c867.r2.dev",
+        pathname: "/**",
+      },
+      {
         protocol: "https",
         hostname: "i.ytimg.com",
         pathname: "/vi/**",
