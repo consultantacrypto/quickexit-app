@@ -12,6 +12,7 @@ function assert(condition: unknown, message: string) {
 }
 
 const PRODUCTION_SUPABASE_HOST = "geywuzwbzecknokvnins.supabase.co";
+const LISTING_R2_PUBLIC_HOST = "pub-a59ba04ade6e43e4a85828560315c867.r2.dev";
 
 if (existsSync(resolve(".env.local"))) {
   loadDotenv({ path: resolve(".env.local") });
@@ -21,6 +22,10 @@ const nextConfig = readFileSync(resolve("next.config.ts"), "utf8");
 assert(
   nextConfig.includes(PRODUCTION_SUPABASE_HOST),
   "next.config images host is the Production Supabase project",
+);
+assert(
+  nextConfig.includes(LISTING_R2_PUBLIC_HOST),
+  "next.config images host allows the public R2 listing bucket",
 );
 
 const layout = readFileSync(resolve("app/[locale]/layout.tsx"), "utf8");

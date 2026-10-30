@@ -34,6 +34,12 @@ assert(
     "https://images.unsplash.com/photo-x",
   "non-supabase URLs pass through",
 );
+const r2ListingUrl =
+  "https://pub-a59ba04ade6e43e4a85828560315c867.r2.dev/listings/user/leopard7/01.jpg";
+assert(
+  canonicalListingImageSrc(r2ListingUrl) === r2ListingUrl,
+  "R2 listing URLs pass through unchanged",
+);
 
 assert(shouldObjectCover(1.5, LISTING_CARD_ASPECT) === true, "3:2 into 4:3 uses cover");
 assert(shouldObjectCover(1.333, LISTING_CARD_ASPECT) === true, "native 4:3 uses cover");
