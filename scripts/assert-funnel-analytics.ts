@@ -291,6 +291,16 @@ assert(trackFunnelEvent("listing_view", { locale: "ro", category: "auto", funnel
 assert(trackFunnelEvent("listing_view", { locale: "ro", category: "auto", funnel_source: "listing_detail" }) === false, "listing_view Strict Mode remount suppressed");
 assert(trackFunnelEvent("offer_started", { locale: "ro", category: "auto", funnel_source: "listing_detail" }) === true, "offer_started on modal open");
 assert(trackFunnelEvent("offer_started", { locale: "ro", category: "auto", funnel_source: "listing_detail" }) === false, "closing/reopening does not duplicate offer_started once-gate");
+const deepLinkOffer = sanitizeFunnelParams({
+  locale: "ro",
+  funnel_source: "listing_detail",
+  interaction_source: "deep_link",
+  email: "a@b.c",
+});
+assert(deepLinkOffer.interaction_source === "deep_link", "deep_link interaction_source kept");
+assert(!("email" in deepLinkOffer), "deep_link payload drops email");
+const freeTextSource = sanitizeFunnelParams({ interaction_source: "button" });
+assert(!("interaction_source" in freeTextSource), "free-text interaction_source dropped");
 assert(
   trackFunnelEvent("offer_submitted", { locale: "ro", category: "auto", funnel_source: "listing_detail" }, { skipOnce: true }) === true,
   "offer_submitted can fire after insert",
@@ -393,6 +403,8 @@ assert(listing.includes('trackFunnelEvent("listing_view"'), "listing_view instru
 assert(listing.includes("listingViewOnceRef"), "listing_view has Strict Mode once-ref");
 assert(listing.includes('trackFunnelEvent("request_details_click"'), "request_details_click instrumented");
 assert(listing.includes('trackFunnelEvent("offer_started"'), "offer_started instrumented");
+assert(listing.includes('interaction_source: interactionSource'), "deep link passes interaction_source into offer_started");
+assert(listing.includes('interactionSource === "deep_link"') || listing.includes('interaction_source: "deep_link"') || listing.includes("openOfferModal(\"deep_link\")"), "deep link tags offer_started");
 assert(listing.includes('trackFunnelEvent("offer_submitted"'), "offer_submitted instrumented");
 assert(
   listing.indexOf("if (error) throw error") < listing.indexOf('trackFunnelEvent("offer_submitted"'),

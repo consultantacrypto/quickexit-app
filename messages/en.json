@@ -1104,6 +1104,7 @@
         "disclaimer": "References may vary by configuration, taxes, availability and documentation."
       },
       "cta": {
+        "primaryMakeOffer": "Make an offer",
         "primaryRequestDetails": "Request details",
         "primaryCatalogOffer": "Request price and availability",
         "primaryAuction": "Send offer",

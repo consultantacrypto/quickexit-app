@@ -71,3 +71,6 @@ jobs:
 
       - name: Publish EN i18n
         run: npx tsx scripts/assert-publish-en-i18n.ts
+
+      - name: Offer-first CTA and UTM
+        run: npx tsx scripts/assert-offer-cta-utm.ts

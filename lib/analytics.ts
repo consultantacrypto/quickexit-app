@@ -275,6 +275,11 @@ export function getAttribution(): AttributionData {
   }
 }
 
+/** Current-page UTMs only. Does not read or write storage and does not require consent. */
+export function readUrlAttribution(): AttributionData {
+  return buildUtmOnlyAttribution();
+}
+
 export function appendAttributionParams(
   params?: EventParams,
   mode: AnalyticsTrackOptions["attributionMode"] = "utm_only",

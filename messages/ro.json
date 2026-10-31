@@ -1104,6 +1104,7 @@
         "disclaimer": "Referințele pot varia în funcție de configurație, taxe, disponibilitate și documente."
       },
       "cta": {
+        "primaryMakeOffer": "Fă o ofertă",
         "primaryRequestDetails": "Solicită detalii",
         "primaryCatalogOffer": "Solicită prețul și disponibilitatea",
         "primaryAuction": "Trimite ofertă",
