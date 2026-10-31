@@ -37,3 +37,19 @@ export function getListingCtaMode(listing: ListingCtaLike): ListingCtaMode {
   if (category.includes("auto") && listing.isFinancingEnabled) return "auto_financing";
   return "normal";
 }
+
+/**
+ * Classic priced listings lead with the offer modal.
+ * Auction, catalog, and on-order keep their existing primary CTA.
+ */
+export function isOfferFirstListingCta(input: {
+  ctaMode: ListingCtaMode;
+  canUseClassicOfferFlow: boolean;
+}): boolean {
+  if (!input.canUseClassicOfferFlow) return false;
+  return (
+    input.ctaMode !== "auction" &&
+    input.ctaMode !== "catalog_offer" &&
+    input.ctaMode !== "on_order"
+  );
+}

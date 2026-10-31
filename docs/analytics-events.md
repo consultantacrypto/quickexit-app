@@ -101,8 +101,8 @@ Ambele evenimente pot încă porni la aceeași acțiune (HQ Copilot / istoric). 
 | `listing_step_3_complete` | after existing step 3 pricing validation | `listing_step_completed` (`step=3`) | **da** | once per successful transition / page load |
 | `begin_checkout` | immediately before existing checkout request | `checkout_listing_started`, later `checkout_created` | **da** | retry allowed on failed checkout |
 | `listing_view` | after valid **active** listing is loaded | `view_listing` | nu | once per listing load (Strict Mode safe) |
-| `request_details_click` | primary listing CTA | `click_listing_offer` and FM `click_request_personalized_offer` | nu | once per page load |
-| `offer_started` | offer modal opens | none | nu | once per page load |
+| `request_details_click` | listing inquiry CTA | `click_listing_offer` and FM `click_request_personalized_offer` | nu | once per page load |
+| `offer_started` | offer modal opens (`interaction_source=deep_link` from `?oferta=1` or `#oferta`) | none | nu | once per page load |
 | `offer_submitted` | successful listing offer insert | `submit_listing_offer` | **da** | once per successful insert |
 
 Key events recomandate pentru funnel-ul inițial (document only): `listing_step_1_complete`, `listing_step_3_complete`, `begin_checkout`, `offer_submitted`.
@@ -118,8 +118,8 @@ Key events recomandate pentru funnel-ul inițial (document only): `listing_step_
 | `listing_step_3_complete` | after step 3 pricing validation | `locale`, `category`, `step=3`, `funnel_source`, `sale_strategy` |
 | `begin_checkout` | immediately before existing `/api/stripe/checkout` request | `locale`, `category`, `funnel_source`, `sale_strategy` |
 | `listing_view` | active listing detail load | `locale`, `category`, `funnel_source=listing_detail`, `sale_strategy` |
-| `request_details_click` | primary listing CTA | `locale`, `category`, `funnel_source`, `sale_strategy` |
-| `offer_started` | offer modal opens | `locale`, `category`, `funnel_source`, `sale_strategy` |
+| `request_details_click` | listing inquiry CTA | `locale`, `category`, `funnel_source`, `sale_strategy` |
+| `offer_started` | offer modal opens | `locale`, `category`, `funnel_source`, `sale_strategy`, `interaction_source=deep_link` when opened from `?oferta=1` or `#oferta` |
 | `offer_submitted` | successful listing offer insert | `locale`, `category`, `funnel_source`, `sale_strategy` |
 
 Helper-ul `lib/funnelAnalytics.ts` **nu** trimite email, telefon, titlu, descriere, user id, listing id, image URL, click IDs, texte libere, `purchase` sau valoare/monedă neverificată.

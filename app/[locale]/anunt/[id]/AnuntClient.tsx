@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import { useTranslations, useLocale } from "next-intl";
@@ -16,6 +16,9 @@ import { parseListingOfferCount } from "@/utils/auctionListingUi";
 import { buildSocialShareKit } from "@/lib/socialShare";
 import { trackEvent } from "@/lib/analytics";
 import { trackFunnelEvent } from "@/lib/funnelAnalytics";
+import { resolveOfferAttribution } from "@/lib/offerAttribution";
+import { isListingOfferDeepLink } from "@/lib/offerDeepLink";
+import { insertListingOfferRow } from "@/lib/listingOfferInsert";
 import { categoryLabelToTrackingKey } from "@/lib/evaluationTracking";
 import { canonicalListingImageSrc } from "@/lib/listingMedia";
 import {
@@ -25,7 +28,7 @@ import {
 } from "@/lib/i18n/format";
 import { getListingKeyFacts } from "@/lib/listingKeyFacts";
 import { getListingPriceAdvantage } from "@/lib/listingPriceAdvantage";
-import { getListingCtaMode } from "@/lib/listingCta";
+import { getListingCtaMode, isOfferFirstListingCta } from "@/lib/listingCta";
 import {
   adCardPricingProps,
   isValidPrice,
@@ -515,6 +518,40 @@ export default function AnuntClient({
     setCanQuickShare(typeof navigator !== "undefined" && typeof navigator.share === "function");
   }, []);
 
+  const openOfferModal = useCallback((interactionSource?: "deep_link") => {
+    trackFunnelEvent("offer_started", {
+      ...funnelListingParams,
+      ...(interactionSource ? { interaction_source: interactionSource } : {}),
+    });
+    setActiveModal("offer");
+    setOfferSuccess(false);
+    setOfferActionMessage(null);
+  }, [funnelListingParams]);
+
+  const offerDeepLinkOnceRef = useRef(false);
+  useEffect(() => {
+    if (!canUseClassicOfferFlow || offerDeepLinkOnceRef.current) return;
+    if (!isListingOfferDeepLink(window.location.search, window.location.hash)) return;
+    const timer = window.setTimeout(() => {
+      if (offerDeepLinkOnceRef.current) return;
+      offerDeepLinkOnceRef.current = true;
+      openOfferModal("deep_link");
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [canUseClassicOfferFlow, openOfferModal]);
+
+  const insertOfferRow = async (row: Record<string, unknown>) => {
+    const result = await insertListingOfferRow(
+      async (payload) => {
+        const { error } = await supabase.from("listing_offers").insert(payload);
+        return { error };
+      },
+      row,
+      resolveOfferAttribution(),
+    );
+    return result.error;
+  };
+
   const submitListingOffer = async () => {
     if (!buyerPhone || !offerPrice) return;
     setIsSubmittingOffer(true);
@@ -523,7 +560,7 @@ export default function AnuntClient({
       const {
         data: { user },
       } = await supabase.auth.getUser();
-      const { error } = await supabase.from("listing_offers").insert({
+      const error = await insertOfferRow({
         listing_id: adData.id,
         buyer_user_id: user ? user.id : null,
         offer_price: Number(offerPrice),
@@ -565,7 +602,7 @@ export default function AnuntClient({
       const {
         data: { user },
       } = await supabase.auth.getUser();
-      const { error } = await supabase.from("listing_offers").insert({
+      const error = await insertOfferRow({
         listing_id: adData.id,
         buyer_user_id: user ? user.id : null,
         offer_price: adData.exit_price,
@@ -703,6 +740,10 @@ export default function AnuntClient({
     isFinancingEnabled: showFinancingCalculator,
     listing_kind: adData.listing_kind,
   });
+  const offerFirstCta = isOfferFirstListingCta({
+    ctaMode,
+    canUseClassicOfferFlow,
+  });
 
   const renderTitle = (title: string) => {
     if (!title) return null;
@@ -836,13 +877,6 @@ export default function AnuntClient({
     } catch {
       // User canceled or platform rejected share; keep silent.
     }
-  };
-
-  const openOfferModal = () => {
-    trackFunnelEvent("offer_started", funnelListingParams);
-    setActiveModal("offer");
-    setOfferSuccess(false);
-    setOfferActionMessage(null);
   };
 
   const openInquiryModal = async () => {
@@ -1012,6 +1046,15 @@ export default function AnuntClient({
         <button
           type="button"
           onClick={() => {
+            if (offerFirstCta) {
+              trackEvent("click_listing_offer", {
+                listing_id: adData.id,
+                category: adData.category || "unknown",
+                interaction_source: "listing_detail",
+              });
+              openOfferModal();
+              return;
+            }
             trackFunnelEvent("request_details_click", funnelListingParams);
             if (ctaMode === "catalog_offer" || ctaMode === "on_order") {
               trackEvent("click_request_personalized_offer", {
@@ -1046,7 +1089,9 @@ export default function AnuntClient({
           }}
           className="w-full rounded-2xl border-[3px] border-black bg-black py-3.5 font-black uppercase tracking-wider text-[#FFD100] shadow-[5px_5px_0_0_#000] transition duration-150 hover:brightness-110 motion-reduce:transition-none md:py-4 md:text-sm"
         >
-          {ctaMode === "catalog_offer"
+          {offerFirstCta
+            ? t("detailV2.cta.primaryMakeOffer")
+            : ctaMode === "catalog_offer"
             ? t("detailV2.cta.primaryCatalogOffer")
             : ctaMode === "auction"
             ? t("detailV2.cta.primaryAuction")
@@ -1078,7 +1123,24 @@ export default function AnuntClient({
             {t("detailV2.cta.otherOptions")}
           </p>
           <div className="space-y-1.5">
-            {ctaMode !== "auction" && canUseClassicOfferFlow ? (
+            {offerFirstCta ? (
+              <button
+                type="button"
+                onClick={() => {
+                  trackFunnelEvent("request_details_click", funnelListingParams);
+                  trackEvent("click_listing_inquiry", {
+                    listing_id: adData.id,
+                    category: adData.category || "unknown",
+                  });
+                  void openInquiryModal();
+                }}
+                className="w-full rounded-lg border border-black/15 bg-transparent px-3 py-2 text-left text-[10px] font-bold uppercase tracking-wide text-neutral-700 transition duration-150 hover:border-black/40 hover:bg-neutral-50 motion-reduce:transition-none"
+              >
+                {t("detailV2.cta.primaryRequestDetails")}
+              </button>
+            ) : null}
+
+            {!offerFirstCta && ctaMode !== "auction" && canUseClassicOfferFlow ? (
               <button
                 type="button"
                 onClick={() => {

@@ -59,6 +59,10 @@ export type FunnelSource = (typeof FUNNEL_SOURCES)[number];
 export const FUNNEL_SALE_STRATEGIES = ["direct", "auction"] as const;
 export type FunnelSaleStrategy = (typeof FUNNEL_SALE_STRATEGIES)[number];
 
+/** Only the deep-link open is tagged. Button opens omit the key. */
+export const FUNNEL_INTERACTION_SOURCES = ["deep_link"] as const;
+export type FunnelInteractionSource = (typeof FUNNEL_INTERACTION_SOURCES)[number];
+
 export const FUNNEL_STEPS = [1, 2, 3, 4] as const;
 export type FunnelStep = (typeof FUNNEL_STEPS)[number];
 
@@ -68,6 +72,7 @@ export type FunnelEventParams = {
   step?: FunnelStep;
   funnel_source?: FunnelSource;
   sale_strategy?: FunnelSaleStrategy;
+  interaction_source?: FunnelInteractionSource;
 };
 
 const PII_KEY_RE =
@@ -84,6 +89,7 @@ const ALLOWED_PARAM_KEYS = new Set([
   "step",
   "funnel_source",
   "sale_strategy",
+  "interaction_source",
 ]);
 
 const BLOCKED_EVENT_NAMES = new Set([
@@ -250,6 +256,10 @@ export function sanitizeFunnelParams(
     if (rawKey === "sale_strategy") {
       const sale = parseFunnelSaleStrategy(rawValue);
       if (sale) out.sale_strategy = sale;
+      continue;
+    }
+    if (rawKey === "interaction_source" && rawValue === "deep_link") {
+      out.interaction_source = "deep_link";
     }
   }
 
