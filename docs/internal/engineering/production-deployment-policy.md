@@ -89,6 +89,14 @@ Exception: documented incident response only (see §8), with post-incident note.
 
 Local `vercel deploy --prod` from an unclean tree is forbidden for live cutover.
 
+`npx vercel --prod` **assigns** `www.quickexit.ro` and `quickexit.ro` even while Auto-assign Custom Production Domains is Disabled. Git Production builds do not. A CLI production deploy can therefore pin the live domains to an older SHA while a later Git build of `main` stays Staged. To build a CLI candidate without moving the domains, use:
+
+```bash
+npx vercel --prod --skip-domain
+```
+
+Then promote explicitly (§7). Do not use a plain `vercel --prod` as a substitute for the promote gate.
+
 ---
 
 ## 6. CI gates that block promotion
@@ -141,6 +149,43 @@ npx vercel promote <deployment-url-or-id> --yes
 ```
 
 If CLI promote is used, **re-check** Auto-assign remains Disabled before the next `main` push.
+
+### BMK: Git build is Ready, domains are still on an older CLI deploy (2026-10-26)
+
+`www` 404s on `/bmk` because the hostname is still pinned to the older CLI deployment. The Staged Git Production deployment of the BMK merge already returns 200 for those routes. Merging PR #2 did not move `www`.
+
+| | Live domains | Staged Git candidate (has `/bmk`) |
+|---|---|---|
+| Hosts | `www.quickexit.ro`, `quickexit.ro` | `quickexit-bupnfoz4f-daniel-mihais-projects-31598ec8.vercel.app` only |
+| Deployment | `dpl_2DpswXENdbp2GxkPfghwPiAfzSbo` | `dpl_myf1YDrmtPP6nFk5wNstmmZWtNHr` |
+| Source | `cli` | `git` |
+| SHA | `97f4a0a` (before the BMK page) | `86f53ad` (merge of PR #2) |
+| Alias time | 2026-10-24 15:46 UTC | Not assigned to custom domains. Ready 2026-10-25 07:19 UTC |
+| `/bmk` | 307 → `/ro/bmk`, then 404 | 200, rewritten to `/ro/bmk` (URL stays `/bmk`) |
+| `/en/bmk` | 404 | 200 |
+| `/bmk/bmk-logo-64.png` | 404 | 200 `image/png` |
+
+The 404 `age` / `last-modified` (2026-10-25 10:37 UTC) is that CLI deployment’s own 404. It is not a CDN copy of the Git build. The same-SHA Git deploy `dpl_4xG5FCnpiSnLbJzzzZJBepJbEJZq` was also left unaliased; the CLI artifact is what was promoted.
+
+Do **not** turn Auto-assign back on. That would ship every future `main` push.
+
+**After this document is merged, promote the new Staged Production deployment for that merge commit** (it contains the BMK page plus this note). Do not promote `97f4a0a`. If nothing newer than `86f53ad` should ship, promote the candidate already verified above.
+
+Dashboard (project [quickexit-app](https://vercel.com/daniel-mihais-projects-31598ec8/quickexit-app)):
+
+1. Open the Staged deployment. For the already-verified BMK build: [dpl_myf1YDrmtPP6nFk5wNstmmZWtNHr](https://vercel.com/daniel-mihais-projects-31598ec8/quickexit-app/myf1YDrmtPP6nFk5wNstmmZWtNHr). After a newer `main` merge, open that newer Staged row instead.
+2. Click **Promote to Production** (button on the deployment, or the row `⋯` menu → **Promote**).
+3. Confirm the dialog lists `www.quickexit.ro` and `quickexit.ro`. `quickexit-staging.vercel.app` must stay where it is.
+4. Confirm **Promote**.
+5. **Settings → Environments → Production → Auto-assign Custom Production Domains** stays **Disabled**.
+6. On www, expect 200 from `/api/health`, `/bmk` (Romanian, URL remains `/bmk`), `/en/bmk`, and `/bmk/bmk-logo-64.png` (`image/png`).
+
+`*.vercel.app` hosts use Vercel Authentication (`ssoProtection: all_except_custom_domains`). Anonymous requests there redirect to login. Custom domains do not.
+
+```bash
+# Replace the id if a newer Staged main deploy is the one that should go live.
+npx vercel promote dpl_myf1YDrmtPP6nFk5wNstmmZWtNHr --yes
+```
 
 ### Alternate alias pin (incident / surgical)
 
