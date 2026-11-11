@@ -74,3 +74,6 @@ jobs:
 
       - name: Offer-first CTA and UTM
         run: npx tsx scripts/assert-offer-cta-utm.ts
+
+      - name: Listing traffic UTM visits
+        run: npx tsx scripts/assert-listing-traffic.ts

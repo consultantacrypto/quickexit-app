@@ -4,6 +4,7 @@ import {
   getAttribution,
   type AttributionData,
 } from "@/lib/analytics";
+import { readVisitSessionUtm } from "@/lib/listingTrafficSession";
 
 export const OFFER_UTM_KEYS = ATTRIBUTION_UTM_KEYS;
 
@@ -24,11 +25,14 @@ export function mergeOfferUtm(
 
 /**
  * Attribution to persist on a listing offer.
- * The live URL is offer metadata for this visit. Stored attribution stays
- * consent-gated inside getAttribution() and is only a fallback.
+ * The live URL wins. This-tab visit UTMs fill gaps from the Shorts landing.
+ * Consent-gated first-touch storage is only the last fallback.
  */
 export function resolveOfferAttribution(): OfferUtm {
-  return mergeOfferUtm(readUrlAttribution(), getAttribution());
+  return mergeOfferUtm(
+    mergeOfferUtm(readUrlAttribution(), readVisitSessionUtm()),
+    getAttribution(),
+  );
 }
 
 export function offerUtmForInsert(utm: OfferUtm | null | undefined): OfferUtm | null {
