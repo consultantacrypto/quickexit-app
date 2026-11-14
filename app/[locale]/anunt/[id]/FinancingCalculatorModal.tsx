@@ -12,6 +12,7 @@ import {
 } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { trackEvent } from "@/lib/analytics";
+import { reportListingTrafficLead } from "@/lib/listingTrafficClient";
 import { calculateFinancing } from "@/lib/financingCalculator";
 import { financingConfig } from "@/lib/financingConfig";
 import { formatEurAmount } from "@/lib/i18n/format";
@@ -240,6 +241,7 @@ export default function FinancingCalculatorModal({
         return;
       }
 
+      reportListingTrafficLead("financing");
       trackEvent("financing_request_success", {
         listing_id: listingId,
         partner: financingConfig.partnerId,

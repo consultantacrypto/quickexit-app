@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import AnuntClient from "./AnuntClient";
+import ListingTrafficBeacon from "@/app/components/ListingTrafficBeacon";
 import { getSiteUrl, toAbsoluteSiteUrl } from "@/lib/siteUrl";
 import { formatEurAmount } from "@/lib/i18n/format";
 import { resolveListingField } from "@/lib/i18n/listingContent";
@@ -239,6 +240,7 @@ export default async function ListingPage({ params }: PageProps) {
           type="application/ld+json"
         />
       )}
+      <ListingTrafficBeacon />
       <AnuntClient
         key={listingId}
         initialListing={listing}

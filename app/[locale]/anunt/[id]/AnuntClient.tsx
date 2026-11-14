@@ -17,6 +17,7 @@ import { buildSocialShareKit } from "@/lib/socialShare";
 import { trackEvent } from "@/lib/analytics";
 import { trackFunnelEvent } from "@/lib/funnelAnalytics";
 import { resolveOfferAttribution } from "@/lib/offerAttribution";
+import { reportListingTrafficLead } from "@/lib/listingTrafficClient";
 import { isListingOfferDeepLink } from "@/lib/offerDeepLink";
 import { insertListingOfferRow } from "@/lib/listingOfferInsert";
 import { categoryLabelToTrackingKey } from "@/lib/evaluationTracking";
@@ -570,6 +571,7 @@ export default function AnuntClient({
         status: "new",
       });
       if (error) throw error;
+      reportListingTrafficLead("offer");
       trackEvent("submit_listing_offer", {
         interaction_source: "listing_detail",
         listing_id: adData.id,
@@ -612,6 +614,7 @@ export default function AnuntClient({
         status: "accepted_exit_price",
       });
       if (error) throw error;
+      reportListingTrafficLead("offer");
       trackEvent("submit_accept_exit_price", {
         interaction_source: "listing_detail",
         listing_id: adData.id,
@@ -942,6 +945,7 @@ export default function AnuntClient({
         });
       }
       setInquirySuccess(true);
+      reportListingTrafficLead("inquiry");
       setInquiryPhone("");
       setInquiryMessage("");
       setInquiryConsent(false);
