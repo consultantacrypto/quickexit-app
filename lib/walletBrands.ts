@@ -34,6 +34,7 @@ export type WalletBrandProfile = {
   highlights: { ro: string; en: string }[];
   image: WalletBrandImage;
   tone: WalletImageTone;
+  usedByDani?: boolean;
 };
 
 export const WALLET_BRANDS: readonly WalletBrandProfile[] = [
@@ -43,6 +44,7 @@ export const WALLET_BRANDS: readonly WalletBrandProfile[] = [
     positioningRo: "Portofel-card. Seturi de două și trei carduri, Ring și Pro Kit.",
     positioningEn: "A card wallet. Two- and three-card sets, Ring, and the Pro Kit.",
     highlights: [{ ro: "Card", en: "Card" }],
+    usedByDani: true,
     tone: "dark",
     image: {
       src: "/wallets/tangem.webp",

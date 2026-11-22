@@ -25,6 +25,8 @@ import {
 import { handleWalletAffiliatePost } from "../lib/walletAffiliateTrafficHandle";
 import { staticAndCategorySitemapPaths } from "../lib/sitemapEntries";
 import { WALLET_BRANDS, WALLET_QUICK_PICKS, walletBrandShelves } from "../lib/walletBrands";
+import { WALLET_BRAND_SPECS, brandStartingPrice } from "../lib/walletBrandSpecs";
+import { chooseWalletBrands } from "../lib/walletChooser";
 
 function fail(message: string): never {
   console.error(`FAIL ${message}`);
@@ -202,8 +204,11 @@ assert(!route.includes("affiliate_url"), "route does not store the affiliate URL
 
 const catalogUi = readFileSync(resolve("app/[locale]/wallets/WalletCatalog.tsx"), "utf8");
 assert(catalogUi.includes("WALLET_OUTBOUND_REL"), "cards use the sponsored rel");
-assert(catalogUi.includes("hasRealCheckoutCode"), "copy control depends on a real code");
+assert(catalogUi.includes("chooseWalletBrands"), "chooser is on the page");
+assert(catalogUi.includes("Folosit de Dani") || catalogUi.includes("usedByDani"), "Dani badge key is used");
 assert(catalogUi.includes('target="_blank"'), "outbound opens a new tab");
+assert(catalogUi.includes("TRUST_ARTICLE_URL"), "trust article is linked");
+assert(!/cel mai bun|best wallet|ofertă|Black Friday/i.test(catalogUi), "chooser copy has no superlatives");
 assert(catalogUi.includes("WALLET_QUICK_PICKS"), "quick picks are on the page");
 assert(walletBrandShelves({ tier: "all", deviceType: "all" }).length === 12, "twelve brand cards");
 assert(WALLET_BRANDS.length === 12, "twelve brand profiles");
@@ -222,6 +227,26 @@ assert(
   ),
   "brand shelves respect both filters",
 );
+assert(WALLET_BRANDS.filter((brand) => brand.usedByDani).map((brand) => brand.slug).join() === "tangem", "Dani badge only on Tangem");
+assert(WALLET_BRAND_SPECS.length === 12, "specs for every brand");
+for (const specs of WALLET_BRAND_SPECS) {
+  for (const fact of [specs.openSource, specs.secureElement]) {
+    if (fact.value == null) {
+      assert(fact.sourceUrl == null, `${specs.slug} unverified spec has no fake source`);
+    } else {
+      assert(fact.sourceUrl?.startsWith("https://"), `${specs.slug} spec source is https`);
+    }
+  }
+}
+const chosen = chooseWalletBrands({ budget: "entry", experience: "beginner", style: "card" });
+assert(chosen.length > 0 && chosen.length <= 2, "chooser returns one or two brands");
+assert(chosen[0]?.slug === "tangem" && chosen[0].mentionsDani, "card plus entry can include Tangem");
+assert(chooseWalletBrands({ budget: "premium", experience: "handsOn", style: "airgap" }).length <= 2, "chooser cap");
+assert(brandStartingPrice("cypherock", "ro")?.text.includes("99,00"), "Cypherock from-price skips the unverified X0");
+const walletsCopy = `${JSON.stringify(ro.Wallets)}\n${JSON.stringify(en.Wallets)}`;
+for (const phrase of ["cel mai bun", "best wallet", "ofertă", "Black Friday", "% OFF"]) {
+  assert(!walletsCopy.toLowerCase().includes(phrase.toLowerCase()), `wallets copy contains ${phrase}`);
+}
 
 function clickBody(slug: string | null, brand: string | null = "ledger") {
   return JSON.stringify({
