@@ -36,6 +36,7 @@ function DiditKycTrustBadge({ className = "" }: { className?: string }) {
 
 export default function Footer() {
   const t = useTranslations("Footer");
+  const tNav = useTranslations("Navigation");
   const tCat = useTranslations("Categories");
 
   return (
@@ -59,6 +60,11 @@ export default function Footer() {
               <li>
                 <Link href="/cum-functioneaza" className={footerLink}>
                   {t("platform.howItWorks")}
+                </Link>
+              </li>
+              <li>
+                <Link href="/wallets" className={footerLink}>
+                  {tNav("wallets")}
                 </Link>
               </li>
               <li>

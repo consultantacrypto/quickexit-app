@@ -77,3 +77,6 @@ jobs:
 
       - name: Listing traffic UTM visits
         run: npx tsx scripts/assert-listing-traffic.ts
+
+      - name: Hardware wallet catalog
+        run: npm run assert:wallets

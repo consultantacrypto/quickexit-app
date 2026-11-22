@@ -123,6 +123,18 @@ export const PAGE_METADATA_COPY = {
         "Browse every public active listing on Quick Exit across cars, real estate, luxury, business, gadgets and photo.",
     },
   },
+  wallets: {
+    ro: {
+      title: "Portofele hardware | Quick Exit",
+      description:
+        "Catalog de portofele hardware recomandate. Quick Exit nu ține stoc și nu vinde aceste produse. Butonul deschide site-ul oficial al producătorului.",
+    },
+    en: {
+      title: "Hardware wallets | Quick Exit",
+      description:
+        "A hardware wallet recommendation catalog. Quick Exit does not hold stock and does not sell these products. The button opens the manufacturer's official site.",
+    },
+  },
   licitatii: {
     ro: {
       title: "Licitații active | Quick Exit",

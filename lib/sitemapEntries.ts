@@ -66,6 +66,7 @@ export function staticAndCategorySitemapPaths(): string[] {
     "/tarife",
     "/media",
     "/cum-functioneaza",
+    "/wallets",
     "/future-mobility",
     "/contact",
     "/bmk",

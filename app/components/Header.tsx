@@ -40,20 +40,20 @@ export default function Header() {
           <div className="flex shrink-0 items-center gap-3">
             <Link
               href="/"
-              className="relative block h-11 w-40 transition-transform hover:scale-105 sm:h-12 sm:w-44 md:h-16 md:w-60 lg:h-20 lg:w-72"
+              className="relative block h-11 w-40 transition-transform hover:scale-105 sm:h-12 sm:w-44 md:h-16 md:w-60 lg:h-16 lg:w-56 xl:h-20 xl:w-72"
             >
               <Image
                 src="/logo.webp"
                 alt={t("logoAlt")}
                 fill
-                sizes="(max-width: 768px) 160px, (max-width: 1024px) 240px, 288px"
+                sizes="(max-width: 768px) 160px, (max-width: 1280px) 224px, 288px"
                 className="object-contain object-left"
                 priority
               />
             </Link>
           </div>
 
-          <div className="hidden items-center gap-5 lg:flex xl:gap-6">
+          <div className="hidden items-center gap-3 lg:flex xl:gap-6">
             <nav className="flex items-center gap-4 xl:gap-5" aria-label={t("mainMenu")}>
               <Link href="/" className={navLinkClass}>
                 {t("home")}
@@ -88,6 +88,10 @@ export default function Header() {
               className="rounded-xl border-2 border-black bg-white px-3.5 py-2.5 text-[11px] font-black uppercase tracking-widest text-black shadow-[3px_3px_0_0_rgba(0,0,0,1)] transition hover:-translate-y-px hover:border-[#FFD100] xl:px-4 xl:text-xs"
             >
               {t("buyWithCash")}
+            </Link>
+
+            <Link href="/wallets" className={navLinkClass}>
+              {t("wallets")}
             </Link>
 
             <Link
@@ -212,6 +216,14 @@ export default function Header() {
               className="w-full rounded-[2rem] border-4 border-black bg-white py-5 text-center text-lg font-black uppercase tracking-widest italic shadow-[6px_6px_0_0_rgba(0,0,0,1)]"
             >
               {t("buyWithCash")}
+            </Link>
+
+            <Link
+              href="/wallets"
+              onClick={() => setIsOpen(false)}
+              className="w-full rounded-[2rem] border-4 border-black bg-white py-4 text-center text-lg font-black uppercase tracking-widest italic shadow-[6px_6px_0_0_rgba(0,0,0,1)]"
+            >
+              {t("wallets")}
             </Link>
 
             <Link
