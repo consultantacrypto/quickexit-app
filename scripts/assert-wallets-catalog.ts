@@ -1,7 +1,7 @@
 /**
  * Hardware-wallet catalog and click tracking. CI-safe: no network, no database.
  */
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { LISTING_TRAFFIC_PRODUCTION_SUPABASE_HOST } from "../lib/listingTraffic";
 import {
@@ -24,6 +24,7 @@ import {
 } from "../lib/walletAffiliateTraffic";
 import { handleWalletAffiliatePost } from "../lib/walletAffiliateTrafficHandle";
 import { staticAndCategorySitemapPaths } from "../lib/sitemapEntries";
+import { WALLET_BRANDS, WALLET_QUICK_PICKS, walletBrandShelves } from "../lib/walletBrands";
 
 function fail(message: string): never {
   console.error(`FAIL ${message}`);
@@ -203,6 +204,24 @@ const catalogUi = readFileSync(resolve("app/[locale]/wallets/WalletCatalog.tsx")
 assert(catalogUi.includes("WALLET_OUTBOUND_REL"), "cards use the sponsored rel");
 assert(catalogUi.includes("hasRealCheckoutCode"), "copy control depends on a real code");
 assert(catalogUi.includes('target="_blank"'), "outbound opens a new tab");
+assert(catalogUi.includes("WALLET_QUICK_PICKS"), "quick picks are on the page");
+assert(walletBrandShelves({ tier: "all", deviceType: "all" }).length === 12, "twelve brand cards");
+assert(WALLET_BRANDS.length === 12, "twelve brand profiles");
+for (const brand of WALLET_BRANDS) {
+  assert(brand.image.src.startsWith("/wallets/") && brand.image.src.endsWith(".webp"), `${brand.slug} local image`);
+  assert(brand.image.sourceUrl.startsWith("https://"), `${brand.slug} official image source`);
+  assert(!brand.image.src.toLowerCase().includes("black-friday"), `${brand.slug} filename is not a sale name`);
+  assert(existsSync(resolve(`public${brand.image.src}`)), `${brand.slug} image file exists`);
+}
+for (const pick of WALLET_QUICK_PICKS) {
+  assert(WALLET_BRANDS.some((brand) => brand.slug === pick.brandSlug), `quick pick ${pick.id}`);
+}
+assert(
+  walletBrandShelves({ tier: "premium", deviceType: "airgap" }).every((shelf) =>
+    shelf.models.every((model) => model.tier === "premium" && model.deviceType === "airgap"),
+  ),
+  "brand shelves respect both filters",
+);
 
 function clickBody(slug: string | null, brand: string | null = "ledger") {
   return JSON.stringify({
