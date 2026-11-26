@@ -217,6 +217,60 @@ async function main() {
   );
   assert(promo.formatEuropeBucharest("2026-11-26T16:38:20.000Z").includes("18:38"), "Bucharest hour");
 
+  function expectDue(paidIso: string, expectedIso: string, label: string) {
+    const actual = promo.promoDueAtIso(paidIso);
+    assert(actual === expectedIso, `${label}: ${actual}`);
+  }
+
+  expectDue("2026-01-15T12:00:00.000Z", "2026-01-15T13:00:00.000Z", "winter 14:00 +1h");
+  expectDue("2026-01-15T19:00:00.000Z", "2026-01-15T20:00:00.000Z", "21:00 inclusive +1h");
+  expectDue("2026-01-15T19:00:01.000Z", "2026-01-16T07:00:00.000Z", "21:00:01 next morning");
+  expectDue("2026-01-15T19:30:00.000Z", "2026-01-16T07:00:00.000Z", "21:30 next morning");
+  expectDue("2026-01-15T21:00:00.000Z", "2026-01-16T07:00:00.000Z", "23:00 next morning");
+  expectDue("2026-01-15T05:30:00.000Z", "2026-01-15T07:00:00.000Z", "07:30 same morning");
+
+  const springLocal = promo.bucharestParts(new Date("2026-03-29T04:30:00.000Z"));
+  assert(springLocal.hour === 7 && springLocal.minute === 30, "spring-forward morning is 07:30 EEST");
+  expectDue("2026-03-29T04:30:00.000Z", "2026-03-29T06:00:00.000Z", "DST spring 07:30 due 09:00 EEST");
+  const fallLocal = promo.bucharestParts(new Date("2026-10-25T05:30:00.000Z"));
+  assert(fallLocal.hour === 7 && fallLocal.minute === 30, "fall-back morning is 07:30 EET");
+  expectDue("2026-10-25T05:30:00.000Z", "2026-10-25T07:00:00.000Z", "DST fall 07:30 due 09:00 EET");
+  expectDue("2026-07-15T11:00:00.000Z", "2026-07-15T12:00:00.000Z", "summer 14:00 +1h");
+  expectDue("2026-07-15T18:30:00.000Z", "2026-07-16T06:00:00.000Z", "summer 21:30 next 09:00 EEST");
+
+  const nightDue = promo.promoDueAtIso("2026-01-15T19:30:00.000Z");
+  assert(
+    promo.classifyPromoQueueStatus(nightDue, new Date("2026-01-16T06:59:00.000Z")) === "pending",
+    "21:30 payment is pending before 09:00",
+  );
+  assert(
+    promo.classifyPromoQueueStatus(nightDue, new Date("2026-01-16T07:01:00.000Z")) === "late",
+    "21:30 payment is late after 09:00",
+  );
+
+  const proposed = "consultantacrypto-ro-zvkmya+qe-paid@mail.grokbot.com";
+  assert(promo.parsePromoNotifyEmail(proposed) === proposed, "plus address is accepted");
+  assert(promo.parsePromoNotifyEmail("not-an-email") === null, "invalid address is rejected");
+  assert(social.SOCIAL_PROMO_PROMISE_RO.includes("21:00") && social.SOCIAL_PROMO_PROMISE_RO.includes("09:00"), "RO names the cutoff");
+  assert(social.SOCIAL_PROMO_PROMISE_EN.includes("21:00") && social.SOCIAL_PROMO_PROMISE_EN.includes("09:00"), "EN names the cutoff");
+  const roMessages = ro as {
+    ListingDetail: { socialPromoPromise: string };
+    Pricing: { socialPromoPromise: string };
+    PostListing: { packages: { socialPromoPromise: string } };
+  };
+  const enMessages = en as {
+    ListingDetail: { socialPromoPromise: string };
+    Pricing: { socialPromoPromise: string };
+    PostListing: { packages: { socialPromoPromise: string } };
+  };
+  assert(roMessages.Pricing.socialPromoPromise === social.SOCIAL_PROMO_PROMISE_RO, "tarife RO");
+  assert(roMessages.PostListing.packages.socialPromoPromise === social.SOCIAL_PROMO_PROMISE_RO, "publish RO");
+  assert(enMessages.Pricing.socialPromoPromise === social.SOCIAL_PROMO_PROMISE_EN, "tarife EN");
+  assert(enMessages.PostListing.packages.socialPromoPromise === social.SOCIAL_PROMO_PROMISE_EN, "publish EN");
+  const doc = readFileSync(resolve("docs/internal/promo-payment-notify.md"), "utf8");
+  assert(doc.includes(proposed), "proposed address is documented");
+  assert(doc.includes("nu este setată în Vercel") || doc.includes("nesetată în Vercel"), "docs say the address is not set");
+
   const priceId = getPriceIdForPackageId("standard");
   const pkg = priceId ? getPackageByPriceId(priceId) : null;
   assert(priceId && pkg, "standard package resolves");
@@ -274,7 +328,7 @@ async function main() {
   assert(db.tables.payments[0]?.amount_minor === amount, "amount stored");
   assert(db.tables.payments[0]?.package_id === "standard", "package stored");
   assert(db.tables.payments[0]?.listing_id === LISTING_A, "listing stored");
-  assert(db.tables.promo_queue.length === 1, "one promo queue row");
+  assert(db.tables.promo_queue[0]?.due_at === "2026-11-26T17:38:20.000Z", "daytime queue due_at is +1h");
   assert(db.tables.promo_queue[0]?.status === "pending" || db.tables.promo_queue[0]?.status === "late", "queue status");
   assert(db.emails.length === 1, "one email");
   const text = String(db.emails[0]?.text ?? "");
@@ -283,6 +337,7 @@ async function main() {
   assert(text.includes("standard"), "email has package");
   assert(text.includes("79.00 RON"), "email has amount");
   assert(text.includes("18:38"), "email has Bucharest time");
+  assert(text.includes("19:38"), "email has the one-hour daytime deadline");
   assert(text.includes(`https://www.quickexit.ro/ro/anunt/${LISTING_A}`), "email has public link");
   assert(db.tables.listings.find((row) => row.id === LISTING_A)?.status === "active", "listing activated");
 
@@ -309,7 +364,6 @@ async function main() {
   const route = readFileSync(resolve("app/api/stripe/webhook/route.ts"), "utf8");
   assert(route.includes("recordStripeCheckoutPayment"), "handler records the ledger");
   assert(route.includes("notifyListingPromoPayment"), "handler notifies after payment");
-  const doc = readFileSync(resolve("docs/internal/promo-payment-notify.md"), "utf8");
   assert(doc.includes("PROMO_NOTIFY_EMAIL"), "env name documented");
   assert(!doc.includes("ops@quickexit"), "doc does not set an address");
 

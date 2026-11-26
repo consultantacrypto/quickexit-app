@@ -18,6 +18,12 @@ import { isPaymentLedgerDuplicate } from "@/lib/stripePaymentLedger";
 
 export const PROMO_DEADLINE_MS = 60 * 60 * 1000;
 export const PROMO_NOTIFY_EMAIL_ENV = "PROMO_NOTIFY_EMAIL";
+export const PROMO_TIME_ZONE = "Europe/Bucharest";
+
+/** Inclusive Bucharest wall-clock window for a one-hour deadline. 21:00:00 is in; 21:00:01 is not. */
+export const PROMO_DAY_START_MS = 8 * 60 * 60 * 1000;
+export const PROMO_DAY_END_MS = 21 * 60 * 60 * 1000;
+export const PROMO_MORNING_DUE_HOUR = 9;
 
 export type PromoQueueStatus = "pending" | "done" | "late";
 
@@ -62,10 +68,102 @@ export function parsePromoNotifyEmail(raw: string | undefined | null): string | 
   return EMAIL_RE.test(email) ? email : null;
 }
 
+type BucharestParts = {
+  year: number;
+  month: number;
+  day: number;
+  hour: number;
+  minute: number;
+  second: number;
+};
+
+function partNumber(parts: Intl.DateTimeFormatPart[], type: Intl.DateTimeFormatPartTypes): number {
+  const raw = parts.find((part) => part.type === type)?.value ?? "";
+  const value = Number(raw);
+  return Number.isFinite(value) ? value : 0;
+}
+
+/** Wall-clock fields in Europe/Bucharest, including the DST offset in force at `date`. */
+export function bucharestParts(date: Date): BucharestParts {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: PROMO_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(date);
+  let hour = partNumber(parts, "hour");
+  if (hour === 24) hour = 0;
+  return {
+    year: partNumber(parts, "year"),
+    month: partNumber(parts, "month"),
+    day: partNumber(parts, "day"),
+    hour,
+    minute: partNumber(parts, "minute"),
+    second: partNumber(parts, "second"),
+  };
+}
+
+function bucharestOffsetMs(date: Date): number {
+  const parts = bucharestParts(date);
+  const asUtc = Date.UTC(
+    parts.year,
+    parts.month - 1,
+    parts.day,
+    parts.hour,
+    parts.minute,
+    parts.second,
+    date.getUTCMilliseconds(),
+  );
+  return asUtc - date.getTime();
+}
+
+/** 09:00 Europe/Bucharest on a civil date. The instant follows the offset of that morning, including DST. */
+export function bucharestMorningDue(year: number, month: number, day: number): Date {
+  const wallAsUtc = Date.UTC(year, month - 1, day, PROMO_MORNING_DUE_HOUR, 0, 0, 0);
+  const first = new Date(wallAsUtc - bucharestOffsetMs(new Date(wallAsUtc)));
+  return new Date(wallAsUtc - bucharestOffsetMs(first));
+}
+
+function addCivilDays(year: number, month: number, day: number, days: number): {
+  year: number;
+  month: number;
+  day: number;
+} {
+  const shifted = new Date(Date.UTC(year, month - 1, day + days));
+  return {
+    year: shifted.getUTCFullYear(),
+    month: shifted.getUTCMonth() + 1,
+    day: shifted.getUTCDate(),
+  };
+}
+
+/**
+ * Daytime payments (08:00:00 through 21:00:00 inclusive, Europe/Bucharest) are due one real hour later.
+ * Before 08:00, due at 09:00 the same Bucharest morning.
+ * After 21:00, including 21:30, due at 09:00 the next Bucharest morning.
+ */
+export function promoDueAt(paidAt: Date): Date {
+  const paid = Number.isNaN(paidAt.getTime()) ? new Date() : paidAt;
+  const parts = bucharestParts(paid);
+  const msOfDay =
+    ((parts.hour * 60 + parts.minute) * 60 + parts.second) * 1000 + paid.getUTCMilliseconds();
+  if (msOfDay >= PROMO_DAY_START_MS && msOfDay <= PROMO_DAY_END_MS) {
+    return new Date(paid.getTime() + PROMO_DEADLINE_MS);
+  }
+  const morning =
+    msOfDay < PROMO_DAY_START_MS
+      ? { year: parts.year, month: parts.month, day: parts.day }
+      : addCivilDays(parts.year, parts.month, parts.day, 1);
+  return bucharestMorningDue(morning.year, morning.month, morning.day);
+}
+
 export function promoDueAtIso(paidAtIso: string): string {
   const paid = new Date(paidAtIso);
-  const base = Number.isNaN(paid.getTime()) ? Date.now() : paid.getTime();
-  return new Date(base + PROMO_DEADLINE_MS).toISOString();
+  return promoDueAt(paid).toISOString();
 }
 
 export function classifyPromoQueueStatus(dueAtIso: string, now = new Date()): PromoQueueStatus {
@@ -135,9 +233,10 @@ export function buildPromoNotifyEmail(input: {
   to: string;
   row: PromoQueueRow;
 }): { from: string; to: string[]; subject: string; text: string } {
-  const subject = "[QuickExit] Anunț plătit — de promovat în 1 oră";
+  const subject = "[QuickExit] Anunț plătit — termen de promovare";
   const text = [
-    "Plată confirmată pentru un anunț. Promovarea promisă: clip pe YouTube, TikTok, Instagram + post pe X (@QuickExitRo), în cel mult o oră.",
+    "Plată confirmată pentru un anunț. Clip pe YouTube, TikTok, Instagram + post pe X (@QuickExitRo).",
+    "Termenul de mai jos e ora Bucureștiului: +1 oră dacă plata e între 08:00 și 21:00 inclusiv; înainte de 08:00 sau după 21:00, la 09:00.",
     "",
     `ID anunț: ${input.row.listing_id}`,
     `Titlu: ${input.row.title}`,

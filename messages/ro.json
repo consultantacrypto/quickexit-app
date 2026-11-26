@@ -338,7 +338,7 @@
     "publishListing": "Publică anunț",
     "backHome": "← Înapoi acasă",
     "sellerPackagesTitle": "Pachete pentru publicare anunț",
-    "socialPromoPromise": "Promovat în max. 1 oră de la plată: clip pe YouTube, TikTok, Instagram + post pe X",
+    "socialPromoPromise": "Promovat în max. 1 oră de la plată, pentru plăți între 08:00 și 21:00. Înainte de 08:00 sau după 21:00, până la 09:00 (ora Bucureștiului): clip pe YouTube, TikTok, Instagram + post pe X",
     "auctionSectionTitle": "Licitație deschisă 30 zile",
     "extendedVisibility": "Vizibilitate extinsă",
     "auctionListingFee": "Taxă listare licitație",
@@ -800,7 +800,7 @@
       "setWatchBox": "Ceas + Cutie"
     },
     "packages": {
-      "socialPromoPromise": "Promovat în max. 1 oră de la plată: clip pe YouTube, TikTok, Instagram + post pe X",
+      "socialPromoPromise": "Promovat în max. 1 oră de la plată, pentru plăți între 08:00 și 21:00. Înainte de 08:00 sau după 21:00, până la 09:00 (ora Bucureștiului): clip pe YouTube, TikTok, Instagram + post pe X",
       "economy": {
         "title": "Expunere Maximă",
         "duration": "30 zile",
@@ -1053,7 +1053,7 @@
     }
   },
   "ListingDetail": {
-    "socialPromoPromise": "Promovat în max. 1 oră de la plată: clip pe YouTube, TikTok, Instagram + post pe X",
+    "socialPromoPromise": "Promovat în max. 1 oră de la plată, pentru plăți între 08:00 și 21:00. Înainte de 08:00 sau după 21:00, până la 09:00 (ora Bucureștiului): clip pe YouTube, TikTok, Instagram + post pe X",
     "meta": {
       "unavailableTitle": "Anunț indisponibil | Quick Exit",
       "unavailableDescription": "Acest anunț nu este disponibil public momentan.",

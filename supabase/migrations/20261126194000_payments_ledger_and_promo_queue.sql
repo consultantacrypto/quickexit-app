@@ -70,7 +70,7 @@ CREATE TABLE IF NOT EXISTS public.promo_queue (
 );
 
 COMMENT ON TABLE public.promo_queue IS
-  'Listing promo work queue. pending until published, late after due_at (paid_at + 1 hour), done when the team marks it published. Service-role only.';
+  'Listing promo work queue. pending until published, late after due_at, done when the team marks it published. due_at is Europe/Bucharest: paid_at + 1h for local times 08:00:00 through 21:00:00 inclusive; 09:00 the same morning before 08:00; 09:00 the next morning after 21:00. Service-role only.';
 
 CREATE INDEX IF NOT EXISTS promo_queue_status_due_idx
   ON public.promo_queue (status, due_at);
