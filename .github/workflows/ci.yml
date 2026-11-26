@@ -80,3 +80,6 @@ jobs:
 
       - name: Hardware wallet catalog
         run: npm run assert:wallets
+
+      - name: Available-to-order filter
+        run: npm run assert:available-to-order

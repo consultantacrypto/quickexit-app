@@ -64,7 +64,10 @@ export default async function SearchPage({ params, searchParams }: PageProps) {
     crypto: raw.crypto,
     catalog: raw.catalog,
   });
-  const t = await getTranslations("ListingSearch");
+  const [t, tAll] = await Promise.all([
+    getTranslations("ListingSearch"),
+    getTranslations("AllListings"),
+  ]);
   const numberLocale = getNumberLocale(locale);
   const { listings, total, page, pageSize } = await fetchPublicSearchListings(supabase, filters);
   const hasFilters = Boolean(
@@ -185,7 +188,9 @@ export default async function SearchPage({ params, searchParams }: PageProps) {
             </>
           ) : (
             <div className="rounded-2xl border-[3px] border-dashed border-black bg-[#FDFCF8] py-20 text-center shadow-[6px_6px_0_0_rgba(0,0,0,1)]">
-              <p className="text-sm font-bold text-neutral-600">{t("empty")}</p>
+              <p className="text-sm font-bold text-neutral-600">
+                {filters.catalog ? tAll("emptyCatalog") : t("empty")}
+              </p>
               {hasFilters ? (
                 <Link
                   href="/cauta"
