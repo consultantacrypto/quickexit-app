@@ -11,6 +11,10 @@ import {
   insertListingOfferRow,
   isMissingOfferUtmColumnError,
 } from "../lib/listingOfferInsert";
+import {
+  buildListingWhatsAppHref,
+  isListingMobileCtaEligible,
+} from "../lib/listingWhatsApp";
 
 function fail(message: string): never {
   console.error(`FAIL ${message}`);
@@ -172,6 +176,56 @@ assert(migration.includes("ADD COLUMN IF NOT EXISTS utm jsonb"), "migration adds
 assert(!/DROP POLICY/i.test(migration), "migration does not replace insert policies");
 assert(!/CREATE POLICY/i.test(migration), "migration does not add an insert policy");
 assert(!/WITH CHECK/i.test(migration), "migration does not change the anon insert check");
+
+assert(isListingMobileCtaEligible({ status: "active", availability_status: "available" }), "active available listing shows the mobile bar");
+assert(
+  isListingMobileCtaEligible({ status: "active", availability_status: "needs_confirmation" }),
+  "needs_confirmation stays eligible",
+);
+assert(isListingMobileCtaEligible({ status: "active" }), "missing availability follows the public page");
+assert(!isListingMobileCtaEligible({ status: "active", availability_status: "sold" }), "sold listing hides the bar");
+assert(!isListingMobileCtaEligible({ status: "sold", availability_status: "available" }), "inactive status hides the bar");
+assert(listing.includes("isListingMobileCtaEligible"), "detail page gates the mobile bar");
+assert(listing.includes('interaction_source: "mobile_sticky_bar"'), "sticky offer reuses the offer click event");
+assert(listing.includes("StickyContactBar"), "listing page renders the mobile bar");
+assert(listing.includes('t("detailV2.cta.primaryMakeOffer")'), "sticky label reuses the make-offer copy");
+
+const sticky = readFileSync(resolve("app/[locale]/anunt/[id]/StickyContactBar.tsx"), "utf8");
+assert(sticky.includes("env(safe-area-inset-bottom"), "bar pads for the bottom safe area");
+assert(sticky.includes("lg:hidden"), "bar hides at the desktop sidebar breakpoint");
+assert(sticky.includes("bannerVisible"), "bar yields to the cookie banner");
+assert(sticky.includes("buildListingWhatsAppHref"), "WhatsApp link is built from configured digits");
+assert(!sticky.includes("40731409099"), "bar does not hardcode the operator number");
+
+const href = buildListingWhatsAppHref({
+  title: "Zeekr 8X Ultra",
+  listingUrl: "https://www.quickexit.ro/ro/anunt/490d41f9-0480-4785-8818-ae458847bf4b",
+});
+assert(typeof href === "string" && href.startsWith("https://wa.me/"), "whatsapp href uses wa.me");
+assert(href!.includes("text="), "whatsapp href prefills text");
+const prefilled = decodeURIComponent(href!.slice(href!.indexOf("text=") + 5));
+assert(prefilled.includes("Zeekr 8X Ultra"), "prefilled message includes the listing title");
+assert(
+  prefilled.includes("https://www.quickexit.ro/ro/anunt/490d41f9-0480-4785-8818-ae458847bf4b"),
+  "prefilled message includes the listing URL",
+);
+assert(prefilled.indexOf("Zeekr 8X Ultra") < prefilled.indexOf("https://"), "title comes before the URL");
+assert(
+  buildListingWhatsAppHref({
+    title: "Anunț",
+    listingUrl: "https://www.quickexit.ro/ro/anunt/x",
+    whatsappUrl: "",
+  }) === null,
+  "missing configured number hides WhatsApp",
+);
+assert(
+  buildListingWhatsAppHref({
+    title: "Anunț",
+    listingUrl: "https://www.quickexit.ro/ro/anunt/x",
+    whatsappUrl: "https://example.com/not-whatsapp",
+  }) === null,
+  "non wa.me config hides WhatsApp",
+);
 
 console.log("OK offer-cta-utm");
 }

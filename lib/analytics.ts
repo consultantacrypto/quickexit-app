@@ -107,6 +107,7 @@ const TIKTOK_EVENT_MAP: Record<string, string> = {
   click_request_personalized_offer: "Lead",
   click_premium_seller_phone: "ClickButton",
   click_premium_seller_whatsapp: "ClickButton",
+  click_listing_whatsapp: "ClickButton",
   click_premium_seller_tiktok: "ClickButton",
   open_financing_calculator: "ClickButton",
   change_financing_interest: "ClickButton",
