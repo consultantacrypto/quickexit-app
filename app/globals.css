@@ -28,3 +28,90 @@
     padding-bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px));
   }
 }
+
+/* Wallets hero. Decorative only: the headline and device photo paint without these. */
+@keyframes wallet-mesh {
+  from { background-position: 0 0; }
+  to { background-position: 56px 56px; }
+}
+
+@keyframes wallet-glow {
+  0%, 100% { opacity: 0.45; transform: scale(1); }
+  50% { opacity: 0.9; transform: scale(1.08); }
+}
+
+@keyframes wallet-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-7px); }
+}
+
+@keyframes wallet-shimmer {
+  0% { transform: translateX(-130%); }
+  55%, 100% { transform: translateX(220%); }
+}
+
+.wallet-hero-mesh {
+  background-image:
+    linear-gradient(rgba(255, 209, 0, 0.09) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 209, 0, 0.09) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: radial-gradient(ellipse at 68% 46%, #000 10%, transparent 72%);
+  animation: wallet-mesh 36s linear infinite;
+}
+
+.wallet-glow {
+  background: radial-gradient(ellipse at center, rgba(255, 209, 0, 0.42), transparent 68%);
+  filter: blur(10px);
+  animation: wallet-glow 5.2s ease-in-out infinite;
+}
+
+.wallet-device-cluster {
+  transform: translate3d(var(--hero-x, 0px), var(--hero-y, 0px), 0);
+  transition: transform 180ms linear;
+}
+
+.wallet-float {
+  animation: wallet-float 7.6s ease-in-out infinite;
+}
+
+.wallet-float-2 { animation-delay: -2.4s; }
+.wallet-float-3 { animation-delay: -4.1s; }
+.wallet-float-4 { animation-delay: -1.2s; }
+
+.wallet-cta {
+  position: relative;
+  overflow: hidden;
+}
+
+.wallet-cta::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 32%, rgba(255, 255, 255, 0.55) 50%, transparent 68%);
+  transform: translateX(-130%);
+  animation: wallet-shimmer 4.2s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@media (max-width: 767px) {
+  .wallet-hero-mesh { background-size: 72px 72px; opacity: 0.7; }
+  .wallet-float { animation-duration: 11s; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wallet-hero-mesh,
+  .wallet-glow,
+  .wallet-float,
+  .wallet-cta::after {
+    animation: none;
+  }
+
+  .wallet-device-cluster {
+    transform: none;
+    transition: none;
+  }
+
+  .wallet-cta::after {
+    opacity: 0;
+  }
+}

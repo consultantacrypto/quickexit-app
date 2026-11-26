@@ -2,7 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { Link } from "@/src/i18n/navigation";
-import { ShieldCheck } from "lucide-react";
+import { ShieldCheck, Wallet } from "lucide-react";
 import { companyInfo } from "@/lib/company";
 import CookieSettingsButton from "./CookieSettingsButton";
 
@@ -36,6 +36,7 @@ function DiditKycTrustBadge({ className = "" }: { className?: string }) {
 
 export default function Footer() {
   const t = useTranslations("Footer");
+  const tNav = useTranslations("Navigation");
   const tCat = useTranslations("Categories");
 
   return (
@@ -59,6 +60,12 @@ export default function Footer() {
               <li>
                 <Link href="/cum-functioneaza" className={footerLink}>
                   {t("platform.howItWorks")}
+                </Link>
+              </li>
+              <li>
+                <Link href="/wallets" className={`${footerLink} inline-flex items-center gap-2`}>
+                  <Wallet className="h-3.5 w-3.5" aria-hidden />
+                  {tNav("wallets")}
                 </Link>
               </li>
               <li>
