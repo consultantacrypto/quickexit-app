@@ -42,10 +42,10 @@ const TRUST_ARTICLE_URL =
   "https://www.stirilecrypto.ro/stiri/ledger-implant-virgin-megastore-dubai-604000-dolari-furati";
 
 const HERO_DEVICES = [
-  { src: "/wallets/trezor.webp", float: "wallet-float", className: "left-[2%] top-[4%] z-10 h-[90%] w-[54%] md:left-[0%] md:top-[8%] md:h-[86%] md:w-[46%]" },
-  { src: "/wallets/ledger.webp", float: "wallet-float wallet-float-2", className: "left-[38%] top-[0%] z-20 h-[92%] w-[54%] md:left-[28%] md:top-[2%] md:h-[78%] md:w-[38%]" },
-  { src: "/wallets/tangem.webp", float: "wallet-float wallet-float-3", className: "right-[2%] top-[4%] z-30 hidden h-[42%] w-[36%] md:block" },
-  { src: "/wallets/bitbox.webp", float: "wallet-float wallet-float-4", className: "bottom-[8%] right-[4%] z-40 hidden h-[46%] w-[44%] md:block" },
+  { src: "/wallets/trezor.webp", float: "wallet-float", className: "left-[0%] top-[6%] z-10 h-[88%] w-[46%]" },
+  { src: "/wallets/ledger.webp", float: "wallet-float wallet-float-2", className: "left-[28%] top-[2%] z-20 h-[80%] w-[40%]" },
+  { src: "/wallets/tangem.webp", float: "wallet-float wallet-float-3", className: "right-[1%] top-[2%] z-30 h-[44%] w-[34%]" },
+  { src: "/wallets/bitbox.webp", float: "wallet-float wallet-float-4", className: "bottom-[4%] right-[2%] z-40 h-[42%] w-[40%]" },
 ] as const;
 
 const FOCUS =
@@ -296,6 +296,7 @@ function WalletChooser({
   const [experience, setExperience] = useState<ChooserExperience | null>(null);
   const [style, setStyle] = useState<ChooserStyle | null>(null);
   const [matches, setMatches] = useState<ChooserMatch[] | null>(null);
+  const [guideOpen, setGuideOpen] = useState(false);
   const resultRef = useRef<HTMLDivElement>(null);
 
   const ready = budget && experience && style;
@@ -324,11 +325,24 @@ function WalletChooser({
 
   return (
     <section className="mt-2 md:mt-3" aria-labelledby="wallet-chooser-title">
-      <h2 id="wallet-chooser-title" className="text-sm font-black tracking-tight text-neutral-950 md:text-base">
+      <h2 id="wallet-chooser-title" className="sr-only text-base font-black tracking-tight text-neutral-950 md:not-sr-only md:block">
         {t("chooserTitle")}
       </h2>
+      <button
+        type="button"
+        className={`flex min-h-11 w-full items-center justify-between gap-3 text-left text-sm font-black tracking-tight text-neutral-950 md:hidden ${FOCUS}`}
+        aria-expanded={guideOpen}
+        aria-controls="wallet-chooser-panel"
+        onClick={() => setGuideOpen((open) => !open)}
+      >
+        <span>{t("chooserTitle")}</span>
+        <span aria-hidden className={`inline-block text-base leading-none transition-transform ${guideOpen ? "rotate-180" : ""}`}>
+          ▾
+        </span>
+      </button>
       <form
-        className="mt-1.5 space-y-1.5 rounded-2xl border border-black/10 bg-white p-2 md:mt-2 md:space-y-2 md:p-4"
+        id="wallet-chooser-panel"
+        className={`mt-1.5 space-y-1.5 rounded-2xl border border-black/10 bg-white p-2 md:mt-2 md:block md:space-y-2 md:p-4 ${guideOpen ? "block" : "hidden"}`}
         onSubmit={(event) => {
           event.preventDefault();
           if (!budget || !experience || !style) return;
@@ -736,21 +750,27 @@ export default function WalletCatalog() {
               {t("seeWallets")}
             </a>
           </div>
-          <div data-wallet-cluster className="wallet-device-cluster pointer-events-none relative h-[36%] shrink-0 md:h-auto" aria-hidden>
-            <div className="wallet-glow pointer-events-none absolute inset-[8%] md:inset-[6%]" />
-            {HERO_DEVICES.map((device) => (
-              <div key={device.src} className={`absolute ${device.float} ${device.className}`}>
-                <Image
-                  src={device.src}
-                  alt=""
-                  fill
-                  sizes="(max-width: 768px) 46vw, 240px"
-                  className="object-contain drop-shadow-[0_10px_16px_rgba(0,0,0,0.35)]"
-                  unoptimized
-                  priority={device.src.includes("ledger")}
-                />
-              </div>
-            ))}
+          <div data-wallet-cluster className="wallet-device-cluster pointer-events-none relative grid h-[42%] shrink-0 grid-cols-2 items-end gap-2 md:block md:h-full" aria-hidden>
+            <div className="wallet-glow pointer-events-none absolute inset-[8%]" />
+            {HERO_DEVICES.map((device) => {
+              const phoneOnlyPair = device.src.includes("trezor") || device.src.includes("ledger");
+              return (
+                <div
+                  key={device.src}
+                  className={`relative max-md:left-auto max-md:right-auto max-md:top-auto max-md:bottom-auto max-md:h-[92%] max-md:w-full md:absolute ${device.float} ${device.className} ${phoneOnlyPair ? "" : "hidden md:block"}`}
+                >
+                  <Image
+                    src={device.src}
+                    alt=""
+                    fill
+                    sizes="(max-width: 767px) 46vw, 280px"
+                    className="object-contain object-bottom drop-shadow-[0_10px_16px_rgba(0,0,0,0.35)]"
+                    unoptimized
+                    priority={phoneOnlyPair}
+                  />
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>
