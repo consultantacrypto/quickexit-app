@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
+import WalletHeroBackdrop from "./WalletHeroBackdrop";
 import Image from "next/image";
 import { useLocale, useTranslations } from "next-intl";
 import {
@@ -41,10 +42,10 @@ const TRUST_ARTICLE_URL =
   "https://www.stirilecrypto.ro/stiri/ledger-implant-virgin-megastore-dubai-604000-dolari-furati";
 
 const HERO_DEVICES = [
-  { src: "/wallets/trezor.webp", className: "left-[0%] top-[8%] z-10 h-[86%] w-[42%] md:w-[46%]" },
-  { src: "/wallets/ledger.webp", className: "left-[24%] top-[2%] z-20 h-[78%] w-[38%] md:left-[28%]" },
-  { src: "/wallets/tangem.webp", className: "right-[2%] top-[4%] z-30 hidden h-[42%] w-[36%] md:block" },
-  { src: "/wallets/bitbox.webp", className: "bottom-[6%] right-[2%] z-40 h-[42%] w-[40%] md:right-[3%] md:w-[42%]" },
+  { src: "/wallets/trezor.webp", float: "wallet-float", className: "left-[2%] top-[4%] z-10 h-[90%] w-[54%] md:left-[0%] md:top-[8%] md:h-[86%] md:w-[46%]" },
+  { src: "/wallets/ledger.webp", float: "wallet-float wallet-float-2", className: "left-[38%] top-[0%] z-20 h-[92%] w-[54%] md:left-[28%] md:top-[2%] md:h-[78%] md:w-[38%]" },
+  { src: "/wallets/tangem.webp", float: "wallet-float wallet-float-3", className: "right-[2%] top-[4%] z-30 hidden h-[42%] w-[36%] md:block" },
+  { src: "/wallets/bitbox.webp", float: "wallet-float wallet-float-4", className: "bottom-[8%] right-[4%] z-40 hidden h-[46%] w-[44%] md:block" },
 ] as const;
 
 const FOCUS =
@@ -251,7 +252,7 @@ function ChoiceGroup<T extends string>({
   onChange: (value: T) => void;
 }) {
   return (
-    <fieldset className="grid grid-cols-[6.4rem_minmax(0,1fr)] items-start gap-x-2 md:grid-cols-[auto_minmax(0,1fr)] md:items-center">
+    <fieldset className="flex flex-col gap-1 md:grid md:grid-cols-[auto_minmax(0,1fr)] md:items-center md:gap-x-2">
       <legend className="sr-only">{legend}</legend>
       <p aria-hidden="true" className="text-[11px] font-semibold leading-tight text-neutral-950 md:text-xs">{legend}</p>
       <div className="flex min-w-0 flex-wrap gap-1.5 md:flex-nowrap md:overflow-x-auto md:pb-0.5">
@@ -260,7 +261,7 @@ function ChoiceGroup<T extends string>({
           return (
             <label
               key={option.value}
-              className={`min-h-9 max-w-full cursor-pointer rounded-full border px-2.5 py-1 text-xs md:shrink-0 md:whitespace-nowrap has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-black ${
+              className={`inline-flex min-h-10 max-w-full cursor-pointer items-center rounded-full border px-2 py-1 text-[11px] leading-none md:min-h-9 md:shrink-0 md:whitespace-nowrap md:px-2.5 md:text-xs has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-black ${
                 selected ? "border-neutral-950 bg-neutral-950 text-white" : "border-black/15 bg-white text-neutral-900"
               }`}
             >
@@ -322,12 +323,12 @@ function WalletChooser({
       .filter((item): item is NonNullable<typeof item> => item != null) ?? [];
 
   return (
-    <section className="mt-3" aria-labelledby="wallet-chooser-title">
-      <h2 id="wallet-chooser-title" className="text-base font-black tracking-tight text-neutral-950">
+    <section className="mt-2 md:mt-3" aria-labelledby="wallet-chooser-title">
+      <h2 id="wallet-chooser-title" className="text-sm font-black tracking-tight text-neutral-950 md:text-base">
         {t("chooserTitle")}
       </h2>
       <form
-        className="mt-2 space-y-2 rounded-2xl border border-black/10 bg-white p-2.5 md:p-4"
+        className="mt-1.5 space-y-1.5 rounded-2xl border border-black/10 bg-white p-2 md:mt-2 md:space-y-2 md:p-4"
         onSubmit={(event) => {
           event.preventDefault();
           if (!budget || !experience || !style) return;
@@ -373,13 +374,13 @@ function WalletChooser({
           <button
             type="submit"
             disabled={!ready}
-            className={`min-h-9 rounded-full bg-neutral-950 px-4 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:bg-neutral-200 disabled:text-neutral-700 ${FOCUS}`}
+            className={`min-h-10 rounded-full bg-neutral-950 px-3 text-[11px] font-semibold text-white disabled:cursor-not-allowed disabled:bg-neutral-200 disabled:text-neutral-700 md:min-h-9 md:px-4 md:text-xs ${FOCUS}`}
           >
             {t("chooserShow")}
           </button>
           <button
             type="button"
-            className={`min-h-9 rounded-full border border-black/20 bg-white px-4 text-xs font-semibold text-neutral-950 ${FOCUS}`}
+            className={`min-h-10 rounded-full border border-black/20 bg-white px-3 text-[11px] font-semibold text-neutral-950 md:min-h-9 md:px-4 md:text-xs ${FOCUS}`}
             onClick={() => {
               setBudget(null);
               setExperience(null);
@@ -631,6 +632,36 @@ export default function WalletCatalog() {
   const locale = catalogLocale(useLocale());
   const titleId = useId();
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const heroRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    const root = heroRef.current;
+    if (!root) return;
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const fine = window.matchMedia("(pointer: fine)");
+    const desktop = window.matchMedia("(min-width: 768px)");
+    if (reduce.matches || !fine.matches || !desktop.matches) return;
+    const cluster = root.querySelector<HTMLElement>("[data-wallet-cluster]");
+    if (!cluster) return;
+    const onMove = (event: PointerEvent) => {
+      const rect = root.getBoundingClientRect();
+      if (rect.width === 0 || rect.height === 0) return;
+      const x = (event.clientX - rect.left) / rect.width - 0.5;
+      const y = (event.clientY - rect.top) / rect.height - 0.5;
+      cluster.style.setProperty("--hero-x", `${(x * 14).toFixed(1)}px`);
+      cluster.style.setProperty("--hero-y", `${(y * 8).toFixed(1)}px`);
+    };
+    const onLeave = () => {
+      cluster.style.setProperty("--hero-x", "0px");
+      cluster.style.setProperty("--hero-y", "0px");
+    };
+    root.addEventListener("pointermove", onMove);
+    root.addEventListener("pointerleave", onLeave);
+    return () => {
+      root.removeEventListener("pointermove", onMove);
+      root.removeEventListener("pointerleave", onLeave);
+    };
+  }, []);
   const [tier, setTier] = useState<TierFilter>("all");
   const [deviceType, setDeviceType] = useState<TypeFilter>("all");
   const [compared, setCompared] = useState<WalletBrandProfile["slug"][]>([]);
@@ -685,10 +716,14 @@ export default function WalletCatalog() {
     <div className={`scroll-smooth bg-[#F7F4EC] ${compared.length > 0 ? "pb-28 md:pb-24" : ""}`}>
       <section
         id="wallet-hero"
+        ref={heroRef}
         aria-labelledby={titleId}
-        className="relative -mt-4 flex h-[40vh] max-h-[40vh] flex-col overflow-hidden rounded-none bg-[linear-gradient(128deg,#121212_0%,#1c1a16_42%,#4a3b10_100%)] text-white md:-mt-8 md:grid md:h-[38vh] md:max-h-[38vh] md:grid-cols-[minmax(0,1.15fr)_minmax(16rem,0.85fr)]"
+        className="relative -mt-4 h-[40vh] max-h-[40vh] overflow-hidden rounded-none bg-[linear-gradient(128deg,#121212_0%,#1c1a16_42%,#4a3b10_100%)] text-white md:-mt-8 md:h-[38vh] md:max-h-[38vh]"
       >
-        <div className="relative z-10 mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col justify-center px-4 py-3 md:px-8 md:py-5">
+        <div className="wallet-hero-mesh pointer-events-none absolute inset-0" aria-hidden />
+        <WalletHeroBackdrop rootRef={heroRef} />
+        <div className="relative z-10 mx-auto flex h-full w-full max-w-6xl flex-col px-4 md:grid md:grid-cols-[minmax(0,1.15fr)_minmax(16rem,0.85fr)] md:px-8">
+          <div className="flex min-h-0 flex-1 flex-col justify-center py-3 md:py-5">
             <h1 id={titleId} className="max-w-xl text-xl font-black leading-[1.12] tracking-tight text-white md:text-4xl md:leading-[1.05]">
               {t("heroTitle")}
             </h1>
@@ -696,20 +731,20 @@ export default function WalletCatalog() {
             <p className="mt-1.5 max-w-md text-[11px] leading-snug text-[#FFE56A] md:mt-2 md:text-sm">{t("disclosureShort")}</p>
             <a
               href="#wallet-grid"
-              className={`mt-2.5 inline-flex min-h-8 w-fit items-center rounded-full bg-[#FFD100] px-3.5 text-xs font-bold text-neutral-950 md:mt-4 md:min-h-10 md:px-4 md:text-sm ${FOCUS}`}
+              className={`wallet-cta mt-2.5 inline-flex min-h-8 w-fit items-center rounded-full bg-[#FFD100] px-3.5 text-xs font-bold text-neutral-950 md:mt-4 md:min-h-10 md:px-4 md:text-sm ${FOCUS}`}
             >
               {t("seeWallets")}
             </a>
           </div>
-          <div className="pointer-events-none relative h-[34%] shrink-0 md:h-auto" aria-hidden>
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(255,209,0,0.22),transparent_68%)]" />
+          <div data-wallet-cluster className="wallet-device-cluster pointer-events-none relative h-[36%] shrink-0 md:h-auto" aria-hidden>
+            <div className="wallet-glow pointer-events-none absolute inset-[8%] md:inset-[6%]" />
             {HERO_DEVICES.map((device) => (
-              <div key={device.src} className={`absolute ${device.className}`}>
+              <div key={device.src} className={`absolute ${device.float} ${device.className}`}>
                 <Image
                   src={device.src}
                   alt=""
                   fill
-                  sizes="(max-width: 768px) 40vw, 240px"
+                  sizes="(max-width: 768px) 46vw, 240px"
                   className="object-contain drop-shadow-[0_10px_16px_rgba(0,0,0,0.35)]"
                   unoptimized
                   priority={device.src.includes("ledger")}
@@ -717,9 +752,10 @@ export default function WalletCatalog() {
               </div>
             ))}
           </div>
+        </div>
       </section>
 
-      <div className="mx-auto max-w-6xl px-4 pb-20 pt-4 md:px-8 md:pt-6">
+      <div className="mx-auto max-w-6xl px-4 pb-20 pt-3 md:px-8 md:pt-6">
         <WalletChooser locale={locale} compared={compared} onToggleCompare={toggleCompare} />
 
         <div id="wallet-grid" className="mt-3 scroll-mt-24 md:scroll-mt-36">
