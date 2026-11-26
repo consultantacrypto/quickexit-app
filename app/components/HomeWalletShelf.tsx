@@ -1,6 +1,7 @@
 import Image from "next/image";
 import { getTranslations } from "next-intl/server";
 import { Link } from "@/src/i18n/navigation";
+import HomeWalletRail from "@/app/components/HomeWalletRail";
 import { WALLET_BRANDS, type WalletBrandProfile } from "@/lib/walletBrands";
 import { brandStartingPrice } from "@/lib/walletBrandSpecs";
 import type { WalletBrandSlug, WalletLocale } from "@/lib/walletCatalog";
@@ -44,9 +45,9 @@ export default async function HomeWalletShelf({ locale }: { locale: WalletLocale
     <section
       id="recommended-crypto-wallets"
       aria-labelledby="recommended-crypto-wallets-title"
-      className="scroll-mt-20 border-t border-gray-100 bg-white py-10 md:scroll-mt-32 md:py-14"
+      className="min-w-0 scroll-mt-20 border-t border-gray-100 bg-white py-10 md:scroll-mt-32 md:py-14"
     >
-      <div className="mx-auto max-w-[1440px] px-4 md:px-8">
+      <div className="mx-auto min-w-0 max-w-[1440px] px-4 md:px-8">
         <div className="mb-5 flex flex-col items-start justify-between gap-4 md:mb-6 md:flex-row md:items-end">
           <div>
             <h2
@@ -63,7 +64,7 @@ export default async function HomeWalletShelf({ locale }: { locale: WalletLocale
           </div>
         </div>
 
-        <div className="flex snap-x snap-mandatory gap-4 overflow-x-auto overscroll-x-contain pb-2 [scrollbar-width:none] lg:grid lg:snap-none lg:grid-cols-5 lg:gap-6 lg:overflow-visible lg:pb-0 [&::-webkit-scrollbar]:hidden">
+        <HomeWalletRail labels={brands.map((brand) => brand.name)}>
           {brands.map((brand) => {
             const price = brandStartingPrice(brand.slug, locale);
             const alt = locale === "en" ? brand.image.altEn : brand.image.altRo;
@@ -105,7 +106,7 @@ export default async function HomeWalletShelf({ locale }: { locale: WalletLocale
               </article>
             );
           })}
-        </div>
+        </HomeWalletRail>
 
         <div className="mt-5 flex justify-end md:mt-6">
           <Link href="/wallets" className={SEE_ALL}>
