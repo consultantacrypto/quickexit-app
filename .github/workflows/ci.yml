@@ -77,3 +77,6 @@ jobs:
 
       - name: Listing traffic UTM visits
         run: npx tsx scripts/assert-listing-traffic.ts
+
+      - name: Available-to-order filter
+        run: npm run assert:available-to-order

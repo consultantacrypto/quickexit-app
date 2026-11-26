@@ -12,7 +12,7 @@ import {
 } from "@/lib/listingCategories";
 import { adCardPricingProps } from "@/lib/listingPrice";
 import { listingAcceptsCrypto } from "@/lib/cryptoPayment";
-import { isCatalogOffer } from "@/lib/listingInventory";
+import { isCatalogOffer, looksAvailableToOrder } from "@/lib/listingInventory";
 import { normalizeSaleType } from "@/utils/normalizeSaleType";
 
 const FALLBACK_IMAGE =
@@ -64,7 +64,7 @@ export default function AnunturiClient({
       const byCategory = filterListingsByCategorySlug(listings, activeSlug);
       return byCategory.filter((item) => {
         if (cryptoOnly && !listingAcceptsCrypto(item)) return false;
-        if (catalogOnly && !isCatalogOffer(item.listing_kind)) return false;
+        if (catalogOnly && !looksAvailableToOrder(item)) return false;
         return true;
       });
     },

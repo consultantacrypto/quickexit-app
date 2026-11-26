@@ -64,6 +64,52 @@ export function isCatalogOffer(kind: unknown): boolean {
   return parseListingKind(kind) === "catalog_offer";
 }
 
+/**
+ * Public "Disponibil la comandă" / "Available to order" filter.
+ * isCatalogOffer stays a kind check for pricing, expiry, and inquiries.
+ * On-order specific assets are recognized from details.delivery_status or the
+ * title. The description is ignored: some in-stock listings mention both
+ * phrases. A bare "comand" / "comanda" does not match.
+ */
+const AVAILABLE_TO_ORDER_TEXT_RE =
+  /(?:^|[^a-z0-9])(?:import la|la|pe) comanda\b|(?:^|[^a-z0-9])available to order\b|(?:^|[^a-z0-9])on order\b/;
+
+function foldAvailableToOrderText(value: string): string {
+  return value
+    .replace(/ș|ş/gi, "s")
+    .replace(/ț|ţ/gi, "t")
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function textLooksAvailableToOrder(value: unknown): boolean {
+  if (typeof value !== "string" || !value.trim()) return false;
+  return AVAILABLE_TO_ORDER_TEXT_RE.test(foldAvailableToOrderText(value));
+}
+
+function deliveryStatusText(details: unknown): unknown {
+  if (!details || typeof details !== "object" || Array.isArray(details)) return undefined;
+  return (details as Record<string, unknown>).delivery_status;
+}
+
+export function looksAvailableToOrder(
+  listing: {
+    listing_kind?: unknown;
+    title?: unknown;
+    details?: unknown;
+    /** Present on search rows. Intentionally unread. */
+    description?: unknown;
+  } | null | undefined,
+): boolean {
+  if (!listing) return false;
+  if (listing.listing_kind === "catalog_offer") return true;
+  if (textLooksAvailableToOrder(deliveryStatusText(listing.details))) return true;
+  return textLooksAvailableToOrder(listing.title);
+}
+
 export function isPubliclyAvailableStatus(status: unknown): boolean {
   const parsed = parseAvailabilityStatus(status);
   return parsed === "available" || parsed === "needs_confirmation";

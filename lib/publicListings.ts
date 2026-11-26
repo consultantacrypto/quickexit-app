@@ -16,7 +16,7 @@ import {
 } from "@/lib/romaniaLocations";
 
 import { CRYPTO_LISTING_COLUMNS, listingAcceptsCrypto } from "@/lib/cryptoPayment";
-import { PUBLIC_INVENTORY_COLUMNS, isCatalogOffer, isPubliclyAvailableStatus } from "@/lib/listingInventory";
+import { PUBLIC_INVENTORY_COLUMNS, isPubliclyAvailableStatus, looksAvailableToOrder } from "@/lib/listingInventory";
 
 export const PUBLIC_LISTING_SEARCH_FIELDS =
   `id,title,images,market_price,exit_price,discount,deal_score,sale_strategy,offer_count,highest_offer,expires_at,status,is_seed,category,description,created_at,details,${CRYPTO_LISTING_COLUMNS},${PUBLIC_INVENTORY_COLUMNS}`;
@@ -311,9 +311,34 @@ export function filterPublicSearchListings(
     if (!listingMatchesLocationFilter(row.details, { country, county, city, district })) return false;
     if (params.crypto && !listingAcceptsCrypto(row)) return false;
     if (!isPubliclyAvailableStatus(row.availability_status)) return false;
-    if (params.catalog && !isCatalogOffer(row.listing_kind)) return false;
+    if (params.catalog && !looksAvailableToOrder(row)) return false;
     return true;
   });
+}
+
+/**
+ * Superset of looksAvailableToOrder for PostgREST. Diacritics and word
+ * boundaries are finished in JS; description is not queried.
+ * `%comand%` covers both "comanda" and "comandă" without matching a bare
+ * "comand" unless "la" / "pe" (or the English phrases) also appear.
+ */
+const AVAILABLE_TO_ORDER_ILIKE_PATTERNS = [
+  "%la%comand%",
+  "%pe%comand%",
+  "%on%order%",
+  "%available%to%order%",
+] as const;
+
+const AVAILABLE_TO_ORDER_FIELDS = ["title", "details->>delivery_status"] as const;
+
+export function buildAvailableToOrderOrFilter(): string {
+  const clauses = ["listing_kind.eq.catalog_offer"];
+  for (const field of AVAILABLE_TO_ORDER_FIELDS) {
+    for (const pattern of AVAILABLE_TO_ORDER_ILIKE_PATTERNS) {
+      clauses.push(`${field}.ilike."${pattern}"`);
+    }
+  }
+  return clauses.join(",");
 }
 
 export function buildPublicSearchPath(
@@ -380,15 +405,21 @@ export async function fetchPublicSearchListings(
   }
 
   const from = (page - 1) * pageSize;
-  const to = from + pageSize - 1;
   let query = supabase
     .from("listings")
     .select(PUBLIC_LISTING_SEARCH_FIELDS, { count: "exact" })
     .eq("status", "active")
     .eq("is_seed", false)
     .order("effective_sort_at", { ascending: false })
-    .order("id", { ascending: false })
-    .range(from, to);
+    .order("id", { ascending: false });
+
+  if (parsed.catalog) {
+    // SQL is a superset. Paginate after looksAvailableToOrder so the count
+    // matches the rows actually shown.
+    query = query.limit(PUBLIC_SEARCH_PAGE_SIZE * PUBLIC_SEARCH_MAX_PAGE);
+  } else {
+    query = query.range(from, from + pageSize - 1);
+  }
 
   const keywordOr = buildKeywordOrFilter(parsed.q);
   if (keywordOr) query = query.or(keywordOr);
@@ -398,15 +429,26 @@ export async function fetchPublicSearchListings(
   }
   if (parsed.crypto) query = query.neq("crypto_payment_mode", "none");
   query = query.or("availability_status.eq.available,availability_status.eq.needs_confirmation");
-  if (parsed.catalog) query = query.eq("listing_kind", "catalog_offer");
+  if (parsed.catalog) query = query.or(buildAvailableToOrderOrFilter());
 
   const { data, error, count } = await query;
   if (error) {
     return { listings: [], total: 0, page, pageSize, error: error.message };
   }
 
+  const filtered = filterPublicSearchListings(data, parsed);
+  if (parsed.catalog) {
+    return {
+      listings: filtered.slice(from, from + pageSize),
+      total: filtered.length,
+      page,
+      pageSize,
+      error: null,
+    };
+  }
+
   return {
-    listings: filterPublicSearchListings(data, parsed),
+    listings: filtered,
     total: typeof count === "number" ? count : 0,
     page,
     pageSize,
