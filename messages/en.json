@@ -1175,6 +1175,11 @@
       "activeListings": "Active listings",
       "managedContactHint": "Direct contact is the Quick Exit operator for this managed listing."
     },
+    "mobileCta": {
+      "label": "Actions for this listing",
+      "offerAria": "Make an offer on this listing",
+      "whatsappAria": "Open WhatsApp with this listing title and link"
+    },
     "financing": {
       "calculateCta": "Calculate monthly payment",
       "title": "Estimated financing",

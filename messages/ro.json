@@ -1175,6 +1175,11 @@
       "activeListings": "Anunțuri active listate",
       "managedContactHint": "Contactul direct este al operatorului Quick Exit pentru această listare administrată."
     },
+    "mobileCta": {
+      "label": "Acțiuni pentru acest anunț",
+      "offerAria": "Fă o ofertă pentru acest anunț",
+      "whatsappAria": "Deschide WhatsApp cu titlul și linkul anunțului"
+    },
     "financing": {
       "calculateCta": "Calculează rata",
       "title": "Finanțare estimativă",

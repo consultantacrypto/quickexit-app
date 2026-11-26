@@ -69,6 +69,7 @@ import {
 } from "@/lib/listingFinancing";
 import { financingConfig } from "@/lib/financingConfig";
 import { isCatalogOffer } from "@/lib/listingInventory";
+import { isListingMobileCtaEligible } from "@/lib/listingWhatsApp";
 import PremiumSellerCard from "./PremiumSellerCard";
 import StickyContactBar from "./StickyContactBar";
 
@@ -747,6 +748,42 @@ export default function AnuntClient({
     ctaMode,
     canUseClassicOfferFlow,
   });
+  const showMobileCta = isListingMobileCtaEligible(adData);
+
+  const onMobileMakeOffer = () => {
+    trackEvent("click_listing_offer_sticky", {
+      listing_id: adData.id,
+      category: adData.category || "unknown",
+      interaction_source: "mobile_sticky_bar",
+    });
+    if (canUseClassicOfferFlow) {
+      openOfferModal();
+      return;
+    }
+    trackFunnelEvent("request_details_click", funnelListingParams);
+    if (ctaMode === "catalog_offer" || ctaMode === "on_order") {
+      trackEvent("click_request_personalized_offer", {
+        listing_id: adData.id,
+        category: adData.category || "unknown",
+        interaction_source: "mobile_sticky_bar",
+        ...(fm
+          ? {
+              collection: "future_mobility",
+              ...(fm.model_slug ? { model_slug: fm.model_slug } : {}),
+              ...(fm.availability_type ? { availability_type: fm.availability_type } : {}),
+            }
+          : {}),
+      });
+      void openInquiryModal();
+      return;
+    }
+    trackEvent("click_listing_inquiry", {
+      listing_id: adData.id,
+      category: adData.category || "unknown",
+      interaction_source: "mobile_sticky_bar",
+    });
+    void openInquiryModal();
+  };
 
   const renderTitle = (title: string) => {
     if (!title) return null;
@@ -1237,11 +1274,7 @@ export default function AnuntClient({
 
   return (
     <div className="min-h-screen bg-[#F7F4EC] font-sans text-black selection:bg-[#FFD100]/40 selection:text-black antialiased">
-      <div
-        className={`mx-auto max-w-[1400px] px-4 pt-6 md:px-8 md:py-10 ${
-          showPremiumSeller ? "pb-28 md:pb-20" : "pb-20"
-        }`}
-      >
+      <div className="mx-auto max-w-[1400px] px-4 pb-20 pt-6 md:px-8 md:py-10">
         <div className="mb-8 flex items-center justify-between gap-4">
           <Link
             href="/"
@@ -1684,7 +1717,26 @@ export default function AnuntClient({
         ) : null}
       </div>
 
-      {showPremiumSeller ? <StickyContactBar listingId={adData.id} /> : null}
+      {showMobileCta ? (
+        <StickyContactBar
+          listingId={adData.id}
+          listingTitle={listingTitle.trim() || t("meta.listingFallback")}
+          exitPrice={isValidPrice(adData.exit_price) ? Number(adData.exit_price) : null}
+          locale={locale}
+          offerLabel={t("detailV2.cta.primaryMakeOffer")}
+          offerAriaLabel={t("mobileCta.offerAria")}
+          whatsappLabel={t("premiumSeller.whatsapp")}
+          whatsappAriaLabel={t("mobileCta.whatsappAria")}
+          barLabel={t("mobileCta.label")}
+          suspended={
+            Boolean(activeModal) ||
+            financingModalOpen ||
+            imageLightboxOpen ||
+            showAuthModal
+          }
+          onMakeOffer={onMobileMakeOffer}
+        />
+      ) : null}
 
       {financingModalOpen && financingVehiclePrice ? (
         <FinancingCalculatorModal

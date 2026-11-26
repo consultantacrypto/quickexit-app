@@ -20,3 +20,11 @@
   --color-line: #e7e3da; /* borduri fine */
   --color-muted: #8a8578; /* text secundar */
 }
+
+/* Listing mobile CTA is fixed. Keep the footer and last content scrollable above it.
+   The marker stays mounted while the bar is hidden (cookie banner, modal) so padding does not jump. */
+@media (max-width: 1023px) {
+  body:has([data-listing-mobile-cta]) {
+    padding-bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px));
+  }
+}
