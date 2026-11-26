@@ -1,4 +1,6 @@
+import { formatEurAmount } from "@/lib/i18n/format";
 import { isPubliclyAvailableStatus } from "@/lib/listingInventory";
+import { isValidPrice } from "@/lib/listingPrice";
 import { premiumSellerConfig } from "@/lib/premiumSeller";
 
 /**
@@ -30,9 +32,35 @@ export function configuredWhatsAppPhone(
   return match?.[1] ?? null;
 }
 
+export const LISTING_STICKY_WHATSAPP_UTM = {
+  utm_source: "whatsapp",
+  utm_medium: "mobile_sticky_bar",
+  utm_campaign: "listing_cta",
+} as const;
+
+/** Same euro string as the listing page and card (`€82.820` in Romanian). */
+export function formatStickyWhatsAppPrice(
+  exitPrice: unknown,
+  locale: string,
+): string | null {
+  if (!isValidPrice(exitPrice)) return null;
+  return formatEurAmount(Number(exitPrice), locale);
+}
+
+export function withListingStickyWhatsAppUtm(listingUrl: string): string {
+  const url = new URL(listingUrl);
+  url.searchParams.set("utm_source", LISTING_STICKY_WHATSAPP_UTM.utm_source);
+  url.searchParams.set("utm_medium", LISTING_STICKY_WHATSAPP_UTM.utm_medium);
+  url.searchParams.set("utm_campaign", LISTING_STICKY_WHATSAPP_UTM.utm_campaign);
+  return url.toString();
+}
+
 export function buildListingWhatsAppHref(input: {
   title: string;
   listingUrl: string;
+  listingId: string;
+  exitPrice?: unknown;
+  locale?: string;
   whatsappUrl?: string;
 }): string | null {
   const phone = configuredWhatsAppPhone(
@@ -42,8 +70,14 @@ export function buildListingWhatsAppHref(input: {
 
   const title = input.title.replace(/\s+/g, " ").trim();
   const listingUrl = input.listingUrl.trim();
-  if (!title || !listingUrl) return null;
+  const listingId = input.listingId.trim();
+  if (!title || !listingUrl || !listingId) return null;
 
-  const text = `${title}\n${listingUrl}`;
-  return `https://wa.me/${phone}?text=${encodeURIComponent(text)}`;
+  const price = formatStickyWhatsAppPrice(input.exitPrice, input.locale ?? "ro");
+  const trackedUrl = withListingStickyWhatsAppUtm(listingUrl);
+  const lines = [title];
+  if (price) lines.push(price);
+  lines.push(`ID: ${listingId}`);
+  lines.push(trackedUrl);
+  return `https://wa.me/${phone}?text=${encodeURIComponent(lines.join("\n"))}`;
 }

@@ -10,6 +10,8 @@ import { getSiteUrl } from "@/lib/siteUrl";
 type StickyContactBarProps = {
   listingId: string;
   listingTitle: string;
+  exitPrice: number | null;
+  locale: string;
   offerLabel: string;
   offerAriaLabel: string;
   whatsappLabel: string;
@@ -23,6 +25,8 @@ type StickyContactBarProps = {
 export default function StickyContactBar({
   listingId,
   listingTitle,
+  exitPrice,
+  locale,
   offerLabel,
   offerAriaLabel,
   whatsappLabel,
@@ -43,6 +47,9 @@ export default function StickyContactBar({
   const whatsappHref = buildListingWhatsAppHref({
     title: listingTitle,
     listingUrl,
+    listingId,
+    exitPrice,
+    locale,
   });
   const showBar = mounted && !suspended && !bannerVisible && !preferencesOpen;
 

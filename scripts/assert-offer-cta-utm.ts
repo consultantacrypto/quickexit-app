@@ -186,9 +186,25 @@ assert(isListingMobileCtaEligible({ status: "active" }), "missing availability f
 assert(!isListingMobileCtaEligible({ status: "active", availability_status: "sold" }), "sold listing hides the bar");
 assert(!isListingMobileCtaEligible({ status: "sold", availability_status: "available" }), "inactive status hides the bar");
 assert(listing.includes("isListingMobileCtaEligible"), "detail page gates the mobile bar");
-assert(listing.includes('interaction_source: "mobile_sticky_bar"'), "sticky offer reuses the offer click event");
 assert(listing.includes("StickyContactBar"), "listing page renders the mobile bar");
 assert(listing.includes('t("detailV2.cta.primaryMakeOffer")'), "sticky label reuses the make-offer copy");
+assert(
+  listing.includes('interaction_source: "listing_detail"'),
+  "page offer button keeps its listing_detail click",
+);
+const stickyHandler = listing.slice(
+  listing.indexOf("const onMobileMakeOffer"),
+  listing.indexOf("const renderTitle"),
+);
+assert(stickyHandler.includes('trackEvent("click_listing_offer_sticky"'), "sticky offer has its own event");
+assert(
+  !stickyHandler.includes('trackEvent("click_listing_offer"'),
+  "sticky handler does not emit the page offer event",
+);
+assert(
+  (listing.match(/trackEvent\("click_listing_offer"/g) ?? []).length >= 2,
+  "page offer clicks still use click_listing_offer",
+);
 
 const sticky = readFileSync(resolve("app/[locale]/anunt/[id]/StickyContactBar.tsx"), "utf8");
 assert(sticky.includes("env(safe-area-inset-bottom"), "bar pads for the bottom safe area");
@@ -197,19 +213,44 @@ assert(sticky.includes("bannerVisible"), "bar yields to the cookie banner");
 assert(sticky.includes("buildListingWhatsAppHref"), "WhatsApp link is built from configured digits");
 assert(!sticky.includes("40731409099"), "bar does not hardcode the operator number");
 
+const listingId = "490d41f9-0480-4785-8818-ae458847bf4b";
 const href = buildListingWhatsAppHref({
-  title: "Zeekr 8X Ultra",
-  listingUrl: "https://www.quickexit.ro/ro/anunt/490d41f9-0480-4785-8818-ae458847bf4b",
+  title: "Zeekr 8X Ultra — încărcător",
+  listingUrl: `https://www.quickexit.ro/ro/anunt/${listingId}`,
+  listingId,
+  exitPrice: 82820,
+  locale: "ro",
 });
 assert(typeof href === "string" && href.startsWith("https://wa.me/"), "whatsapp href uses wa.me");
-assert(href!.includes("text="), "whatsapp href prefills text");
-const prefilled = decodeURIComponent(href!.slice(href!.indexOf("text=") + 5));
-assert(prefilled.includes("Zeekr 8X Ultra"), "prefilled message includes the listing title");
+const encodedText = href!.slice(href!.indexOf("text=") + 5);
+assert(encodedText.includes("%0A"), "newlines are percent-encoded");
+assert(encodedText.includes("%E2%82%AC"), "euro sign is percent-encoded");
+assert(encodedText.includes("%C3%AE"), "diacritic î is percent-encoded");
+assert(!encodedText.includes(" "), "prefill text is encoded, not left raw");
+const prefilled = decodeURIComponent(encodedText);
+assert(prefilled.includes("Zeekr 8X Ultra — încărcător"), "prefilled message includes the listing title");
+assert(prefilled.includes("€82.820"), "prefilled price matches the Romanian listing format");
+assert(prefilled.includes(`ID: ${listingId}`), "prefilled message includes the listing id");
 assert(
-  prefilled.includes("https://www.quickexit.ro/ro/anunt/490d41f9-0480-4785-8818-ae458847bf4b"),
-  "prefilled message includes the listing URL",
+  prefilled.includes(
+    `https://www.quickexit.ro/ro/anunt/${listingId}?utm_source=whatsapp&utm_medium=mobile_sticky_bar&utm_campaign=listing_cta`,
+  ),
+  "prefilled link keeps getSiteUrl path plus sticky UTM",
 );
-assert(prefilled.indexOf("Zeekr 8X Ultra") < prefilled.indexOf("https://"), "title comes before the URL");
+assert(prefilled.split("\n")[0] === "Zeekr 8X Ultra — încărcător", "title is the first line");
+assert(!prefilled.includes("%0A") && prefilled.includes("\n"), "decoded message uses real newlines");
+
+const withoutPrice = buildListingWhatsAppHref({
+  title: "Anunț fără preț",
+  listingUrl: "https://www.quickexit.ro/ro/anunt/x",
+  listingId: "x",
+  exitPrice: null,
+  locale: "ro",
+});
+const withoutPriceText = decodeURIComponent(withoutPrice!.slice(withoutPrice!.indexOf("text=") + 5));
+assert(!withoutPriceText.includes("€"), "missing exit price is omitted");
+assert(withoutPriceText.includes("ID: x"), "id remains when price is omitted");
+assert(withoutPriceText.includes("utm_campaign=listing_cta"), "utm remains when price is omitted");
 assert(
   buildListingWhatsAppHref({
     title: "Anunț",

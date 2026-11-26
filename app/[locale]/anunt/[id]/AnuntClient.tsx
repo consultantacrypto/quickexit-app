@@ -751,12 +751,12 @@ export default function AnuntClient({
   const showMobileCta = isListingMobileCtaEligible(adData);
 
   const onMobileMakeOffer = () => {
+    trackEvent("click_listing_offer_sticky", {
+      listing_id: adData.id,
+      category: adData.category || "unknown",
+      interaction_source: "mobile_sticky_bar",
+    });
     if (canUseClassicOfferFlow) {
-      trackEvent("click_listing_offer", {
-        listing_id: adData.id,
-        category: adData.category || "unknown",
-        interaction_source: "mobile_sticky_bar",
-      });
       openOfferModal();
       return;
     }
@@ -1721,6 +1721,8 @@ export default function AnuntClient({
         <StickyContactBar
           listingId={adData.id}
           listingTitle={listingTitle.trim() || t("meta.listingFallback")}
+          exitPrice={isValidPrice(adData.exit_price) ? Number(adData.exit_price) : null}
+          locale={locale}
           offerLabel={t("detailV2.cta.primaryMakeOffer")}
           offerAriaLabel={t("mobileCta.offerAria")}
           whatsappLabel={t("premiumSeller.whatsapp")}
