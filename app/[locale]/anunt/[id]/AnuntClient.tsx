@@ -1054,6 +1054,14 @@ export default function AnuntClient({
             <p className="mt-2 text-xs text-neutral-600">{t("cryptoPayment.disclaimer")}</p>
           </div>
         ) : null}
+        {cryptoNotice.mode !== "none" ? (
+          <Link
+            href="/wallets"
+            className="block rounded-2xl border-2 border-black bg-[#111111] px-4 py-3 text-sm font-bold leading-snug text-white shadow-[4px_4px_0_0_#FFD100]"
+          >
+            {t("hardwareWallet.prompt")}
+          </Link>
+        ) : null}
         {catalogOffer ? (
           <div className="space-y-2">
             <p>
