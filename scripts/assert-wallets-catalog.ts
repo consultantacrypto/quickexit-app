@@ -57,6 +57,12 @@ assert(ro.Wallets.title === "Portofele crypto", "RO page title");
 assert(en.Wallets.title === "Crypto wallets", "EN page title");
 assert(ro.Wallets.seeWallets === "Vezi portofelele crypto", "RO hero CTA");
 assert(en.Wallets.seeWallets === "See crypto wallets", "EN hero CTA");
+assert(ro.Wallets.badgePopular === "Cel mai ales", "RO popular badge");
+assert(en.Wallets.badgePopular === "Most chosen", "EN popular badge");
+assert(
+  WALLET_PRODUCTS.filter((item) => item.highlight === "popular").map((item) => item.slug).join(",") === "safepal-s1",
+  "only SafePal S1 carries the official popular badge",
+);
 assert(ro.Wallets.buyOfficial === "Cumpără pe site-ul oficial", "RO CTA");
 assert(en.Wallets.buyOfficial === "Buy on the official site", "EN CTA");
 assert(ro.Wallets.copyCode === "Copiază codul", "RO copy code");
@@ -99,11 +105,9 @@ const AFFILIATE_BY_SLUG: Record<string, string> = {
   "safepal-x1": "https://www.safepal.com/store/x1?ref=n2rmyza",
   "safepal-s1-pro": "https://www.safepal.com/store/s1pro?ref=n2rmyza",
 };
-const AFFILIATE_BY_BRAND: Record<string, string> = {
-  keystone: "https://keyst.one/?rfsn=9430621.40149c9&utm_source=refersion&utm_medium=affiliate&utm_campaign=9430621.40149c9",
-  ellipal: "https://www.ellipal.com/?rfsn=9430622.0718c6",
-  ledger: "https://shop.ledger.com/?r=9111c54498ec",
-};
+const LEDGER_REF = "9111c54498ec";
+const KEYSTONE_RFSN = "9430621.40149c9";
+const ELLIPAL_RFSN = "9430622.0718c6";
 
 assert(WALLET_BRAND_SLUGS.length === 12, "12 brands");
 assert(new Set(WALLET_PRODUCTS.map((item) => item.brandSlug)).size === 12, "every brand has a card");
@@ -124,8 +128,20 @@ for (const item of WALLET_PRODUCTS) {
     assert(hasRealCheckoutCode(item), "Tangem code is copyable");
   } else if (AFFILIATE_BY_SLUG[item.slug]) {
     assert(item.affiliateUrl === AFFILIATE_BY_SLUG[item.slug], `${item.slug} affiliate URL`);
-  } else if (AFFILIATE_BY_BRAND[item.brandSlug]) {
-    assert(item.affiliateUrl === AFFILIATE_BY_BRAND[item.brandSlug], `${item.slug} brand affiliate URL`);
+  } else if (item.brandSlug === "ledger") {
+    const affiliate = new URL(item.affiliateUrl);
+    assert(affiliate.hostname === "shop.ledger.com", `${item.slug} ledger host`);
+    assert(affiliate.pathname === new URL(item.officialUrl).pathname, `${item.slug} ledger product path`);
+    assert(affiliate.searchParams.get("r") === LEDGER_REF, `${item.slug} ledger ref`);
+  } else if (item.brandSlug === "keystone") {
+    const affiliate = new URL(item.affiliateUrl);
+    assert(affiliate.hostname === "shop.keyst.one", `${item.slug} keystone host`);
+    assert(affiliate.pathname === new URL(item.officialUrl).pathname, `${item.slug} keystone product path`);
+    assert(affiliate.searchParams.get("rfsn") === KEYSTONE_RFSN, `${item.slug} keystone ref`);
+  } else if (item.brandSlug === "ellipal") {
+    const affiliate = new URL(item.affiliateUrl);
+    assert(affiliate.pathname === new URL(item.officialUrl).pathname, `${item.slug} ellipal product path`);
+    assert(affiliate.searchParams.get("rfsn") === ELLIPAL_RFSN, `${item.slug} ellipal ref`);
   } else {
     assert(item.affiliateUrl === `PENDING:${item.brandSlug}`, `${item.slug} pending affiliate URL`);
     assert(!hasRealCheckoutCode(item), `${item.slug} has no checkout code`);

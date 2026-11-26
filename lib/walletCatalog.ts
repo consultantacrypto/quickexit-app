@@ -66,6 +66,9 @@ export type WalletProduct = {
   affiliateUrl: string;
   affiliateCode: string | null;
   checkoutCodeRequired: boolean;
+  /** Official-site claim only. Null when the brand page does not say it. */
+  highlight: "popular" | null;
+  highlightSource: string | null;
   sortOrder: number;
   published: false;
 };
@@ -148,10 +151,14 @@ const COOLWALLET_GO_AFFILIATE = "https://www.coolwallet.io/products/coolwallet-g
 const SAFEPAL_S1_AFFILIATE = "https://www.safepal.com/store/s1?ref=n2rmyza";
 const SAFEPAL_X1_AFFILIATE = "https://www.safepal.com/store/x1?ref=n2rmyza";
 const SAFEPAL_S1_PRO_AFFILIATE = "https://www.safepal.com/store/s1pro?ref=n2rmyza";
-const KEYSTONE_AFFILIATE =
-  "https://keyst.one/?rfsn=9430621.40149c9&utm_source=refersion&utm_medium=affiliate&utm_campaign=9430621.40149c9";
-const ELLIPAL_AFFILIATE = "https://www.ellipal.com/?rfsn=9430622.0718c6";
-const LEDGER_AFFILIATE = "https://shop.ledger.com/?r=9111c54498ec";
+const LEDGER_REF = "9111c54498ec";
+const KEYSTONE_AFFILIATE_PARAMS = {
+  rfsn: "9430621.40149c9",
+  utm_source: "refersion",
+  utm_medium: "affiliate",
+  utm_campaign: "9430621.40149c9",
+} as const;
+const ELLIPAL_RFSN = "9430622.0718c6";
 
 const AFFILIATE_URL_BY_SLUG: Record<string, string> = {
   "coolwallet-pro": COOLWALLET_PRO_AFFILIATE,
@@ -161,18 +168,33 @@ const AFFILIATE_URL_BY_SLUG: Record<string, string> = {
   "safepal-s1-pro": SAFEPAL_S1_PRO_AFFILIATE,
 };
 
-const AFFILIATE_URL_BY_BRAND: Partial<Record<WalletBrandSlug, string>> = {
-  keystone: KEYSTONE_AFFILIATE,
-  ellipal: ELLIPAL_AFFILIATE,
-  ledger: LEDGER_AFFILIATE,
+const VARIANT_HIGHLIGHT: Record<string, { kind: "popular"; source: string }> = {
+  "safepal-s1": {
+    kind: "popular",
+    source:
+      "https://www.safepal.com/en/store/s1 — S1 Hardware Wallet: “The most popular combination to safeguard crypto assets for experienced users.”",
+  },
 };
 
-function affiliateUrlFor(slug: string, brandSlug: WalletBrandSlug): string {
-  return (
-    AFFILIATE_URL_BY_SLUG[slug] ??
-    AFFILIATE_URL_BY_BRAND[brandSlug] ??
-    (brandSlug === "tangem" ? TANGEM_PARTNER_LINK_PLACEHOLDER : `PENDING:${brandSlug}`)
-  );
+function withSearchParams(base: string, params: Record<string, string>): string {
+  const url = new URL(base);
+  for (const [key, value] of Object.entries(params)) {
+    url.searchParams.set(key, value);
+  }
+  return url.toString();
+}
+
+function affiliateUrlFor(slug: string, brandSlug: WalletBrandSlug, officialUrl: string): string {
+  const explicit = AFFILIATE_URL_BY_SLUG[slug];
+  if (explicit) return explicit;
+  if (brandSlug === "ledger") {
+    const product = new URL(officialUrl);
+    return withSearchParams(`https://shop.ledger.com${product.pathname}`, { r: LEDGER_REF });
+  }
+  if (brandSlug === "keystone") return withSearchParams(officialUrl, KEYSTONE_AFFILIATE_PARAMS);
+  if (brandSlug === "ellipal") return withSearchParams(officialUrl, { rfsn: ELLIPAL_RFSN });
+  if (brandSlug === "tangem") return TANGEM_PARTNER_LINK_PLACEHOLDER;
+  return `PENDING:${brandSlug}`;
 }
 
 function assertOfficialUrl(url: string, slug: string): void {
@@ -236,7 +258,7 @@ function product(input: WalletProductInput): WalletProduct {
   if (affiliateCode && !isAffiliatePlaceholder(affiliateCode) && !/^[A-Za-z0-9]{4,40}$/.test(affiliateCode)) {
     throw new Error(`wallet ${input.slug} checkout code is not a plain code`);
   }
-  const affiliateUrl = affiliateUrlFor(input.slug, input.brandSlug);
+  const affiliateUrl = affiliateUrlFor(input.slug, input.brandSlug, input.officialUrl);
   if (!isAffiliatePlaceholder(affiliateUrl)) {
     let affiliate: URL;
     try {
@@ -277,6 +299,8 @@ function product(input: WalletProductInput): WalletProduct {
     affiliateUrl,
     affiliateCode,
     checkoutCodeRequired: input.checkoutCodeRequired ?? false,
+    highlight: VARIANT_HIGHLIGHT[input.slug]?.kind ?? null,
+    highlightSource: VARIANT_HIGHLIGHT[input.slug]?.source ?? null,
     sortOrder: input.sortOrder,
     published: false,
   };

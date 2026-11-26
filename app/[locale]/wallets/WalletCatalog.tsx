@@ -177,12 +177,33 @@ function BrandCard({
         <p className="mt-3 text-sm leading-relaxed text-neutral-800">{positioning}</p>
         <SecurityBadges brand={brand} />
         <ul className="mt-5 border-t border-black/10">
-          {models.map((model) => (
-            <li key={model.slug} className="flex items-start justify-between gap-4 border-b border-black/10 py-3">
-              <p className="min-w-0 text-sm leading-snug text-neutral-900">{walletModelName(model, locale)}</p>
-              <ModelPrice product={model} locale={locale} />
-            </li>
-          ))}
+          {models.map((model) => {
+            const name = walletModelName(model, locale);
+            return (
+              <li key={model.slug} className="border-b border-black/10">
+                <a
+                  href={buildWalletOutboundUrl(model)}
+                  target="_blank"
+                  rel={WALLET_OUTBOUND_REL}
+                  aria-label={t("variantLink", { brand: brand.name, variant: name })}
+                  onClick={() => reportWalletClick({ brandSlug: model.brandSlug, slug: model.slug })}
+                  className={`flex min-h-11 items-start justify-between gap-4 py-3 ${FOCUS}`}
+                >
+                  <span className="min-w-0">
+                    <span className="block text-sm leading-snug text-neutral-900">{name}</span>
+                    {model.highlight === "popular" ? (
+                      <span className="mt-1 inline-flex rounded-full border border-black/15 bg-[#F7F4EC] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-neutral-800">
+                        {t("badgePopular")}
+                        <span className="sr-only">. {model.highlightSource}</span>
+                      </span>
+                    ) : null}
+                  </span>
+                  <ModelPrice product={model} locale={locale} />
+                  <span className="sr-only"> ({t("newTab")})</span>
+                </a>
+              </li>
+            );
+          })}
         </ul>
         {showCodeNote ? <p className="mt-3 text-xs leading-relaxed text-neutral-700">{t("codePending")}</p> : null}
         <div className="mt-auto flex flex-col gap-2 pt-6">
