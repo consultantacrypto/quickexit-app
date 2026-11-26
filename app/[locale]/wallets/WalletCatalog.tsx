@@ -45,7 +45,7 @@ const HERO_DEVICES = [
   { src: "/wallets/trezor.webp", float: "wallet-float", className: "left-[0%] top-[6%] z-10 h-[88%] w-[46%]" },
   { src: "/wallets/ledger.webp", float: "wallet-float wallet-float-2", className: "left-[28%] top-[2%] z-20 h-[80%] w-[40%]" },
   { src: "/wallets/tangem.webp", float: "wallet-float wallet-float-3", className: "right-[1%] top-[2%] z-30 h-[44%] w-[34%]" },
-  { src: "/wallets/bitbox.webp", float: "wallet-float wallet-float-4", className: "bottom-[4%] right-[2%] z-40 h-[42%] w-[40%]" },
+  { src: "/wallets/bitbox-hero.webp", float: "wallet-float wallet-float-4", className: "bottom-[4%] right-[2%] z-40 h-[42%] w-[40%]" },
 ] as const;
 
 const FOCUS =
