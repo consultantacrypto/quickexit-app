@@ -105,6 +105,8 @@
     "affiliateNote": "Parteneriat afiliat",
     "copyCode": "Copiază codul",
     "copied": "Cod copiat",
+    "discountCode": "Cod de reducere: {code}",
+    "copyDiscount": "Copiază codul de reducere {code}",
     "applyCode": "Aplică codul la checkout, altfel achiziția nu este atribuită.",
     "codePending": "Codul de checkout se afișează pe card când există. Până atunci nu există buton de copiere, iar linkul deschide site-ul oficial.",
     "empty": "Niciun portofel pentru filtrele alese.",

@@ -5,8 +5,9 @@
  * `published` stays false until a separate publication GO.
  * Preview still renders every row so the shelf can be reviewed without a database.
  *
- * Affiliate fields are placeholders. Official URLs have no affiliate parameters.
- * Tangem uses TANGEM_PARTNER_LINK until Dani pastes the existing partner link.
+ * Official URLs have no affiliate parameters. Partner links live in the affiliate
+ * fields below. Tangem has no partner URL; the checkout code is DANIELMIHAI.
+ * BitBox, NGRAVE, and Trezor stay on PENDING until a partner link exists.
  * Prices marked unverified are not given a number.
  */
 
@@ -142,9 +143,36 @@ export function hasRealCheckoutCode(product: Pick<WalletProduct, "affiliateCode"
   return !isAffiliatePlaceholder(product.affiliateCode);
 }
 
-function affiliateUrlFor(brandSlug: WalletBrandSlug): string {
-  if (brandSlug === "tangem") return TANGEM_PARTNER_LINK_PLACEHOLDER;
-  return `PENDING:${brandSlug}`;
+const COOLWALLET_PRO_AFFILIATE = "https://www.coolwallet.io/products/coolwallet-pro/?ref=yzm5nda";
+const COOLWALLET_GO_AFFILIATE = "https://www.coolwallet.io/products/coolwallet-go/?ref=yzm5nda";
+const SAFEPAL_S1_AFFILIATE = "https://www.safepal.com/store/s1?ref=n2rmyza";
+const SAFEPAL_X1_AFFILIATE = "https://www.safepal.com/store/x1?ref=n2rmyza";
+const SAFEPAL_S1_PRO_AFFILIATE = "https://www.safepal.com/store/s1pro?ref=n2rmyza";
+const KEYSTONE_AFFILIATE =
+  "https://keyst.one/?rfsn=9430621.40149c9&utm_source=refersion&utm_medium=affiliate&utm_campaign=9430621.40149c9";
+const ELLIPAL_AFFILIATE = "https://www.ellipal.com/?rfsn=9430622.0718c6";
+const LEDGER_AFFILIATE = "https://shop.ledger.com/?r=9111c54498ec";
+
+const AFFILIATE_URL_BY_SLUG: Record<string, string> = {
+  "coolwallet-pro": COOLWALLET_PRO_AFFILIATE,
+  "coolwallet-go": COOLWALLET_GO_AFFILIATE,
+  "safepal-s1": SAFEPAL_S1_AFFILIATE,
+  "safepal-x1": SAFEPAL_X1_AFFILIATE,
+  "safepal-s1-pro": SAFEPAL_S1_PRO_AFFILIATE,
+};
+
+const AFFILIATE_URL_BY_BRAND: Partial<Record<WalletBrandSlug, string>> = {
+  keystone: KEYSTONE_AFFILIATE,
+  ellipal: ELLIPAL_AFFILIATE,
+  ledger: LEDGER_AFFILIATE,
+};
+
+function affiliateUrlFor(slug: string, brandSlug: WalletBrandSlug): string {
+  return (
+    AFFILIATE_URL_BY_SLUG[slug] ??
+    AFFILIATE_URL_BY_BRAND[brandSlug] ??
+    (brandSlug === "tangem" ? TANGEM_PARTNER_LINK_PLACEHOLDER : `PENDING:${brandSlug}`)
+  );
 }
 
 function assertOfficialUrl(url: string, slug: string): void {
@@ -205,8 +233,20 @@ function product(input: WalletProductInput): WalletProduct {
     throw new Error(`unverified wallet ${input.slug} must not carry a price`);
   }
   const affiliateCode = input.affiliateCode ?? null;
-  if (affiliateCode && !isAffiliatePlaceholder(affiliateCode)) {
-    throw new Error(`wallet ${input.slug} cannot ship a real affiliate code in this catalog`);
+  if (affiliateCode && !isAffiliatePlaceholder(affiliateCode) && !/^[A-Za-z0-9]{4,40}$/.test(affiliateCode)) {
+    throw new Error(`wallet ${input.slug} checkout code is not a plain code`);
+  }
+  const affiliateUrl = affiliateUrlFor(input.slug, input.brandSlug);
+  if (!isAffiliatePlaceholder(affiliateUrl)) {
+    let affiliate: URL;
+    try {
+      affiliate = new URL(affiliateUrl);
+    } catch {
+      throw new Error(`wallet ${input.slug} affiliate URL is not a URL`);
+    }
+    if (affiliate.protocol !== "https:") {
+      throw new Error(`wallet ${input.slug} affiliate URL must be https`);
+    }
   }
   if (input.checkoutCodeRequired && !affiliateCode) {
     throw new Error(`wallet ${input.slug} requires a checkout-code placeholder`);
@@ -234,7 +274,7 @@ function product(input: WalletProductInput): WalletProduct {
     officialUrl: input.officialUrl,
     imageUrl: null,
     imageLicenseNote: IMAGE_LICENSE_NOTE,
-    affiliateUrl: affiliateUrlFor(input.brandSlug),
+    affiliateUrl,
     affiliateCode,
     checkoutCodeRequired: input.checkoutCodeRequired ?? false,
     sortOrder: input.sortOrder,
@@ -256,7 +296,8 @@ export const WALLET_PRODUCTS: readonly WalletProduct[] = [
     priceStatus: "verified",
     priceSourceUrl: "https://tangem.com/en/pricing/?cat=2&sku=TG128X2-B",
     officialUrl: "https://tangem.com/en/pricing/?cat=2&sku=TG128X2-B",
-    affiliateCode: "PENDING:tangem",
+    affiliateCode: "DANIELMIHAI",
+    checkoutCodeRequired: true,
     sortOrder: 10,
   }),
   product({
@@ -272,7 +313,8 @@ export const WALLET_PRODUCTS: readonly WalletProduct[] = [
     priceStatus: "verified",
     priceSourceUrl: "https://tangem.com/en/pricing/?cat=3&sku=TG128X3-B",
     officialUrl: "https://tangem.com/en/pricing/?cat=3&sku=TG128X3-B",
-    affiliateCode: "PENDING:tangem",
+    affiliateCode: "DANIELMIHAI",
+    checkoutCodeRequired: true,
     sortOrder: 11,
   }),
   product({
@@ -289,7 +331,8 @@ export const WALLET_PRODUCTS: readonly WalletProduct[] = [
     priceStatus: "verified",
     priceSourceUrl: "https://tangem.com/en/pricing/?cat=ring",
     officialUrl: "https://tangem.com/en/pricing/?cat=ring",
-    affiliateCode: "PENDING:tangem",
+    affiliateCode: "DANIELMIHAI",
+    checkoutCodeRequired: true,
     sortOrder: 12,
   }),
   product({
@@ -305,7 +348,8 @@ export const WALLET_PRODUCTS: readonly WalletProduct[] = [
     priceStatus: "verified",
     priceSourceUrl: "https://tangem.com/en/pricing/?cat=boxes",
     officialUrl: "https://tangem.com/en/pricing/?cat=boxes",
-    affiliateCode: "PENDING:tangem",
+    affiliateCode: "DANIELMIHAI",
+    checkoutCodeRequired: true,
     sortOrder: 13,
   }),
   product({
@@ -990,9 +1034,13 @@ export function buildWalletOutboundUrl(
   product: Pick<WalletProduct, "affiliateUrl" | "officialUrl" | "brandSlug" | "slug">,
 ): string {
   const url = new URL(resolveWalletOutboundBase(product));
-  url.searchParams.set("utm_source", "quickexit");
-  url.searchParams.set("utm_medium", "affiliate");
-  url.searchParams.set("utm_campaign", "wallets");
-  url.searchParams.set("utm_content", `${product.brandSlug}-${product.slug}`.slice(0, 120));
+  if (!url.searchParams.has("utm_source")) {
+    url.searchParams.set("utm_source", "quickexit");
+    url.searchParams.set("utm_medium", "affiliate");
+    url.searchParams.set("utm_campaign", "wallets");
+  }
+  if (!url.searchParams.has("utm_content")) {
+    url.searchParams.set("utm_content", `${product.brandSlug}-${product.slug}`.slice(0, 120));
+  }
   return url.toString();
 }

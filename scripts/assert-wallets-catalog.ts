@@ -12,6 +12,7 @@ import {
   buildWalletOutboundUrl,
   filterWalletProducts,
   hasRealCheckoutCode,
+  isAffiliatePlaceholder,
   walletCatalogForPage,
   walletPriceView,
 } from "../lib/walletCatalog";
@@ -89,6 +90,19 @@ for (const phrase of forbidden) {
   assert(!copyBlob.toLowerCase().includes(phrase.toLowerCase()), `catalog copy contains ${phrase}`);
 }
 
+const AFFILIATE_BY_SLUG: Record<string, string> = {
+  "coolwallet-pro": "https://www.coolwallet.io/products/coolwallet-pro/?ref=yzm5nda",
+  "coolwallet-go": "https://www.coolwallet.io/products/coolwallet-go/?ref=yzm5nda",
+  "safepal-s1": "https://www.safepal.com/store/s1?ref=n2rmyza",
+  "safepal-x1": "https://www.safepal.com/store/x1?ref=n2rmyza",
+  "safepal-s1-pro": "https://www.safepal.com/store/s1pro?ref=n2rmyza",
+};
+const AFFILIATE_BY_BRAND: Record<string, string> = {
+  keystone: "https://keyst.one/?rfsn=9430621.40149c9&utm_source=refersion&utm_medium=affiliate&utm_campaign=9430621.40149c9",
+  ellipal: "https://www.ellipal.com/?rfsn=9430622.0718c6",
+  ledger: "https://shop.ledger.com/?r=9111c54498ec",
+};
+
 assert(WALLET_BRAND_SLUGS.length === 12, "12 brands");
 assert(new Set(WALLET_PRODUCTS.map((item) => item.brandSlug)).size === 12, "every brand has a card");
 assert(WALLET_PRODUCTS.every((item) => item.published === false), "published stays false");
@@ -103,18 +117,39 @@ for (const item of WALLET_PRODUCTS) {
     assert(!official.searchParams.has(key), `${item.slug} official URL has no ${key}`);
   }
   if (item.brandSlug === "tangem") {
-    assert(item.affiliateUrl === TANGEM_PARTNER_LINK_PLACEHOLDER, "Tangem partner placeholder");
+    assert(item.affiliateUrl === TANGEM_PARTNER_LINK_PLACEHOLDER, "Tangem has no partner URL");
+    assert(item.affiliateCode === "DANIELMIHAI" && item.checkoutCodeRequired, "Tangem checkout code");
+    assert(hasRealCheckoutCode(item), "Tangem code is copyable");
+  } else if (AFFILIATE_BY_SLUG[item.slug]) {
+    assert(item.affiliateUrl === AFFILIATE_BY_SLUG[item.slug], `${item.slug} affiliate URL`);
+  } else if (AFFILIATE_BY_BRAND[item.brandSlug]) {
+    assert(item.affiliateUrl === AFFILIATE_BY_BRAND[item.brandSlug], `${item.slug} brand affiliate URL`);
   } else {
     assert(item.affiliateUrl === `PENDING:${item.brandSlug}`, `${item.slug} pending affiliate URL`);
+    assert(!hasRealCheckoutCode(item), `${item.slug} has no checkout code`);
   }
   const outbound = new URL(buildWalletOutboundUrl(item));
-  assert(outbound.searchParams.get("utm_source") === "quickexit", "utm source");
-  assert(outbound.searchParams.get("utm_medium") === "affiliate", "utm medium");
-  assert(outbound.searchParams.get("utm_campaign") === "wallets", "utm campaign");
+  const affiliateBase = isAffiliatePlaceholder(item.affiliateUrl) ? null : new URL(item.affiliateUrl);
+  if (affiliateBase?.searchParams.has("utm_source")) {
+    assert(outbound.searchParams.get("utm_source") === affiliateBase.searchParams.get("utm_source"), "keeps partner utm_source");
+    assert(outbound.searchParams.get("utm_medium") === affiliateBase.searchParams.get("utm_medium"), "keeps partner utm_medium");
+    assert(outbound.searchParams.get("utm_campaign") === affiliateBase.searchParams.get("utm_campaign"), "keeps partner utm_campaign");
+  } else {
+    assert(outbound.searchParams.get("utm_source") === "quickexit", "utm source");
+    assert(outbound.searchParams.get("utm_medium") === "affiliate", "utm medium");
+    assert(outbound.searchParams.get("utm_campaign") === "wallets", "utm campaign");
+  }
   assert(
     outbound.searchParams.get("utm_content") === `${item.brandSlug}-${item.slug}`,
     "utm content",
   );
+  for (const key of ["ref", "r", "rfsn"] as const) {
+    if (affiliateBase?.searchParams.has(key)) {
+      assert(outbound.searchParams.get(key) === affiliateBase.searchParams.get(key), `${item.slug} keeps ${key}`);
+    } else {
+      assert(!outbound.searchParams.has(key), `${item.slug} does not invent ${key}`);
+    }
+  }
   assert(!outbound.toString().includes("PENDING:"), "outbound does not leak a placeholder");
   assert(!outbound.toString().includes(TANGEM_PARTNER_LINK_PLACEHOLDER), "outbound does not leak Tangem placeholder");
   if (item.priceStatus !== "verified") {
@@ -208,6 +243,10 @@ assert(catalogUi.includes("chooseWalletBrands"), "chooser is on the page");
 assert(catalogUi.includes("Folosit de Dani") || catalogUi.includes("usedByDani"), "Dani badge key is used");
 assert(catalogUi.includes('target="_blank"'), "outbound opens a new tab");
 assert(catalogUi.includes("TRUST_ARTICLE_URL"), "trust article is linked");
+assert(catalogUi.includes("flex min-w-0 flex-wrap gap-1.5 md:flex-nowrap"), "guide chips wrap on small screens");
+assert(catalogUi.includes("copyDiscount"), "discount control has an accessible name");
+assert(catalogUi.includes('t("discountCode"'), "discount code is rendered from copy");
+assert(!catalogUi.includes("DANIELMIHAI"), "discount code stays in the catalog config");
 assert(catalogUi.includes("disclosureShort"), "short disclosure is rendered");
 assert(catalogUi.includes('{t("disclosure")}'), "full disclosure stays on the page");
 assert(catalogUi.includes("trustTitle"), "seed warning stays on the page");

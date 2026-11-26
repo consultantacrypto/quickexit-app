@@ -6,6 +6,7 @@ import { useLocale, useTranslations } from "next-intl";
 import {
   WALLET_OUTBOUND_REL,
   buildWalletOutboundUrl,
+  hasRealCheckoutCode,
   walletModelName,
   walletPriceView,
   type WalletDeviceType,
@@ -43,7 +44,7 @@ const HERO_DEVICES = [
   { src: "/wallets/trezor.webp", className: "left-[0%] top-[8%] z-10 h-[86%] w-[42%] md:w-[46%]" },
   { src: "/wallets/ledger.webp", className: "left-[24%] top-[2%] z-20 h-[78%] w-[38%] md:left-[28%]" },
   { src: "/wallets/tangem.webp", className: "right-[2%] top-[4%] z-30 hidden h-[42%] w-[36%] md:block" },
-  { src: "/wallets/bitbox-hero.webp", className: "bottom-[6%] right-[2%] z-40 h-[42%] w-[40%] md:right-[3%] md:w-[42%]" },
+  { src: "/wallets/bitbox.webp", className: "bottom-[6%] right-[2%] z-40 h-[42%] w-[40%] md:right-[3%] md:w-[42%]" },
 ] as const;
 
 const FOCUS =
@@ -137,6 +138,8 @@ function BrandCard({
   const positioning = locale === "en" ? brand.positioningEn : brand.positioningRo;
   const alt = locale === "en" ? brand.image.altEn : brand.image.altRo;
   const showCodeNote = brandNeedsCheckoutNote(models);
+  const discountCode =
+    models.find((model) => model.checkoutCodeRequired && hasRealCheckoutCode(model))?.affiliateCode ?? null;
   const checkId = `compare-${brand.slug}${anchor ? "" : "-result"}`;
 
   return (
@@ -144,14 +147,15 @@ function BrandCard({
       id={anchor ? `brand-${brand.slug}` : undefined}
       className="flex h-full scroll-mt-28 flex-col overflow-hidden rounded-[1.75rem] border border-black/10 bg-white"
     >
-      <div className={`relative aspect-[5/4] ${brand.tone === "dark" ? "bg-[#161616]" : "bg-[#F4F1E8]"}`}>
+      <div className="relative aspect-[5/4] bg-[#F4F1E8]">
         <Image
           src={brand.image.src}
           alt={alt}
           fill
           priority={priority}
           sizes="(max-width: 768px) 92vw, (max-width: 1280px) 46vw, 30vw"
-          className="object-contain p-8"
+          className="object-contain p-3"
+          unoptimized
         />
       </div>
       <div className="flex flex-1 flex-col px-5 pb-5 pt-5 md:px-6 md:pb-6">
@@ -180,7 +184,8 @@ function BrandCard({
           ))}
         </ul>
         {showCodeNote ? <p className="mt-3 text-xs leading-relaxed text-neutral-700">{t("codePending")}</p> : null}
-        <div className="mt-auto pt-6">
+        <div className="mt-auto flex flex-col gap-2 pt-6">
+          {discountCode ? <DiscountCodeButton code={discountCode} /> : null}
           <a
             href={href}
             target="_blank"
@@ -200,6 +205,38 @@ function BrandCard({
   );
 }
 
+function DiscountCodeButton({ code }: { code: string }) {
+  const t = useTranslations("Wallets");
+  const [copied, setCopied] = useState(false);
+  const timer = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (timer.current != null) window.clearTimeout(timer.current);
+    };
+  }, []);
+
+  return (
+    <button
+      type="button"
+      aria-label={t("copyDiscount", { code })}
+      onClick={() => {
+        void navigator.clipboard.writeText(code).then(
+          () => {
+            setCopied(true);
+            if (timer.current != null) window.clearTimeout(timer.current);
+            timer.current = window.setTimeout(() => setCopied(false), 2000);
+          },
+          () => setCopied(false),
+        );
+      }}
+      className={`inline-flex min-h-11 w-full items-center justify-center rounded-2xl border border-black/15 bg-[#F7F4EC] px-3 text-sm font-semibold text-neutral-950 ${FOCUS}`}
+    >
+      <span aria-live="polite">{copied ? t("copied") : t("discountCode", { code })}</span>
+    </button>
+  );
+}
+
 function ChoiceGroup<T extends string>({
   legend,
   name,
@@ -214,16 +251,16 @@ function ChoiceGroup<T extends string>({
   onChange: (value: T) => void;
 }) {
   return (
-    <fieldset className="grid grid-cols-[6.4rem_minmax(0,1fr)] items-center gap-x-2 md:grid-cols-[auto_minmax(0,1fr)]">
+    <fieldset className="grid grid-cols-[6.4rem_minmax(0,1fr)] items-start gap-x-2 md:grid-cols-[auto_minmax(0,1fr)] md:items-center">
       <legend className="sr-only">{legend}</legend>
       <p aria-hidden="true" className="text-[11px] font-semibold leading-tight text-neutral-950 md:text-xs">{legend}</p>
-      <div className="flex min-w-0 flex-nowrap gap-1.5 overflow-x-auto pb-0.5">
+      <div className="flex min-w-0 flex-wrap gap-1.5 md:flex-nowrap md:overflow-x-auto md:pb-0.5">
         {options.map((option) => {
           const selected = value === option.value;
           return (
             <label
               key={option.value}
-              className={`min-h-9 shrink-0 cursor-pointer whitespace-nowrap rounded-full border px-2.5 py-1 text-xs has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-black ${
+              className={`min-h-9 max-w-full cursor-pointer rounded-full border px-2.5 py-1 text-xs md:shrink-0 md:whitespace-nowrap has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-black ${
                 selected ? "border-neutral-950 bg-neutral-950 text-white" : "border-black/15 bg-white text-neutral-900"
               }`}
             >
@@ -646,13 +683,12 @@ export default function WalletCatalog() {
 
   return (
     <div className={`scroll-smooth bg-[#F7F4EC] ${compared.length > 0 ? "pb-28 md:pb-24" : ""}`}>
-      <div className="mx-auto max-w-6xl px-4 pb-20 pt-3 md:px-8 md:pt-6">
-        <section
-          id="wallet-hero"
-          aria-labelledby={titleId}
-          className="relative flex h-[40vh] max-h-[40vh] flex-col overflow-hidden rounded-[1.5rem] bg-[linear-gradient(128deg,#121212_0%,#1c1a16_42%,#4a3b10_100%)] text-white shadow-[0_16px_40px_rgba(0,0,0,0.12)] md:grid md:h-[38vh] md:max-h-[38vh] md:grid-cols-[minmax(0,1.15fr)_minmax(16rem,0.85fr)]"
-        >
-          <div className="relative z-10 flex min-h-0 flex-1 flex-col justify-center px-4 py-3 md:px-8 md:py-5">
+      <section
+        id="wallet-hero"
+        aria-labelledby={titleId}
+        className="relative -mt-4 flex h-[40vh] max-h-[40vh] flex-col overflow-hidden rounded-none bg-[linear-gradient(128deg,#121212_0%,#1c1a16_42%,#4a3b10_100%)] text-white md:-mt-8 md:grid md:h-[38vh] md:max-h-[38vh] md:grid-cols-[minmax(0,1.15fr)_minmax(16rem,0.85fr)]"
+      >
+        <div className="relative z-10 mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col justify-center px-4 py-3 md:px-8 md:py-5">
             <h1 id={titleId} className="max-w-xl text-xl font-black leading-[1.12] tracking-tight text-white md:text-4xl md:leading-[1.05]">
               {t("heroTitle")}
             </h1>
@@ -675,13 +711,15 @@ export default function WalletCatalog() {
                   fill
                   sizes="(max-width: 768px) 40vw, 240px"
                   className="object-contain drop-shadow-[0_10px_16px_rgba(0,0,0,0.35)]"
+                  unoptimized
                   priority={device.src.includes("ledger")}
                 />
               </div>
             ))}
           </div>
-        </section>
+      </section>
 
+      <div className="mx-auto max-w-6xl px-4 pb-20 pt-4 md:px-8 md:pt-6">
         <WalletChooser locale={locale} compared={compared} onToggleCompare={toggleCompare} />
 
         <div id="wallet-grid" className="mt-3 scroll-mt-24 md:scroll-mt-36">
@@ -723,7 +761,7 @@ export default function WalletCatalog() {
         {shelves.length === 0 ? (
           <p className="mt-4 rounded-2xl border border-black/10 bg-white px-5 py-6 text-sm text-neutral-800">{t("empty")}</p>
         ) : (
-          <ul className="mt-3 grid grid-cols-1 gap-8 md:grid-cols-2 xl:grid-cols-3">
+          <ul className="mt-3 grid grid-cols-1 gap-5 md:grid-cols-2 md:gap-6 xl:grid-cols-3">
             {shelves.map((shelf, index) => (
               <li key={shelf.brand.slug}>
                 <BrandCard

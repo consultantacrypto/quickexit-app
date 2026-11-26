@@ -105,6 +105,8 @@
     "affiliateNote": "Affiliate partnership",
     "copyCode": "Copy code",
     "copied": "Code copied",
+    "discountCode": "Discount code: {code}",
+    "copyDiscount": "Copy discount code {code}",
     "applyCode": "Apply the code at checkout, otherwise the purchase is not attributed.",
     "codePending": "The checkout code appears on the card when it exists. Until then there is no copy button, and the link opens the official site.",
     "empty": "No wallets match these filters.",
