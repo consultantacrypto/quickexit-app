@@ -2,7 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { Link } from "@/src/i18n/navigation";
-import { ShieldCheck } from "lucide-react";
+import { ShieldCheck, Wallet } from "lucide-react";
 import { companyInfo } from "@/lib/company";
 import CookieSettingsButton from "./CookieSettingsButton";
 
@@ -63,7 +63,8 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/wallets" className={footerLink}>
+                <Link href="/wallets" className={`${footerLink} inline-flex items-center gap-2`}>
+                  <Wallet className="h-3.5 w-3.5" aria-hidden />
                   {tNav("wallets")}
                 </Link>
               </li>

@@ -51,10 +51,12 @@ const en = JSON.parse(readFileSync(resolve("messages/en.json"), "utf8")) as {
   Wallets: Record<string, string>;
 };
 
-assert(ro.Navigation.wallets === "Portofele", "RO nav label");
-assert(en.Navigation.wallets === "Wallets", "EN nav label");
-assert(ro.Wallets.title === "Portofele hardware", "RO page title");
-assert(en.Wallets.title === "Hardware wallets", "EN page title");
+assert(ro.Navigation.wallets === "Portofele crypto", "RO nav label");
+assert(en.Navigation.wallets === "Crypto wallets", "EN nav label");
+assert(ro.Wallets.title === "Portofele crypto", "RO page title");
+assert(en.Wallets.title === "Crypto wallets", "EN page title");
+assert(ro.Wallets.seeWallets === "Vezi portofelele crypto", "RO hero CTA");
+assert(en.Wallets.seeWallets === "See crypto wallets", "EN hero CTA");
 assert(ro.Wallets.buyOfficial === "Cumpără pe site-ul oficial", "RO CTA");
 assert(en.Wallets.buyOfficial === "Buy on the official site", "EN CTA");
 assert(ro.Wallets.copyCode === "Copiază codul", "RO copy code");
@@ -212,10 +214,10 @@ function indexBetween(source: string, first: string, middle: string, last: strin
 const header = readFileSync(resolve("app/components/Header.tsx"), "utf8");
 const desktop = header.split("lg:hidden")[0] ?? "";
 const mobile = header.split('id="mobile-main-menu"')[1] ?? "";
-indexBetween(desktop, 'href="/posteaza-cerere"', 'href="/wallets"', 'href="/pune-anunt"', "desktop nav order");
+assert(!desktop.includes('href="/wallets"'), "desktop header has no wallets link");
 indexBetween(mobile, 'href="/posteaza-cerere"', 'href="/wallets"', 'href="/pune-anunt"', "mobile nav order");
-assert(desktop.includes("navLinkClass"), "desktop wallets use the text link style");
-assert(!desktop.slice(desktop.indexOf('href="/wallets"'), desktop.indexOf('href="/pune-anunt"')).includes("#FFD100"), "wallets link is not a yellow button");
+assert(mobile.includes("<Wallet"), "mobile wallets item has an icon");
+assert(!mobile.slice(mobile.indexOf('href="/wallets"'), mobile.indexOf('href="/pune-anunt"')).includes("#FFD100"), "wallets link is not a yellow button");
 
 const footer = readFileSync(resolve("app/components/Footer.tsx"), "utf8");
 const platform = footer.slice(footer.indexOf("platform.title"), footer.indexOf("legal.title"));

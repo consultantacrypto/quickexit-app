@@ -125,12 +125,12 @@ export const PAGE_METADATA_COPY = {
   },
   wallets: {
     ro: {
-      title: "Portofele hardware | Quick Exit",
+      title: "Portofele crypto | Quick Exit",
       description:
         "Catalog de portofele hardware recomandate. Quick Exit nu ține stoc și nu vinde aceste produse. Butonul deschide site-ul oficial al producătorului.",
     },
     en: {
-      title: "Hardware wallets | Quick Exit",
+      title: "Crypto wallets | Quick Exit",
       description:
         "A hardware wallet recommendation catalog. Quick Exit does not hold stock and does not sell these products. The button opens the manufacturer's official site.",
     },

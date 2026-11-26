@@ -13,15 +13,15 @@
     "signOut": "Ieși din cont",
     "signIn": "Intră în cont",
     "languageSwitcher": "Schimbă limba",
-    "wallets": "Portofele"
+    "wallets": "Portofele crypto"
   },
   "Wallets": {
     "eyebrow": "Catalog",
-    "title": "Portofele hardware",
+    "title": "Portofele crypto",
     "heroTitle": "Alege wallet-ul potrivit, cumpără doar de pe site-ul oficial",
     "heroLead": "Portofele hardware alese ca recomandare, cumpărate direct de la producător.",
     "disclosureShort": "Nu vindem și nu ținem stoc: butonul deschide magazinul oficial. Putem primi un comision, fără cost în plus pentru tine.",
-    "seeWallets": "Vezi wallet-urile",
+    "seeWallets": "Vezi portofelele crypto",
     "subtitle": "Un raft de recomandări. Quick Exit nu vinde aceste portofele și nu ține stoc.",
     "chooserTitle": "Alege în 3 întrebări",
     "chooserLead": "Trei răspunsuri, una sau două mărci care se potrivesc. Nu e o ierarhie și nu există un câștigător unic.",

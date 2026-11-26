@@ -10,6 +10,7 @@ import {
   HeaderAuthMobile,
   useHeaderAuth,
 } from "./HeaderAuth";
+import { Wallet } from "lucide-react";
 import LanguageSwitcher from "./LanguageSwitcher";
 
 const AuthModal = dynamic(() => import("./AuthModal"), {
@@ -88,10 +89,6 @@ export default function Header() {
               className="rounded-xl border-2 border-black bg-white px-3.5 py-2.5 text-[11px] font-black uppercase tracking-widest text-black shadow-[3px_3px_0_0_rgba(0,0,0,1)] transition hover:-translate-y-px hover:border-[#FFD100] xl:px-4 xl:text-xs"
             >
               {t("buyWithCash")}
-            </Link>
-
-            <Link href="/wallets" className={navLinkClass}>
-              {t("wallets")}
             </Link>
 
             <Link
@@ -221,8 +218,9 @@ export default function Header() {
             <Link
               href="/wallets"
               onClick={() => setIsOpen(false)}
-              className="w-full rounded-[2rem] border-4 border-black bg-white py-4 text-center text-lg font-black uppercase tracking-widest italic shadow-[6px_6px_0_0_rgba(0,0,0,1)]"
+              className="inline-flex items-center justify-center gap-2 py-1 text-sm font-semibold uppercase tracking-[0.16em] text-neutral-600"
             >
+              <Wallet className="h-4 w-4" aria-hidden />
               {t("wallets")}
             </Link>
 
