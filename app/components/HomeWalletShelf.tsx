@@ -48,7 +48,7 @@ export default async function HomeWalletShelf({ locale }: { locale: WalletLocale
     >
       <div className="mx-auto max-w-[1440px] px-4 md:px-8">
         <div className="mb-5 flex flex-col items-start justify-between gap-4 md:mb-6 md:flex-row md:items-end">
-          <div className="max-w-3xl">
+          <div>
             <h2
               id="recommended-crypto-wallets-title"
               className="text-3xl font-black uppercase italic tracking-tight text-black md:text-4xl"
@@ -57,7 +57,7 @@ export default async function HomeWalletShelf({ locale }: { locale: WalletLocale
               <span className="text-[#FFD100]">{title.highlight}</span>
               {title.after}
             </h2>
-            <p className="mt-3 max-w-2xl text-sm font-bold leading-relaxed text-neutral-600">
+            <p className="mt-3 max-w-4xl text-xs font-bold leading-snug text-neutral-600 md:text-sm md:leading-relaxed">
               {t("wallets.disclosure")}
             </p>
           </div>
