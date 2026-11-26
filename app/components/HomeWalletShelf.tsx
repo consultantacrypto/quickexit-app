@@ -67,10 +67,10 @@ export default async function HomeWalletShelf({ locale }: { locale: WalletLocale
           {brands.map((brand) => {
             const price = brandStartingPrice(brand.slug, locale);
             const alt = locale === "en" ? brand.image.altEn : brand.image.altRo;
-            const blurb = locale === "en" ? brand.positioningEn : brand.positioningRo;
+            const blurb = brand.shortDescription?.[locale === "en" ? "en" : "ro"];
             return (
               <article key={brand.slug} className={CARD}>
-                <div className="relative h-24 w-full bg-canvas lg:h-28">
+                <div className="relative h-36 w-full overflow-hidden bg-canvas sm:h-32 lg:h-28">
                   <Image
                     src={brand.image.src}
                     alt={alt}
@@ -78,12 +78,16 @@ export default async function HomeWalletShelf({ locale }: { locale: WalletLocale
                     loading="lazy"
                     fetchPriority="low"
                     sizes="(max-width: 1023px) 280px, 220px"
-                    className="object-contain p-2"
+                    className={
+                      brand.slug === "tangem"
+                        ? "origin-center object-contain scale-[1.65] lg:scale-100 lg:p-1"
+                        : "object-contain p-1.5"
+                    }
                   />
                 </div>
                 <div className="flex flex-1 flex-col gap-2 p-3 md:p-4">
                   <h3 className="text-base font-semibold leading-snug tracking-tight text-ink">{brand.name}</h3>
-                  <p className="line-clamp-2 min-h-[2.25rem] text-[11px] font-medium leading-snug text-muted">{blurb}</p>
+                  {blurb ? <p className="text-[11px] font-medium leading-snug text-muted">{blurb}</p> : null}
                   {price ? (
                     <p className="text-lg font-bold leading-none tracking-tight text-ink">
                       {price.from ? (

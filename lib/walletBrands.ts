@@ -31,6 +31,8 @@ export type WalletBrandProfile = {
   name: string;
   positioningRo: string;
   positioningEn: string;
+  /** Customer line for the homepage shelf. The /wallets page keeps positioningRo/En. */
+  shortDescription?: { ro: string; en: string };
   highlights: { ro: string; en: string }[];
   image: WalletBrandImage;
   tone: WalletImageTone;
@@ -43,6 +45,10 @@ export const WALLET_BRANDS: readonly WalletBrandProfile[] = [
     name: "Tangem",
     positioningRo: "Portofel-card. Seturi de două și trei carduri, Ring și Pro Kit.",
     positioningEn: "A card wallet. Two- and three-card sets, Ring, and the Pro Kit.",
+    shortDescription: {
+      ro: "Portofel-card, seturi de 2 sau 3 carduri",
+      en: "Card wallet, sets of 2 or 3 cards",
+    },
     highlights: [{ ro: "Card", en: "Card" }],
     usedByDani: true,
     tone: "dark",
@@ -61,6 +67,10 @@ export const WALLET_BRANDS: readonly WalletBrandProfile[] = [
     name: "SafePal",
     positioningRo: "Trei dispozitive de intrare: S1, X1 și S1 Pro.",
     positioningEn: "Three entry devices: S1, X1, and S1 Pro.",
+    shortDescription: {
+      ro: "S1, X1 și S1 Pro",
+      en: "S1, X1, and S1 Pro",
+    },
     highlights: [{ ro: "Dispozitiv", en: "Device" }],
     tone: "dark",
     image: {
@@ -95,6 +105,10 @@ export const WALLET_BRANDS: readonly WalletBrandProfile[] = [
     name: "Trezor",
     positioningRo: "Safe 3, Safe 5 și Safe 7. Prețul canonic este în euro, cu lei pe aceeași pagină.",
     positioningEn: "Safe 3, Safe 5, and Safe 7. The canonical price is in euro, with lei on the same page.",
+    shortDescription: {
+      ro: "Safe 3, Safe 5 și Safe 7",
+      en: "Safe 3, Safe 5, and Safe 7",
+    },
     highlights: [
       { ro: "Dispozitiv", en: "Device" },
       { ro: "Cehia", en: "Czechia" },
@@ -115,6 +129,10 @@ export const WALLET_BRANDS: readonly WalletBrandProfile[] = [
     name: "Ledger",
     positioningRo: "Nano S Plus, Nano X, Nano Gen5 și Flex. La unele modele prețul este „de la”, după culoare.",
     positioningEn: "Nano S Plus, Nano X, Nano Gen5, and Flex. Some prices are a starting price, by color.",
+    shortDescription: {
+      ro: "Nano S Plus, Nano X, Nano Gen5 și Flex",
+      en: "Nano S Plus, Nano X, Nano Gen5, and Flex",
+    },
     highlights: [
       { ro: "Dispozitiv", en: "Device" },
       { ro: "Franța", en: "France" },
@@ -214,6 +232,10 @@ export const WALLET_BRANDS: readonly WalletBrandProfile[] = [
     name: "Keystone",
     positioningRo: "Keystone 3 Pro, air-gap, cu acoperire de 1, 2 sau 3 ani.",
     positioningEn: "Keystone 3 Pro, air-gapped, with 1-, 2-, or 3-year coverage.",
+    shortDescription: {
+      ro: "3 Pro, air-gap",
+      en: "3 Pro, air-gapped",
+    },
     highlights: [{ ro: "Air-gap", en: "Air-gap" }],
     tone: "light",
     image: {
