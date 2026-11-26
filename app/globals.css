@@ -98,6 +98,54 @@
   .wallet-float { animation-duration: 11s; }
 }
 
+/* Homepage wallet rail. Horizontal touch scroll must stay one-axis:
+   overflow-y visible would compute to auto and iOS then drops the sideways swipe.
+   Hiding the scrollbar with display:none also disables that swipe on iPhone. */
+.home-wallet-rail {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  gap: 0.75rem;
+  box-sizing: border-box;
+  padding-right: 1rem;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: none;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  touch-action: pan-x pan-y;
+  scrollbar-width: none;
+  padding-bottom: 0.5rem;
+}
+
+.home-wallet-rail::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+.home-wallet-rail > article {
+  flex: 0 0 auto;
+  width: calc((100vw - 2rem - 0.75rem) / 1.5);
+  max-width: none;
+}
+
+@media (min-width: 1024px) {
+  .home-wallet-rail {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 1.5rem;
+    padding-right: 0;
+    overflow: visible;
+    touch-action: auto;
+    padding-bottom: 0;
+  }
+
+  .home-wallet-rail > article {
+    width: auto;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .wallet-hero-mesh,
   .wallet-glow,

@@ -397,6 +397,13 @@
       "accountHint": "Browse without an account. To publish, submit offers, and access the Negotiation Room, you'll need a simple account.",
       "empty": "No active listings at the moment."
     },
+    "wallets": {
+      "title": "Recommended crypto wallets",
+      "titleHighlight": "crypto",
+      "disclosure": "We don't sell them and we don't hold stock: you buy from the official shop. We may earn a commission, at no extra cost to you.",
+      "cardCta": "View {brand}",
+      "seeAll": "See all crypto wallets"
+    },
     "capital": {
       "title": "Buyer capital now",
       "titleHighlight": "now",
@@ -1148,6 +1155,9 @@
       "partial": "The seller accepts partial payment in {assets}.",
       "negotiable": "The seller is open to negotiating payment in {assets}.",
       "disclaimer": "The listing price remains denominated in EUR. The exchange rate and settlement terms are agreed directly between the parties. QuickExit does not receive, exchange, hold, or transfer cryptocurrency. For real estate and businesses, the transaction remains subject to the applicable contractual documents and verification requirements."
+    },
+    "hardwareWallet": {
+      "prompt": "Paying in crypto? Keep it safe on a hardware wallet"
     },
     "pricing": {
       "potentialProfit": "Potential profit",

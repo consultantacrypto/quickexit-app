@@ -22,6 +22,7 @@ import {
 } from "@/lib/publicDemands";
 import { isPublicAuctionOpen } from "@/lib/auctionOpen";
 import HeroSearchBar from "@/app/components/HeroSearchBar";
+import HomeWalletShelf from "@/app/components/HomeWalletShelf";
 import { listingLocationLabelFromUnknown } from "@/lib/listingLocation";
 
 /** ISR: public listings/demands refresh at most every 60 seconds. */
@@ -354,6 +355,8 @@ export default async function Home({ params }: HomePageProps) {
           </div>
         </div>
       </section>
+
+      <HomeWalletShelf locale={locale === "en" ? "en" : "ro"} />
 
       {hasActiveCapital ? (
       <section

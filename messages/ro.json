@@ -397,6 +397,13 @@
       "accountHint": "Poți naviga fără cont. Pentru publicare, trimitere oferte și Camera de Negociere ai nevoie de un cont simplu.",
       "empty": "Momentan nu există anunțuri active."
     },
+    "wallets": {
+      "title": "Portofele crypto recomandate",
+      "titleHighlight": "crypto",
+      "disclosure": "Nu vindem și nu ținem stoc: cumperi din magazinul oficial. Putem primi un comision, fără cost în plus pentru tine.",
+      "cardCta": "Vezi {brand}",
+      "seeAll": "Vezi toate portofelele crypto"
+    },
     "capital": {
       "title": "Capital disponibil acum",
       "titleHighlight": "acum",
@@ -1148,6 +1155,9 @@
       "partial": "Vânzătorul acceptă ca o parte din preț să fie achitată în {assets}.",
       "negotiable": "Vânzătorul este deschis să negocieze plata în {assets}.",
       "disclaimer": "Prețul anunțului rămâne exprimat în EUR. Cursul de schimb și condițiile de decontare se stabilesc direct între părți. QuickExit nu primește, nu schimbă, nu păstrează și nu transferă criptomonede. Pentru imobile și afaceri, tranzacția rămâne supusă documentelor contractuale și verificărilor aplicabile."
+    },
+    "hardwareWallet": {
+      "prompt": "Plătești în crypto? Ține-l în siguranță pe un hardware wallet"
     },
     "pricing": {
       "potentialProfit": "Profit potențial",
