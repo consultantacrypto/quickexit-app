@@ -208,6 +208,22 @@ assert(catalogUi.includes("chooseWalletBrands"), "chooser is on the page");
 assert(catalogUi.includes("Folosit de Dani") || catalogUi.includes("usedByDani"), "Dani badge key is used");
 assert(catalogUi.includes('target="_blank"'), "outbound opens a new tab");
 assert(catalogUi.includes("TRUST_ARTICLE_URL"), "trust article is linked");
+assert(catalogUi.includes("disclosureShort"), "short disclosure is rendered");
+assert(catalogUi.includes('{t("disclosure")}'), "full disclosure stays on the page");
+assert(catalogUi.includes("trustTitle"), "seed warning stays on the page");
+{
+  const shortAt = catalogUi.indexOf("disclosureShort");
+  const chooserAt = catalogUi.indexOf("<WalletChooser");
+  const gridAt = catalogUi.indexOf('id="wallet-grid"');
+  const fullAt = catalogUi.indexOf('{t("disclosure")}');
+  const trustAt = catalogUi.lastIndexOf("TRUST_ARTICLE_URL");
+  const faqAt = catalogUi.indexOf("<FaqList");
+  assert(shortAt > 0 && shortAt < chooserAt, "short disclosure sits above the chooser");
+  assert(chooserAt < gridAt, "chooser sits above the product grid");
+  assert(gridAt < fullAt && fullAt < trustAt && trustAt < faqAt, "full disclosure, seed note, and article sit with the FAQ");
+}
+assert(ro.Wallets.disclosureShort.includes("Nu vindem și nu ținem stoc"), "RO short disclosure");
+assert(en.Wallets.disclosureShort.startsWith("We don't sell or hold stock"), "EN short disclosure");
 assert(!/cel mai bun|best wallet|ofertă|Black Friday/i.test(catalogUi), "chooser copy has no superlatives");
 assert(catalogUi.includes("WALLET_QUICK_PICKS"), "quick picks are on the page");
 assert(walletBrandShelves({ tier: "all", deviceType: "all" }).length === 12, "twelve brand cards");

@@ -39,6 +39,13 @@ import { reportWalletClick } from "@/lib/walletAffiliateTrafficClient";
 const TRUST_ARTICLE_URL =
   "https://www.stirilecrypto.ro/stiri/ledger-implant-virgin-megastore-dubai-604000-dolari-furati";
 
+const HERO_DEVICES = [
+  { src: "/wallets/trezor.webp", className: "left-[0%] top-[8%] z-10 h-[86%] w-[42%] md:w-[46%]" },
+  { src: "/wallets/ledger.webp", className: "left-[24%] top-[2%] z-20 h-[78%] w-[38%] md:left-[28%]" },
+  { src: "/wallets/tangem.webp", className: "right-[2%] top-[4%] z-30 hidden h-[42%] w-[36%] md:block" },
+  { src: "/wallets/bitbox-hero.webp", className: "bottom-[6%] right-[2%] z-40 h-[42%] w-[40%] md:right-[3%] md:w-[42%]" },
+] as const;
+
 const FOCUS =
   "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black";
 
@@ -207,15 +214,16 @@ function ChoiceGroup<T extends string>({
   onChange: (value: T) => void;
 }) {
   return (
-    <fieldset>
-      <legend className="text-sm font-semibold text-neutral-950">{legend}</legend>
-      <div className="mt-2 flex flex-wrap gap-2">
+    <fieldset className="grid grid-cols-[6.4rem_minmax(0,1fr)] items-center gap-x-2 md:grid-cols-[auto_minmax(0,1fr)]">
+      <legend className="sr-only">{legend}</legend>
+      <p aria-hidden="true" className="text-[11px] font-semibold leading-tight text-neutral-950 md:text-xs">{legend}</p>
+      <div className="flex min-w-0 flex-nowrap gap-1.5 overflow-x-auto pb-0.5">
         {options.map((option) => {
           const selected = value === option.value;
           return (
             <label
               key={option.value}
-              className={`min-h-11 cursor-pointer rounded-full border px-3 py-2 text-sm has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-black ${
+              className={`min-h-9 shrink-0 cursor-pointer whitespace-nowrap rounded-full border px-2.5 py-1 text-xs has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-black ${
                 selected ? "border-neutral-950 bg-neutral-950 text-white" : "border-black/15 bg-white text-neutral-900"
               }`}
             >
@@ -277,13 +285,12 @@ function WalletChooser({
       .filter((item): item is NonNullable<typeof item> => item != null) ?? [];
 
   return (
-    <section className="mt-10" aria-labelledby="wallet-chooser-title">
-      <h2 id="wallet-chooser-title" className="text-xl font-black tracking-tight text-neutral-950">
+    <section className="mt-3" aria-labelledby="wallet-chooser-title">
+      <h2 id="wallet-chooser-title" className="text-base font-black tracking-tight text-neutral-950">
         {t("chooserTitle")}
       </h2>
-      <p className="mt-2 max-w-2xl text-sm leading-relaxed text-neutral-800">{t("chooserLead")}</p>
       <form
-        className="mt-5 space-y-5 rounded-[1.75rem] border border-black/10 bg-white p-5 md:p-6"
+        className="mt-2 space-y-2 rounded-2xl border border-black/10 bg-white p-2.5 md:p-4"
         onSubmit={(event) => {
           event.preventDefault();
           if (!budget || !experience || !style) return;
@@ -325,17 +332,17 @@ function WalletChooser({
             { value: "airgap", label: t("styleAirgap") },
           ]}
         />
-        <div className="flex flex-wrap gap-3">
+        <div className="flex flex-wrap gap-2">
           <button
             type="submit"
             disabled={!ready}
-            className={`min-h-11 rounded-full bg-neutral-950 px-5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-neutral-200 disabled:text-neutral-700 ${FOCUS}`}
+            className={`min-h-9 rounded-full bg-neutral-950 px-4 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:bg-neutral-200 disabled:text-neutral-700 ${FOCUS}`}
           >
             {t("chooserShow")}
           </button>
           <button
             type="button"
-            className={`min-h-11 rounded-full border border-black/20 bg-white px-5 text-sm font-semibold text-neutral-950 ${FOCUS}`}
+            className={`min-h-9 rounded-full border border-black/20 bg-white px-4 text-xs font-semibold text-neutral-950 ${FOCUS}`}
             onClick={() => {
               setBudget(null);
               setExperience(null);
@@ -351,7 +358,7 @@ function WalletChooser({
         ref={resultRef}
         tabIndex={-1}
         aria-live="polite"
-        className={`mt-6 outline-none ${FOCUS}`}
+        className={`outline-none ${matches ? `mt-3 ${FOCUS}` : ""}`}
       >
         {matches ? (
           <>
@@ -638,42 +645,104 @@ export default function WalletCatalog() {
     : undefined;
 
   return (
-    <div className={`bg-[#F7F4EC] ${compared.length > 0 ? "pb-28 md:pb-24" : ""}`}>
-      <div className="mx-auto max-w-6xl px-4 pb-20 pt-8 md:px-8 md:pt-14">
-        <header className="max-w-3xl">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-neutral-700">{t("title")}</p>
-          <h1 id={titleId} className="mt-3 text-4xl font-black leading-[1.05] tracking-tight text-neutral-950 md:text-5xl">
-            {t("heroTitle")}
-          </h1>
-          <p className="mt-4 max-w-2xl text-base leading-relaxed text-neutral-800 md:text-lg">{t("heroLead")}</p>
-        </header>
-
+    <div className={`scroll-smooth bg-[#F7F4EC] ${compared.length > 0 ? "pb-28 md:pb-24" : ""}`}>
+      <div className="mx-auto max-w-6xl px-4 pb-20 pt-3 md:px-8 md:pt-6">
         <section
-          id="wallets-affiliate-disclosure"
-          aria-label={t("disclosureLabel")}
-          className="mt-8 max-w-3xl scroll-mt-28 border-l-4 border-[#FFD100] bg-white px-5 py-4"
+          id="wallet-hero"
+          aria-labelledby={titleId}
+          className="relative flex h-[40vh] max-h-[40vh] flex-col overflow-hidden rounded-[1.5rem] bg-[linear-gradient(128deg,#121212_0%,#1c1a16_42%,#4a3b10_100%)] text-white shadow-[0_16px_40px_rgba(0,0,0,0.12)] md:grid md:h-[38vh] md:max-h-[38vh] md:grid-cols-[minmax(0,1.15fr)_minmax(16rem,0.85fr)]"
         >
-          <h2 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-700">{t("disclosureLabel")}</h2>
-          <p className="mt-2 text-sm leading-relaxed text-neutral-900 md:text-[15px]">{t("disclosure")}</p>
+          <div className="relative z-10 flex min-h-0 flex-1 flex-col justify-center px-4 py-3 md:px-8 md:py-5">
+            <h1 id={titleId} className="max-w-xl text-xl font-black leading-[1.12] tracking-tight text-white md:text-4xl md:leading-[1.05]">
+              {t("heroTitle")}
+            </h1>
+            <p className="mt-1.5 max-w-md text-[11px] leading-snug text-white/90 md:mt-3 md:text-base">{t("heroLead")}</p>
+            <p className="mt-1.5 max-w-md text-[11px] leading-snug text-[#FFE56A] md:mt-2 md:text-sm">{t("disclosureShort")}</p>
+            <a
+              href="#wallet-grid"
+              className={`mt-2.5 inline-flex min-h-8 w-fit items-center rounded-full bg-[#FFD100] px-3.5 text-xs font-bold text-neutral-950 md:mt-4 md:min-h-10 md:px-4 md:text-sm ${FOCUS}`}
+            >
+              {t("seeWallets")}
+            </a>
+          </div>
+          <div className="pointer-events-none relative h-[34%] shrink-0 md:h-auto" aria-hidden>
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(255,209,0,0.22),transparent_68%)]" />
+            {HERO_DEVICES.map((device) => (
+              <div key={device.src} className={`absolute ${device.className}`}>
+                <Image
+                  src={device.src}
+                  alt=""
+                  fill
+                  sizes="(max-width: 768px) 40vw, 240px"
+                  className="object-contain drop-shadow-[0_10px_16px_rgba(0,0,0,0.35)]"
+                  priority={device.src.includes("ledger")}
+                />
+              </div>
+            ))}
+          </div>
         </section>
-
-        <aside className="mt-8 max-w-3xl rounded-[1.75rem] border border-black/10 bg-white px-5 py-5">
-          <p className="text-base font-semibold leading-snug text-neutral-950">{t("trustTitle")}</p>
-          <p className="mt-2 text-sm leading-relaxed text-neutral-800">{t("trustBody")}</p>
-          <a
-            href={TRUST_ARTICLE_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={`mt-3 inline-flex text-sm font-semibold text-neutral-950 underline ${FOCUS}`}
-          >
-            {t("trustLink")}
-            <span className="sr-only"> ({t("newTab")})</span>
-          </a>
-        </aside>
 
         <WalletChooser locale={locale} compared={compared} onToggleCompare={toggleCompare} />
 
-        <section className="mt-10" aria-labelledby="wallet-quick-picks">
+        <div id="wallet-grid" className="mt-3 scroll-mt-24 md:scroll-mt-36">
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5">
+            <div role="group" aria-label={t("filterTier")} className="flex shrink-0 items-center gap-1.5">
+              <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-neutral-700">{t("filterTier")}</span>
+              {TIERS.map((value) => (
+                <button
+                  key={value}
+                  type="button"
+                  aria-pressed={tier === value}
+                  onClick={() => setTier(value)}
+                  className={`min-h-8 shrink-0 rounded-full border px-2.5 text-[11px] font-semibold ${FOCUS} ${
+                    tier === value ? "border-neutral-950 bg-neutral-950 text-white" : "border-black/15 bg-white text-neutral-900"
+                  }`}
+                >
+                  {tierLabel[value]}
+                </button>
+              ))}
+            </div>
+            <div role="group" aria-label={t("filterType")} className="flex shrink-0 items-center gap-1.5">
+              <span className="ml-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-neutral-700">{t("filterType")}</span>
+              {TYPES.map((value) => (
+                <button
+                  key={value}
+                  type="button"
+                  aria-pressed={deviceType === value}
+                  onClick={() => setDeviceType(value)}
+                  className={`min-h-8 shrink-0 rounded-full border px-2.5 text-[11px] font-semibold ${FOCUS} ${
+                    deviceType === value ? "border-neutral-950 bg-neutral-950 text-white" : "border-black/15 bg-white text-neutral-900"
+                  }`}
+                >
+                  {typeLabel[value]}
+                </button>
+              ))}
+            </div>
+          </div>
+
+        {shelves.length === 0 ? (
+          <p className="mt-4 rounded-2xl border border-black/10 bg-white px-5 py-6 text-sm text-neutral-800">{t("empty")}</p>
+        ) : (
+          <ul className="mt-3 grid grid-cols-1 gap-8 md:grid-cols-2 xl:grid-cols-3">
+            {shelves.map((shelf, index) => (
+              <li key={shelf.brand.slug}>
+                <BrandCard
+                  brand={shelf.brand}
+                  models={shelf.models}
+                  locale={locale}
+                  priority={index < 2}
+                  anchor
+                  compared={compared.includes(shelf.brand.slug)}
+                  compareDisabled={!compared.includes(shelf.brand.slug) && compared.length >= MAX_COMPARE}
+                  onToggleCompare={toggleCompare}
+                />
+              </li>
+            ))}
+          </ul>
+        )}
+        </div>
+
+        <section className="mt-8" aria-labelledby="wallet-quick-picks">
           <h2 id="wallet-quick-picks" className="text-sm font-semibold text-neutral-950">
             {t("quickTitle")}
           </h2>
@@ -698,63 +767,6 @@ export default function WalletCatalog() {
           </div>
         </section>
 
-        <div className="mt-8 flex flex-col gap-3">
-          <div role="group" aria-label={t("filterTier")} className="flex flex-wrap items-center gap-2">
-            <span className="mr-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-neutral-700">{t("filterTier")}</span>
-            {TIERS.map((value) => (
-              <button
-                key={value}
-                type="button"
-                aria-pressed={tier === value}
-                onClick={() => setTier(value)}
-                className={`min-h-10 rounded-full border px-3 text-xs font-semibold ${FOCUS} ${
-                  tier === value ? "border-neutral-950 bg-neutral-950 text-white" : "border-black/15 bg-white text-neutral-900"
-                }`}
-              >
-                {tierLabel[value]}
-              </button>
-            ))}
-          </div>
-          <div role="group" aria-label={t("filterType")} className="flex flex-wrap items-center gap-2">
-            <span className="mr-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-neutral-700">{t("filterType")}</span>
-            {TYPES.map((value) => (
-              <button
-                key={value}
-                type="button"
-                aria-pressed={deviceType === value}
-                onClick={() => setDeviceType(value)}
-                className={`min-h-10 rounded-full border px-3 text-xs font-semibold ${FOCUS} ${
-                  deviceType === value ? "border-neutral-950 bg-neutral-950 text-white" : "border-black/15 bg-white text-neutral-900"
-                }`}
-              >
-                {typeLabel[value]}
-              </button>
-            ))}
-          </div>
-          <p className="text-xs text-neutral-700">{t("compareLimit")}</p>
-        </div>
-
-        {shelves.length === 0 ? (
-          <p className="mt-10 rounded-2xl border border-black/10 bg-white px-5 py-6 text-sm text-neutral-800">{t("empty")}</p>
-        ) : (
-          <ul className="mt-8 grid grid-cols-1 gap-8 md:grid-cols-2 xl:grid-cols-3">
-            {shelves.map((shelf, index) => (
-              <li key={shelf.brand.slug}>
-                <BrandCard
-                  brand={shelf.brand}
-                  models={shelf.models}
-                  locale={locale}
-                  priority={index < 2}
-                  anchor
-                  compared={compared.includes(shelf.brand.slug)}
-                  compareDisabled={!compared.includes(shelf.brand.slug) && compared.length >= MAX_COMPARE}
-                  onToggleCompare={toggleCompare}
-                />
-              </li>
-            ))}
-          </ul>
-        )}
-
         <section className="mt-16 hidden md:block" aria-labelledby="wallet-compare-table">
           <h2 id="wallet-compare-table" className="text-xl font-black tracking-tight text-neutral-950">
             {t("compareTitle")}
@@ -768,12 +780,27 @@ export default function WalletCatalog() {
           </div>
         </section>
 
-        <FaqList />
+        <div className="mt-12 grid gap-6 border-t border-black/10 pt-8 lg:grid-cols-2">
+          <section id="wallets-affiliate-disclosure" aria-label={t("disclosureLabel")} className="scroll-mt-28">
+            <h2 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-700">{t("disclosureLabel")}</h2>
+            <p className="mt-3 text-sm leading-relaxed text-neutral-800">{t("disclosure")}</p>
+          </section>
+          <aside>
+            <p className="text-base font-semibold leading-snug text-neutral-950">{t("trustTitle")}</p>
+            <p className="mt-2 text-sm leading-relaxed text-neutral-800">{t("trustBody")}</p>
+            <a
+              href={TRUST_ARTICLE_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`mt-3 inline-flex text-sm font-semibold text-neutral-950 underline ${FOCUS}`}
+            >
+              {t("trustLink")}
+              <span className="sr-only"> ({t("newTab")})</span>
+            </a>
+          </aside>
+        </div>
 
-        <section aria-label={t("disclosureLabel")} className="mt-14 max-w-3xl border-t border-black/10 pt-8">
-          <h2 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-700">{t("disclosureLabel")}</h2>
-          <p className="mt-3 text-sm leading-relaxed text-neutral-800">{t("disclosure")}</p>
-        </section>
+        <FaqList />
       </div>
 
       {compared.length > 0 ? (
