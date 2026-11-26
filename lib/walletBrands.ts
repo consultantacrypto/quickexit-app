@@ -215,7 +215,7 @@ export const WALLET_BRANDS: readonly WalletBrandProfile[] = [
     positioningRo: "Keystone 3 Pro, air-gap, cu acoperire de 1, 2 sau 3 ani.",
     positioningEn: "Keystone 3 Pro, air-gapped, with 1-, 2-, or 3-year coverage.",
     highlights: [{ ro: "Air-gap", en: "Air-gap" }],
-    tone: "dark",
+    tone: "light",
     image: {
       src: "/wallets/keystone.webp",
       width: 1600,
@@ -223,7 +223,7 @@ export const WALLET_BRANDS: readonly WalletBrandProfile[] = [
       sourceUrl: "https://cdn.shopify.com/s/files/1/0029/3175/3060/files/3_pro.jpg?v=1779695258",
       altRo: "Keystone 3 Pro, față și spate",
       altEn: "Keystone 3 Pro, front and back",
-      editNote: "Official Keystone 3 Pro photo, cropped to the shared 5:4 frame. The dark studio background stays, because the screen is black and a cutout removes the display.",
+      editNote: "Official Keystone 3 Pro photo. The devices are cut along the gap under the chassis so the studio reflection is gone, and placed on the shared cream card. The black display is the original pixels.",
     },
   },
   {

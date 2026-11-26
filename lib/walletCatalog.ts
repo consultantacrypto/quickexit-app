@@ -657,7 +657,7 @@ export const WALLET_PRODUCTS: readonly WalletProduct[] = [
     currency: "USD",
     priceStatus: "verified",
     priceSourceUrl: "https://shop.keyst.one/products/keystone-3-pro.json",
-    officialUrl: "https://shop.keyst.one/products/keystone-3-pro",
+    officialUrl: "https://shop.keyst.one/products/keystone-3-pro?variant=44416761102489",
     sortOrder: 240,
   }),
   product({
@@ -672,7 +672,7 @@ export const WALLET_PRODUCTS: readonly WalletProduct[] = [
     currency: "USD",
     priceStatus: "verified",
     priceSourceUrl: "https://shop.keyst.one/products/keystone-3-pro.json",
-    officialUrl: "https://shop.keyst.one/products/keystone-3-pro",
+    officialUrl: "https://shop.keyst.one/products/keystone-3-pro?variant=45064372453529",
     sortOrder: 241,
   }),
   product({
@@ -687,7 +687,7 @@ export const WALLET_PRODUCTS: readonly WalletProduct[] = [
     currency: "USD",
     priceStatus: "verified",
     priceSourceUrl: "https://shop.keyst.one/products/keystone-3-pro.json",
-    officialUrl: "https://shop.keyst.one/products/keystone-3-pro",
+    officialUrl: "https://shop.keyst.one/products/keystone-3-pro?variant=45064372486297",
     sortOrder: 242,
   }),
   product({
@@ -737,7 +737,7 @@ export const WALLET_PRODUCTS: readonly WalletProduct[] = [
     currency: "EUR",
     priceStatus: "verified",
     priceSourceUrl: "https://www.ellipal.com/en-eu/products/ellipal-titan.json",
-    officialUrl: "https://www.ellipal.com/en-eu/products/ellipal-titan",
+    officialUrl: "https://www.ellipal.com/en-eu/products/ellipal-titan?variant=40716752158918",
     sortOrder: 260,
   }),
   product({
@@ -838,7 +838,7 @@ export const WALLET_PRODUCTS: readonly WalletProduct[] = [
     currency: "EUR",
     priceStatus: "verified",
     priceSourceUrl: "https://www.ellipal.com/en-eu/products/ellipal-titan.json",
-    officialUrl: "https://www.ellipal.com/en-eu/products/ellipal-titan",
+    officialUrl: "https://www.ellipal.com/en-eu/products/ellipal-titan?variant=48601895895238",
     sortOrder: 340,
   }),
   product({
