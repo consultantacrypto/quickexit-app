@@ -83,3 +83,6 @@ jobs:
 
       - name: Available-to-order filter
         run: npm run assert:available-to-order
+
+      - name: Stripe payment ledger webhook
+        run: npm run assert:payment-ledger
