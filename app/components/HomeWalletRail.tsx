@@ -1,66 +1,47 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 
 type HomeWalletRailProps = {
   children: ReactNode;
-  labels: string[];
 };
 
-export default function HomeWalletRail({ children, labels }: HomeWalletRailProps) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [index, setIndex] = useState(0);
+export default function HomeWalletRail({ children }: HomeWalletRailProps) {
+  const railRef = useRef<HTMLDivElement>(null);
+  const barRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const update = () => {
-      const cards = [...el.querySelectorAll<HTMLElement>(":scope > article")];
-      if (cards.length === 0) return;
-      const railLeft = el.getBoundingClientRect().left;
-      let next = 0;
-      let best = Number.POSITIVE_INFINITY;
-      cards.forEach((card, cardIndex) => {
-        const distance = Math.abs(card.getBoundingClientRect().left - railLeft);
-        if (distance < best) {
-          best = distance;
-          next = cardIndex;
-        }
-      });
-      setIndex(next);
+    const rail = railRef.current;
+    const bar = barRef.current;
+    if (!rail || !bar) return;
+    let frame = 0;
+    const paint = () => {
+      frame = 0;
+      const max = rail.scrollWidth - rail.clientWidth;
+      const ratio = max > 1 ? Math.min(1, Math.max(0, rail.scrollLeft / max)) : 0;
+      bar.style.transform = `scaleX(${ratio})`;
     };
-    update();
-    el.addEventListener("scroll", update, { passive: true });
-    window.addEventListener("resize", update);
+    const onScroll = () => {
+      if (frame) return;
+      frame = window.requestAnimationFrame(paint);
+    };
+    paint();
+    rail.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
     return () => {
-      el.removeEventListener("scroll", update);
-      window.removeEventListener("resize", update);
+      rail.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+      if (frame) window.cancelAnimationFrame(frame);
     };
   }, []);
 
   return (
     <div className="min-w-0">
-      <div ref={ref} data-wallet-rail className="home-wallet-rail">
+      <div ref={railRef} data-wallet-rail className="home-wallet-rail">
         {children}
       </div>
-      <div className="mt-3 flex items-center justify-center gap-1.5 lg:hidden">
-        {labels.map((label, dotIndex) => {
-          const active = dotIndex === index;
-          return (
-            <button
-              key={label}
-              type="button"
-              aria-label={label}
-              aria-current={active ? "true" : undefined}
-              className={`h-1.5 rounded-full border border-black ${active ? "w-4 bg-[#FFD100]" : "w-1.5 bg-white"}`}
-              onClick={() => {
-                const rail = ref.current;
-                const card = rail?.querySelectorAll("article")[dotIndex];
-                card?.scrollIntoView({ inline: "start", block: "nearest" });
-              }}
-            />
-          );
-        })}
+      <div className="mt-3 h-0.5 overflow-hidden rounded-full bg-neutral-200 lg:hidden" data-wallet-progress aria-hidden>
+        <div ref={barRef} className="h-full w-full origin-left bg-[#FFD100]" style={{ transform: "scaleX(0)" }} />
       </div>
     </div>
   );

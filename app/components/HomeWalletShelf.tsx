@@ -10,7 +10,7 @@ import type { WalletBrandSlug, WalletLocale } from "@/lib/walletCatalog";
 const FEATURED_BRANDS = ["tangem", "ledger", "trezor", "safepal", "keystone"] as const satisfies readonly WalletBrandSlug[];
 
 const CARD =
-  "flex w-[82%] max-w-[17.5rem] min-w-0 shrink-0 snap-start flex-col overflow-hidden rounded-3xl border border-line/70 bg-surface text-ink shadow-[0_1px_3px_rgba(0,0,0,0.04)] transition-all duration-500 ease-out hover:-translate-y-1 hover:border-neutral-300/80 hover:shadow-[0_28px_50px_-16px_rgba(0,0,0,0.22)] motion-reduce:transition-none motion-reduce:hover:translate-y-0 lg:w-auto lg:max-w-none";
+  "flex min-w-0 shrink-0 flex-col overflow-hidden rounded-3xl border border-line/70 bg-surface text-ink shadow-[0_1px_3px_rgba(0,0,0,0.04)] transition-all duration-500 ease-out hover:-translate-y-1 hover:border-neutral-300/80 hover:shadow-[0_28px_50px_-16px_rgba(0,0,0,0.22)] motion-reduce:transition-none motion-reduce:hover:translate-y-0";
 
 const CARD_BUTTON =
   "mt-auto inline-flex min-h-9 w-full items-center justify-center rounded-xl border-2 border-black bg-[#FFD100] px-3 py-2 text-center text-[11px] font-black uppercase tracking-widest text-black focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black";
@@ -64,7 +64,7 @@ export default async function HomeWalletShelf({ locale }: { locale: WalletLocale
           </div>
         </div>
 
-        <HomeWalletRail labels={brands.map((brand) => brand.name)}>
+        <HomeWalletRail>
           {brands.map((brand) => {
             const price = brandStartingPrice(brand.slug, locale);
             const alt = locale === "en" ? brand.image.altEn : brand.image.altRo;
