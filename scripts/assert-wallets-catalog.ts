@@ -28,6 +28,7 @@ import { staticAndCategorySitemapPaths } from "../lib/sitemapEntries";
 import { WALLET_BRANDS, WALLET_QUICK_PICKS, walletBrandShelves } from "../lib/walletBrands";
 import { WALLET_BRAND_SPECS, brandStartingPrice } from "../lib/walletBrandSpecs";
 import { chooseWalletBrands } from "../lib/walletChooser";
+import { assertWalletSeoLandings } from "./assert-wallet-seo-landings";
 
 function fail(message: string): never {
   console.error(`FAIL ${message}`);
@@ -436,5 +437,7 @@ async function run() {
   assert(crossOrigin.outcome === "ignored" && rows.length === 1, "cross origin ignored");
   console.log("OK wallets catalog");
 }
+
+assertWalletSeoLandings();
 
 void run();
