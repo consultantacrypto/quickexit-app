@@ -20,9 +20,9 @@ export const PROMO_DEADLINE_MS = 60 * 60 * 1000;
 export const PROMO_NOTIFY_EMAIL_ENV = "PROMO_NOTIFY_EMAIL";
 export const PROMO_TIME_ZONE = "Europe/Bucharest";
 
-/** Inclusive Bucharest wall-clock window for a one-hour deadline. 21:00:00 is in; 21:00:01 is not. */
+/** Inclusive Bucharest wall-clock window for a one-hour deadline. 22:00:00 is in; 22:00:01 is not. */
 export const PROMO_DAY_START_MS = 8 * 60 * 60 * 1000;
-export const PROMO_DAY_END_MS = 21 * 60 * 60 * 1000;
+export const PROMO_DAY_END_MS = 22 * 60 * 60 * 1000;
 export const PROMO_MORNING_DUE_HOUR = 9;
 
 export type PromoQueueStatus = "pending" | "done" | "late";
@@ -142,9 +142,9 @@ function addCivilDays(year: number, month: number, day: number, days: number): {
 }
 
 /**
- * Daytime payments (08:00:00 through 21:00:00 inclusive, Europe/Bucharest) are due one real hour later.
+ * Daytime payments (08:00:00 through 22:00:00 inclusive, Europe/Bucharest) are due one real hour later.
  * Before 08:00, due at 09:00 the same Bucharest morning.
- * After 21:00, including 21:30, due at 09:00 the next Bucharest morning.
+ * After 22:00, including 22:30, due at 09:00 the next Bucharest morning.
  */
 export function promoDueAt(paidAt: Date): Date {
   const paid = Number.isNaN(paidAt.getTime()) ? new Date() : paidAt;
@@ -236,7 +236,7 @@ export function buildPromoNotifyEmail(input: {
   const subject = "[QuickExit] Anunț plătit — termen de promovare";
   const text = [
     "Plată confirmată pentru un anunț. Clip pe YouTube, TikTok, Instagram + post pe X (@QuickExitRo).",
-    "Termenul de mai jos e ora Bucureștiului: +1 oră dacă plata e între 08:00 și 21:00 inclusiv; înainte de 08:00 sau după 21:00, la 09:00.",
+    "Termenul de mai jos e ora Bucureștiului: +1 oră dacă plata e între 08:00 și 22:00 inclusiv; înainte de 08:00 sau după 22:00, la 09:00.",
     "",
     `ID anunț: ${input.row.listing_id}`,
     `Titlu: ${input.row.title}`,

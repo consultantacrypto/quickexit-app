@@ -16,15 +16,15 @@ Migrarea `supabase/migrations/20261126194000_payments_ledger_and_promo_queue.sql
 
 `promo_queue.status` este `pending`, `done` sau `late`. `late` înseamnă `now` după `due_at`.
 
-`due_at` este ora Europe/Bucharest, cu ora de vară:
+`due_at` este ora Europe/Bucharest, cu ora de vară. Regula 08:00–22:00 este cea aprobată de Dani pe GO-QE90-NOAPTE (27.11.2026, 09:00):
 
-- plată între 08:00:00 și 21:00:00 inclusiv → `paid_at + 1 oră`;
-- plată înainte de 08:00 → 09:00 în aceeași dimineață;
-- plată după 21:00, inclusiv 21:30 și 23:00 → 09:00 în dimineața următoare.
+- plată între 08:00:00 și 22:00:00 inclusiv → `paid_at + 1 oră` (22:00 are termen 23:00);
+- plată înainte de 08:00, inclusiv 07:30 și 07:59:59 → 09:00 în aceeași dimineață;
+- plată după 22:00, inclusiv 22:00:01, 22:30 și 23:00 → 09:00 în dimineața următoare.
 
-O plată la 21:30 nu are termen 22:30. Backfill-ul folosește aceeași funcție. Nu există cron care să treacă singur `pending` în `late`.
+O plată la 22:30 nu are termen 23:30. Backfill-ul, emailul și `late` folosesc aceeași funcție. Nu există cron care să treacă singur `pending` în `late`.
 
-Copy-ul public urmează regula de zi. Varianta non-stop aprobată inițial de Dani rămâne doar în descrierea PR-ului, până la GO-QE90-NOAPTE.
+Copy-ul public urmează regula aprobată 08:00–22:00. Varianta non-stop, de o oră fără fereastră, rămâne doar ca istoric în descrierea PR-ului.
 
 Idempotența este pe `stripe_checkout_session_id`. Retrimiterea webhook-ului nu mai trimite al doilea email.
 

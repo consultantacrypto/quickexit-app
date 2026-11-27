@@ -17,8 +17,8 @@
  *
  * Idempotency key: stripe_checkout_session_id. A duplicate insert is skipped.
  * Listing due_at follows Europe/Bucharest: +1h for payments from 08:00 through
- * 21:00 inclusive; 09:00 the same morning before 08:00; 09:00 the next morning
- * after 21:00. Rows already past that deadline are status "late".
+ * 22:00 inclusive; 09:00 the same morning before 08:00; 09:00 the next morning
+ * after 22:00. Rows already past that deadline are status "late".
  * This script does not email PROMO_NOTIFY_EMAIL.
  *
  * Do not run against production until the migration

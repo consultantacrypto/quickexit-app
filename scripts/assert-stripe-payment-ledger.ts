@@ -223,36 +223,48 @@ async function main() {
   }
 
   expectDue("2026-01-15T12:00:00.000Z", "2026-01-15T13:00:00.000Z", "winter 14:00 +1h");
-  expectDue("2026-01-15T19:00:00.000Z", "2026-01-15T20:00:00.000Z", "21:00 inclusive +1h");
-  expectDue("2026-01-15T19:00:01.000Z", "2026-01-16T07:00:00.000Z", "21:00:01 next morning");
-  expectDue("2026-01-15T19:30:00.000Z", "2026-01-16T07:00:00.000Z", "21:30 next morning");
-  expectDue("2026-01-15T21:00:00.000Z", "2026-01-16T07:00:00.000Z", "23:00 next morning");
+  expectDue("2026-01-15T06:00:00.000Z", "2026-01-15T07:00:00.000Z", "08:00 inclusive +1h");
+  expectDue("2026-01-15T05:59:59.000Z", "2026-01-15T07:00:00.000Z", "07:59:59 same morning");
   expectDue("2026-01-15T05:30:00.000Z", "2026-01-15T07:00:00.000Z", "07:30 same morning");
+  expectDue("2026-01-15T19:00:00.000Z", "2026-01-15T20:00:00.000Z", "21:00 +1h");
+  expectDue("2026-01-15T19:00:01.000Z", "2026-01-15T20:00:01.000Z", "21:00:01 +1h");
+  expectDue("2026-01-15T19:30:00.000Z", "2026-01-15T20:30:00.000Z", "21:30 +1h");
+  expectDue("2026-01-15T20:00:00.000Z", "2026-01-15T21:00:00.000Z", "22:00 inclusive due 23:00");
+  expectDue("2026-01-15T20:00:01.000Z", "2026-01-16T07:00:00.000Z", "22:00:01 next morning");
+  expectDue("2026-01-15T20:30:00.000Z", "2026-01-16T07:00:00.000Z", "22:30 next morning");
+  expectDue("2026-01-15T21:00:00.000Z", "2026-01-16T07:00:00.000Z", "23:00 next morning");
 
-  const springLocal = promo.bucharestParts(new Date("2026-03-29T04:30:00.000Z"));
-  assert(springLocal.hour === 7 && springLocal.minute === 30, "spring-forward morning is 07:30 EEST");
+  const springMorning = promo.bucharestParts(new Date("2026-03-29T04:30:00.000Z"));
+  assert(springMorning.hour === 7 && springMorning.minute === 30, "spring-forward morning is 07:30 EEST");
   expectDue("2026-03-29T04:30:00.000Z", "2026-03-29T06:00:00.000Z", "DST spring 07:30 due 09:00 EEST");
-  const fallLocal = promo.bucharestParts(new Date("2026-10-25T05:30:00.000Z"));
-  assert(fallLocal.hour === 7 && fallLocal.minute === 30, "fall-back morning is 07:30 EET");
-  expectDue("2026-10-25T05:30:00.000Z", "2026-10-25T07:00:00.000Z", "DST fall 07:30 due 09:00 EET");
-  expectDue("2026-07-15T11:00:00.000Z", "2026-07-15T12:00:00.000Z", "summer 14:00 +1h");
-  expectDue("2026-07-15T18:30:00.000Z", "2026-07-16T06:00:00.000Z", "summer 21:30 next 09:00 EEST");
+  const springNight = promo.bucharestParts(new Date("2026-03-29T19:30:00.000Z"));
+  assert(springNight.hour === 22 && springNight.minute === 30, "spring-forward night is 22:30 EEST");
+  expectDue("2026-03-29T19:30:00.000Z", "2026-03-30T06:00:00.000Z", "DST spring 22:30 due next 09:00 EEST");
 
-  const nightDue = promo.promoDueAtIso("2026-01-15T19:30:00.000Z");
+  const fallMorning = promo.bucharestParts(new Date("2026-10-25T05:30:00.000Z"));
+  assert(fallMorning.hour === 7 && fallMorning.minute === 30, "fall-back morning is 07:30 EET");
+  expectDue("2026-10-25T05:30:00.000Z", "2026-10-25T07:00:00.000Z", "DST fall 07:30 due 09:00 EET");
+  const fallNight = promo.bucharestParts(new Date("2026-10-25T20:30:00.000Z"));
+  assert(fallNight.hour === 22 && fallNight.minute === 30, "fall-back night is 22:30 EET");
+  expectDue("2026-10-25T20:30:00.000Z", "2026-10-26T07:00:00.000Z", "DST fall 22:30 due next 09:00 EET");
+
+  expectDue("2026-07-15T11:00:00.000Z", "2026-07-15T12:00:00.000Z", "summer 14:00 +1h");
+
+  const nightDue = promo.promoDueAtIso("2026-01-15T20:30:00.000Z");
   assert(
     promo.classifyPromoQueueStatus(nightDue, new Date("2026-01-16T06:59:00.000Z")) === "pending",
-    "21:30 payment is pending before 09:00",
+    "22:30 payment is pending before 09:00",
   );
   assert(
     promo.classifyPromoQueueStatus(nightDue, new Date("2026-01-16T07:01:00.000Z")) === "late",
-    "21:30 payment is late after 09:00",
+    "22:30 payment is late after 09:00",
   );
 
   const proposed = "consultantacrypto-ro-zvkmya+qe-paid@mail.grokbot.com";
   assert(promo.parsePromoNotifyEmail(proposed) === proposed, "plus address is accepted");
   assert(promo.parsePromoNotifyEmail("not-an-email") === null, "invalid address is rejected");
-  assert(social.SOCIAL_PROMO_PROMISE_RO.includes("21:00") && social.SOCIAL_PROMO_PROMISE_RO.includes("09:00"), "RO names the cutoff");
-  assert(social.SOCIAL_PROMO_PROMISE_EN.includes("21:00") && social.SOCIAL_PROMO_PROMISE_EN.includes("09:00"), "EN names the cutoff");
+  assert(social.SOCIAL_PROMO_PROMISE_RO.includes("22:00") && social.SOCIAL_PROMO_PROMISE_RO.includes("09:00"), "RO names the cutoff");
+  assert(social.SOCIAL_PROMO_PROMISE_EN.includes("22:00") && social.SOCIAL_PROMO_PROMISE_EN.includes("09:00"), "EN names the cutoff");
   const roMessages = ro as {
     ListingDetail: { socialPromoPromise: string };
     Pricing: { socialPromoPromise: string };
