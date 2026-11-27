@@ -12,7 +12,7 @@ Emailul pleacă doar dacă există și `RESEND_API_KEY` și `RESEND_FROM`.
 
 ## Coadă
 
-Migrarea `supabase/migrations/20261126194000_payments_ledger_and_promo_queue.sql` nu este aplicată de acest PR.
+Migrarea `supabase/migrations/20261127072700_payments_ledger_and_promo_queue.sql` este aplicată pe producție (quickexit-db) cu versiunea `20261127072700`, la 27.11.2026 09:27 ora României. Fișierul a fost redenumit ca să coincidă cu istoricul; SQL-ul nu s-a schimbat.
 
 `promo_queue.status` este `pending`, `done` sau `late`. `late` înseamnă `now` după `due_at`.
 

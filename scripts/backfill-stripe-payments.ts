@@ -21,9 +21,9 @@
  * after 22:00. Rows already past that deadline are status "late".
  * This script does not email PROMO_NOTIFY_EMAIL.
  *
- * Do not run against production until the migration
- * supabase/migrations/20261126194000_payments_ledger_and_promo_queue.sql
- * has been applied (payments already exists in production; promo_queue does not).
+ * Production history records this schema as version 20261127072700
+ * (supabase/migrations/20261127072700_payments_ledger_and_promo_queue.sql).
+ * --apply upserts payment and queue rows. It does not apply the migration.
  */
 
 import Stripe from "stripe";
