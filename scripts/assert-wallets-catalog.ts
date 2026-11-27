@@ -5,6 +5,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { LISTING_TRAFFIC_PRODUCTION_SUPABASE_HOST } from "../lib/listingTraffic";
 import {
+  LEDGER_STAX_AFFILIATE_URL,
   TANGEM_PARTNER_LINK_PLACEHOLDER,
   WALLET_BRAND_SLUGS,
   WALLET_OUTBOUND_REL,
@@ -16,6 +17,13 @@ import {
   walletCatalogForPage,
   walletPriceView,
 } from "../lib/walletCatalog";
+import {
+  WALLET_PROMOS,
+  activeWalletPromoIds,
+  isWalletPromoActive,
+  walletPromoCopy,
+  walletPromoForBrand,
+} from "../lib/walletPromos";
 import {
   parseWalletAffiliateBody,
   toWalletAffiliateInsert,
@@ -128,6 +136,9 @@ for (const item of WALLET_PRODUCTS) {
     assert(hasRealCheckoutCode(item), "Tangem code is copyable");
   } else if (AFFILIATE_BY_SLUG[item.slug]) {
     assert(item.affiliateUrl === AFFILIATE_BY_SLUG[item.slug], `${item.slug} affiliate URL`);
+  } else if (item.slug === "ledger-stax") {
+    assert(item.affiliateUrl === LEDGER_STAX_AFFILIATE_URL, "Stax affiliate URL is the shop link");
+    assert(new URL(item.affiliateUrl).searchParams.get("r") === LEDGER_REF, "Stax keeps the Ledger ref");
   } else if (item.brandSlug === "ledger") {
     const affiliate = new URL(item.affiliateUrl);
     assert(affiliate.hostname === "shop.ledger.com", `${item.slug} ledger host`);
@@ -146,8 +157,14 @@ for (const item of WALLET_PRODUCTS) {
     assert(item.affiliateUrl === `PENDING:${item.brandSlug}`, `${item.slug} pending affiliate URL`);
     assert(!hasRealCheckoutCode(item), `${item.slug} has no checkout code`);
   }
+  if (item.slug === "ledger-stax") {
+    assert(buildWalletOutboundUrl(item) === LEDGER_STAX_AFFILIATE_URL, "Stax outbound link is exact");
+  }
   const outbound = new URL(buildWalletOutboundUrl(item));
   const affiliateBase = isAffiliatePlaceholder(item.affiliateUrl) ? null : new URL(item.affiliateUrl);
+  if (item.slug === "ledger-stax") {
+    assert(outbound.search === "?r=9111c54498ec", "Stax link has no extra params");
+  } else {
   if (affiliateBase?.searchParams.has("utm_source")) {
     assert(outbound.searchParams.get("utm_source") === affiliateBase.searchParams.get("utm_source"), "keeps partner utm_source");
     assert(outbound.searchParams.get("utm_medium") === affiliateBase.searchParams.get("utm_medium"), "keeps partner utm_medium");
@@ -168,6 +185,7 @@ for (const item of WALLET_PRODUCTS) {
       assert(!outbound.searchParams.has(key), `${item.slug} does not invent ${key}`);
     }
   }
+  }
   assert(!outbound.toString().includes("PENDING:"), "outbound does not leak a placeholder");
   assert(!outbound.toString().includes(TANGEM_PARTNER_LINK_PLACEHOLDER), "outbound does not leak Tangem placeholder");
   if (item.priceStatus !== "verified") {
@@ -177,8 +195,13 @@ for (const item of WALLET_PRODUCTS) {
     const view = walletPriceView(item, "ro");
     assert(view.status === "verified", `${item.slug} shows a verified price`);
     if (view.status === "verified") {
-      assert(view.primary.includes(item.currency ?? ""), `${item.slug} shows currency`);
-      assert(view.checkedOn === "22.11.2026", `${item.slug} shows the check date`);
+      if (item.currency === "RON") {
+        assert(view.primary.includes("lei"), `${item.slug} shows lei`);
+      } else {
+        assert(view.primary.includes(item.currency ?? ""), `${item.slug} shows currency`);
+      }
+      assert(view.checkedOn === (item.priceCheckedAt === "2026-11-27" ? "27.11.2026" : "22.11.2026"), `${item.slug} shows the check date`);
+      assert(view.estimate === (item.priceBasis === "estimate"), `${item.slug} estimate flag`);
     }
   }
 }
@@ -202,11 +225,105 @@ const x0 = WALLET_PRODUCTS.find((item) => item.slug === "cypherock-x0");
 assert(x0?.priceStatus === "unverified" && x0.listPrice == null, "X0 price stays hidden");
 
 const safe3 = walletPriceView(WALLET_PRODUCTS.find((item) => item.slug === "trezor-safe-3")!, "ro");
-assert(safe3.status === "verified" && safe3.primary === "39,00 EUR", "Trezor EUR");
-assert(safe3.status === "verified" && safe3.secondary === "207,00 RON", "Trezor RON");
+assert(safe3.status === "verified" && safe3.primary === "207,00 lei" && safe3.estimate === false, "Trezor Safe 3 lei");
+assert(safe3.status === "verified" && safe3.secondary === "39,00 EUR", "Trezor Safe 3 euro on the same page");
+assert(safe3.status === "verified" && safe3.checkedOn === "27.11.2026", "Trezor Safe 3 check date");
 
-const ring = walletPriceView(WALLET_PRODUCTS.find((item) => item.slug === "tangem-ring")!, "en");
-assert(ring.status === "verified" && ring.primary.includes("140.00") && ring.primary.includes("160.00"), "Tangem ring range");
+const safe5 = WALLET_PRODUCTS.find((item) => item.slug === "trezor-safe-5");
+const safe7 = WALLET_PRODUCTS.find((item) => item.slug === "trezor-safe-7");
+assert(safe5?.listPrice === 420 && safe5.currency === "RON" && safe5.officialUrl === "https://trezor.io/trezor-safe-5", "Trezor Safe 5");
+assert(safe7?.listPrice === 942 && safe7.currency === "RON" && safe7.officialUrl === "https://trezor.io/trezor-safe-7", "Trezor Safe 7");
+assert(
+  WALLET_PRODUCTS.filter((item) => item.brandSlug === "trezor").every(
+    (item) => item.affiliateUrl === "PENDING:trezor" && item.officialUrl.startsWith("https://trezor.io/"),
+  ),
+  "Trezor links stay free of referral params",
+);
+assert(
+  WALLET_PRODUCTS.filter((item) => item.brandSlug === "bitbox").every((item) => item.affiliateUrl === "PENDING:bitbox"),
+  "BitBox links stay free of referral params",
+);
+assert(
+  WALLET_PRODUCTS.filter((item) => item.brandSlug === "ngrave").every((item) => item.affiliateUrl === "PENDING:ngrave"),
+  "NGRAVE links stay free of referral params",
+);
+
+const ring = walletPriceView(WALLET_PRODUCTS.find((item) => item.slug === "tangem-ring")!, "ro");
+assert(
+  ring.status === "verified" && ring.primary === "667,00 lei" && ring.estimate && ring.secondary === "124,90 EUR",
+  "Tangem Ring lei estimate",
+);
+
+const RECHECKED: Record<string, { lei: number; official: number; currency: string }> = {
+  "tangem-2-cards": { lei: 293, official: 54.9, currency: "EUR" },
+  "tangem-3-cards": { lei: 347, official: 64.9, currency: "EUR" },
+  "tangem-ring": { lei: 667, official: 124.9, currency: "EUR" },
+  "safepal-s1": { lei: 244, official: 49.99, currency: "USD" },
+  "safepal-x1": { lei: 341, official: 69.99, currency: "USD" },
+  "safepal-s1-pro": { lei: 439, official: 89.99, currency: "USD" },
+  "ledger-nano-s-plus": { lei: 302, official: 62, currency: "USD" },
+  "ledger-nano-x": { lei: 385, official: 79, currency: "USD" },
+  "ledger-nano-gen5": { lei: 873, official: 179, currency: "USD" },
+  "ledger-flex": { lei: 1214, official: 249, currency: "USD" },
+  "ledger-stax": { lei: 1946, official: 399, currency: "USD" },
+};
+for (const [slug, expected] of Object.entries(RECHECKED)) {
+  const item = WALLET_PRODUCTS.find((row) => row.slug === slug);
+  assert(item, slug);
+  assert(item?.listPrice === expected.lei && item.currency === "RON", `${slug} lei`);
+  assert(item?.priceBasis === "estimate" && item.secondaryAmount === expected.official, `${slug} official amount`);
+  assert(item?.secondaryCurrency === expected.currency, `${slug} official currency`);
+  assert(item?.priceCheckedAt === "2026-11-27", `${slug} checked 27.11.2026`);
+}
+const proKit = WALLET_PRODUCTS.find((item) => item.slug === "tangem-pro-kit");
+assert(proKit?.listPrice === 180 && proKit.currency === "USD" && proKit.priceCheckedAt === "2026-11-22", "Pro Kit was not in the 27.11 table");
+
+const stax = WALLET_PRODUCTS.find((item) => item.slug === "ledger-stax");
+assert(stax?.officialUrl === "https://shop.ledger.com/products/ledger-stax", "Stax official page");
+const staxPrice = walletPriceView(stax!, "ro");
+assert(
+  staxPrice.status === "verified" && staxPrice.primary === "1.946,00 lei" && staxPrice.secondary === "399,00 USD" && staxPrice.estimate,
+  "Stax shows the lei estimate and the USD price",
+);
+
+const tangemPromo = WALLET_PROMOS.find((promo) => promo.id === "tangem-bf2026");
+const safepalPromo = WALLET_PROMOS.find((promo) => promo.id === "safepal-bfcm2026");
+assert(tangemPromo && safepalPromo, "both promos exist");
+assert(tangemPromo?.expiresAt === "2026-11-29T23:59:59+02:00", "Tangem expiry is 29.11 23:59 Europe/Bucharest");
+assert(Date.parse(tangemPromo!.expiresAt) === Date.parse("2026-11-29T21:59:59Z"), "Tangem expiry instant");
+assert(safepalPromo?.expiresAt === "2026-12-04T01:59:59+02:00", "SafePal expiry matches 3.12 23:59 UTC");
+assert(Date.parse(safepalPromo!.expiresAt) === Date.parse("2026-12-03T23:59:59Z"), "SafePal expiry instant");
+assert(
+  walletPromoCopy(tangemPromo!, "ro") ===
+    "Black Friday: cod BF2026 (−35%, până pe 29.11). Codul nostru: DANIELMIHAI.",
+  "Tangem promo wording",
+);
+assert(walletPromoCopy(safepalPromo!, "ro").includes("BFCM2026") && walletPromoCopy(safepalPromo!, "ro").includes("15%"), "SafePal promo wording");
+const promoBlob = WALLET_PROMOS.map((promo) => `${promo.copyRo}\n${promo.copyEn}`).join("\n");
+for (const phrase of ["cumul", "cumuleaz", "stack", "împreună", "se adaugă", "combin"]) {
+  assert(!promoBlob.toLowerCase().includes(phrase), `promo copy does not say ${phrase}`);
+}
+assert(isWalletPromoActive(tangemPromo!, new Date("2026-11-29T21:59:59Z")), "Tangem visible at 23:59 Bucharest");
+assert(!isWalletPromoActive(tangemPromo!, new Date("2026-11-29T22:00:00Z")), "Tangem hidden at midnight");
+assert(isWalletPromoActive(safepalPromo!, new Date("2026-12-03T23:59:59Z")), "SafePal visible at the stated UTC minute");
+assert(!isWalletPromoActive(safepalPromo!, new Date("2026-12-04T00:00:00Z")), "SafePal hidden after 23:59 UTC");
+assert(!isWalletPromoActive(tangemPromo!, new Date(Number.NaN)), "invalid clock hides the promo");
+const during = activeWalletPromoIds(new Date("2026-11-27T12:00:00+02:00"));
+assert(during.includes("tangem-bf2026") && during.includes("safepal-bfcm2026"), "both promos active on 27.11");
+const afterTangem = activeWalletPromoIds(new Date("2026-11-30T00:00:00+02:00"));
+assert(!afterTangem.includes("tangem-bf2026") && afterTangem.includes("safepal-bfcm2026"), "Tangem drops on 30.11, SafePal stays");
+assert(activeWalletPromoIds(new Date("2026-12-04T00:00:00Z")).length === 0, "no promo after SafePal ends");
+assert(walletPromoForBrand("tangem", during)?.code === "BF2026", "Tangem card receives BF2026");
+assert(walletPromoForBrand("safepal", afterTangem)?.code === "BFCM2026", "SafePal card receives BFCM2026");
+assert(walletPromoForBrand("tangem", afterTangem) === null, "expired Tangem id is not on the card");
+assert(walletPromoForBrand("ledger", during) === null, "Ledger has no promo code");
+
+const pageSrc = readFileSync(resolve("app/[locale]/wallets/page.tsx"), "utf8");
+assert(pageSrc.includes('export const dynamic = "force-dynamic"'), "wallet page is dynamic");
+assert(pageSrc.includes("await connection()"), "wallet page waits for the request");
+assert(pageSrc.includes("activeWalletPromoIds(new Date())"), "server clock decides the promos");
+assert(pageSrc.includes("activePromoIds={activePromoIds}"), "server decision is passed to the catalog");
+assert(!pageSrc.includes("/r/"), "wallet page does not reference a redirect slug");
 
 const ordered = walletCatalogForPage();
 const firstOther = ordered.findIndex((item) => item.brandSlug !== "tangem");
@@ -263,6 +380,9 @@ assert(catalogUi.includes('target="_blank"'), "outbound opens a new tab");
 assert(catalogUi.includes("TRUST_ARTICLE_URL"), "trust article is linked");
 assert(catalogUi.includes("flex min-w-0 flex-wrap gap-1.5 md:flex-nowrap"), "guide chips wrap on small screens");
 assert(catalogUi.includes("copyDiscount"), "discount control has an accessible name");
+assert(catalogUi.includes("walletPromoCopy"), "promo sentence is rendered from the catalog");
+assert(catalogUi.includes("activePromoIds"), "catalog shows only the server promo ids");
+assert(!catalogUi.includes("BF2026") && !catalogUi.includes("BFCM2026"), "promo codes stay in the promo module");
 assert(catalogUi.includes('t("discountCode"'), "discount code is rendered from copy");
 assert(!catalogUi.includes("DANIELMIHAI"), "discount code stays in the catalog config");
 assert(catalogUi.includes("disclosureShort"), "short disclosure is rendered");
