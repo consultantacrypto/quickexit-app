@@ -29,6 +29,7 @@
     "assert:available-to-order": "tsx scripts/assert-available-to-order.ts",
     "assert:payment-ledger": "tsx scripts/assert-stripe-payment-ledger.ts",
     "assert:verified-qe": "tsx scripts/assert-verified-qe.ts",
+    "assert:qe-car-valuation": "tsx scripts/assert-qe-car-valuation.ts",
     "e2e:listing-publication-security-staging": "tsx scripts/e2e-listing-publication-security-staging.ts",
     "assert:all-listings-link": "tsx scripts/assert-all-listings-link.ts",
     "audit:auth-profiles": "tsx scripts/audit-auth-profiles.ts",

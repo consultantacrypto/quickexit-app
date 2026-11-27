@@ -5,6 +5,7 @@ import { Link } from "@/src/i18n/navigation";
 import { Clock3, ShieldCheck } from "lucide-react";
 import { trackEvent } from "@/lib/analytics";
 import EvaluateTurnstile, { type EvaluateTurnstileHandle } from "@/components/EvaluateTurnstile";
+import QeCarValuationResult from "@/components/QeCarValuationResult";
 import { isEvaluateTurnstileUiEnabled } from "@/lib/turnstilePublic";
 import {
   buildEvaluationDraft,
@@ -16,6 +17,14 @@ import {
   saveEvaluationDraftToSession,
   type EvaluationPriceType,
 } from "@/lib/evaluationDraft";
+import {
+  QE_EQUIPMENT_NOTE,
+  QE_INSUFFICIENT_MESSAGE,
+  QE_VALUATION_CONSENT_VERSION,
+  QE_VALUATION_DISCLAIMER,
+  isQeCarValuation,
+  type QeValuationPublicBody,
+} from "@/lib/qeCarValuation";
 
 type ApiResult = {
   success: boolean;
@@ -42,7 +51,7 @@ type CategoryOption = {
 };
 
 const CATEGORY_OPTIONS: CategoryOption[] = [
-  { id: "auto", title: "Auto & Moto", hint: "estimare după marcă, model, an, km" },
+  { id: "auto", title: "Auto & Moto", hint: "interval din anunțurile QuickExit: marcă, model, an, km" },
   { id: "imobiliare", title: "Imobiliare", hint: "estimare după zonă, suprafață, camere" },
   { id: "lux", title: "Lux & Ceasuri", hint: "estimare după brand, model, acte/stare" },
   { id: "business", title: "Afaceri de vânzare", hint: "estimare după domeniu, venit, locație" },
@@ -55,6 +64,55 @@ const LOADING_MESSAGES = [
   "Eliminăm semnalele false: leasing, rate, piese...",
   "Calculăm prețurile de exit...",
 ];
+
+const QE_LOADING_MESSAGES = [
+  "Căutăm anunțuri comparabile pe QuickExit...",
+  "Calculăm intervalul din prețurile cerute...",
+  "Pregătim rezultatul...",
+];
+
+const QE_FIXTURE_FORM = {
+  make: "BMW",
+  model: "X6",
+  year: "2022",
+  km: "45000",
+  equipment: "Pachet M Sport, piele, trapă panoramică",
+};
+
+function qeDevFixture(mode: "result" | "insufficient"): QeValuationPublicBody {
+  if (mode === "insufficient") {
+    return {
+      success: true,
+      source: "quickexit_listings",
+      sufficient: false,
+      tier: null,
+      tier_label: null,
+      comparable_count: 2,
+      range: null,
+      equipment: "Climă, senzori parcare",
+      equipment_note: QE_EQUIPMENT_NOTE,
+      disclaimer: QE_VALUATION_DISCLAIMER,
+      message: QE_INSUFFICIENT_MESSAGE,
+      email_status: "not_requested",
+      email_delivery: "not_requested",
+    };
+  }
+  return {
+    success: true,
+    source: "quickexit_listings",
+    sufficient: true,
+    tier: 1,
+    tier_label: "Interval din anunțuri apropiate",
+    comparable_count: 6,
+    range: { p25: 48000, p50: 54000, p75: 61000 },
+    equipment: QE_FIXTURE_FORM.equipment,
+    equipment_note: QE_EQUIPMENT_NOTE,
+    disclaimer: QE_VALUATION_DISCLAIMER,
+    message: null,
+    email_status: "not_requested",
+    email_delivery: "not_requested",
+  };
+}
 
 const LABEL_MAP: Record<string, string> = {
   external_search_strong: "Încredere bună",
@@ -107,6 +165,7 @@ function validateEvaluationForm(
     make: string;
     model: string;
     year: string;
+    km: string;
     location: string;
     surface: string;
     brand: string;
@@ -119,6 +178,7 @@ function validateEvaluationForm(
       if (!formData.make.trim()) return "Completează marca.";
       if (!formData.model.trim()) return "Completează modelul.";
       if (!formData.year.trim()) return "Completează anul.";
+      if (!formData.km.trim()) return "Completează kilometrajul.";
       return null;
     case "imobiliare":
       if (!formData.location.trim()) return "Completează localizarea.";
@@ -204,18 +264,44 @@ function formatPrice(price: unknown) {
   return `EUR ${n.toLocaleString("ro-RO")}`;
 }
 
-export default function EvaluareClient() {
+export default function EvaluareClient({
+  devFixture = null,
+}: {
+  devFixture?: "result" | "insufficient" | null;
+}) {
+  const fixtureMode = process.env.NODE_ENV === "development" ? devFixture : null;
+  const fixtureResult = fixtureMode ? qeDevFixture(fixtureMode) : null;
+  const fixtureForm =
+    fixtureMode === "insufficient"
+      ? {
+          make: "Dacia",
+          model: "Logan",
+          year: "2016",
+          km: "180000",
+          equipment: "Climă, senzori parcare",
+        }
+      : fixtureMode === "result"
+        ? QE_FIXTURE_FORM
+        : null;
+
   const [category, setCategory] = useState<CategoryId>("auto");
-  const [phase, setPhase] = useState<"form" | "loading" | "result">("form");
+  const [phase, setPhase] = useState<"form" | "loading" | "result">(fixtureResult ? "result" : "form");
   const [loadingIndex, setLoadingIndex] = useState(0);
-  const [result, setResult] = useState<ApiResult | null>(null);
+  const [result, setResult] = useState<ApiResult | QeValuationPublicBody | null>(fixtureResult);
   const [evaluationError, setEvaluationError] = useState<string | null>(null);
+  const [website, setWebsite] = useState("");
+  const [reportEmail, setReportEmail] = useState("");
+  const [reportConsent, setReportConsent] = useState(false);
+  const [emailSubmitting, setEmailSubmitting] = useState(false);
+  const [emailNotice, setEmailNotice] = useState<string | null>(null);
+  const [emailNoticeTone, setEmailNoticeTone] = useState<"neutral" | "error">("neutral");
 
   const [formData, setFormData] = useState({
-    make: "",
-    model: "",
-    year: "",
-    km: "",
+    make: fixtureForm?.make ?? "",
+    model: fixtureForm?.model ?? "",
+    year: fixtureForm?.year ?? "",
+    km: fixtureForm?.km ?? "",
+    equipment: fixtureForm?.equipment ?? "",
     property_type: "Apartament",
     location: "",
     surface: "",
@@ -231,55 +317,59 @@ export default function EvaluareClient() {
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const turnstileUiEnabled = isEvaluateTurnstileUiEnabled();
 
+  const loadingMessages = category === "auto" ? QE_LOADING_MESSAGES : LOADING_MESSAGES;
+
   useEffect(() => {
     if (phase !== "loading") return;
     const interval = setInterval(() => {
-      setLoadingIndex((prev) => (prev + 1) % LOADING_MESSAGES.length);
+      setLoadingIndex((prev) => (prev + 1) % loadingMessages.length);
     }, 1800);
     return () => clearInterval(interval);
-  }, [phase]);
+  }, [phase, loadingMessages.length]);
 
   const activeStep = phase === "form" ? 2 : phase === "loading" ? 3 : 4;
+  const marketResult = result && !isQeCarValuation(result) ? result : null;
+  const qeResult = result && isQeCarValuation(result) ? result : null;
 
   const hasUsablePrices = useMemo(
-    () => (result ? hasUsableEvaluationPrices(result) : false),
-    [result],
+    () => (marketResult ? hasUsableEvaluationPrices(marketResult) : false),
+    [marketResult],
   );
 
   const isInsufficientPriceData = useMemo(
     () =>
-      !hasUsablePrices || result?.data_quality_label === "insufficient_price_data",
-    [hasUsablePrices, result?.data_quality_label],
+      !hasUsablePrices || marketResult?.data_quality_label === "insufficient_price_data",
+    [hasUsablePrices, marketResult?.data_quality_label],
   );
 
   const qualityLabel = useMemo(() => {
     return getEvaluationConfidenceLabel(
-      formatConfidenceScore(result?.confidence_score),
-      result?.data_quality_label,
+      formatConfidenceScore(marketResult?.confidence_score),
+      marketResult?.data_quality_label,
       isInsufficientPriceData,
     );
-  }, [result?.confidence_score, result?.data_quality_label, isInsufficientPriceData]);
+  }, [marketResult?.confidence_score, marketResult?.data_quality_label, isInsufficientPriceData]);
 
   const publicExplanation = useMemo(
     () =>
-      getPublicEvaluationDisclaimer(result?.data_quality_label, isInsufficientPriceData),
-    [result?.data_quality_label, isInsufficientPriceData],
+      getPublicEvaluationDisclaimer(marketResult?.data_quality_label, isInsufficientPriceData),
+    [marketResult?.data_quality_label, isInsufficientPriceData],
   );
 
   useEffect(() => {
-    if (process.env.NODE_ENV === "production" || phase !== "result" || !result) return;
+    if (process.env.NODE_ENV === "production" || phase !== "result" || !marketResult) return;
     console.log("[evaluare] price-data", {
       hasUsablePrices,
       isInsufficientPriceData,
-      data_quality_label: result.data_quality_label,
-      estimated_market_price: result.estimated_market_price,
-      quick_exit_price: result.quick_exit_price,
-      strong_exit_price: result.strong_exit_price,
-      liquidation_price: result.liquidation_price,
+      data_quality_label: marketResult.data_quality_label,
+      estimated_market_price: marketResult.estimated_market_price,
+      quick_exit_price: marketResult.quick_exit_price,
+      strong_exit_price: marketResult.strong_exit_price,
+      liquidation_price: marketResult.liquidation_price,
     });
-  }, [phase, result, hasUsablePrices, isInsufficientPriceData]);
+  }, [phase, marketResult, hasUsablePrices, isInsufficientPriceData]);
 
-  const analyzedSources = Number(result?.google_result_count ?? result?.comparable_count ?? 0);
+  const analyzedSources = Number(marketResult?.google_result_count ?? marketResult?.comparable_count ?? 0);
 
   const manualListingHref = useMemo(
     () => buildManualListingHref(category),
@@ -296,25 +386,45 @@ export default function EvaluareClient() {
 
     trackEvent("click_evaluation_to_listing", {
       category,
-      data_quality_label: result?.data_quality_label
-        ? String(result.data_quality_label)
+      data_quality_label: marketResult?.data_quality_label
+        ? String(marketResult.data_quality_label)
         : "unknown",
-      confidence_score: formatConfidenceScore(result?.confidence_score),
+      confidence_score: formatConfidenceScore(marketResult?.confidence_score),
       interaction_source: "evaluation_result",
       selected_price_type: "manual",
     });
   };
 
+  const handleQeListingClick = () => {
+    const median = qeResult?.range?.p50;
+    saveEvaluationDraftToSession(
+      buildEvaluationDraft({
+        category: "auto",
+        formData,
+        equipment: formData.equipment,
+        selectedExitPrice: median,
+        selectedPriceType: median ? "market" : undefined,
+        selectedPriceLabel: median ? "Interval QuickExit" : undefined,
+        estimatedMarketPrice: median,
+      }),
+    );
+    trackEvent("click_evaluation_to_listing", {
+      category: "auto",
+      interaction_source: "qe_car_valuation",
+      selected_price_type: median ? "market" : "manual",
+    });
+  };
+
   const handlePriceStrategyClick = (priceType: EvaluationPriceType) => () => {
-    if (isInsufficientPriceData) return;
+    if (isInsufficientPriceData || !marketResult) return;
 
     const strategy = EVALUATION_PRICE_STRATEGIES.find((s) => s.type === priceType);
     if (!strategy) return;
 
-    const selectedExitPrice = getEvaluationPriceFromResult(result, priceType);
+    const selectedExitPrice = getEvaluationPriceFromResult(marketResult, priceType);
     if (!selectedExitPrice) return;
 
-    const estimatedMarketPrice = getEvaluationPriceFromResult(result, "market");
+    const estimatedMarketPrice = getEvaluationPriceFromResult(marketResult, "market");
 
     saveEvaluationDraftToSession(
       buildEvaluationDraft({
@@ -324,36 +434,36 @@ export default function EvaluareClient() {
         selectedPriceType: priceType,
         selectedPriceLabel: strategy.label,
         estimatedMarketPrice,
-        confidenceScore: formatConfidenceScore(result?.confidence_score),
+        confidenceScore: formatConfidenceScore(marketResult.confidence_score),
       }),
     );
 
     trackEvent("selected_price_strategy", {
       category,
       selected_price_type: priceType,
-      data_quality_label: result?.data_quality_label
-        ? String(result.data_quality_label)
+      data_quality_label: marketResult.data_quality_label
+        ? String(marketResult.data_quality_label)
         : "unknown",
-      confidence_score: formatConfidenceScore(result?.confidence_score),
+      confidence_score: formatConfidenceScore(marketResult.confidence_score),
     });
 
     trackEvent("click_evaluation_to_listing", {
       category,
-      data_quality_label: result?.data_quality_label
-        ? String(result.data_quality_label)
+      data_quality_label: marketResult.data_quality_label
+        ? String(marketResult.data_quality_label)
         : "unknown",
-      confidence_score: formatConfidenceScore(result?.confidence_score),
+      confidence_score: formatConfidenceScore(marketResult.confidence_score),
       interaction_source: "evaluation_result",
       selected_price_type: priceType,
     });
   };
 
   const resultWarnings = useMemo(() => {
-    if (!result?.warnings || !Array.isArray(result.warnings)) return [];
-    return result.warnings.map((w) => String(w)).filter(Boolean);
-  }, [result?.warnings]);
+    if (!marketResult?.warnings || !Array.isArray(marketResult.warnings)) return [];
+    return marketResult.warnings.map((w) => String(w)).filter(Boolean);
+  }, [marketResult]);
 
-  const confidencePercent = formatConfidenceScore(result?.confidence_score);
+  const confidencePercent = formatConfidenceScore(marketResult?.confidence_score);
 
   const buildPayload = () => ({
     category,
@@ -383,10 +493,73 @@ export default function EvaluareClient() {
       optionalYear: formData.optionalYear,
       domain: formData.industry,
     },
-    extraDetails: formData,
+    extraDetails: {
+      make: formData.make,
+      model: formData.model,
+      year: formData.year,
+      km: formData.km,
+      property_type: formData.property_type,
+      location: formData.location,
+      surface: formData.surface,
+      rooms: formData.rooms,
+      brand: formData.brand,
+      condition: formData.condition,
+      optionalYear: formData.optionalYear,
+      industry: formData.industry,
+      revenue: formData.revenue,
+    },
     save_report: true,
     ...(turnstileToken ? { turnstileToken } : {}),
   });
+
+  const buildQePayload = (withEmail: boolean) => ({
+    make: formData.make,
+    model: formData.model,
+    year: Number(formData.year),
+    km: Number(formData.km),
+    equipment: formData.equipment,
+    company_website: website,
+    ...(turnstileToken ? { turnstileToken } : {}),
+    ...(withEmail
+      ? {
+          email: reportEmail.trim(),
+          consent: reportConsent,
+          consent_version: QE_VALUATION_CONSENT_VERSION,
+        }
+      : {}),
+  });
+
+  const qeListingHref = qeResult?.range?.p50
+    ? buildListingHrefForStrategy("auto", qeResult.range.p50, "market", qeResult.range.p50)
+    : buildManualListingHref("auto");
+
+  const emailNoticeFor = (data: QeValuationPublicBody): { text: string; tone: "neutral" | "error" } => {
+    if (data.email_delivery === "sent" || data.email_status === "sent") {
+      return { text: "Ți-am trimis raportul pe email.", tone: "neutral" };
+    }
+    if (data.email_delivery === "disabled") {
+      return {
+        text: "Am înregistrat emailul. Trimiterea automată a raportului este oprită momentan; intervalul rămâne pe pagină.",
+        tone: "neutral",
+      };
+    }
+    if (data.email_delivery === "stored") {
+      return {
+        text: "Emailul este deja înregistrat pentru un raport din ultimele 24 de ore.",
+        tone: "neutral",
+      };
+    }
+    if (data.email_delivery === "failed") {
+      return {
+        text: "Am înregistrat emailul, dar mesajul nu a putut fi trimis acum. Intervalul rămâne pe pagină.",
+        tone: "neutral",
+      };
+    }
+    return {
+      text: "Păstrarea emailului nu este disponibilă încă. Intervalul de pe pagină rămâne valabil.",
+      tone: "neutral",
+    };
+  };
 
   const runEvaluation = async () => {
     const validationMessage = validateEvaluationForm(category, formData);
@@ -409,13 +582,14 @@ export default function EvaluareClient() {
     setResult(null);
 
     try {
-      const response = await fetch("/api/evaluate", {
+      const response = await fetch(category === "auto" ? "/api/evaluate/qe" : "/api/evaluate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(buildPayload()),
+        cache: "no-store",
+        body: JSON.stringify(category === "auto" ? buildQePayload(false) : buildPayload()),
       });
 
-      const data = (await response.json()) as ApiResult & { message?: string };
+      const data = (await response.json()) as (ApiResult | QeValuationPublicBody) & { message?: string };
       if (!response.ok || !data.success) {
         trackEvent("evaluation_failed", {
           category,
@@ -442,11 +616,25 @@ export default function EvaluareClient() {
         return;
       }
 
+      if (category === "auto" && !isQeCarValuation(data)) {
+        setPhase("form");
+        return;
+      }
+
       setResult(data);
+      setEmailNotice(null);
+      turnstileRef.current?.reset();
+      setTurnstileToken(null);
       trackEvent("evaluation_success", {
         category,
-        data_quality_label: data.data_quality_label ? String(data.data_quality_label) : "unknown",
-        confidence_score: Number(data.confidence_score ?? 0),
+        data_quality_label: isQeCarValuation(data)
+          ? data.sufficient
+            ? `qe_tier_${data.tier ?? "none"}`
+            : "qe_insufficient"
+          : data.data_quality_label
+            ? String(data.data_quality_label)
+            : "unknown",
+        confidence_score: isQeCarValuation(data) ? 0 : Number(data.confidence_score ?? 0),
       });
       setPhase("result");
     } catch {
@@ -458,6 +646,58 @@ export default function EvaluareClient() {
       turnstileRef.current?.reset();
       setTurnstileToken(null);
       setPhase("form");
+    }
+  };
+
+  const submitReportEmail = async () => {
+    if (!qeResult) return;
+    if (!reportEmail.trim()) {
+      setEmailNotice("Completează emailul sau continuă fără el.");
+      setEmailNoticeTone("error");
+      return;
+    }
+    if (!reportConsent) {
+      setEmailNotice("Bifează consimțământul ca să primești raportul pe email.");
+      setEmailNoticeTone("error");
+      return;
+    }
+    if (turnstileUiEnabled && !turnstileToken) {
+      setEmailNotice("Completează verificarea de securitate, apoi încearcă din nou.");
+      setEmailNoticeTone("error");
+      return;
+    }
+
+    setEmailSubmitting(true);
+    setEmailNotice(null);
+    try {
+      const response = await fetch("/api/evaluate/qe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        cache: "no-store",
+        body: JSON.stringify(buildQePayload(true)),
+      });
+      const data = (await response.json()) as QeValuationPublicBody & { message?: string; success?: boolean };
+      if (!response.ok || !data.success) {
+        setEmailNotice(
+          typeof data.message === "string" && data.message.trim()
+            ? data.message
+            : "Emailul nu a putut fi înregistrat. Intervalul rămâne pe pagină.",
+        );
+        setEmailNoticeTone("error");
+        return;
+      }
+      if (!isQeCarValuation(data)) return;
+      setResult(data);
+      const notice = emailNoticeFor(data);
+      setEmailNotice(notice.text);
+      setEmailNoticeTone(notice.tone);
+    } catch {
+      setEmailNotice("Emailul nu a putut fi înregistrat. Intervalul rămâne pe pagină.");
+      setEmailNoticeTone("error");
+    } finally {
+      setEmailSubmitting(false);
+      turnstileRef.current?.reset();
+      setTurnstileToken(null);
     }
   };
 
@@ -492,14 +732,14 @@ export default function EvaluareClient() {
           <div className="mx-auto mt-10 flex flex-wrap justify-center gap-2 md:gap-3">
             <StepPill index={1} title="Alege categoria" />
             <StepPill index={2} title="Completează detaliile" />
-            <StepPill index={3} title="Scanare piață" />
+            <StepPill index={3} title={category === "auto" ? "Comparabile QE" : "Scanare piață"} />
             <StepPill index={4} title="Rezultat + actiune" />
           </div>
         </div>
 
         {/* Terminal card — corp deschis, brutalist */}
         <div className="rounded-[2rem] border-[3px] border-black bg-white p-8 shadow-[12px_12px_0_0_rgba(0,0,0,0.12)] md:p-14 md:shadow-[14px_14px_0_0_#FFD100]">
-          {phase !== "result" && (
+          {(phase === "form" || (phase === "loading" && category !== "auto")) && (
             <>
               {evaluationError && phase === "form" && (
                 <div
@@ -541,17 +781,54 @@ export default function EvaluareClient() {
                 </div>
               </section>
 
-              <section className="rounded-3xl border border-black/[0.08] bg-[#F7F4EC]/80 p-6 md:border-2 md:border-black/[0.06] md:p-10 lg:p-12">
+              <section className="relative rounded-3xl border border-black/[0.08] bg-[#F7F4EC]/80 p-6 md:border-2 md:border-black/[0.06] md:p-10 lg:p-12">
                 <h2 className="mb-8 text-xl font-black uppercase italic tracking-tight text-black md:text-2xl">
                   2. Completează detaliile
                 </h2>
                 <div className="grid gap-4 md:grid-cols-2 md:gap-5">
                   {category === "auto" && (
                     <>
-                      <input placeholder="Marca" value={formData.make} onChange={(e) => setFormData({ ...formData, make: e.target.value })} className="input" />
-                      <input placeholder="Model" value={formData.model} onChange={(e) => setFormData({ ...formData, model: e.target.value })} className="input" />
-                      <input placeholder="An" type="number" value={formData.year} onChange={(e) => setFormData({ ...formData, year: e.target.value })} className="input" />
-                      <input placeholder="Kilometraj (km)" type="number" value={formData.km} onChange={(e) => setFormData({ ...formData, km: e.target.value })} className="input" />
+                      <p className="text-sm font-medium leading-relaxed text-neutral-700 md:col-span-2">
+                        Pentru mașini, intervalul se calculează doar din anunțurile active QuickExit. Fără cost.
+                      </p>
+                      <label className="block">
+                        <span className="mb-2 block text-[10px] font-black uppercase tracking-[0.18em] text-neutral-500">Marcă</span>
+                        <input placeholder="BMW" value={formData.make} onChange={(e) => setFormData({ ...formData, make: e.target.value })} className="input w-full" />
+                      </label>
+                      <label className="block">
+                        <span className="mb-2 block text-[10px] font-black uppercase tracking-[0.18em] text-neutral-500">Model</span>
+                        <input placeholder="X6" value={formData.model} onChange={(e) => setFormData({ ...formData, model: e.target.value })} className="input w-full" />
+                      </label>
+                      <label className="block">
+                        <span className="mb-2 block text-[10px] font-black uppercase tracking-[0.18em] text-neutral-500">An</span>
+                        <input placeholder="2022" type="number" inputMode="numeric" value={formData.year} onChange={(e) => setFormData({ ...formData, year: e.target.value })} className="input w-full" />
+                      </label>
+                      <label className="block">
+                        <span className="mb-2 block text-[10px] font-black uppercase tracking-[0.18em] text-neutral-500">Kilometraj</span>
+                        <input placeholder="45000" type="number" inputMode="numeric" value={formData.km} onChange={(e) => setFormData({ ...formData, km: e.target.value })} className="input w-full" />
+                      </label>
+                      <label className="block md:col-span-2">
+                        <span className="mb-2 block text-[10px] font-black uppercase tracking-[0.18em] text-neutral-500">Dotare</span>
+                        <textarea
+                          placeholder="Pachet M Sport, piele, trapă. Nu schimbă intervalul."
+                          value={formData.equipment}
+                          onChange={(e) => setFormData({ ...formData, equipment: e.target.value })}
+                          rows={3}
+                          className="input-plain w-full"
+                        />
+                      </label>
+                      <div className="absolute left-[-9999px] h-0 w-0 overflow-hidden" aria-hidden="true">
+                        <label>
+                          Website
+                          <input
+                            tabIndex={-1}
+                            autoComplete="off"
+                            name="company_website"
+                            value={website}
+                            onChange={(e) => setWebsite(e.target.value)}
+                          />
+                        </label>
+                      </div>
                     </>
                   )}
 
@@ -600,7 +877,7 @@ export default function EvaluareClient() {
                   disabled={phase === "loading"}
                   className="mt-10 w-full rounded-2xl border-[3px] border-black bg-[#FFD100] px-6 py-4 text-sm font-black uppercase tracking-[0.2em] text-black shadow-[6px_6px_0_0_#000] transition hover:bg-[#f5e008] hover:shadow-[8px_8px_0_0_#000] disabled:pointer-events-none disabled:opacity-50 active:translate-y-0.5 active:shadow-[4px_4px_0_0_#000]"
                 >
-                  3. Scanare piață
+                  {category === "auto" ? "3. Calculează intervalul" : "3. Scanare piață"}
                 </button>
               </section>
             </>
@@ -611,7 +888,7 @@ export default function EvaluareClient() {
               <div className="w-full max-w-lg rounded-[1.75rem] border-[3px] border-black bg-black px-8 py-12 text-center text-white shadow-[10px_10px_0_0_#FFD100] md:px-12 md:py-14">
                 <Clock3 className="mx-auto h-12 w-12 animate-pulse text-[#FFD100]" aria-hidden />
                 <p className="mt-6 text-base font-black uppercase tracking-wider text-white md:text-lg">
-                  {LOADING_MESSAGES[loadingIndex]}
+                  {loadingMessages[loadingIndex]}
                 </p>
                 <p className="mt-4 text-[10px] font-semibold uppercase tracking-[0.2em] text-neutral-400 md:text-[11px]">
                   Analiza rulează în timp real
@@ -620,7 +897,44 @@ export default function EvaluareClient() {
             </section>
           )}
 
-          {phase === "result" && result && (
+          {phase === "result" && qeResult && (
+            <QeCarValuationResult
+              make={formData.make}
+              model={formData.model}
+              year={formData.year}
+              km={formData.km}
+              result={qeResult}
+              listingHref={qeListingHref}
+              onListingClick={handleQeListingClick}
+              onRestart={() => {
+                setPhase("form");
+                setResult(null);
+                setEmailNotice(null);
+                setReportConsent(false);
+              }}
+              email={reportEmail}
+              consent={reportConsent}
+              website={website}
+              onEmailChange={setReportEmail}
+              onConsentChange={setReportConsent}
+              onWebsiteChange={setWebsite}
+              onEmailSubmit={submitReportEmail}
+              emailSubmitting={emailSubmitting}
+              emailNotice={emailNotice}
+              emailNoticeTone={emailNoticeTone}
+              turnstile={
+                turnstileUiEnabled ? (
+                  <EvaluateTurnstile
+                    ref={turnstileRef}
+                    className="flex justify-center"
+                    onTokenChange={setTurnstileToken}
+                  />
+                ) : null
+              }
+            />
+          )}
+
+          {phase === "result" && marketResult && (
             <section className="space-y-8 md:space-y-10">
               <div
                 role="note"
@@ -629,7 +943,7 @@ export default function EvaluareClient() {
                 Estimare orientativă — nu evaluare oficială, nu garanție de preț sau vânzare.
               </div>
 
-              {result.data_quality_label === "vip_asset" ? (
+              {marketResult.data_quality_label === "vip_asset" ? (
                 <div className="rounded-[2rem] border-[3px] border-black bg-black px-8 py-10 text-center text-white shadow-[10px_10px_0_0_#FFD100] md:px-14 md:py-12">
                   <h3 className="text-2xl font-black uppercase italic tracking-tight md:text-4xl">
                     Activ exclusivist detectat
@@ -682,7 +996,7 @@ export default function EvaluareClient() {
                     </Link>
                   </div>
                 </div>
-              ) : result.data_quality_label === "low_data" ? (
+              ) : marketResult.data_quality_label === "low_data" ? (
                 <div className="rounded-[2rem] border-[3px] border-black bg-black px-8 py-10 text-center shadow-[10px_10px_0_0_rgba(0,0,0,0.15)] md:px-14 md:py-12">
                   <div className="mx-auto mb-6 h-px max-w-[120px] bg-[#FFD100]" aria-hidden />
                   <h3 className="text-2xl font-black uppercase italic text-white md:text-4xl">Piata subtire pentru acest activ</h3>
@@ -771,7 +1085,7 @@ export default function EvaluareClient() {
                             </p>
                           )}
                           <p className={priceStrategyValueClass(strategy.type)}>
-                            {formatPrice(price ?? result[strategy.resultKey])}
+                            {formatPrice(price ?? marketResult[strategy.resultKey])}
                           </p>
                           {priceEnabled ? (
                             <Link
@@ -794,13 +1108,13 @@ export default function EvaluareClient() {
                     })}
                   </div>
 
-                  {result.explanation && String(result.explanation).trim() && (
+                  {marketResult.explanation && String(marketResult.explanation).trim() && (
                     <div className="mb-6 rounded-2xl border border-white/15 bg-white/5 p-5 md:p-6">
                       <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#FFD100]/85">
                         Raționament estimare
                       </p>
                       <p className="mt-3 text-sm font-medium leading-relaxed text-neutral-200 md:text-[15px]">
-                        {String(result.explanation)}
+                        {String(marketResult.explanation)}
                       </p>
                     </div>
                   )}
@@ -821,7 +1135,7 @@ export default function EvaluareClient() {
                           {publicExplanation}
                         </p>
                         <p className="mt-3 text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-500">
-                          {result.cache_hit ? "Rezultat recalculat recent" : "Evaluare generata acum"}
+                          {marketResult.cache_hit ? "Rezultat recalculat recent" : "Evaluare generata acum"}
                         </p>
                       </div>
                     </div>
@@ -865,6 +1179,25 @@ export default function EvaluareClient() {
           box-shadow: 0 0 0 3px rgba(255, 209, 0, 0.35);
         }
         .input::placeholder {
+          color: #71717a;
+        }
+        .input-plain {
+          border: 2px solid #000000;
+          background: #ffffff;
+          color: #0a0a0a;
+          border-radius: 0.875rem;
+          padding: 0.9rem 1rem;
+          font-weight: 600;
+          font-size: 0.95rem;
+          line-height: 1.45;
+          resize: vertical;
+        }
+        .input-plain:focus {
+          outline: none;
+          border-color: #ffd100;
+          box-shadow: 0 0 0 3px rgba(255, 209, 0, 0.35);
+        }
+        .input-plain::placeholder {
           color: #71717a;
         }
       `}</style>
