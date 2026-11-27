@@ -12,6 +12,7 @@ import {
   parseListingOfferCount,
   type AuctionCardCopy,
 } from "@/utils/auctionListingUi";
+import VerifiedQeBadge from "@/app/components/VerifiedQeBadge";
 
 interface AdCardProps {
   id: string;
@@ -30,6 +31,7 @@ interface AdCardProps {
   location?: string | null;
   cryptoAccepted?: boolean;
   catalogOffer?: boolean;
+  verifiedQe?: boolean;
 }
 
 export default function AdCard({
@@ -48,6 +50,7 @@ export default function AdCard({
   location,
   cryptoAccepted = false,
   catalogOffer = false,
+  verifiedQe = false,
 }: AdCardProps) {
   const t = useTranslations("AdCard");
   const locale = useLocale();
@@ -161,6 +164,11 @@ export default function AdCard({
               <span className="inline-block rounded-md border-2 border-black bg-[#FFD100] px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.14em] text-black">
                 {t("catalogOffer")}
               </span>
+            </p>
+          ) : null}
+          {verifiedQe ? (
+            <p className="mb-2">
+              <VerifiedQeBadge />
             </p>
           ) : null}
           <h3 className="line-clamp-2 text-lg font-semibold leading-snug tracking-tight text-ink">

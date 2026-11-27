@@ -29,6 +29,7 @@ import AdCard from "@/app/components/AdCard";
 import { listingAcceptsCrypto } from "@/lib/cryptoPayment";
 import { isCatalogOffer } from "@/lib/listingInventory";
 import { normalizeSaleType } from "@/utils/normalizeSaleType";
+import { readVerifiedQe } from "@/lib/verifiedQe";
 import { getNumberLocale } from "@/lib/i18n/format";
 import { adCardPricingProps } from "@/lib/listingPrice";
 import { listingLocationLabelFromUnknown } from "@/lib/listingLocation";
@@ -1421,6 +1422,7 @@ function DashboardContent() {
                     <AdCard
                       cryptoAccepted={listingAcceptsCrypto(item)}
                       catalogOffer={isCatalogOffer(item.listing_kind)}
+                      verifiedQe={readVerifiedQe(item)}
                       id={item.id}
                       title={item.title}
                       image={

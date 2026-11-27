@@ -86,3 +86,6 @@ jobs:
 
       - name: Stripe payment ledger webhook
         run: npm run assert:payment-ledger
+
+      - name: Verificat QE badge
+        run: npx tsx scripts/assert-verified-qe.ts

@@ -16,6 +16,7 @@ import {
 } from "@/lib/publicListings";
 import { listingAcceptsCrypto } from "@/lib/cryptoPayment";
 import { isCatalogOffer } from "@/lib/listingInventory";
+import { readVerifiedQe } from "@/lib/verifiedQe";
 import { normalizeSaleType } from "@/utils/normalizeSaleType";
 
 export const revalidate = 60;
@@ -34,6 +35,7 @@ type PageProps = {
     page?: string;
     crypto?: string;
     catalog?: string;
+    verified?: string;
   }>;
 };
 
@@ -63,6 +65,7 @@ export default async function SearchPage({ params, searchParams }: PageProps) {
     page: raw.page,
     crypto: raw.crypto,
     catalog: raw.catalog,
+    verified: raw.verified,
   });
   const [t, tAll] = await Promise.all([
     getTranslations("ListingSearch"),
@@ -71,7 +74,7 @@ export default async function SearchPage({ params, searchParams }: PageProps) {
   const numberLocale = getNumberLocale(locale);
   const { listings, total, page, pageSize } = await fetchPublicSearchListings(supabase, filters);
   const hasFilters = Boolean(
-    filters.q || filters.country || filters.county || filters.city || filters.district || filters.crypto || filters.catalog || filters.locationInvalid,
+    filters.q || filters.country || filters.county || filters.city || filters.district || filters.crypto || filters.catalog || filters.verified || filters.locationInvalid,
   );
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const showPrev = page > 1;
@@ -123,6 +126,16 @@ export default async function SearchPage({ params, searchParams }: PageProps) {
               >
                 {filters.catalog ? t("catalogFilterOn") : t("catalogFilter")}
               </Link>
+              <Link
+                href={buildPublicSearchPath({ ...filters, verified: !filters.verified }, 1)}
+                className={`rounded-xl border-2 px-4 py-2 text-[11px] font-black uppercase tracking-widest ${
+                  filters.verified
+                    ? "border-black bg-[#FFD100] text-black"
+                    : "border-black bg-white text-black"
+                }`}
+              >
+                {filters.verified ? t("verifiedFilterOn") : t("verifiedFilter")}
+              </Link>
             {hasFilters ? (
               <Link
                 href="/cauta"
@@ -142,6 +155,7 @@ export default async function SearchPage({ params, searchParams }: PageProps) {
                     key={item.id}
                     cryptoAccepted={listingAcceptsCrypto(item)}
                     catalogOffer={isCatalogOffer(item.listing_kind)}
+                    verifiedQe={readVerifiedQe(item)}
                     id={item.id}
                     title={item.title || ""}
                     image={item.images?.[0] || FALLBACK_IMAGE}

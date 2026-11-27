@@ -14,6 +14,7 @@ import { adCardPricingProps } from "@/lib/listingPrice";
 import { listingAcceptsCrypto } from "@/lib/cryptoPayment";
 import { isCatalogOffer, looksAvailableToOrder } from "@/lib/listingInventory";
 import { normalizeSaleType } from "@/utils/normalizeSaleType";
+import { readVerifiedQe } from "@/lib/verifiedQe";
 
 const FALLBACK_IMAGE =
   "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=800&q=80";
@@ -38,6 +39,7 @@ export type PublicListingCard = {
   crypto_assets?: string[] | null;
   listing_kind?: string | null;
   availability_status?: string | null;
+  verified_qe?: boolean | null;
 };
 
 type AnunturiClientProps = {
@@ -169,6 +171,7 @@ export default function AnunturiClient({
                   key={item.id}
                   cryptoAccepted={listingAcceptsCrypto(item)}
                   catalogOffer={isCatalogOffer(item.listing_kind)}
+                  verifiedQe={readVerifiedQe(item)}
                   id={item.id}
                   title={item.title}
                   image={item.images?.[0] || FALLBACK_IMAGE}

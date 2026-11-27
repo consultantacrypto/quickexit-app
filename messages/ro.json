@@ -273,7 +273,13 @@
     "cryptoFilter": "Acceptă crypto",
     "cryptoFilterOn": "Doar anunțuri cu plată crypto",
     "catalogFilter": "Disponibil la comandă",
-    "catalogFilterOn": "Doar oferte disponibile la comandă"
+    "catalogFilterOn": "Doar oferte disponibile la comandă",
+    "verifiedFilter": "Doar verificate",
+    "verifiedFilterOn": "Doar anunțuri verificate QE"
+  },
+  "VerifiedQe": {
+    "label": "Verificat QE",
+    "tooltip": "Verificat de QuickExit: acte, VIN și poze reale"
   },
   "ListingLocation": {
     "helper": "Locul unde bunul poate fi văzut sau preluat. Nu introduce adresa stradală.",

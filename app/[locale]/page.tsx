@@ -24,6 +24,7 @@ import { isPublicAuctionOpen } from "@/lib/auctionOpen";
 import HeroSearchBar from "@/app/components/HeroSearchBar";
 import HomeWalletShelf from "@/app/components/HomeWalletShelf";
 import { listingLocationLabelFromUnknown } from "@/lib/listingLocation";
+import { listingRows, queryToleratingMissingVerifiedQe, readVerifiedQe } from "@/lib/verifiedQe";
 
 /** ISR: public listings/demands refresh at most every 60 seconds. */
 export const revalidate = 60;
@@ -162,31 +163,36 @@ export default async function Home({ params }: HomePageProps) {
   const safetyTips = tHome.raw("safety.tips") as string[];
 
   const nowIso = new Date().toISOString();
+  const homeListingFields = `id,title,images,market_price,exit_price,discount,deal_score,sale_strategy,offer_count,highest_offer,expires_at,status,is_seed,created_at,details,crypto_payment_mode,crypto_assets,${PUBLIC_INVENTORY_COLUMNS}`;
 
-  const { data: realListings } = await supabase
-    .from("listings")
-    .select(
-      `id,title,images,market_price,exit_price,discount,deal_score,sale_strategy,offer_count,highest_offer,expires_at,status,is_seed,created_at,details,crypto_payment_mode,crypto_assets,${PUBLIC_INVENTORY_COLUMNS}`,
-    )
-    .eq("status", "active")
-    .eq("is_seed", false)
-    .or(PUBLIC_AVAILABILITY_OR)
-    .order("effective_sort_at", { ascending: false })
-    .order("id", { ascending: false })
-    .limit(48);
+  const { data: realListings } = await queryToleratingMissingVerifiedQe(
+    (fields) =>
+      supabase
+        .from("listings")
+        .select(fields)
+        .eq("status", "active")
+        .eq("is_seed", false)
+        .or(PUBLIC_AVAILABILITY_OR)
+        .order("effective_sort_at", { ascending: false })
+        .order("id", { ascending: false })
+        .limit(48),
+    homeListingFields,
+  );
 
-  const { data: openAuctionListings } = await supabase
-    .from("listings")
-    .select(
-      `id,title,images,market_price,exit_price,discount,deal_score,sale_strategy,offer_count,highest_offer,expires_at,status,is_seed,created_at,details,crypto_payment_mode,crypto_assets,${PUBLIC_INVENTORY_COLUMNS}`,
-    )
-    .eq("status", "active")
-    .eq("is_seed", false)
-    .or(PUBLIC_AVAILABILITY_OR)
-    .gt("expires_at", nowIso)
-    .in("sale_strategy", ["auction", "licitatie"])
-    .order("expires_at", { ascending: true })
-    .limit(12);
+  const { data: openAuctionListings } = await queryToleratingMissingVerifiedQe(
+    (fields) =>
+      supabase
+        .from("listings")
+        .select(fields)
+        .eq("status", "active")
+        .eq("is_seed", false)
+        .or(PUBLIC_AVAILABILITY_OR)
+        .gt("expires_at", nowIso)
+        .in("sale_strategy", ["auction", "licitatie"])
+        .order("expires_at", { ascending: true })
+        .limit(12),
+    homeListingFields,
+  );
 
   const allActiveDemandsForStats = await fetchPublicActiveDemands(200);
   const homeDemands = allActiveDemandsForStats.slice(0, HOME_PUBLIC_ACTIVE_DEMANDS_LIMIT);
@@ -198,12 +204,12 @@ export default async function Home({ params }: HomePageProps) {
     maximumFractionDigits: 0,
   }).format(capitalSummary.totalBudgetEur);
 
-  const auctionsHome = (
-    openAuctionListings?.filter((item) => isPublicAuctionOpen(item)) ?? []
-  ).slice(0, 4);
-  const standardListings = (
-    realListings?.filter((item) => normalizeSaleType(item.sale_strategy) !== "auction") ?? []
-  ).slice(0, 9);
+  const homeListings = listingRows(realListings);
+  const homeAuctions = listingRows(openAuctionListings);
+  const auctionsHome = homeAuctions.filter((item) => isPublicAuctionOpen(item)).slice(0, 4);
+  const standardListings = homeListings
+    .filter((item) => normalizeSaleType(item.sale_strategy) !== "auction")
+    .slice(0, 9);
   const itemListElements = standardListings
     .filter((item) => {
       const id = typeof item?.id === "string" ? item.id.trim() : "";
@@ -337,6 +343,7 @@ export default async function Home({ params }: HomePageProps) {
                   key={item.id}
                   cryptoAccepted={listingAcceptsCrypto(item)}
                   catalogOffer={isCatalogOffer(item.listing_kind)}
+                  verifiedQe={readVerifiedQe(item)}
                   id={item.id}
                   title={item.title}
                   image={
@@ -466,6 +473,7 @@ export default async function Home({ params }: HomePageProps) {
                   key={item.id}
                   cryptoAccepted={listingAcceptsCrypto(item)}
                   catalogOffer={isCatalogOffer(item.listing_kind)}
+                  verifiedQe={readVerifiedQe(item)}
                   id={item.id}
                   title={item.title}
                   image={

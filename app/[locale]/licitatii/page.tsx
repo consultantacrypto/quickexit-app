@@ -10,6 +10,7 @@ import { getNumberLocale } from "@/lib/i18n/format";
 import { adCardPricingProps } from "@/lib/listingPrice";
 import { listingAcceptsCrypto } from "@/lib/cryptoPayment";
 import { isCatalogOffer, PUBLIC_AVAILABILITY_OR, PUBLIC_INVENTORY_COLUMNS } from "@/lib/listingInventory";
+import { listingRows, queryToleratingMissingVerifiedQe, readVerifiedQe } from "@/lib/verifiedQe";
 
 export const revalidate = 60;
 
@@ -36,20 +37,21 @@ const FALLBACK_IMAGE =
 export default async function LicitatiiPage({ params }: PageProps) {
   const { locale } = await params;
   const numberLocale = getNumberLocale(locale);
-  const { data: listings } = await supabase
-    .from("listings")
-    .select(
-      `id,title,images,market_price,exit_price,discount,deal_score,sale_strategy,offer_count,highest_offer,expires_at,status,is_seed,created_at,details,crypto_payment_mode,crypto_assets,${PUBLIC_INVENTORY_COLUMNS}`,
-    )
-    .eq("status", "active")
-    .eq("is_seed", false)
-    .or(PUBLIC_AVAILABILITY_OR)
-    .order("effective_sort_at", { ascending: false })
-    .order("id", { ascending: false })
-    .limit(100);
+  const { data: listings } = await queryToleratingMissingVerifiedQe(
+    (fields) =>
+      supabase
+        .from("listings")
+        .select(fields)
+        .eq("status", "active")
+        .eq("is_seed", false)
+        .or(PUBLIC_AVAILABILITY_OR)
+        .order("effective_sort_at", { ascending: false })
+        .order("id", { ascending: false })
+        .limit(100),
+    `id,title,images,market_price,exit_price,discount,deal_score,sale_strategy,offer_count,highest_offer,expires_at,status,is_seed,created_at,details,crypto_payment_mode,crypto_assets,${PUBLIC_INVENTORY_COLUMNS}`,
+  );
 
-  const auctions =
-    listings?.filter((item) => isPublicAuctionOpen(item)) ?? [];
+  const auctions = listingRows(listings).filter((item) => isPublicAuctionOpen(item));
 
   return (
     <div className="min-h-screen bg-canvas font-sans text-ink selection:bg-gold selection:text-ink">
@@ -84,6 +86,7 @@ export default async function LicitatiiPage({ params }: PageProps) {
                 <AdCard
                   cryptoAccepted={listingAcceptsCrypto(item)}
                   catalogOffer={isCatalogOffer(item.listing_kind)}
+                  verifiedQe={readVerifiedQe(item)}
                   key={item.id}
                   id={item.id}
                   title={item.title}

@@ -1231,6 +1231,15 @@ export default function AdminHQ() {
             </span>
           </Link>
           <Link
+            href="/hq-admin/verificare"
+            className="rounded-full border-2 border-black bg-[#FFD100] px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-black transition-colors hover:bg-white"
+          >
+            Verificat QE
+            <span className="ml-2 text-[9px] font-semibold normal-case tracking-normal text-neutral-800">
+              Acte, VIN și poze reale. Doar manual.
+            </span>
+          </Link>
+          <Link
             href="/hq-admin/media"
             className="rounded-full border-2 border-black/20 bg-[#FFD100]/70 px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-black transition-colors hover:border-black hover:bg-[#FFD100]"
           >
