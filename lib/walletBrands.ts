@@ -103,8 +103,8 @@ export const WALLET_BRANDS: readonly WalletBrandProfile[] = [
   {
     slug: "trezor",
     name: "Trezor",
-    positioningRo: "Safe 3, Safe 5 și Safe 7. Prețul canonic este în euro, cu lei pe aceeași pagină.",
-    positioningEn: "Safe 3, Safe 5, and Safe 7. The canonical price is in euro, with lei on the same page.",
+    positioningRo: "Safe 3, Safe 5 și Safe 7. Prețul afișat de magazinul oficial pentru România este în lei.",
+    positioningEn: "Safe 3, Safe 5, and Safe 7. The official Romania storefront price is in lei.",
     shortDescription: {
       ro: "Safe 3, Safe 5 și Safe 7",
       en: "Safe 3, Safe 5, and Safe 7",
@@ -127,11 +127,11 @@ export const WALLET_BRANDS: readonly WalletBrandProfile[] = [
   {
     slug: "ledger",
     name: "Ledger",
-    positioningRo: "Nano S Plus, Nano X, Nano Gen5 și Flex. La unele modele prețul este „de la”, după culoare.",
-    positioningEn: "Nano S Plus, Nano X, Nano Gen5, and Flex. Some prices are a starting price, by color.",
+    positioningRo: "Nano S Plus, Nano X, Nano Gen5, Flex și Stax. Lei estimați din prețul oficial în USD, lângă suma în USD.",
+    positioningEn: "Nano S Plus, Nano X, Nano Gen5, Flex, and Stax. Lei estimates from the official USD price, shown next to the USD amount.",
     shortDescription: {
-      ro: "Nano S Plus, Nano X, Nano Gen5 și Flex",
-      en: "Nano S Plus, Nano X, Nano Gen5, and Flex",
+      ro: "Nano S Plus, Nano X, Nano Gen5, Flex și Stax",
+      en: "Nano S Plus, Nano X, Nano Gen5, Flex, and Stax",
     },
     highlights: [
       { ro: "Dispozitiv", en: "Device" },

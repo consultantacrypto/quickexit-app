@@ -9,11 +9,19 @@
  * fields below. Tangem has no partner URL; the checkout code is DANIELMIHAI.
  * BitBox, NGRAVE, and Trezor stay on PENDING until a partner link exists.
  * Prices marked unverified are not given a number.
+ *
+ * Rows rechecked on 27.11.2026 use the lei figures from that day's official-store
+ * read. A converted lei figure is `estimate` and keeps the official USD or EUR
+ * beside it. Trezor lei prices are the amounts the Romania storefront shows.
  */
 
 export const TANGEM_PARTNER_LINK_PLACEHOLDER = "TANGEM_PARTNER_LINK";
 
 export const WALLET_PRICE_CHECKED_AT = "2026-11-22" as const;
+export const WALLET_PRICE_RECHECKED_AT = "2026-11-27" as const;
+
+/** Ledger Stax buy link. No extra query params are added on the way out. */
+export const LEDGER_STAX_AFFILIATE_URL = "https://shop.ledger.com/?r=9111c54498ec";
 
 export const WALLET_OUTBOUND_REL = "sponsored nofollow noopener noreferrer";
 
@@ -38,7 +46,8 @@ export type WalletTier = "entry" | "mid" | "premium";
 export type WalletCurrency = "EUR" | "USD" | "RON";
 export type WalletPriceStatus = "verified" | "unverified";
 export type WalletLocale = "ro" | "en";
-export type WalletSecondaryKind = "same_page" | "geo_storefront";
+export type WalletSecondaryKind = "same_page" | "geo_storefront" | "official_quote";
+export type WalletPriceBasis = "official" | "estimate";
 
 export type WalletProduct = {
   id: string;
@@ -54,10 +63,12 @@ export type WalletProduct = {
   priceIsFrom: boolean;
   compareAtPrice: number | null;
   currency: WalletCurrency | null;
+  /** `estimate` is a lei conversion. The official amount stays in the secondary fields. */
+  priceBasis: WalletPriceBasis;
   secondaryAmount: number | null;
   secondaryCurrency: WalletCurrency | null;
   secondaryKind: WalletSecondaryKind | null;
-  priceCheckedAt: typeof WALLET_PRICE_CHECKED_AT;
+  priceCheckedAt: string;
   priceSourceUrl: string;
   priceStatus: WalletPriceStatus;
   officialUrl: string;
@@ -80,6 +91,7 @@ export type WalletPriceView =
       primary: string;
       priceIsFrom: boolean;
       compareAt: string | null;
+      estimate: boolean;
       secondary: string | null;
       secondaryKind: WalletSecondaryKind | null;
       checkedOn: string;
@@ -166,6 +178,7 @@ const AFFILIATE_URL_BY_SLUG: Record<string, string> = {
   "safepal-s1": SAFEPAL_S1_AFFILIATE,
   "safepal-x1": SAFEPAL_X1_AFFILIATE,
   "safepal-s1-pro": SAFEPAL_S1_PRO_AFFILIATE,
+  "ledger-stax": LEDGER_STAX_AFFILIATE_URL,
 };
 
 const VARIANT_HIGHLIGHT: Record<string, { kind: "popular"; source: string }> = {
@@ -230,9 +243,11 @@ type WalletProductInput = {
   priceIsFrom?: boolean;
   compareAtPrice?: number | null;
   currency: WalletCurrency | null;
+  priceBasis?: WalletPriceBasis;
   secondaryAmount?: number | null;
   secondaryCurrency?: WalletCurrency | null;
   secondaryKind?: WalletSecondaryKind | null;
+  priceCheckedAt?: string;
   priceSourceUrl: string;
   priceStatus: WalletPriceStatus;
   officialUrl: string;
@@ -253,6 +268,21 @@ function product(input: WalletProductInput): WalletProduct {
     }
   } else if (input.listPrice != null || input.compareAtPrice != null || input.listPriceMax != null) {
     throw new Error(`unverified wallet ${input.slug} must not carry a price`);
+  }
+  const priceBasis = input.priceBasis ?? "official";
+  const priceCheckedAt = input.priceCheckedAt ?? WALLET_PRICE_CHECKED_AT;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(priceCheckedAt)) {
+    throw new Error(`wallet ${input.slug} price date is not YYYY-MM-DD`);
+  }
+  if (priceBasis === "estimate") {
+    if (
+      input.priceStatus !== "verified" ||
+      input.currency !== "RON" ||
+      input.secondaryAmount == null ||
+      input.secondaryCurrency == null
+    ) {
+      throw new Error(`estimated wallet ${input.slug} needs a verified lei figure and the official price`);
+    }
   }
   const affiliateCode = input.affiliateCode ?? null;
   if (affiliateCode && !isAffiliatePlaceholder(affiliateCode) && !/^[A-Za-z0-9]{4,40}$/.test(affiliateCode)) {
@@ -287,10 +317,11 @@ function product(input: WalletProductInput): WalletProduct {
     priceIsFrom: input.priceIsFrom ?? false,
     compareAtPrice: input.compareAtPrice ?? null,
     currency: input.currency,
+    priceBasis,
     secondaryAmount: input.secondaryAmount ?? null,
     secondaryCurrency: input.secondaryCurrency ?? null,
-    secondaryKind: input.secondaryKind ?? null,
-    priceCheckedAt: WALLET_PRICE_CHECKED_AT,
+    secondaryKind: priceBasis === "estimate" ? "official_quote" : (input.secondaryKind ?? null),
+    priceCheckedAt,
     priceSourceUrl: input.priceSourceUrl,
     priceStatus: input.priceStatus,
     officialUrl: input.officialUrl,
@@ -315,8 +346,12 @@ export const WALLET_PRODUCTS: readonly WalletProduct[] = [
     modelEn: "2-card wallet (Classic Black)",
     deviceType: "card",
     tier: "entry",
-    listPrice: 59.9,
-    currency: "USD",
+    listPrice: 293,
+    currency: "RON",
+    priceBasis: "estimate",
+    secondaryAmount: 54.9,
+    secondaryCurrency: "EUR",
+    priceCheckedAt: WALLET_PRICE_RECHECKED_AT,
     priceStatus: "verified",
     priceSourceUrl: "https://tangem.com/en/pricing/?cat=2&sku=TG128X2-B",
     officialUrl: "https://tangem.com/en/pricing/?cat=2&sku=TG128X2-B",
@@ -332,8 +367,12 @@ export const WALLET_PRODUCTS: readonly WalletProduct[] = [
     modelEn: "3-card wallet (Classic Black and the other listed designs)",
     deviceType: "card",
     tier: "entry",
-    listPrice: 69.9,
-    currency: "USD",
+    listPrice: 347,
+    currency: "RON",
+    priceBasis: "estimate",
+    secondaryAmount: 64.9,
+    secondaryCurrency: "EUR",
+    priceCheckedAt: WALLET_PRICE_RECHECKED_AT,
     priceStatus: "verified",
     priceSourceUrl: "https://tangem.com/en/pricing/?cat=3&sku=TG128X3-B",
     officialUrl: "https://tangem.com/en/pricing/?cat=3&sku=TG128X3-B",
@@ -349,9 +388,12 @@ export const WALLET_PRODUCTS: readonly WalletProduct[] = [
     modelEn: "Tangem Ring (ring and cards)",
     deviceType: "card",
     tier: "mid",
-    listPrice: 140,
-    listPriceMax: 160,
-    currency: "USD",
+    listPrice: 667,
+    currency: "RON",
+    priceBasis: "estimate",
+    secondaryAmount: 124.9,
+    secondaryCurrency: "EUR",
+    priceCheckedAt: WALLET_PRICE_RECHECKED_AT,
     priceStatus: "verified",
     priceSourceUrl: "https://tangem.com/en/pricing/?cat=ring",
     officialUrl: "https://tangem.com/en/pricing/?cat=ring",
@@ -384,8 +426,12 @@ export const WALLET_PRODUCTS: readonly WalletProduct[] = [
     modelEn: "SafePal S1",
     deviceType: "device",
     tier: "entry",
-    listPrice: 49.99,
-    currency: "USD",
+    listPrice: 244,
+    currency: "RON",
+    priceBasis: "estimate",
+    secondaryAmount: 49.99,
+    secondaryCurrency: "USD",
+    priceCheckedAt: WALLET_PRICE_RECHECKED_AT,
     priceStatus: "verified",
     priceSourceUrl: "https://www.safepal.com/en/store/s1",
     officialUrl: "https://www.safepal.com/en/store/s1",
@@ -399,8 +445,12 @@ export const WALLET_PRODUCTS: readonly WalletProduct[] = [
     modelEn: "SafePal X1",
     deviceType: "device",
     tier: "entry",
-    listPrice: 69.99,
-    currency: "USD",
+    listPrice: 341,
+    currency: "RON",
+    priceBasis: "estimate",
+    secondaryAmount: 69.99,
+    secondaryCurrency: "USD",
+    priceCheckedAt: WALLET_PRICE_RECHECKED_AT,
     priceStatus: "verified",
     priceSourceUrl: "https://www.safepal.com/en/store/x1",
     officialUrl: "https://www.safepal.com/en/store/x1",
@@ -414,8 +464,12 @@ export const WALLET_PRODUCTS: readonly WalletProduct[] = [
     modelEn: "SafePal S1 Pro",
     deviceType: "device",
     tier: "entry",
-    listPrice: 89.99,
-    currency: "USD",
+    listPrice: 439,
+    currency: "RON",
+    priceBasis: "estimate",
+    secondaryAmount: 89.99,
+    secondaryCurrency: "USD",
+    priceCheckedAt: WALLET_PRICE_RECHECKED_AT,
     priceStatus: "verified",
     priceSourceUrl: "https://www.safepal.com/en/store/s1pro",
     officialUrl: "https://www.safepal.com/en/store/s1pro",
@@ -444,11 +498,13 @@ export const WALLET_PRODUCTS: readonly WalletProduct[] = [
     modelEn: "Trezor Safe 3",
     deviceType: "device",
     tier: "entry",
-    listPrice: 39,
-    currency: "EUR",
-    secondaryAmount: 207,
-    secondaryCurrency: "RON",
+    listPrice: 207,
+    compareAtPrice: 309,
+    currency: "RON",
+    secondaryAmount: 39,
+    secondaryCurrency: "EUR",
     secondaryKind: "same_page",
+    priceCheckedAt: WALLET_PRICE_RECHECKED_AT,
     priceStatus: "verified",
     priceSourceUrl: "https://trezor.io/trezor-safe-3",
     officialUrl: "https://trezor.io/trezor-safe-3",
@@ -462,12 +518,14 @@ export const WALLET_PRODUCTS: readonly WalletProduct[] = [
     modelEn: "Ledger Nano S Plus",
     deviceType: "device",
     tier: "entry",
-    listPrice: 53,
-    priceIsFrom: true,
-    compareAtPrice: 59,
-    currency: "EUR",
+    listPrice: 302,
+    currency: "RON",
+    priceBasis: "estimate",
+    secondaryAmount: 62,
+    secondaryCurrency: "USD",
+    priceCheckedAt: WALLET_PRICE_RECHECKED_AT,
     priceStatus: "verified",
-    priceSourceUrl: "https://store.ledger.com/products/ledger-nano-s-plus.json",
+    priceSourceUrl: "https://shop.ledger.com/products/ledger-nano-s-plus",
     officialUrl: "https://store.ledger.com/products/ledger-nano-s-plus",
     sortOrder: 130,
   }),
@@ -573,11 +631,13 @@ export const WALLET_PRODUCTS: readonly WalletProduct[] = [
     modelEn: "Trezor Safe 5",
     deviceType: "device",
     tier: "mid",
-    listPrice: 79,
-    currency: "EUR",
-    secondaryAmount: 420,
-    secondaryCurrency: "RON",
+    listPrice: 420,
+    compareAtPrice: 679,
+    currency: "RON",
+    secondaryAmount: 79,
+    secondaryCurrency: "EUR",
     secondaryKind: "same_page",
+    priceCheckedAt: WALLET_PRICE_RECHECKED_AT,
     priceStatus: "verified",
     priceSourceUrl: "https://trezor.io/trezor-safe-5",
     officialUrl: "https://trezor.io/trezor-safe-5",
@@ -591,12 +651,14 @@ export const WALLET_PRODUCTS: readonly WalletProduct[] = [
     modelEn: "Ledger Nano X",
     deviceType: "device",
     tier: "mid",
-    listPrice: 79,
-    priceIsFrom: true,
-    compareAtPrice: 99,
-    currency: "EUR",
+    listPrice: 385,
+    currency: "RON",
+    priceBasis: "estimate",
+    secondaryAmount: 79,
+    secondaryCurrency: "USD",
+    priceCheckedAt: WALLET_PRICE_RECHECKED_AT,
     priceStatus: "verified",
-    priceSourceUrl: "https://store.ledger.com/products/ledger-nano-x.json",
+    priceSourceUrl: "https://shop.ledger.com/products/ledger-nano-x",
     officialUrl: "https://store.ledger.com/products/ledger-nano-x",
     sortOrder: 220,
   }),
@@ -608,10 +670,14 @@ export const WALLET_PRODUCTS: readonly WalletProduct[] = [
     modelEn: "Ledger Nano Gen5",
     deviceType: "device",
     tier: "mid",
-    listPrice: 179,
-    currency: "EUR",
+    listPrice: 873,
+    currency: "RON",
+    priceBasis: "estimate",
+    secondaryAmount: 179,
+    secondaryCurrency: "USD",
+    priceCheckedAt: WALLET_PRICE_RECHECKED_AT,
     priceStatus: "verified",
-    priceSourceUrl: "https://store.ledger.com/products/ledger-nano-gen5.json",
+    priceSourceUrl: "https://shop.ledger.com/products/ledger-nano-gen5",
     officialUrl: "https://store.ledger.com/products/ledger-nano-gen5",
     sortOrder: 221,
   }),
@@ -783,11 +849,13 @@ export const WALLET_PRODUCTS: readonly WalletProduct[] = [
     modelEn: "Trezor Safe 7",
     deviceType: "device",
     tier: "premium",
-    listPrice: 179,
-    currency: "EUR",
-    secondaryAmount: 942,
-    secondaryCurrency: "RON",
+    listPrice: 942,
+    compareAtPrice: 1309,
+    currency: "RON",
+    secondaryAmount: 179,
+    secondaryCurrency: "EUR",
     secondaryKind: "same_page",
+    priceCheckedAt: WALLET_PRICE_RECHECKED_AT,
     priceStatus: "verified",
     priceSourceUrl: "https://trezor.io/trezor-safe-7",
     officialUrl: "https://trezor.io/trezor-safe-7",
@@ -801,12 +869,35 @@ export const WALLET_PRODUCTS: readonly WalletProduct[] = [
     modelEn: "Ledger Flex + Recovery Key",
     deviceType: "device",
     tier: "premium",
-    listPrice: 249,
-    currency: "EUR",
+    listPrice: 1214,
+    currency: "RON",
+    priceBasis: "estimate",
+    secondaryAmount: 249,
+    secondaryCurrency: "USD",
+    priceCheckedAt: WALLET_PRICE_RECHECKED_AT,
     priceStatus: "verified",
-    priceSourceUrl: "https://store.ledger.com/products/ledger-flex.json",
+    priceSourceUrl: "https://shop.ledger.com/products/ledger-flex",
     officialUrl: "https://store.ledger.com/products/ledger-flex",
     sortOrder: 320,
+  }),
+  product({
+    slug: "ledger-stax",
+    brand: "Ledger",
+    brandSlug: "ledger",
+    modelRo: "Ledger Stax",
+    modelEn: "Ledger Stax",
+    deviceType: "device",
+    tier: "premium",
+    listPrice: 1946,
+    currency: "RON",
+    priceBasis: "estimate",
+    secondaryAmount: 399,
+    secondaryCurrency: "USD",
+    priceCheckedAt: WALLET_PRICE_RECHECKED_AT,
+    priceStatus: "verified",
+    priceSourceUrl: "https://shop.ledger.com/products/ledger-stax",
+    officialUrl: "https://shop.ledger.com/products/ledger-stax",
+    sortOrder: 325,
   }),
   product({
     slug: "onekey-pro-2",
@@ -979,6 +1070,11 @@ export function walletModelName(product: WalletProduct, locale: WalletLocale): s
   return locale === "en" ? product.modelEn : product.modelRo;
 }
 
+function currencyLabel(currency: WalletCurrency, locale: WalletLocale): string {
+  if (currency === "RON" && locale === "ro") return "lei";
+  return currency;
+}
+
 export function formatWalletMoney(
   amount: number,
   currency: WalletCurrency,
@@ -988,7 +1084,7 @@ export function formatWalletMoney(
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(amount);
-  return `${formatted} ${currency}`;
+  return `${formatted} ${currencyLabel(currency, locale)}`;
 }
 
 export function formatWalletRange(
@@ -1001,7 +1097,7 @@ export function formatWalletRange(
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
-  return `${formatter.format(min)}–${formatter.format(max)} ${currency}`;
+  return `${formatter.format(min)}–${formatter.format(max)} ${currencyLabel(currency, locale)}`;
 }
 
 export function formatWalletCheckedDate(isoDate: string, locale: WalletLocale): string {
@@ -1036,6 +1132,7 @@ export function walletPriceView(product: WalletProduct, locale: WalletLocale): W
       product.compareAtPrice != null
         ? formatWalletMoney(product.compareAtPrice, product.currency, locale)
         : null,
+    estimate: product.priceBasis === "estimate",
     secondary,
     secondaryKind: secondary ? product.secondaryKind : null,
     checkedOn: formatWalletCheckedDate(product.priceCheckedAt, locale),
@@ -1057,6 +1154,7 @@ export function resolveWalletOutboundBase(product: Pick<WalletProduct, "affiliat
 export function buildWalletOutboundUrl(
   product: Pick<WalletProduct, "affiliateUrl" | "officialUrl" | "brandSlug" | "slug">,
 ): string {
+  if (product.slug === "ledger-stax") return LEDGER_STAX_AFFILIATE_URL;
   const url = new URL(resolveWalletOutboundBase(product));
   if (!url.searchParams.has("utm_source")) {
     url.searchParams.set("utm_source", "quickexit");

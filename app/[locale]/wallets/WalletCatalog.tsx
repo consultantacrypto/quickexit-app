@@ -37,6 +37,7 @@ import {
   type ChooserStyle,
 } from "@/lib/walletChooser";
 import { reportWalletClick } from "@/lib/walletAffiliateTrafficClient";
+import { walletPromoCopy, walletPromoForBrand, type WalletPromo } from "@/lib/walletPromos";
 
 const TRUST_ARTICLE_URL =
   "https://www.stirilecrypto.ro/stiri/ledger-implant-virgin-megastore-dubai-604000-dolari-furati";
@@ -76,7 +77,12 @@ function ModelPrice({ product, locale }: { product: WalletProduct; locale: Walle
         {price.priceIsFrom ? <span className="mr-1 font-medium text-neutral-700">{t("fromPrefix")}</span> : null}
         {price.primary}
       </p>
-      {price.secondary ? (
+      {price.estimate ? (
+        <p className="mt-0.5 max-w-[11rem] text-[11px] leading-snug text-neutral-700">
+          {t("estimateNote")}
+          {price.secondary ? ` · ${price.secondary}` : null}
+        </p>
+      ) : price.secondary ? (
         <p className="mt-0.5 text-[11px] leading-snug text-neutral-700">
           {price.secondaryKind === "geo_storefront"
             ? `${t("geoStorefront")}: ${price.secondary}`
@@ -123,6 +129,7 @@ function BrandCard({
   compared,
   compareDisabled,
   onToggleCompare,
+  promo,
 }: {
   brand: WalletBrandProfile;
   models: WalletProduct[];
@@ -132,6 +139,7 @@ function BrandCard({
   compared: boolean;
   compareDisabled: boolean;
   onToggleCompare: (slug: WalletBrandProfile["slug"]) => void;
+  promo: WalletPromo | null;
 }) {
   const t = useTranslations("Wallets");
   const lead = models[0];
@@ -207,7 +215,11 @@ function BrandCard({
         </ul>
         {showCodeNote ? <p className="mt-3 text-xs leading-relaxed text-neutral-700">{t("codePending")}</p> : null}
         <div className="mt-auto flex flex-col gap-2 pt-6">
-          {discountCode ? <DiscountCodeButton code={discountCode} /> : null}
+          {promo ? (
+            <p className="text-xs leading-relaxed text-neutral-800">{walletPromoCopy(promo, locale)}</p>
+          ) : null}
+          {promo ? <DiscountCodeButton code={promo.code} /> : null}
+          {discountCode && discountCode !== promo?.code ? <DiscountCodeButton code={discountCode} /> : null}
           <a
             href={href}
             target="_blank"
@@ -307,10 +319,12 @@ function WalletChooser({
   locale,
   onToggleCompare,
   compared,
+  activePromoIds,
 }: {
   locale: WalletLocale;
   compared: WalletBrandProfile["slug"][];
   onToggleCompare: (slug: WalletBrandProfile["slug"]) => void;
+  activePromoIds: readonly string[];
 }) {
   const t = useTranslations("Wallets");
   const [budget, setBudget] = useState<ChooserBudget | null>(null);
@@ -452,6 +466,7 @@ function WalletChooser({
                       compared={compared.includes(brand.slug)}
                       compareDisabled={!compared.includes(brand.slug) && compared.length >= MAX_COMPARE}
                       onToggleCompare={onToggleCompare}
+                      promo={walletPromoForBrand(brand.slug, activePromoIds)}
                     />
                   </li>
                 ))}
@@ -522,7 +537,9 @@ function ComparisonStack({
             {
               label: t("colPrice"),
               value: price ? `${price.from ? `${t("fromPrefix")} ` : ""}${price.text}` : t("specUnknown"),
-              note: price ? t("checkedOn", { date: price.checkedOn }) : null,
+              note: price
+                ? `${price.estimate ? `${t("estimateNote")} · ` : ""}${t("checkedOn", { date: price.checkedOn })}`
+                : null,
               source: null as string | null,
             },
             { label: t("colType"), value: factors || t("specUnknown"), note: null, source: null },
@@ -617,6 +634,7 @@ function ComparisonTable({
                         {price.text}
                       </span>
                       <span className="mt-1 block text-[11px] text-neutral-700">
+                        {price.estimate ? `${t("estimateNote")} · ` : null}
                         {t("checkedOn", { date: price.checkedOn })}
                       </span>
                     </>
@@ -662,7 +680,7 @@ function FaqList() {
   );
 }
 
-export default function WalletCatalog() {
+export default function WalletCatalog({ activePromoIds = [] }: { activePromoIds?: readonly string[] }) {
   const t = useTranslations("Wallets");
   const locale = catalogLocale(useLocale());
   const titleId = useId();
@@ -797,7 +815,12 @@ export default function WalletCatalog() {
       </section>
 
       <div className="mx-auto max-w-6xl px-4 pb-20 pt-3 md:px-8 md:pt-6">
-        <WalletChooser locale={locale} compared={compared} onToggleCompare={toggleCompare} />
+        <WalletChooser
+          locale={locale}
+          compared={compared}
+          onToggleCompare={toggleCompare}
+          activePromoIds={activePromoIds}
+        />
 
         <div id="wallet-grid" className="mt-3 scroll-mt-24 md:scroll-mt-36">
           <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5">
@@ -850,6 +873,7 @@ export default function WalletCatalog() {
                   compared={compared.includes(shelf.brand.slug)}
                   compareDisabled={!compared.includes(shelf.brand.slug) && compared.length >= MAX_COMPARE}
                   onToggleCompare={toggleCompare}
+                  promo={walletPromoForBrand(shelf.brand.slug, activePromoIds)}
                 />
               </li>
             ))}

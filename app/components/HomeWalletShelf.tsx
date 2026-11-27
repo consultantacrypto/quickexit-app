@@ -97,6 +97,11 @@ export default async function HomeWalletShelf({ locale }: { locale: WalletLocale
                         </span>
                       ) : null}
                       {price.text}
+                      {price.estimate ? (
+                        <span className="ml-1 align-middle text-[10px] font-semibold uppercase tracking-wider text-muted">
+                          {tPrice("estimateNote")}
+                        </span>
+                      ) : null}
                     </p>
                   ) : null}
                   <Link href={`/wallets#brand-${brand.slug}`} className={CARD_BUTTON}>
