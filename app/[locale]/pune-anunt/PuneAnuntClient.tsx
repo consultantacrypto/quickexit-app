@@ -9,6 +9,7 @@ import { supabase } from "@/lib/supabase";
 import { Loader2, Search, Star, X } from "lucide-react";
 import CarBrandCombobox from "@/app/components/CarBrandCombobox";
 import CryptoPaymentFields from "@/app/components/CryptoPaymentFields";
+import SocialPromoPromise from "@/app/components/SocialPromoPromise";
 import {
   parseCryptoPayment,
   type CryptoAsset,
@@ -2751,11 +2752,11 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                   const isSelected = selectedPackage === pkg.id;
                   const price = packagePrices[pkg.id];
                   return (
+                    <div key={pkg.id} className="space-y-3">
                     <button
-                      key={pkg.id}
                       type="button"
                       onClick={() => selectPackage(pkg.id)}
-                      className={`relative rounded-2xl border-[3px] p-6 text-left transition-all ${
+                      className={`relative w-full rounded-2xl border-[3px] p-6 text-left transition-all ${
                         isSelected
                           ? "border-black bg-[#FFD100] shadow-[8px_8px_0_0_rgba(0,0,0,1)]"
                           : "border-neutral-200 bg-white hover:border-black hover:shadow-[4px_4px_0_0_rgba(0,0,0,0.12)]"
@@ -2798,6 +2799,8 @@ export default function PuneAnuntClient({ initialPackage }: PuneAnuntClientProps
                         {price} RON
                       </p>
                     </button>
+                    <SocialPromoPromise text={tPost("packages.socialPromoPromise")} />
+                    </div>
                   );
                 })}
               </div>

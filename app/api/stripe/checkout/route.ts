@@ -304,6 +304,7 @@ export async function POST(req: Request) {
       checkoutMetadata.priceId = priceId;
       checkoutMetadata.packageId = saleIntent.state.packageId;
       checkoutMetadata.saleMethod = saleIntent.state.saleMethod;
+      checkoutMetadata.locale = checkoutLocale;
 
       const details = listingRow.details as Record<string, unknown> | null;
       if (details?.acquisition_source === "evaluation") {
