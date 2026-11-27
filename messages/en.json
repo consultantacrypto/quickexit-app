@@ -344,6 +344,7 @@
     "publishListing": "Publish listing",
     "backHome": "← Back to home",
     "sellerPackagesTitle": "Seller listing packages",
+    "socialPromoPromise": "Promoted within max. 1 hour of payment for payments between 08:00 and 22:00. Before 08:00 or after 22:00, by 09:00 (Bucharest time): a clip on YouTube, TikTok, Instagram + a post on X",
     "auctionSectionTitle": "Open auction — 30 days",
     "extendedVisibility": "Extended visibility",
     "auctionListingFee": "Auction listing fee",
@@ -805,6 +806,7 @@
       "setWatchBox": "Watch + box"
     },
     "packages": {
+      "socialPromoPromise": "Promoted within max. 1 hour of payment for payments between 08:00 and 22:00. Before 08:00 or after 22:00, by 09:00 (Bucharest time): a clip on YouTube, TikTok, Instagram + a post on X",
       "economy": {
         "title": "Maximum exposure",
         "duration": "30 days",
@@ -1057,6 +1059,7 @@
     }
   },
   "ListingDetail": {
+    "socialPromoPromise": "Promoted within max. 1 hour of payment for payments between 08:00 and 22:00. Before 08:00 or after 22:00, by 09:00 (Bucharest time): a clip on YouTube, TikTok, Instagram + a post on X",
     "meta": {
       "unavailableTitle": "Listing unavailable | Quick Exit",
       "unavailableDescription": "This listing is not publicly available at the moment.",

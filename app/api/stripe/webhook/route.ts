@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import {
   activateRow,
   extractCheckoutIds,
@@ -43,6 +43,12 @@ import {
   shouldRejectTestModeEvent,
 } from "@/lib/mediaWebhookFulfillment";
 import { notifyMediaHqPaidQueued } from "@/lib/notifyMediaHq";
+import { notifyListingPromoPayment } from "@/lib/notifyPromoPayment";
+import {
+  buildPaymentLedgerRow,
+  paidAtIsoFromStripeEvent,
+  recordStripeCheckoutPayment,
+} from "@/lib/stripePaymentLedger";
 import {
   captureException,
   captureMessage,
@@ -58,6 +64,15 @@ import {
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+export type StripeWebhookDeps = {
+  supabase?: SupabaseClient;
+  fetchImpl?: typeof fetch;
+};
+
+export async function POST(req: Request) {
+  return handleStripeWebhookRequest(req);
+}
 
 function fail(
   code: ListingFulfillmentFailureCode,
@@ -115,7 +130,7 @@ function fail(
   return NextResponse.json({ received: false, error: code }, { status });
 }
 
-export async function POST(req: Request) {
+export async function handleStripeWebhookRequest(req: Request, deps?: StripeWebhookDeps) {
   try {
     const stripeApiKey = process.env.STRIPE_SECRET_KEY;
     const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
@@ -200,9 +215,10 @@ export async function POST(req: Request) {
       return fail("test_mode", { eventId: event.id, type: event.type });
     }
 
-    const supabase = createClient(supabaseUrl, serviceRoleKey, {
-      auth: { persistSession: false, autoRefreshToken: false },
-    });
+    const supabase = (deps?.supabase ??
+      createClient(supabaseUrl, serviceRoleKey, {
+        auth: { persistSession: false, autoRefreshToken: false },
+      })) as SupabaseClient;
 
     // --- async payment failed: never activate; maybe mark Media failed ---
     if (isAsyncPaymentFailedEvent(event.type)) {
@@ -521,7 +537,7 @@ export async function POST(req: Request) {
     if (type === "listing") {
       const result = await supabase
         .from("listings")
-        .select("id, status, sale_strategy, details, listing_kind, images")
+        .select("id, status, sale_strategy, details, listing_kind, images, title")
         .eq("id", objectId)
         .maybeSingle();
       fetchError = result.error;
@@ -610,6 +626,92 @@ export async function POST(req: Request) {
       }
     }
 
+    // Ledger + promo alert run only after the session is accepted for fulfillment.
+    // A rejected package/session must not write payments or email the team.
+    // Notification failures are logged and never change the HTTP status.
+    const persistPaidLedger = async (): Promise<Response | null> => {
+      const paidAtIso = paidAtIsoFromStripeEvent(event.created);
+      const ledgerRow = buildPaymentLedgerRow({
+        session,
+        paidAtIso,
+        product: type,
+        packageId: activation.packageId,
+        userId: userId || null,
+        listingId: type === "listing" ? objectId : null,
+        demandId: type === "demand" ? objectId : null,
+        mediaOrderId,
+        mediaPackage: metadataMediaPackage,
+      });
+      if (!ledgerRow) {
+        logError({
+          component: "stripe_webhook",
+          operation: "payment_ledger",
+          result: "error",
+          error_code: "payment_ledger_invalid",
+          correlation_id: correlationId,
+          entity_id: objectId,
+          sessionId: session.id,
+          eventId: event.id,
+        });
+        return new NextResponse("Eroare înregistrare plată.", { status: 500 });
+      }
+      const ledger = await recordStripeCheckoutPayment(supabase, ledgerRow, {
+        eventId: event.id,
+        correlationId,
+      });
+      if (!ledger.ok) {
+        return new NextResponse("Eroare înregistrare plată.", { status: 500 });
+      }
+
+      if (type === "listing" && ledgerRow.listing_id) {
+        try {
+          const promo = await notifyListingPromoPayment(
+            {
+              admin: supabase,
+              paymentInserted: ledger.inserted,
+              sessionId: session.id,
+              paymentIntentId: ledgerRow.stripe_payment_intent_id,
+              listingId: ledgerRow.listing_id,
+              title: String((row as { title?: string | null }).title ?? ""),
+              packageId: ledgerRow.package_id,
+              amountMinor: ledgerRow.amount_minor,
+              currency: ledgerRow.currency,
+              paidAtIso,
+              locale: typeof metadata.locale === "string" ? metadata.locale : null,
+              eventId: event.id,
+            },
+            { fetchImpl: deps?.fetchImpl },
+          );
+          logInfo({
+            component: "stripe_webhook",
+            operation: "promo_notify",
+            result: promo.email === "failed" ? "warn" : "info",
+            correlation_id: correlationId,
+            entity_id: ledgerRow.listing_id,
+            sessionId: session.id,
+            eventId: event.id,
+            queue: promo.queue,
+            email: promo.email,
+            email_reason: promo.emailReason,
+          });
+        } catch (notifyError: unknown) {
+          const message = notifyError instanceof Error ? notifyError.message : String(notifyError);
+          logWarn({
+            component: "stripe_webhook",
+            operation: "promo_notify",
+            result: "warn",
+            error_code: "promo_notify_threw",
+            correlation_id: correlationId,
+            entity_id: ledgerRow.listing_id,
+            sessionId: session.id,
+            eventId: event.id,
+            message: message.slice(0, 200),
+          });
+        }
+      }
+      return null;
+    };
+
     // --- Listing activation (idempotent). Order: listing first, then Media. ---
     let listingActivatedNow = false;
     let listingIdempotent = false;
@@ -628,6 +730,8 @@ export async function POST(req: Request) {
           });
         }
       }
+      const ledgerResponse = await persistPaidLedger();
+      if (ledgerResponse) return ledgerResponse;
       listingIdempotent = true;
       console.log("[stripe/webhook] Obiect deja activ (idempotent).", {
         eventId: event.id,
@@ -642,6 +746,8 @@ export async function POST(req: Request) {
         return NextResponse.json({ received: true, idempotent: true });
       }
     } else {
+      const ledgerResponse = await persistPaidLedger();
+      if (ledgerResponse) return ledgerResponse;
       const fulfillment: StripeFulfillmentRecord = {
         event_id: event.id,
         checkout_session_id: session.id,

@@ -10,6 +10,7 @@ import { supabase } from "@/lib/supabase";
 import AuthModal from "@/app/components/AuthModal";
 import AdCard from "@/app/components/AdCard";
 import ListingMedia from "@/app/components/ListingMedia";
+import SocialPromoPromise from "@/app/components/SocialPromoPromise";
 import { formatCryptoAssetList, listingAcceptsCrypto, readListingCryptoPayment } from "@/lib/cryptoPayment";
 import { normalizeSaleType } from "@/utils/normalizeSaleType";
 import { parseListingOfferCount } from "@/utils/auctionListingUi";
@@ -22,6 +23,7 @@ import { isListingOfferDeepLink } from "@/lib/offerDeepLink";
 import { insertListingOfferRow } from "@/lib/listingOfferInsert";
 import { categoryLabelToTrackingKey } from "@/lib/evaluationTracking";
 import { canonicalListingImageSrc } from "@/lib/listingMedia";
+import { listingShowsSocialPromo } from "@/lib/socialPromoPromise";
 import {
   formatEurAmount,
   formatMemberSince,
@@ -271,6 +273,15 @@ export default function AnuntClient({
     locale,
     t("defaults.listingTitle"),
   );
+  const showSocialPromo = listingShowsSocialPromo({
+    status: typeof initialListing.status === "string" ? initialListing.status : null,
+    is_seed: initialListing.is_seed === true,
+    sale_strategy:
+      typeof initialListing.sale_strategy === "string" ? initialListing.sale_strategy : null,
+    listing_kind:
+      typeof initialListing.listing_kind === "string" ? initialListing.listing_kind : null,
+    details: initialListing.details,
+  });
   const listingDescription = resolveListingField(
     initialListing,
     "description",
@@ -1390,6 +1401,9 @@ export default function AnuntClient({
               <h1 className="text-[1.85rem] font-black uppercase italic leading-[1.02] tracking-tight text-black sm:text-3xl md:text-4xl lg:text-[2.75rem] lg:leading-[1.05]">
                 {renderTitle(listingTitle)}
               </h1>
+              {showSocialPromo ? (
+                <SocialPromoPromise text={t("socialPromoPromise")} className="mt-3" />
+              ) : null}
               {fm ? <FutureMobilityAvailabilityLine fm={fm} /> : null}
             </div>
 

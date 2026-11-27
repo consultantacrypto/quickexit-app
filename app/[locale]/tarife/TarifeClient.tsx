@@ -2,8 +2,12 @@
 
 import { Link } from "@/src/i18n/navigation";
 import { trackEvent } from "@/lib/analytics";
+import { useTranslations } from "next-intl";
+import SocialPromoPromise from "@/app/components/SocialPromoPromise";
 
 export default function TarifeClient() {
+  const t = useTranslations("Pricing");
+  const socialPromo = t("socialPromoPromise");
   const sellerPackages = [
     {
       id: "economy",
@@ -152,6 +156,7 @@ export default function TarifeClient() {
                 <p className="text-xs font-semibold text-neutral-700">
                   {pkg.bestFor}
                 </p>
+                <SocialPromoPromise text={socialPromo} className="mt-4" />
               </div>
               <div className="border-t-2 border-neutral-200 pt-5">
                 <p className="text-4xl font-black italic tracking-tighter mb-5">
@@ -210,6 +215,7 @@ export default function TarifeClient() {
                 Acceptarea unei oferte nu finalizează automat tranzacția. Plata și predarea se stabilesc direct între
                 părți.
               </p>
+              <SocialPromoPromise text={socialPromo} className="mb-4" />
               <ul className="space-y-3 mb-4">
                 <li className="flex items-center gap-2 font-black uppercase italic text-xs text-black">
                   Oferte în timpul celor 30 de zile de listare eligibilă
