@@ -125,9 +125,13 @@ export type BrandStartingPrice = {
   text: string;
   from: boolean;
   checkedOn: string;
+  estimate: boolean;
 };
 
-/** Lowest verified list price in the brand's own currency. Null when none are verified. */
+/**
+ * Lowest verified list price. When a brand has lei figures, those are the
+ * ones compared, so a leftover USD row cannot win on the raw number.
+ */
 export function brandStartingPrice(slug: WalletBrandSlug, locale: WalletLocale): BrandStartingPrice | null {
   const verified = sortedWalletProducts().filter(
     (product) =>
@@ -137,13 +141,16 @@ export function brandStartingPrice(slug: WalletBrandSlug, locale: WalletLocale):
       product.currency != null,
   );
   if (verified.length === 0) return null;
-  const lowest = verified.reduce((best, product) =>
+  const inLei = verified.filter((product) => product.currency === "RON");
+  const pool = inLei.length > 0 ? inLei : verified;
+  const lowest = pool.reduce((best, product) =>
     (product.listPrice ?? Number.POSITIVE_INFINITY) < (best.listPrice ?? Number.POSITIVE_INFINITY) ? product : best,
   );
   if (lowest.listPrice == null || lowest.currency == null) return null;
   return {
     text: formatWalletMoney(lowest.listPrice, lowest.currency, locale),
-    from: lowest.priceIsFrom || verified.length > 1,
+    from: lowest.priceIsFrom || pool.length > 1,
     checkedOn: formatWalletCheckedDate(lowest.priceCheckedAt || WALLET_PRICE_CHECKED_AT, locale),
+    estimate: lowest.priceBasis === "estimate",
   };
 }

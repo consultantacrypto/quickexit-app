@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
+import { connection } from "next/server";
 import { PAGE_METADATA_COPY } from "@/lib/pageMetadataCopy";
 import { buildPageMetadata, resolvePageLocale } from "@/lib/seo";
+import { activeWalletPromoIds } from "@/lib/walletPromos";
 import WalletCatalog from "./WalletCatalog";
 import WalletTrafficBeacon from "./WalletTrafficBeacon";
 
@@ -21,11 +23,17 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   });
 }
 
-export default function WalletsPage() {
+/** Request-time cutoff. A static render would leave an expired promo in the HTML. */
+export const dynamic = "force-dynamic";
+
+export default async function WalletsPage() {
+  await connection();
+  const activePromoIds = activeWalletPromoIds(new Date());
+
   return (
     <>
       <WalletTrafficBeacon />
-      <WalletCatalog />
+      <WalletCatalog activePromoIds={activePromoIds} />
     </>
   );
 }
