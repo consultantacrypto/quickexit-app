@@ -18,6 +18,7 @@
     "assert:auth-identity": "tsx scripts/assert-auth-identity-foundation.ts",
     "assert:wallet-identity": "tsx scripts/assert-wallet-identity.ts",
     "assert:wallets": "tsx scripts/assert-wallets-catalog.ts",
+    "assert:tangem-black-friday": "tsx scripts/assert-tangem-black-friday.ts",
     "assert:apple-ui-gated": "tsx scripts/assert-apple-signin-phase1b.ts",
     "apply:wallet-identity-staging": "tsx scripts/apply-wallet-identity-staging.ts",
     "e2e:wallet-identity-staging": "tsx scripts/e2e-wallet-identity-staging.ts",

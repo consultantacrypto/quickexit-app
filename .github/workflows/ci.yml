@@ -81,6 +81,9 @@ jobs:
       - name: Hardware wallet catalog
         run: npm run assert:wallets
 
+      - name: Tangem Black Friday banner
+        run: npm run assert:tangem-black-friday
+
       - name: Available-to-order filter
         run: npm run assert:available-to-order
 
