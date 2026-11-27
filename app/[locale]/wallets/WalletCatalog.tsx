@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import WalletHeroBackdrop from "./WalletHeroBackdrop";
 import Image from "next/image";
 import { useLocale, useTranslations } from "next-intl";
@@ -662,7 +662,7 @@ function FaqList() {
   );
 }
 
-export default function WalletCatalog() {
+export default function WalletCatalog({ promo = null }: { promo?: ReactNode }) {
   const t = useTranslations("Wallets");
   const locale = catalogLocale(useLocale());
   const titleId = useId();
@@ -797,6 +797,7 @@ export default function WalletCatalog() {
       </section>
 
       <div className="mx-auto max-w-6xl px-4 pb-20 pt-3 md:px-8 md:pt-6">
+        {promo}
         <WalletChooser locale={locale} compared={compared} onToggleCompare={toggleCompare} />
 
         <div id="wallet-grid" className="mt-3 scroll-mt-24 md:scroll-mt-36">
