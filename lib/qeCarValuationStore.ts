@@ -11,6 +11,7 @@ import {
   QE_VALUATION_CONSENT_VERSION,
   type QeListingRow,
   type QeValuation,
+  type QeValuationEmailPurpose,
 } from "@/lib/qeCarValuation";
 
 export const QE_LISTING_FETCH_LIMIT = 1000;
@@ -110,6 +111,7 @@ export type QeLeadInsert = {
   year: number;
   km: number;
   valuation: QeValuation;
+  purpose: QeValuationEmailPurpose;
 };
 
 export async function insertValuationLead(
@@ -120,6 +122,7 @@ export async function insertValuationLead(
     type: "free_car_valuation",
     consent: true,
     consent_version: QE_VALUATION_CONSENT_VERSION,
+    purpose: input.purpose,
     make: input.make,
     model: input.model,
     year: input.year,
@@ -164,6 +167,7 @@ export async function insertValuationLead(
       sufficient: input.valuation.sufficient,
       tier: input.valuation.tier,
       comparable_count: input.valuation.comparableCount,
+      purpose: input.purpose,
     },
     actor_email: null,
   });
@@ -185,6 +189,7 @@ export type QeRequestInsert = {
   consent: boolean;
   consentAt: string | null;
   leadId: string | null;
+  purpose: QeValuationEmailPurpose | null;
 };
 
 export async function insertValuationRequest(
@@ -211,6 +216,7 @@ export async function insertValuationRequest(
     consent_version: input.consent ? QE_VALUATION_CONSENT_VERSION : null,
     consent_at: input.consentAt,
     lead_id: input.leadId,
+    purpose: input.purpose,
   });
 
   if (error) {

@@ -11,7 +11,14 @@ import { sanitizeEvaluateText } from "@/lib/evaluateSafety";
 
 export const QE_CAR_VALUATION_SOURCE = "quickexit_listings" as const;
 export const QE_VALUATION_CAMPAIGN_KEY = "free_car_valuation";
-export const QE_VALUATION_CONSENT_VERSION = "2026-11-qe-car-valuation";
+export const QE_VALUATION_CONSENT_VERSION = "2026-11-qe-car-valuation-v2";
+
+/** Why the visitor left an email: the report, or a later notice when comps exist. */
+export type QeValuationEmailPurpose = "report" | "notify";
+
+export function qeEmailPurpose(sufficient: boolean): QeValuationEmailPurpose {
+  return sufficient ? "report" : "notify";
+}
 
 export const QE_TIER1_MIN_COMPARABLES = 5;
 export const QE_TIER2_MIN_COMPARABLES = 3;

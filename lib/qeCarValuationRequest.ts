@@ -6,6 +6,7 @@ import { getClientIp, MAX_EVALUATE_BODY_BYTES, sanitizeEvaluateText } from "@/li
 import {
   QE_VALUATION_CONSENT_VERSION,
   buildQePublicBody,
+  qeEmailPurpose,
   buildValuationReportSubject,
   buildValuationReportText,
   comparablesFromListings,
@@ -17,6 +18,7 @@ import {
   type QeListingRow,
   type QeValuation,
   type QeValuationEmailDelivery,
+  type QeValuationEmailPurpose,
   type QeValuationEmailStatus,
 } from "@/lib/qeCarValuation";
 
@@ -61,6 +63,7 @@ export type QeValuationDeps = {
     year: number;
     km: number;
     valuation: QeValuation;
+    purpose: QeValuationEmailPurpose;
   }) => Promise<{ ok: true; id: string } | { ok: false }>;
   insertRequest: (input: {
     make: string;
@@ -73,6 +76,7 @@ export type QeValuationDeps = {
     consent: boolean;
     consentAt: string | null;
     leadId: string | null;
+    purpose: QeValuationEmailPurpose | null;
   }) => Promise<{ ok: true } | { ok: false; missing?: boolean }>;
   sendReport: (input: { to: string; subject: string; text: string }) => Promise<"sent" | "failed" | "disabled">;
 };
@@ -157,7 +161,7 @@ export async function runQeCarValuation(
   if (emailRaw) {
     if (!isValidEmail(emailRaw)) return fail(400, "Email invalid.");
     if (body.consent !== true) {
-      return fail(400, "Bifează consimțământul ca să primești raportul pe email.");
+      return fail(400, "Bifează consimțământul ca să continuăm.");
     }
     if (body.consent_version !== QE_VALUATION_CONSENT_VERSION) {
       return fail(400, "Consimțământul nu este la versiunea curentă. Reîncarcă pagina.");
@@ -180,6 +184,11 @@ export async function runQeCarValuation(
     tier3Enabled: isQeValuationTier3Enabled(env),
   });
 
+  const purpose = qeEmailPurpose(valuation.sufficient);
+  if (email && body.purpose !== purpose) {
+    return fail(400, "Scopul consimțământului nu corespunde rezultatului. Reîncarcă pagina.");
+  }
+
   const emailState = await persistValuation({
     deps,
     env,
@@ -190,6 +199,7 @@ export async function runQeCarValuation(
     equipment,
     email,
     valuation,
+    purpose,
     now,
   });
 
@@ -214,6 +224,7 @@ async function persistValuation(input: {
   equipment: string;
   email: string | null;
   valuation: QeValuation;
+  purpose: QeValuationEmailPurpose;
   now: number;
 }): Promise<{ status: QeValuationEmailStatus; delivery: QeValuationEmailDelivery }> {
   if (!input.email) {
@@ -230,6 +241,7 @@ async function persistValuation(input: {
         consent: false,
         consentAt: null,
         leadId: null,
+        purpose: null,
       });
     }
     return { status: "not_requested", delivery: "not_requested" };
@@ -249,6 +261,7 @@ async function persistValuation(input: {
       year: input.year,
       km: input.km,
       valuation: input.valuation,
+      purpose: input.purpose,
     });
     if (!lead.ok) return { status: "unavailable", delivery: "unavailable" };
 
@@ -263,13 +276,14 @@ async function persistValuation(input: {
       consent: true,
       consentAt: new Date(input.now).toISOString(),
       leadId: lead.id,
+      purpose: input.purpose,
     });
     if (!stored.ok) return { status: "unavailable", delivery: "unavailable" };
   } else {
     return { status: "accepted", delivery: "stored" };
   }
 
-  if (!isValuationReportEmailEnabled(input.env)) {
+  if (input.purpose !== "report" || !isValuationReportEmailEnabled(input.env)) {
     return { status: "accepted", delivery: "disabled" };
   }
 

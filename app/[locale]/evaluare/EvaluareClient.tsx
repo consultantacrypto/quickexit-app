@@ -21,6 +21,7 @@ import {
   QE_EQUIPMENT_NOTE,
   QE_INSUFFICIENT_MESSAGE,
   QE_VALUATION_CONSENT_VERSION,
+  qeEmailPurpose,
   QE_VALUATION_DISCLAIMER,
   isQeCarValuation,
   type QeValuationPublicBody,
@@ -525,6 +526,7 @@ export default function EvaluareClient({
           email: reportEmail.trim(),
           consent: reportConsent,
           consent_version: QE_VALUATION_CONSENT_VERSION,
+          purpose: qeEmailPurpose(Boolean(qeResult?.sufficient)),
         }
       : {}),
   });
@@ -534,6 +536,18 @@ export default function EvaluareClient({
     : buildManualListingHref("auto");
 
   const emailNoticeFor = (data: QeValuationPublicBody): { text: string; tone: "neutral" | "error" } => {
+    if (!data.sufficient) {
+      if (data.email_delivery === "unavailable" || data.email_status === "unavailable") {
+        return { text: "Păstrarea emailului nu este disponibilă încă.", tone: "neutral" };
+      }
+      if (data.email_delivery === "stored") {
+        return { text: "Emailul este deja înregistrat pentru această anunțare.", tone: "neutral" };
+      }
+      return {
+        text: "Te anunțăm când avem destule anunțuri comparabile pentru modelul tău.",
+        tone: "neutral",
+      };
+    }
     if (data.email_delivery === "sent" || data.email_status === "sent") {
       return { text: "Ți-am trimis raportul pe email.", tone: "neutral" };
     }
@@ -657,7 +671,11 @@ export default function EvaluareClient({
       return;
     }
     if (!reportConsent) {
-      setEmailNotice("Bifează consimțământul ca să primești raportul pe email.");
+      setEmailNotice(
+        qeResult.sufficient
+          ? "Bifează consimțământul ca să primești raportul pe email."
+          : "Bifează consimțământul ca să te anunțăm când avem destule anunțuri comparabile.",
+      );
       setEmailNoticeTone("error");
       return;
     }

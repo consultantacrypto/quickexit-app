@@ -9,8 +9,12 @@ import {
   type QeValuationPublicBody,
 } from "@/lib/qeCarValuation";
 
+function formatAmount(value: number): string {
+  return value.toLocaleString("ro-RO");
+}
+
 function formatEur(value: number): string {
-  return `${value.toLocaleString("ro-RO")} EUR`;
+  return `${formatAmount(value)} EUR`;
 }
 
 function formatKm(value: string): string {
@@ -93,10 +97,13 @@ export default function QeCarValuationResult({
             <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#FFD100]">
               {result.tier_label}
             </p>
-            <p className="mt-4 text-3xl font-black leading-none tabular-nums text-white sm:text-4xl md:text-5xl">
-              <span className="block sm:inline">{formatEur(result.range.p25)}</span>
-              <span className="mx-0 my-2 block text-[#FFD100] sm:mx-3 sm:my-0 sm:inline">–</span>
-              <span className="block sm:inline">{formatEur(result.range.p75)}</span>
+            <p className="mt-4 whitespace-nowrap text-2xl font-black leading-none tabular-nums text-white sm:text-4xl md:text-5xl">
+              {formatAmount(result.range.p25)}
+              <span className="text-[#FFD100]"> – </span>
+              {formatAmount(result.range.p75)}
+            </p>
+            <p className="mt-2 text-xs font-black uppercase tracking-[0.22em] text-[#FFD100] sm:text-sm">
+              EUR
             </p>
             <p className="mt-4 text-sm font-semibold text-neutral-200 md:text-base">
               Mediană {formatEur(result.range.p50)}
@@ -135,27 +142,29 @@ export default function QeCarValuationResult({
           </div>
         ) : null}
 
-        <div className="mt-8 rounded-2xl border border-white/20 bg-neutral-950/80 p-5">
-          <div className="flex items-start gap-4">
-            <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-[#FFD100]" aria-hidden />
-            <p className="text-sm font-medium leading-relaxed text-neutral-200">{result.disclaimer}</p>
+        {priced ? (
+          <div className="mt-8 rounded-2xl border border-white/20 bg-neutral-950/80 p-5">
+            <div className="flex items-start gap-4">
+              <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-[#FFD100]" aria-hidden />
+              <p className="text-sm font-medium leading-relaxed text-neutral-200">{result.disclaimer}</p>
+            </div>
           </div>
-        </div>
+        ) : null}
 
         <div className="mt-8 flex flex-col gap-3 sm:flex-row">
           <Link
             href={listingHref}
             onClick={onListingClick}
-            className="inline-flex min-h-12 flex-1 items-center justify-center rounded-xl border-[3px] border-black bg-[#FFD100] px-6 py-3.5 text-center text-[11px] font-black uppercase tracking-widest text-black shadow-[5px_5px_0_0_rgba(0,0,0,0.9)] transition hover:brightness-105"
+            className="inline-flex min-h-12 flex-1 items-center justify-center rounded-xl border-[3px] border-black bg-[#FFD100] px-4 py-3.5 text-center text-[11px] font-black uppercase leading-snug tracking-wide text-black shadow-[5px_5px_0_0_rgba(0,0,0,0.9)] transition hover:brightness-105"
           >
-            Listează la QE
+            Listează mașina pe QuickExit
           </Link>
           <button
             type="button"
             onClick={onRestart}
             className="inline-flex min-h-12 items-center justify-center rounded-xl border-2 border-white/30 bg-transparent px-6 py-3.5 text-[11px] font-black uppercase tracking-widest text-neutral-300 transition hover:border-white hover:text-white"
           >
-            Reiau evaluarea
+            Evaluare nouă
           </button>
         </div>
       </div>
@@ -168,11 +177,19 @@ export default function QeCarValuationResult({
         }}
       >
         <h3 className="text-lg font-black uppercase italic tracking-tight text-black md:text-xl">
-          Primești raportul pe email
+          {priced
+            ? "Primești raportul pe email"
+            : "Te anunțăm când avem destule anunțuri comparabile pentru modelul tău"}
         </h3>
-        <p className="mt-2 max-w-2xl text-sm font-medium leading-relaxed text-neutral-600">
-          Opțional. Intervalul rămâne pe pagină și fără email.
-        </p>
+        {priced ? (
+          <p className="mt-2 max-w-2xl text-sm font-medium leading-relaxed text-neutral-600">
+            Opțional. Intervalul rămâne pe pagină și fără email.
+          </p>
+        ) : (
+          <p className="mt-2 max-w-2xl text-sm font-medium leading-relaxed text-neutral-600">
+            Opțional. Lași emailul doar pentru această anunțare.
+          </p>
+        )}
 
         <div className="absolute left-[-9999px] h-0 w-0 overflow-hidden" aria-hidden="true">
           <label>
@@ -210,8 +227,10 @@ export default function QeCarValuationResult({
             onChange={(event) => onConsentChange(event.target.checked)}
           />
           <span className="text-sm font-medium leading-relaxed text-neutral-800">
-            Sunt de acord ca QuickExit să păstreze acest email și să îl folosească pentru a-mi
-            trimite raportul de evaluare. Am citit{" "}
+            {priced
+              ? "Sunt de acord ca QuickExit să păstreze acest email și să îl folosească pentru a-mi trimite raportul de evaluare."
+              : "Sunt de acord ca QuickExit să păstreze acest email și să mă anunțe când există destule anunțuri comparabile pentru modelul meu."}{" "}
+            Am citit{" "}
             <Link href="/confidentialitate" className="font-black underline">
               politica de confidențialitate
             </Link>
@@ -237,7 +256,11 @@ export default function QeCarValuationResult({
           disabled={emailSubmitting}
           className="mt-6 w-full rounded-xl border-2 border-black bg-white px-6 py-3.5 text-[11px] font-black uppercase tracking-widest text-black transition hover:bg-[#FFD100] disabled:cursor-wait disabled:opacity-60 sm:w-auto"
         >
-          {emailSubmitting ? "Se trimite..." : "Trimite raportul pe email"}
+          {emailSubmitting
+            ? "Se trimite..."
+            : priced
+              ? "Trimite raportul pe email"
+              : "Anunță-mă pe email"}
         </button>
       </form>
     </section>

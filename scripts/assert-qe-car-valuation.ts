@@ -5,6 +5,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import {
   QE_INSUFFICIENT_MESSAGE,
+  QE_VALUATION_CONSENT_VERSION,
   QE_TIER2_MIN_COMPARABLES,
   buildQePublicBody,
   buildValuationReportText,
@@ -81,10 +82,16 @@ function fiveX6(): QeListingRow[] {
   );
 }
 
-type Calls = { fetch: number; lead: number; request: number; send: number };
+type Calls = {
+  fetch: number;
+  lead: number;
+  request: number;
+  send: number;
+  purposes: Array<string | null>;
+};
 
 function harness(rows: QeListingRow[], patch?: Partial<QeValuationDeps>): { deps: QeValuationDeps; calls: Calls } {
-  const calls: Calls = { fetch: 0, lead: 0, request: 0, send: 0 };
+  const calls: Calls = { fetch: 0, lead: 0, request: 0, send: 0, purposes: [] };
   const deps: QeValuationDeps = {
     now: () => Date.UTC(2026, 10, 27),
     env: {},
@@ -100,8 +107,9 @@ function harness(rows: QeListingRow[], patch?: Partial<QeValuationDeps>): { deps
       calls.lead += 1;
       return { ok: true, id: "lead-1" };
     },
-    insertRequest: async () => {
+    insertRequest: async (input) => {
       calls.request += 1;
+      calls.purposes.push(input.purpose);
       return { ok: true };
     },
     sendReport: async () => {
@@ -313,7 +321,8 @@ async function main() {
       km: 40000,
       email: SECRET_EMAIL,
       consent: true,
-      consent_version: "2026-11-qe-car-valuation",
+      consent_version: QE_VALUATION_CONSENT_VERSION,
+      purpose: "report",
     }),
     fiveX6(),
     {
@@ -324,6 +333,7 @@ async function main() {
   );
   assert(saved.outcome.status === 200, "consented email still returns the valuation");
   assert(saved.calls.lead === 1 && saved.calls.request === 1, "consent stores a lead and a request");
+  assert(saved.calls.purposes[0] === "report", "a priced email is stored as report");
   assert(saved.outcome.body.email_status === "accepted", "stored without sending");
   assert(saved.outcome.body.email_delivery === "disabled", "delivery flag is off");
   assert(!JSON.stringify(saved.outcome.body).includes("secret.person"), "accepted response has no email");
@@ -337,7 +347,8 @@ async function main() {
       km: 40000,
       email: SECRET_EMAIL,
       consent: true,
-      consent_version: "2026-11-qe-car-valuation",
+      consent_version: QE_VALUATION_CONSENT_VERSION,
+      purpose: "report",
     }),
     fiveX6(),
     { probeStorage: async () => "missing" },
@@ -354,12 +365,48 @@ async function main() {
       km: 40000,
       email: SECRET_EMAIL,
       consent: true,
-      consent_version: "2026-11-qe-car-valuation",
+      consent_version: QE_VALUATION_CONSENT_VERSION,
+      purpose: "report",
     }),
     fiveX6(),
     { env: { VALUATION_REPORT_EMAIL_ENABLED: "true" } },
   );
   assert(sent.calls.send === 1 && sent.outcome.body.email_status === "sent", "flag on sends once");
+
+  const notify = await post(
+    JSON.stringify({
+      make: "BMW",
+      model: "X6",
+      year: 2021,
+      km: 80000,
+      email: SECRET_EMAIL,
+      consent: true,
+      consent_version: QE_VALUATION_CONSENT_VERSION,
+      purpose: "notify",
+    }),
+    tier2Rows.slice(0, 2),
+    { env: { VALUATION_REPORT_EMAIL_ENABLED: "true" } },
+  );
+  assert(notify.outcome.status === 200 && notify.outcome.body.sufficient === false, "notify path has no range");
+  assert(notify.calls.purposes[0] === "notify", "insufficient email is stored as notify");
+  assert(notify.calls.send === 0, "notify does not send a report");
+  assert(!JSON.stringify(notify.outcome.body).includes(SECRET_EMAIL), "notify response has no email");
+
+  const wrongPurpose = await post(
+    JSON.stringify({
+      make: "BMW",
+      model: "X6",
+      year: 2021,
+      km: 80000,
+      email: SECRET_EMAIL,
+      consent: true,
+      consent_version: QE_VALUATION_CONSENT_VERSION,
+      purpose: "report",
+    }),
+    tier2Rows.slice(0, 2),
+  );
+  assert(wrongPurpose.outcome.status === 400, "purpose must match the result");
+  assert(wrongPurpose.calls.lead === 0 && wrongPurpose.calls.request === 0, "mismatched purpose does not write");
   assert(!JSON.stringify(sent.outcome.body).includes(SECRET_EMAIL), "sent response has no email");
 
   const blocked = await post(JSON.stringify({ make: "BMW", model: "X6", year: 2021, km: 1 }), fiveX6(), {
@@ -442,7 +489,12 @@ async function main() {
   assert(evaluare.includes('"/api/evaluate/qe"'), "car mode calls the free route");
   assert(evaluare.includes('"/api/evaluate"'), "other categories keep the existing route");
   const resultUi = readFileSync(resolve(root, "components/QeCarValuationResult.tsx"), "utf8");
-  assert(resultUi.includes("Listează la QE"), "primary CTA copy");
+  assert(resultUi.includes("Listează mașina pe QuickExit"), "primary CTA copy");
+  assert(resultUi.includes("Evaluare nouă"), "restart copy");
+  assert(resultUi.includes("Te anunțăm când avem destule anunțuri comparabile pentru modelul tău"), "notify email copy");
+  assert(resultUi.includes("whitespace-nowrap"), "range values do not wrap apart");
+  assert(!resultUi.includes("Listează la QE"), "old CTA is gone");
+  assert(!resultUi.includes("Reiau evaluarea"), "old restart label is gone");
   assert(resultUi.includes("QE_INSUFFICIENT_MESSAGE"), "insufficient copy is shared");
 
   const migration = readFileSync(
@@ -457,6 +509,7 @@ async function main() {
   assert(!/GRANT [^;]+ TO anon/i.test(migration), "migration does not grant anon");
   assert(!/GRANT [^;]+ TO authenticated/i.test(migration), "migration does not grant authenticated");
   assert(migration.includes("REFERENCES public.leads"), "lead foreign key");
+  assert(migration.includes("purpose IN ('report', 'notify')"), "purpose is stored with consent");
 
   const sources = [
     "lib/qeCarValuation.ts",

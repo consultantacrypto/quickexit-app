@@ -34,6 +34,7 @@ CREATE TABLE IF NOT EXISTS public.valuation_requests (
   consent_version text,
   consent_at timestamptz,
   lead_id uuid,
+  purpose text,
   CONSTRAINT valuation_requests_make_len_check
     CHECK (char_length(make) BETWEEN 1 AND 80),
   CONSTRAINT valuation_requests_model_len_check
@@ -58,6 +59,8 @@ CREATE TABLE IF NOT EXISTS public.valuation_requests (
     CHECK (email IS NULL OR char_length(email) <= 200),
   CONSTRAINT valuation_requests_consent_version_len_check
     CHECK (consent_version IS NULL OR char_length(consent_version) <= 80),
+  CONSTRAINT valuation_requests_purpose_check
+    CHECK (purpose IS NULL OR purpose IN ('report', 'notify')),
   CONSTRAINT valuation_requests_prices_check
     CHECK (
       (
@@ -85,6 +88,7 @@ CREATE TABLE IF NOT EXISTS public.valuation_requests (
         AND consent_version IS NULL
         AND consent_at IS NULL
         AND lead_id IS NULL
+        AND purpose IS NULL
       )
       OR (
         email IS NOT NULL
@@ -92,6 +96,7 @@ CREATE TABLE IF NOT EXISTS public.valuation_requests (
         AND consent_version IS NOT NULL
         AND consent_at IS NOT NULL
         AND lead_id IS NOT NULL
+        AND purpose IN ('report', 'notify')
       )
     ),
   CONSTRAINT valuation_requests_lead_id_fkey
@@ -100,6 +105,9 @@ CREATE TABLE IF NOT EXISTS public.valuation_requests (
 
 COMMENT ON TABLE public.valuation_requests IS
   'Free car valuation requests. Asking-price range from QuickExit listings. service_role only. Email is optional and requires consent.';
+
+COMMENT ON COLUMN public.valuation_requests.purpose IS
+  'Email purpose chosen with consent: report (send the range) or notify (tell them when enough comparables exist). Null when no email was left.';
 
 CREATE INDEX IF NOT EXISTS valuation_requests_created_at_idx
   ON public.valuation_requests (created_at DESC);
