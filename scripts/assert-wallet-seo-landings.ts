@@ -9,6 +9,7 @@ import { PRODUCTION_SITE_URL } from "../lib/siteUrl";
 import {
   STIRILE_COMPROMISED_DEVICE_URL,
   STIRILE_CRYPTO_URL,
+  STIRILE_HOT_COLD_URL,
   WALLET_SEO_LANDING_SLUGS,
   buildWalletSeoJsonLd,
   getWalletSeoLanding,
@@ -239,7 +240,29 @@ assert(
 
 const trezor = getWalletSeoLanding("trezor-pret");
 assert(trezor.products.every((product) => product.brandSlug === "trezor"), "Trezor page is only Trezor");
-assert(trezor.lines.every((line) => line.secondaryLabel?.includes("RON")), "Trezor lines show the catalog lei");
+assert(trezor.lines.every((line) => line.primary?.includes("lei")), "Trezor lines show the catalog lei");
+
+const hardware = getWalletSeoLanding("hardware-wallet");
+const official = getWalletSeoLanding("de-ce-de-pe-site-ul-oficial");
+const DANI = "Dani folosește Tangem.";
+assert(hardware.intro.includes(DANI), "hardware page has the exact Dani sentence");
+assert(tangem.intro.includes(DANI), "Tangem page has the exact Dani sentence");
+assert(!hardware.intro.some((line) => line.includes("YouTube")), "hardware Dani sentence has no YouTube");
+assert(!tangem.intro.some((line) => line.includes("YouTube")), "Tangem Dani sentence has no YouTube");
+
+function hrefsOf(landing: { sources: { href: string }[]; related: { href: string }[] }): string[] {
+  return [...landing.sources, ...landing.related].map((link) => link.href);
+}
+assert(hrefsOf(official).includes(STIRILE_COMPROMISED_DEVICE_URL), "compromise article stays on the official-site page");
+assert(!hrefsOf(hardware).includes(STIRILE_COMPROMISED_DEVICE_URL), "hardware page has no compromise article");
+assert(!hrefsOf(ledger).includes(STIRILE_COMPROMISED_DEVICE_URL), "Ledger page has no compromise article");
+assert(hrefsOf(hardware).includes(STIRILE_HOT_COLD_URL), "hardware page keeps the hot vs cold guide");
+assert(hrefsOf(ledger).includes(STIRILE_HOT_COLD_URL), "Ledger page keeps the hot vs cold guide");
+assert(!hrefsOf(ledger).some((href) => href.includes("lerato.ro")), "Lerato is not a link");
+assert(!JSON.stringify(ledger).includes("Lerato, singurul nume"), "Lerato label is not a link");
+for (const landing of [hardware, ledger, tangem, trezor, official]) {
+  assert(!walletSeoLandingPublicText(landing).includes("eMAG"), `${landing.slug} does not name eMAG`);
+}
 
 const entries = buildStaticSitemapEntries(PRODUCTION_SITE_URL, new Date("2026-11-27T12:00:00.000Z"));
 for (const path of walletSeoLandingSitemapPaths()) {

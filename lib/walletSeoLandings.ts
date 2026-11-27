@@ -39,7 +39,6 @@ export const STIRILE_HOT_COLD_URL =
   "https://www.stirilecrypto.ro/academie/portofele-crypto-hot-vs-cold-ghid";
 
 const LEDGER_RESELLERS_URL = "https://shop.ledger.com/pages/resellers";
-const LERATO_LEDGER_URL = "https://www.lerato.ro/ledger";
 const TANGEM_PRICING_URL = "https://tangem.com/en/pricing/";
 const TANGEM_DELIVERY_URL = "https://tangem.com/en/international-delivery/page/16/";
 
@@ -154,8 +153,9 @@ function pricePhrase(product: WalletProduct): string {
     return `${name}: ${COPY.priceOnRequest}.`;
   }
   const prefix = view.priceIsFrom ? `${COPY.fromPrefix} ` : "";
-  const secondary =
-    view.secondary && view.secondaryKind === "same_page"
+  const secondary = view.estimate
+    ? ` (${COPY.estimateNote}${view.secondary ? ` · ${view.secondary}` : ""})`
+    : view.secondary && view.secondaryKind === "same_page"
       ? ` (${view.secondary} ${COPY.samePage})`
       : "";
   return `${name}: ${prefix}${view.primary}${secondary}, ${checkedLabel(view.checkedOn)}.`;
@@ -176,9 +176,11 @@ function lineFor(product: WalletProduct): WalletSeoProductLine {
     primary: verified ? view.primary : null,
     priceIsFrom: verified ? view.priceIsFrom : false,
     secondaryLabel:
-      verified && view.secondary && view.secondaryKind === "same_page"
-        ? `${view.secondary} ${COPY.samePage}`
-        : null,
+      verified && view.estimate
+        ? `${COPY.estimateNote}${view.secondary ? ` · ${view.secondary}` : ""}`
+        : verified && view.secondary && view.secondaryKind === "same_page"
+          ? `${view.secondary} ${COPY.samePage}`
+          : null,
     checkedLabel: verified ? checkedLabel(view.checkedOn) : null,
     priceOnRequest: verified ? null : COPY.priceOnRequest,
     outboundUrl: buildWalletOutboundUrl(product),
@@ -277,6 +279,7 @@ function hardwareLanding(): WalletSeoLanding {
     intro: [
       "Un portofel hardware ține cheile offline, pe un card sau într-un dispozitiv. Telefonul arată soldul și propune tranzacția. Semnarea se face pe portofel.",
       "Quick Exit nu vinde aceste produse și nu ține stoc. Prețurile de mai jos vin din același catalog ca pagina de portofele: prețul oficial, cu data la care a fost verificat.",
+      "Dani folosește Tangem.",
     ],
     priceHeading: "Câteva prețuri oficiale",
     products,
@@ -284,13 +287,6 @@ function hardwareLanding(): WalletSeoLanding {
       {
         href: STIRILE_HOT_COLD_URL,
         label: "Ghid Știrile Crypto: portofele hot și cold",
-        external: true,
-      },
-    ],
-    extraRelated: [
-      {
-        href: STIRILE_COMPROMISED_DEVICE_URL,
-        label: "Cazul unui dispozitiv compromis, pe Știrile Crypto",
         external: true,
       },
     ],
@@ -346,10 +342,9 @@ function ledgerLanding(): WalletSeoLanding {
     products,
     sources: [
       { href: LEDGER_RESELLERS_URL, label: "Lista de reselleri Ledger", external: true },
-      { href: LERATO_LEDGER_URL, label: "Lerato, singurul nume de pe lista din 27.11.2026", external: true },
       {
-        href: STIRILE_COMPROMISED_DEVICE_URL,
-        label: "Cazul unui dispozitiv compromis, pe Știrile Crypto",
+        href: STIRILE_HOT_COLD_URL,
+        label: "Ghid Știrile Crypto: portofele hot și cold",
         external: true,
       },
     ],
@@ -396,6 +391,7 @@ function tangemLanding(): WalletSeoLanding {
       "Tangem în România: carduri, Ring și Pro Kit, cu prețul oficial din catalogul Quick Exit. Cumpărarea se face pe site-ul Tangem.",
     intro: [
       `${tangem?.positioningRo ?? "Tangem este un portofel-card."}${dani}`,
+      "Dani folosește Tangem.",
       "Prețul de pe această pagină este prețul oficial din catalog. Butonul deschide site-ul Tangem. La 27.11.2026, pagina lor de prețuri estima livrarea spre România la 1–4 zile lucrătoare. Taxele și transportul se confirmă la checkout.",
     ],
     priceHeading: "Preț oficial Tangem",
@@ -486,7 +482,7 @@ function officialLanding(): WalletSeoLanding {
     intro: [
       "Quick Exit nu ține portofele pe stoc. Butonul deschide magazinul producătorului. Fraza de recuperare se generează pe dispozitivul tău, când îl configurezi. Nu vine tipărită din fabrică.",
       "Un dispozitiv din alt canal poate avea fraza deja generată sau poate fi modificat pe drum. Site-ul oficial nu elimină orice risc, dar scurtează lanțul de mâini.",
-      "La 27.11.2026, pe OLX apăreau portofele hardware sub prețul oficial, inclusiv anunțuri prezentate ca noi și sigilate. Un preț mai mic nu arată dacă dispozitivul a fost deschis. În aceeași zi, un anunț Ledger Nano X de pe eMAG era marcat ca vândut de un vânzător din marketplace, nu de Ledger.",
+      "La 27.11.2026, pe OLX apăreau portofele hardware sub prețul oficial, inclusiv anunțuri prezentate ca noi și sigilate. Un preț mai mic nu arată dacă dispozitivul a fost deschis. În aceeași zi, un anunț Ledger Nano X de pe un marketplace mare din România era marcat ca vândut de un vânzător din marketplace, nu de Ledger.",
       "Ledger spune cumpărătorilor să folosească magazinul oficial sau un reseller din lista lor. La 27.11.2026, lista pentru România arăta Lerato.",
     ],
     priceHeading: "Prețul pe care îl arătăm",
@@ -511,7 +507,7 @@ function officialLanding(): WalletSeoLanding {
       {
         question: "Un anunț sau un marketplace este magazinul oficial?",
         answer:
-          "Nu neapărat. La 27.11.2026, anunțuri de pe OLX erau sub prețul oficial, iar un Nano X de pe eMAG era vândut de un vânzător din marketplace. Aici prețul este cel din catalogul oficial.",
+          "Nu neapărat. La 27.11.2026, anunțuri de pe OLX erau sub prețul oficial, iar un Nano X de pe un marketplace mare din România era vândut de un vânzător din marketplace. Aici prețul este cel din catalogul oficial.",
       },
       {
         question: "Ce spune lista de reselleri Ledger?",
@@ -577,7 +573,7 @@ function productNode(product: WalletProduct, canonical: string, origin: string):
           priceCurrency: product.currency,
           url: product.officialUrl,
         }
-      : product.secondaryKind === "same_page" &&
+      : (product.secondaryKind === "same_page" || product.secondaryKind === "official_quote") &&
           product.secondaryAmount != null &&
           product.secondaryCurrency
         ? [
@@ -605,9 +601,11 @@ function productNode(product: WalletProduct, canonical: string, origin: string):
     "@type": "Product",
     "@id": `${canonical}#${product.slug}`,
     name,
-    description: view.priceIsFrom
-      ? `${name}. Preț de pornire verificat la ${view.checkedOn}.`
-      : `${name}. Preț oficial verificat la ${view.checkedOn}.`,
+    description: view.estimate
+      ? `${name}. Preț estimat în lei, citit din catalog la ${view.checkedOn}.`
+      : view.priceIsFrom
+        ? `${name}. Preț de pornire verificat la ${view.checkedOn}.`
+        : `${name}. Preț oficial verificat la ${view.checkedOn}.`,
     url: canonical,
     ...(brand ? { image: `${origin}${brand.image.src}` } : {}),
     brand: { "@type": "Brand", name: product.brand },
