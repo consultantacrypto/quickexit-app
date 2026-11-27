@@ -8,6 +8,7 @@ import { formatEurAmount } from "@/lib/i18n/format";
 import { listingLocationLabelFromUnknown } from "@/lib/listingLocation";
 import { listingAcceptsCrypto } from "@/lib/cryptoPayment";
 import { isCatalogOffer } from "@/lib/listingInventory";
+import { readVerifiedQe } from "@/lib/verifiedQe";
 import { normalizeSaleType } from "@/utils/normalizeSaleType";
 import { useLocale, useTranslations } from "next-intl";
 
@@ -54,6 +55,7 @@ export default function FutureMobilityListingGrid({
             <AdCard
               cryptoAccepted={listingAcceptsCrypto(item)}
               catalogOffer={isCatalogOffer(item.listing_kind)}
+              verifiedQe={readVerifiedQe(item)}
               id={item.id}
               title={item.title || ""}
               image={

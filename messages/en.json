@@ -273,7 +273,13 @@
     "cryptoFilter": "Accepts crypto",
     "cryptoFilterOn": "Crypto payment listings only",
     "catalogFilter": "Available to order",
-    "catalogFilterOn": "Available-to-order offers only"
+    "catalogFilterOn": "Available-to-order offers only",
+    "verifiedFilter": "Verified only",
+    "verifiedFilterOn": "Verified QE listings only"
+  },
+  "VerifiedQe": {
+    "label": "Verified QE",
+    "tooltip": "Verified by QuickExit: documents, VIN and real photos"
   },
   "ListingLocation": {
     "helper": "The place where the asset can be viewed or collected. Do not enter a street address.",

@@ -1,5 +1,6 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { isPubliclyAvailableStatus, PUBLIC_AVAILABILITY_OR } from "@/lib/listingInventory";
+import { queryToleratingMissingVerifiedQe } from "@/lib/verifiedQe";
 
 export type ListingSeoRow = {
   id: string;
@@ -32,6 +33,7 @@ export type PublicListingRow = ListingSeoRow & {
   crypto_assets?: string[] | null;
   listing_kind?: string | null;
   availability_status?: string | null;
+  verified_qe?: boolean | null;
   [key: string]: unknown;
 };
 
@@ -152,14 +154,18 @@ export async function fetchPublicListingDetail(id: string): Promise<PublicListin
   const supabase = createServerSupabase();
   if (!supabase) return null;
 
-  const { data, error } = await supabase
-    .from("listings")
-    .select(LISTING_DETAIL_FIELDS)
-    .eq("id", listingId)
-    .eq("status", "active")
-    .eq("is_seed", false)
-    .or(PUBLIC_AVAILABILITY_OR)
-    .maybeSingle();
+  const { data, error } = await queryToleratingMissingVerifiedQe(
+    (fields) =>
+      supabase
+        .from("listings")
+        .select(fields)
+        .eq("id", listingId)
+        .eq("status", "active")
+        .eq("is_seed", false)
+        .or(PUBLIC_AVAILABILITY_OR)
+        .maybeSingle(),
+    LISTING_DETAIL_FIELDS,
+  );
 
   if (error || !data) return null;
   if (!isPubliclyAvailableStatus((data as { availability_status?: unknown }).availability_status)) {
@@ -183,17 +189,21 @@ export async function fetchListingSellerContext(
       .select("id, full_name, kyc_status, user_type, created_at")
       .eq("id", userId)
       .maybeSingle(),
-    supabase
-      .from("listings")
-      .select(LISTING_CARD_FIELDS)
-      .eq("user_id", userId)
-      .eq("status", SELLER_PUBLIC_LISTING_STATUS)
-      .eq("is_seed", SELLER_PUBLIC_LISTING_IS_SEED)
-      .or(PUBLIC_AVAILABILITY_OR)
-      .neq("id", listingId)
-      .order("effective_sort_at", { ascending: false })
-      .order("id", { ascending: false })
-      .limit(3),
+    queryToleratingMissingVerifiedQe(
+      (fields) =>
+        supabase
+          .from("listings")
+          .select(fields)
+          .eq("user_id", userId)
+          .eq("status", SELLER_PUBLIC_LISTING_STATUS)
+          .eq("is_seed", SELLER_PUBLIC_LISTING_IS_SEED)
+          .or(PUBLIC_AVAILABILITY_OR)
+          .neq("id", listingId)
+          .order("effective_sort_at", { ascending: false })
+          .order("id", { ascending: false })
+          .limit(3),
+      LISTING_CARD_FIELDS,
+    ),
     supabase
       .from("listings")
       .select("id", { count: "exact", head: true })
@@ -216,15 +226,19 @@ export async function fetchSimilarListings(
   const supabase = createServerSupabase();
   if (!supabase) return [];
 
-  const { data } = await supabase
-    .from("listings")
-    .select(LISTING_CARD_FIELDS)
-    .eq("category", category)
-    .eq("status", "active")
-    .eq("is_seed", false)
-    .or(PUBLIC_AVAILABILITY_OR)
-    .neq("id", listingId)
-    .limit(3);
+  const { data } = await queryToleratingMissingVerifiedQe(
+    (fields) =>
+      supabase
+        .from("listings")
+        .select(fields)
+        .eq("category", category)
+        .eq("status", "active")
+        .eq("is_seed", false)
+        .or(PUBLIC_AVAILABILITY_OR)
+        .neq("id", listingId)
+        .limit(3),
+    LISTING_CARD_FIELDS,
+  );
 
   return (data ?? []) as unknown as PublicListingRow[];
 }
@@ -233,15 +247,19 @@ export async function fetchFutureMobilityListings(): Promise<PublicListingRow[]>
   const supabase = createServerSupabase();
   if (!supabase) return [];
 
-  const { data, error } = await supabase
-    .from("listings")
-    .select(LISTING_CARD_FIELDS)
-    .eq("status", "active")
-    .eq("is_seed", false)
-    .or(PUBLIC_AVAILABILITY_OR)
-    .filter("details->>collection", "eq", "future_mobility")
-    .order("effective_sort_at", { ascending: false })
-    .order("id", { ascending: false });
+  const { data, error } = await queryToleratingMissingVerifiedQe(
+    (fields) =>
+      supabase
+        .from("listings")
+        .select(fields)
+        .eq("status", "active")
+        .eq("is_seed", false)
+        .or(PUBLIC_AVAILABILITY_OR)
+        .filter("details->>collection", "eq", "future_mobility")
+        .order("effective_sort_at", { ascending: false })
+        .order("id", { ascending: false }),
+    LISTING_CARD_FIELDS,
+  );
 
   if (error) {
     console.warn("listingSeo.fetchFutureMobilityListings failed", {

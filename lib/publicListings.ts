@@ -17,6 +17,7 @@ import {
 
 import { CRYPTO_LISTING_COLUMNS, listingAcceptsCrypto } from "@/lib/cryptoPayment";
 import { PUBLIC_INVENTORY_COLUMNS, isPubliclyAvailableStatus, looksAvailableToOrder } from "@/lib/listingInventory";
+import { queryToleratingMissingVerifiedQe, readVerifiedQe } from "@/lib/verifiedQe";
 
 export const PUBLIC_LISTING_SEARCH_FIELDS =
   `id,title,images,market_price,exit_price,discount,deal_score,sale_strategy,offer_count,highest_offer,expires_at,status,is_seed,category,description,created_at,details,${CRYPTO_LISTING_COLUMNS},${PUBLIC_INVENTORY_COLUMNS}`;
@@ -58,6 +59,7 @@ export type PublicListingSearchParams = {
   district?: string | null;
   crypto?: boolean | string | null;
   catalog?: boolean | string | null;
+  verified?: boolean | string | null;
   page?: number | string | null;
   limit?: number;
 };
@@ -70,6 +72,7 @@ export type ParsedPublicListingSearchParams = {
   district: string;
   crypto: boolean;
   catalog: boolean;
+  verified: boolean;
   page: number;
   locationInvalid: boolean;
 };
@@ -197,6 +200,7 @@ export function parsePublicListingSearchParams(
     page,
     crypto: get("crypto") === "1",
     catalog: get("catalog") === "1",
+    verified: get("verified") === "1",
     locationInvalid: location.invalid,
   };
 }
@@ -294,6 +298,7 @@ export function filterPublicSearchListings(
     district?: string;
     crypto?: boolean;
     catalog?: boolean;
+    verified?: boolean;
   },
 ): PublicSearchListing[] {
   if (!Array.isArray(rows)) return [];
@@ -312,6 +317,7 @@ export function filterPublicSearchListings(
     if (params.crypto && !listingAcceptsCrypto(row)) return false;
     if (!isPubliclyAvailableStatus(row.availability_status)) return false;
     if (params.catalog && !looksAvailableToOrder(row)) return false;
+    if (params.verified && !readVerifiedQe(row)) return false;
     return true;
   });
 }
@@ -350,6 +356,7 @@ export function buildPublicSearchPath(
     district?: string;
     crypto?: boolean;
     catalog?: boolean;
+    verified?: boolean;
   },
   page = 1,
 ): string {
@@ -361,6 +368,7 @@ export function buildPublicSearchPath(
   if (filters.district) params.set("district", filters.district);
   if (filters.crypto) params.set("crypto", "1");
   if (filters.catalog) params.set("catalog", "1");
+  if (filters.verified) params.set("verified", "1");
   if (page > 1) params.set("page", String(page));
   const qs = params.toString();
   return qs ? `/cauta?${qs}` : "/cauta";
@@ -384,6 +392,7 @@ export async function fetchPublicSearchListings(
     district: params.district ?? "",
     crypto: params.crypto ? "1" : "",
     catalog: params.catalog ? "1" : "",
+    verified: params.verified ? "1" : "",
     page: params.page == null ? "1" : String(params.page),
   });
   const locationInvalid = params.locationInvalid ?? parsed.locationInvalid;
@@ -405,35 +414,51 @@ export async function fetchPublicSearchListings(
   }
 
   const from = (page - 1) * pageSize;
-  let query = supabase
-    .from("listings")
-    .select(PUBLIC_LISTING_SEARCH_FIELDS, { count: "exact" })
-    .eq("status", "active")
-    .eq("is_seed", false)
-    .order("effective_sort_at", { ascending: false })
-    .order("id", { ascending: false });
-
-  if (parsed.catalog) {
-    // SQL is a superset. Paginate after looksAvailableToOrder so the count
-    // matches the rows actually shown.
-    query = query.limit(PUBLIC_SEARCH_PAGE_SIZE * PUBLIC_SEARCH_MAX_PAGE);
-  } else {
-    query = query.range(from, from + pageSize - 1);
-  }
-
   const keywordOr = buildKeywordOrFilter(parsed.q);
-  if (keywordOr) query = query.or(keywordOr);
+  const locationOrs = buildLocationOrFilters(parsed);
 
-  for (const locationOr of buildLocationOrFilters(parsed)) {
-    query = query.or(locationOr);
+  const runSearch = (fields: string, applyVerified: boolean) => {
+    let query = supabase
+      .from("listings")
+      .select(fields, { count: "exact" })
+      .eq("status", "active")
+      .eq("is_seed", false)
+      .order("effective_sort_at", { ascending: false })
+      .order("id", { ascending: false });
+
+    // Verified-only is a SQL predicate before range/limit so count and pages
+    // describe the filtered set, not the unfiltered catalog.
+    if (applyVerified) query = query.eq("verified_qe", true);
+
+    if (parsed.catalog) {
+      // SQL is a superset. Paginate after looksAvailableToOrder so the count
+      // matches the rows actually shown.
+      query = query.limit(PUBLIC_SEARCH_PAGE_SIZE * PUBLIC_SEARCH_MAX_PAGE);
+    } else {
+      query = query.range(from, from + pageSize - 1);
+    }
+
+    if (keywordOr) query = query.or(keywordOr);
+    for (const locationOr of locationOrs) {
+      query = query.or(locationOr);
+    }
+    if (parsed.crypto) query = query.neq("crypto_payment_mode", "none");
+    query = query.or("availability_status.eq.available,availability_status.eq.needs_confirmation");
+    if (parsed.catalog) query = query.or(buildAvailableToOrderOrFilter());
+    return query;
+  };
+
+  const result = await queryToleratingMissingVerifiedQe(
+    (fields) => runSearch(fields, parsed.verified),
+    PUBLIC_LISTING_SEARCH_FIELDS,
+    parsed.verified ? { onMissing: "empty" } : undefined,
+  );
+  if (result.columnMissing && parsed.verified) {
+    return empty;
   }
-  if (parsed.crypto) query = query.neq("crypto_payment_mode", "none");
-  query = query.or("availability_status.eq.available,availability_status.eq.needs_confirmation");
-  if (parsed.catalog) query = query.or(buildAvailableToOrderOrFilter());
-
-  const { data, error, count } = await query;
+  const { data, error, count } = result;
   if (error) {
-    return { listings: [], total: 0, page, pageSize, error: error.message };
+    return { listings: [], total: 0, page, pageSize, error: error.message ?? null };
   }
 
   const filtered = filterPublicSearchListings(data, parsed);

@@ -35,6 +35,8 @@ import {
   isValidPrice,
 } from "@/lib/listingPrice";
 import { listingLocationLabelFromUnknown } from "@/lib/listingLocation";
+import { readVerifiedQe } from "@/lib/verifiedQe";
+import VerifiedQeBadge from "@/app/components/VerifiedQeBadge";
 import { getPricingMode } from "@/lib/pricingMode";
 import { resolveListingField } from "@/lib/i18n/listingContent";
 import { normalizeListingDescription } from "@/lib/listingDescription";
@@ -1384,6 +1386,7 @@ export default function AnuntClient({
                 </span>
               </div>
               {fm ? <FutureMobilityBadgePills fm={fm} /> : null}
+              {readVerifiedQe(adData) ? <VerifiedQeBadge /> : null}
               <h1 className="text-[1.85rem] font-black uppercase italic leading-[1.02] tracking-tight text-black sm:text-3xl md:text-4xl lg:text-[2.75rem] lg:leading-[1.05]">
                 {renderTitle(listingTitle)}
               </h1>
@@ -1599,6 +1602,7 @@ export default function AnuntClient({
                     key={item.id}
                     cryptoAccepted={listingAcceptsCrypto(item)}
                     catalogOffer={isCatalogOffer(item.listing_kind)}
+                    verifiedQe={readVerifiedQe(item)}
                     id={item.id}
                     title={item.title || ""}
                     image={item.images?.[0] || ""}
@@ -1641,6 +1645,7 @@ export default function AnuntClient({
                   key={item.id}
                   cryptoAccepted={listingAcceptsCrypto(item)}
                   catalogOffer={isCatalogOffer(item.listing_kind)}
+                  verifiedQe={readVerifiedQe(item)}
                   id={item.id}
                   title={item.title || ""}
                   image={item.images?.[0] || ""}

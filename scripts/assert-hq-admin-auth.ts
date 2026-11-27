@@ -369,6 +369,7 @@ const hqRoutes = [
   "app/api/hq/media-orders/route.ts",
   "app/api/hq/overview/route.ts",
   "app/api/hq/risk-resolutions/route.ts",
+  "app/api/hq/verified-qe/route.ts",
 ];
 for (const path of hqRoutes) {
   const src = readFileSync(resolve(path), "utf8");

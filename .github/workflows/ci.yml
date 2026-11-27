@@ -83,3 +83,6 @@ jobs:
 
       - name: Available-to-order filter
         run: npm run assert:available-to-order
+
+      - name: Verificat QE badge
+        run: npx tsx scripts/assert-verified-qe.ts

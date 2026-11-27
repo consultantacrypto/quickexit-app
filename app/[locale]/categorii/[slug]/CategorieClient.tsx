@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabase";
 import AdCard from "@/app/components/AdCard";
 import { listingAcceptsCrypto } from "@/lib/cryptoPayment";
 import { isCatalogOffer, PUBLIC_AVAILABILITY_OR, PUBLIC_INVENTORY_COLUMNS } from "@/lib/listingInventory";
+import { queryToleratingMissingVerifiedQe, readVerifiedQe } from "@/lib/verifiedQe";
 import { normalizeSaleType } from "@/utils/normalizeSaleType";
 import { useLocale } from "next-intl";
 import { getNumberLocale } from "@/lib/i18n/format";
@@ -57,17 +58,19 @@ function CategoryContent() {
     async function fetchCategoryData() {
       setIsLoading(true);
       try {
-        const { data: listData } = await supabase
-          .from("listings")
-          .select(
-            `id,title,images,market_price,exit_price,discount,deal_score,sale_strategy,offer_count,highest_offer,expires_at,status,is_seed,category,details,created_at,crypto_payment_mode,crypto_assets,${PUBLIC_INVENTORY_COLUMNS}`
-          )
-          .eq("category", categoryName)
-          .eq("status", "active")
-          .eq("is_seed", false)
-          .or(PUBLIC_AVAILABILITY_OR)
-          .order("effective_sort_at", { ascending: false })
-          .order("id", { ascending: false });
+        const { data: listData } = await queryToleratingMissingVerifiedQe(
+          (fields) =>
+            supabase
+              .from("listings")
+              .select(fields)
+              .eq("category", categoryName)
+              .eq("status", "active")
+              .eq("is_seed", false)
+              .or(PUBLIC_AVAILABILITY_OR)
+              .order("effective_sort_at", { ascending: false })
+              .order("id", { ascending: false }),
+          `id,title,images,market_price,exit_price,discount,deal_score,sale_strategy,offer_count,highest_offer,expires_at,status,is_seed,category,details,created_at,crypto_payment_mode,crypto_assets,${PUBLIC_INVENTORY_COLUMNS}`,
+        );
 
         const { data: demandData } = await supabase
           .from("demands")
@@ -202,6 +205,7 @@ function CategoryContent() {
                       <AdCard
                         cryptoAccepted={listingAcceptsCrypto(item)}
                       catalogOffer={isCatalogOffer(item.listing_kind)}
+                        verifiedQe={readVerifiedQe(item)}
                         id={item.id}
                         title={item.title}
                         image={
@@ -248,6 +252,7 @@ function CategoryContent() {
                     key={item.id}
                     cryptoAccepted={listingAcceptsCrypto(item)}
                       catalogOffer={isCatalogOffer(item.listing_kind)}
+                    verifiedQe={readVerifiedQe(item)}
                     id={item.id}
                     title={item.title}
                     image={

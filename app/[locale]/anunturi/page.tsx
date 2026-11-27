@@ -6,6 +6,7 @@ import { PAGE_METADATA_COPY } from "@/lib/pageMetadataCopy";
 import { buildPageMetadata, resolvePageLocale } from "@/lib/seo";
 import { PUBLIC_AVAILABILITY_OR, PUBLIC_INVENTORY_COLUMNS } from "@/lib/listingInventory";
 import { supabase } from "@/lib/supabase";
+import { listingRows, queryToleratingMissingVerifiedQe } from "@/lib/verifiedQe";
 
 export const revalidate = 60;
 
@@ -34,16 +35,18 @@ export default async function AnunturiPage({ params, searchParams }: PageProps) 
   setRequestLocale(locale);
   const activeSlug = parseListingsCategoryParam(category ?? null);
 
-  const { data, error } = await supabase
-    .from("listings")
-    .select(
-      `id,title,images,market_price,exit_price,discount,deal_score,sale_strategy,offer_count,highest_offer,expires_at,status,is_seed,category,created_at,details,crypto_payment_mode,crypto_assets,${PUBLIC_INVENTORY_COLUMNS}`,
-    )
-    .eq("status", "active")
-    .eq("is_seed", false)
-    .or(PUBLIC_AVAILABILITY_OR)
-    .order("effective_sort_at", { ascending: false })
-    .order("id", { ascending: false });
+  const { data, error } = await queryToleratingMissingVerifiedQe(
+    (fields) =>
+      supabase
+        .from("listings")
+        .select(fields)
+        .eq("status", "active")
+        .eq("is_seed", false)
+        .or(PUBLIC_AVAILABILITY_OR)
+        .order("effective_sort_at", { ascending: false })
+        .order("id", { ascending: false }),
+    `id,title,images,market_price,exit_price,discount,deal_score,sale_strategy,offer_count,highest_offer,expires_at,status,is_seed,category,created_at,details,crypto_payment_mode,crypto_assets,${PUBLIC_INVENTORY_COLUMNS}`,
+  );
 
   if (error) {
     return (
@@ -53,7 +56,7 @@ export default async function AnunturiPage({ params, searchParams }: PageProps) 
 
   return (
     <AnunturiClient
-      listings={data ?? []}
+      listings={listingRows(data)}
       fetchError={false}
       activeSlug={activeSlug}
       cryptoOnly={crypto === "1"}
