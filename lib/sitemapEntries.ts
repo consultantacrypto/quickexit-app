@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 import { AI_ANSWER_LANDING_PATHS } from "@/lib/aiAnswerLanding";
 import { PRODUCTION_SITE_URL } from "@/lib/siteUrl";
+import { walletSeoLandingSitemapPaths } from "@/lib/walletSeoLandings";
 
 export const SITEMAP_LOCALES = ["ro", "en"] as const;
 export const SITEMAP_DEFAULT_LISTING_LOCALE = "ro";
@@ -108,8 +109,16 @@ export function buildStaticSitemapEntries(
     }),
   );
 
+  const walletLandings = walletSeoLandingSitemapPaths().map((path) => ({
+    url: localizedSitemapUrl(origin, "ro", path),
+    lastModified: now,
+    changeFrequency: "weekly" as const,
+    priority: 0.75,
+  }));
+
   return [
     ...localized,
+    ...walletLandings,
     {
       url: `${origin}/bmk`,
       lastModified: now,
