@@ -110,8 +110,8 @@ VALUES
 `,
 );
 
-execFile(resolve(root, "supabase/migrations/20261127120000_listing_verified_qe.sql"));
-execFile(resolve(root, "supabase/migrations/20261127120000_listing_verified_qe.sql"));
+execFile(resolve(root, "supabase/migrations/20261127074048_listing_verified_qe.sql"));
+execFile(resolve(root, "supabase/migrations/20261127074048_listing_verified_qe.sql"));
 
 const defaults = execOk(
   db,
@@ -226,7 +226,7 @@ assert(titles === "7", "rollback keeps listing rows");
 const title = execOk(db, `SELECT title FROM public.listings WHERE id = '${existingA}'`);
 assert(title === "Existing one edited", "rollback keeps ordinary listing data");
 
-execFile(resolve(root, "supabase/migrations/20261127120000_listing_verified_qe.sql"));
+execFile(resolve(root, "supabase/migrations/20261127074048_listing_verified_qe.sql"));
 const afterReapply = execOk(db, `SELECT count(*) FROM public.listings WHERE verified_qe = false`);
 assert(afterReapply === "7", "reapply after rollback defaults every row to false");
 

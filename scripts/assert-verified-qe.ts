@@ -231,7 +231,7 @@ const from = (2 - 1) * PUBLIC_SEARCH_PAGE_SIZE;
 assert(onlyVerified.slice(from, from + PUBLIC_SEARCH_PAGE_SIZE).length === 0, "page 2 of a one-row verified set is empty");
 assert(filterPublicSearchListings(rows, {}).length === 3, "without the filter every public row remains");
 
-const migration = readFileSync(join(root, "supabase/migrations/20261127120000_listing_verified_qe.sql"), "utf8");
+const migration = readFileSync(join(root, "supabase/migrations/20261127074048_listing_verified_qe.sql"), "utf8");
 assert(migration.includes("ADD COLUMN IF NOT EXISTS verified_qe"), "verified_qe is idempotent");
 assert(migration.includes("ADD COLUMN IF NOT EXISTS verified_docs"), "docs check column");
 assert(migration.includes("ADD COLUMN IF NOT EXISTS verified_vin"), "vin check column");

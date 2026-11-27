@@ -1,4 +1,4 @@
--- Manual rollback for 20261127120000_listing_verified_qe.sql
+-- Manual rollback for 20261127074048_listing_verified_qe.sql
 -- Review before running. Drops the badge columns and the HQ writer.
 -- Does not delete listing rows.
 
