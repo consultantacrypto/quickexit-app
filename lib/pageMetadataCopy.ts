@@ -5,14 +5,14 @@ type LocaleCopy = Record<PageLocale, { title: string; description: string }>;
 export const PAGE_METADATA_COPY = {
   evaluare: {
     ro: {
-      title: "Evaluare rapidă active | Quick Exit",
+      title: "Evaluare auto gratuită | Quick Exit",
       description:
-        "Evaluează rapid un activ și află dacă se potrivește pentru o vânzare rapidă prin Quick Exit.",
+        "Interval orientativ pentru mașina ta, calculat din prețurile cerute pe QuickExit. Poți evalua și alte active. Nu este o evaluare autorizată și nu garantează vânzarea.",
     },
     en: {
-      title: "Fast asset valuation | Quick Exit",
+      title: "Free car valuation | Quick Exit",
       description:
-        "Get a quick indicative valuation and see if your asset fits a fast sale on Quick Exit.",
+        "An indicative range for your car from QuickExit asking prices. Other asset categories are still available. Not an authorized valuation and not a sale guarantee.",
     },
   },
   capitalDisponibil: {

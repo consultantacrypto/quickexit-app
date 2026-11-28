@@ -75,6 +75,7 @@ export type EvaluationDraftAssetDetails = {
   model?: string;
   year?: string;
   km?: string;
+  equipment?: string;
   property_type?: string;
   location?: string;
   surface?: string;
@@ -302,6 +303,7 @@ function buildSuggestedTitle(
 export function buildEvaluationDraft(input: {
   category: EvaluationDraftCategory;
   formData: EvaluationFormSnapshot;
+  equipment?: string;
   selectedExitPrice?: number;
   selectedPriceType?: EvaluationPriceType;
   selectedPriceLabel?: string;
@@ -309,6 +311,10 @@ export function buildEvaluationDraft(input: {
   confidenceScore?: number;
 }): EvaluationDraft {
   const assetDetails = buildAssetDetails(input.category, input.formData);
+  const equipment = sanitizeEvaluateText(input.equipment, 500);
+  if (equipment && input.category === "auto") {
+    assetDetails.equipment = equipment;
+  }
   const selectedPriceType = input.selectedPriceType
     ? parseEvaluationPriceType(input.selectedPriceType)
     : undefined;
@@ -368,6 +374,7 @@ function sanitizeLoadedAssetDetails(
     "optionalYear",
     "industry",
     "revenue",
+    "equipment",
   ] as const) {
     const value =
       key === "year" || key === "km" || key === "surface" || key === "rooms" || key === "optionalYear" || key === "revenue"
@@ -475,6 +482,7 @@ export type ListingFormDataPatch = {
   surface?: string;
   rooms?: string;
   brand?: string;
+  specs?: string;
   refModel?: string;
   purchaseYear?: string;
   businessDomain?: string;
@@ -493,6 +501,7 @@ export function mapEvaluationDraftToListingPatch(
       if (d.model) patch.model = d.model;
       if (d.year) patch.year = d.year;
       if (d.km) patch.km = d.km;
+      if (d.equipment) patch.specs = d.equipment;
       break;
     case "imobiliare":
       if (d.property_type) patch.propType = d.property_type;
